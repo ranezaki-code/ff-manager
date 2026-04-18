@@ -570,7 +570,7 @@ let S = {
   ext:DEF_EXT.map(e=>({...e})),
   rules:[],
   checks:{},
-  budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{}},
+  budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{}},
   discHist:[],
   施策:[],   // [{id,name,days:'all'|'weekday'|'weekend'|曜日,impact:0}]
   weekStart:'2026-04-14', // 初期値は直近火曜日（loadS内で動的に再計算）
@@ -726,10 +726,13 @@ function loadS(){
   }
   if(migrated)console.log('週開始日を火曜日に移行しました');
 
-  // データ移行: budget.newProductBudgets がない場合は初期化
-  if(!S.budget)S.budget={target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{}};
+  // データ移行: budget 各フィールド初期化
+  if(!S.budget)S.budget={target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{}};
   if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
   if(!S.budget.investBudgets)S.budget.investBudgets={};
+  // v19: 個数ベース予算キー追加
+  if(!S.budget.newProductCounts)S.budget.newProductCounts={};
+  if(!S.budget.investCounts)S.budget.investCounts={};
   // isInvest フラグがない既存商品にデフォルト false を付与
   S.PM.forEach(p=>{if(p.isInvest===undefined)p.isInvest=false;});
   if(!S.施策)S.施策=[];
@@ -1542,6 +1545,8 @@ function delProduct(pid){
   Object.keys(S.checks).forEach(k=>{if(k.endsWith('_'+pid))delete S.checks[k];});
   if(S.budget.newProductBudgets)delete S.budget.newProductBudgets[pid];
   if(S.budget.investBudgets)delete S.budget.investBudgets[pid];
+  if(S.budget.newProductCounts)delete S.budget.newProductCounts[pid];
+  if(S.budget.investCounts)delete S.budget.investCounts[pid];
   saveS();renderProductCards();
 }
 
@@ -2433,15 +2438,23 @@ function renderBudgetPlan(){
   // 想定売変率 = 想定売変額 ÷ 次週売上高（正式）
   const nextDiscRate =nextSalesAmt?nextDiscAmt/nextSalesAmt*100:0;
 
-  // ── 新商品予算 ──
-  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
-  if(!S.budget.investBudgets)S.budget.investBudgets={};
-  // 最大値 = 売上高 − 原価（全投資ゼロ時の利益高＝投資できる上限）
+  // ── 投資予算 ──
+  if(!S.budget.newProductCounts)S.budget.newProductCounts={};
+  if(!S.budget.investCounts)S.budget.investCounts={};
+  // 上限 = 売上高 − 原価（全投資ゼロ時の利益高＝投資できる上限）
   const newBudgetMax=Math.max(0,nextSalesAmt-nextTotalCost);
-  // 正式 = 商品ごと手入力の合計
-  const newBudgetFormal=Object.values(S.budget.newProductBudgets).reduce((s,v)=>s+(v||0),0);
-  // 定番投資予算（正式）= 投資対象フラグON商品の手入力合計
-  const investBudgetFormal=Object.values(S.budget.investBudgets).reduce((s,v)=>s+(v||0),0);
+  // 新商品予算（正式）= 商品ごと手入力個数 × 原価 の合計
+  const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
+    .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*p.cost,0);
+  // 新商品予算の総個数（表示用）
+  const newBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
+    .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
+  // 定番投資予算（正式）= 投資対象フラグON商品の手入力個数 × 原価 の合計
+  const investBudgetFormal=S.PM.filter(p=>p.enabled&&p.isInvest)
+    .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*p.cost,0);
+  // 定番投資予算の総個数（表示用）
+  const investBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.isInvest)
+    .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
 
   // 次週利益高 = 売上高 − 原価 − 新商品予算（正式）− 定番投資予算（正式）
   const nextProfitAmt=nextSalesAmt-nextTotalCost-newBudgetFormal-investBudgetFormal;
@@ -2482,19 +2495,21 @@ function renderBudgetPlan(){
         <div style="font-size:10px;color:#999;margin-top:2px">作成高−廃棄額−売変額</div>
       </div>
       <div class="summary-box">
-        <div class="label">新商品予算（最大値）</div>
+        <div class="label">投資予算（上限）</div>
         <div class="value" style="color:${maxColor}">${fmt(newBudgetMax)}</div><div class="unit">円</div>
         <div style="font-size:10px;color:#999;margin-top:2px">売上高−原価（赤字にならない上限）</div>
       </div>
       <div class="summary-box" style="border:2px solid var(--main)">
         <div class="label">新商品予算（正式）</div>
-        <div class="value" style="color:var(--main)">${fmt(newBudgetFormal)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">商品別手入力の合計 ↓</div>
+        <div class="value" style="color:var(--main)">${newBudgetTotalCnt}</div><div class="unit">個</div>
+        <div style="font-size:11px;color:var(--main);font-weight:600;margin-top:2px">${fmt(newBudgetFormal)}円</div>
+        <div style="font-size:10px;color:#999;margin-top:1px">個数×原価 合計 ↓</div>
       </div>
       <div class="summary-box" style="border:2px solid var(--orange)">
         <div class="label" style="color:var(--orange)">定番投資予算（正式）</div>
-        <div class="value" style="color:var(--orange)">${fmt(investBudgetFormal)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">投資対象商品の手入力合計 ↓</div>
+        <div class="value" style="color:var(--orange)">${investBudgetTotalCnt}</div><div class="unit">個</div>
+        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-top:2px">${fmt(investBudgetFormal)}円</div>
+        <div style="font-size:10px;color:#999;margin-top:1px">個数×原価 合計 ↓</div>
       </div>
       <div class="summary-box">
         <div class="label">次週利益高</div>
@@ -2531,79 +2546,92 @@ function renderBudgetPlan(){
 }
 
 function renderNewProductBudgetTable(maxBudget){
-  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
+  if(!S.budget.newProductCounts)S.budget.newProductCounts={};
   // 「新商品」カテゴリの商品のみ表示
   const NEW_CAT_SUFFIX='新商品';
   const prods=S.PM.filter(p=>p.enabled&&p.category.endsWith(NEW_CAT_SUFFIX));
   if(!prods.length)return '<div style="color:#999;font-size:12px">新商品カテゴリの商品がありません（②商品設定で「ホットFF新商品」等のカテゴリを設定してください）</div>';
-  const total=Object.values(S.budget.newProductBudgets).reduce((s,v)=>s+(v||0),0);
-  const over=total>maxBudget;
+  const totalAmt=prods.reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*p.cost,0);
+  const totalCnt=prods.reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
+  const over=totalAmt>maxBudget;
   let html=`<table><thead><tr>
     <th style="text-align:left">商品名</th>
     <th>カテゴリ</th>
-    <th>新商品予算（正式）</th>
+    <th style="width:90px">原価</th>
+    <th style="width:130px">追加作成数（個）</th>
+    <th style="width:110px">予算額（円）</th>
   </tr></thead><tbody>`;
   prods.forEach(p=>{
-    const val=S.budget.newProductBudgets[p.id]||0;
+    const cnt=S.budget.newProductCounts[p.id]||0;
+    const amt=cnt*p.cost;
     html+=`<tr>
       <td style="text-align:left;font-size:12px">${p.name}</td>
       <td style="font-size:11px;color:#666">${p.category}</td>
-      <td><input type="number" value="${val}" min="0" step="100" style="width:100px"
-        data-budget-pid="${p.id}"
-        onchange="setNewProductBudget('${p.id}',parseInt(toHalf(this.value))||0)">円</td>
+      <td style="font-size:12px;color:#555">${fmt(p.cost)}円</td>
+      <td><input type="number" value="${cnt}" min="0" step="1" style="width:70px;text-align:right"
+        onchange="setNewProductCount('${p.id}',parseInt(toHalf(this.value))||0)">個</td>
+      <td style="font-size:12px;font-weight:600;color:var(--main)">${fmt(amt)}円</td>
     </tr>`;
   });
   html+=`</tbody><tfoot><tr style="font-weight:700;background:var(--main-lt)">
-    <td colspan="2" style="text-align:right">合計</td>
-    <td style="color:${over?'var(--red)':'var(--green)'}">${fmt(total)}円
-      ${over?'<span style="font-size:10px;color:var(--red)">⚠ 最大値超過</span>':''}
+    <td colspan="3" style="text-align:right">合計</td>
+    <td style="color:var(--main)">${totalCnt}個</td>
+    <td style="color:${over?'var(--red)':'var(--main)'};">${fmt(totalAmt)}円
+      ${over?'<span style="font-size:10px;color:var(--red)"> ⚠ 上限超過</span>':''}
     </td>
   </tr></tfoot></table>`;
   return html;
 }
 
-function setNewProductBudget(pid,val){
-  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
-  S.budget.newProductBudgets[pid]=val;
+function setNewProductCount(pid,cnt){
+  if(!S.budget.newProductCounts)S.budget.newProductCounts={};
+  S.budget.newProductCounts[pid]=cnt;
   saveS();renderBudgetPlan();
 }
 
 function renderInvestBudgetTable(maxBudget,newBudgetFormal){
-  if(!S.budget.investBudgets)S.budget.investBudgets={};
-  // 投資対象フラグONの定番商品（新商品カテゴリは除く）
+  if(!S.budget.investCounts)S.budget.investCounts={};
+  // 投資対象フラグONの商品
   const prods=S.PM.filter(p=>p.enabled&&p.isInvest);
   if(!prods.length)return '<div style="color:#999;font-size:12px">投資対象商品がありません（②商品設定で「📈 定番投資対象」をONにしてください）</div>';
-  const total=Object.values(S.budget.investBudgets).reduce((s,v)=>s+(v||0),0);
-  // 利用可能上限 = 最大予算 − 新商品予算（正式）
+  const totalAmt=prods.reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*p.cost,0);
+  const totalCnt=prods.reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
+  // 利用可能上限 = 投資予算（上限）− 新商品予算（正式）
   const availMax=Math.max(0,maxBudget-newBudgetFormal);
-  const over=total>availMax;
+  const over=totalAmt>availMax;
   let html=`<table><thead><tr>
     <th style="text-align:left">商品名</th>
     <th>カテゴリ</th>
-    <th>定番投資予算（正式）</th>
+    <th style="width:90px">原価</th>
+    <th style="width:130px">追加作成数（個）</th>
+    <th style="width:110px">予算額（円）</th>
   </tr></thead><tbody>`;
   prods.forEach(p=>{
-    const val=S.budget.investBudgets[p.id]||0;
+    const cnt=S.budget.investCounts[p.id]||0;
+    const amt=cnt*p.cost;
     html+=`<tr>
       <td style="text-align:left;font-size:12px">${p.name}</td>
       <td style="font-size:11px;color:#666">${p.category}</td>
-      <td><input type="number" value="${val}" min="0" step="100" style="width:100px"
-        onchange="setInvestBudget('${p.id}',parseInt(toHalf(this.value))||0)">円</td>
+      <td style="font-size:12px;color:#555">${fmt(p.cost)}円</td>
+      <td><input type="number" value="${cnt}" min="0" step="1" style="width:70px;text-align:right"
+        onchange="setInvestCount('${p.id}',parseInt(toHalf(this.value))||0)">個</td>
+      <td style="font-size:12px;font-weight:600;color:var(--orange)">${fmt(amt)}円</td>
     </tr>`;
   });
   html+=`</tbody><tfoot><tr style="font-weight:700;background:#fff3e0">
-    <td colspan="2" style="text-align:right">合計</td>
-    <td style="color:${over?'var(--red)':'var(--orange)'}">${fmt(total)}円
-      ${over?`<span style="font-size:10px;color:var(--red)">⚠ 上限（${fmt(availMax)}円）超過</span>`:''}
+    <td colspan="3" style="text-align:right">合計</td>
+    <td style="color:var(--orange)">${totalCnt}個</td>
+    <td style="color:${over?'var(--red)':'var(--orange)'};">${fmt(totalAmt)}円
+      ${over?`<span style="font-size:10px;color:var(--red)"> ⚠ 上限超過</span>`:''}
     </td>
   </tr></tfoot></table>
-  <div style="font-size:10px;color:#999;margin-top:4px">※上限 = 新商品予算（最大値）${fmt(maxBudget)}円 − 新商品予算（正式）${fmt(newBudgetFormal)}円 = ${fmt(availMax)}円</div>`;
+  <div style="font-size:10px;color:#999;margin-top:4px">※上限 = 投資予算（上限）${fmt(maxBudget)}円 − 新商品予算（正式）${fmt(newBudgetFormal)}円 = ${fmt(availMax)}円</div>`;
   return html;
 }
 
-function setInvestBudget(pid,val){
-  if(!S.budget.investBudgets)S.budget.investBudgets={};
-  S.budget.investBudgets[pid]=val;
+function setInvestCount(pid,cnt){
+  if(!S.budget.investCounts)S.budget.investCounts={};
+  S.budget.investCounts[pid]=cnt;
   saveS();renderBudgetPlan();
 }
 
@@ -2845,7 +2873,7 @@ function switchStore(id){
     'ホットFF':{ah:6,slots:[6,10,14,17]},'ホットFF新商品':{ah:6,slots:[6,10,14,17]},
     '常温FF':{ah:10,slots:[10]},'常温FF新商品':{ah:10,slots:[10]},
     '中華まん':{ah:10,slots:[6,10]},'中華まん新商品':{ah:10,slots:[6,10]}
-  })),ji:{},prevJi:{},cust:DEF_CUST.map(r=>[...r]),ext:DEF_EXT.map(e=>({...e})),rules:[],checks:{},budget:{target:0,wasteTarget:0,newProductBudgets:{}},discHist:[],weekStart:'',weeks:{},activeWeek:''};
+  })),ji:{},prevJi:{},cust:DEF_CUST.map(r=>[...r]),ext:DEF_EXT.map(e=>({...e})),rules:[],checks:{},budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{}},discHist:[],weekStart:'',weeks:{},activeWeek:''};
   Object.assign(S,fresh);
   loadS();
   closeStoreManager();
