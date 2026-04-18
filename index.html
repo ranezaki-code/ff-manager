@@ -2390,6 +2390,7 @@ function renderBudgetPlan(){
   // 廃棄率・値引率は商品ごとの実績から。値引額は商品ごとのp.discを使用。
   let nextMake=0, nextTotalCost=0, nextWasteAmt=0, nextDiscAmt=0;
   let sumTeika=0, sumNebiki=0, sumHaiki=0; // 適正販売率表示用
+  const noDataProds=[]; // 実績データなし商品リスト（警告表示用）
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category];if(!cfg)return;
@@ -2402,8 +2403,12 @@ function renderBudgetPlan(){
     nextTotalCost+=cnt_week*p.cost;
     // 商品別の実績レート（S.ji + 他週）
     const ji=_getJiAllWeeks(p.id);
-    const haiki_rate_p =ji.total?ji.haiki/ji.total:1.0; // 廃棄比率（実績なし→保守的に100%想定）
-    const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0; // 値引比率（実績なし→0%）
+    // ※ ji.total=0 は「販売率=0」ではなく「実績未入力」を意味する。
+    //   実績未入力の場合は廃棄・値引を 0 で計算し、警告を表示する。
+    //   （「定価販売数=0で作成数>0」という実績がある場合のみ廃棄100%が正当）
+    const haiki_rate_p =ji.total?ji.haiki/ji.total:0;
+    const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0;
+    if(!ji.total&&cnt_week>0) noDataProds.push(p.name);
     // 想定廃棄額（売価ベース）= 作成数 × 廃棄率 × 売価
     nextWasteAmt+=cnt_week*haiki_rate_p*p.shopPrice;
     // 想定値引額 = 作成数 × 値引率 × 商品別値引額（p.disc）
@@ -2491,6 +2496,11 @@ function renderBudgetPlan(){
         <div style="font-size:10px;color:#999;margin-top:2px">定価販売÷作成数（廃棄率算出の根拠）</div>
       </div>
     </div>
+    ${noDataProds.length?`<div class="alert alert-warn" style="background:#fff8e1;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px">
+      ⚠️ <b>実績データなし商品が${noDataProds.length}件あります。</b>廃棄率・値引率を 0% で計算しているため、予算計画が楽観的になっています。<br>
+      <span style="color:#92400e">対象商品：${noDataProds.join('、')}</span><br>
+      <span style="color:#78350f">→ ①実績入力タブでこれらの商品の実績（定価販売数・値引販売数・廃棄数）を入力してください。</span>
+    </div>`:''}
     ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>想定廃棄額・売変額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
     <div style="margin-top:16px">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">📦 新商品予算（正式）— 商品別入力</div>
