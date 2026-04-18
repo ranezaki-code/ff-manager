@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FF管理システム v6</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --main:#1e3a5f;--main-dk:#152c47;--main-lt:#dbeafe;
+  --accent:#2196f3;--accent-lt:#e3f2fd;
+  --green:#4caf50;--green-lt:#e8f5e9;
+  --red:#ff5722;--red-lt:#fbe9e7;
+  --orange:#ff9800;
+  --gray:#6b7280;--gray-lt:#f3f4f6;--border:#e5e7eb;
+}
+body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;background:#f8fafc;color:#1f2937;overflow-x:hidden;max-width:100vw}
+h1{font-size:18px}h2{font-size:16px}h3{font-size:14px}
+button{cursor:pointer;border:none;border-radius:6px;padding:6px 12px;font-size:13px}
+input[type=text],input[type=number],select,textarea{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;width:100%}
+input[type=checkbox]{cursor:pointer}
+table{border-collapse:collapse;width:100%;table-layout:fixed}
+th,td{border:1px solid var(--border);padding:4px 6px;font-size:12px;text-align:center;vertical-align:middle;word-break:break-all}
+th{background:var(--main-lt);font-weight:600;color:var(--main)}
+
+/* Layout */
+#app{display:flex;flex-direction:column;min-height:100vh}
+#header{background:var(--main);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px}
+#header h1{font-size:16px;flex:1}
+#header .store-name{font-size:12px;opacity:.8}
+#tabs{display:flex;overflow-x:auto;background:var(--main-dk);border-bottom:2px solid var(--accent)}
+.tab-btn{flex:none;padding:10px 14px;color:#fff;background:transparent;border:none;border-radius:0;font-size:13px;opacity:.7;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer}
+.tab-btn.active{opacity:1;border-bottom:3px solid var(--accent);background:rgba(33,150,243,.15)}
+#content{flex:1;padding:12px;overflow-x:hidden}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Cards & Sections */
+.card{background:#fff;border-radius:10px;border:1px solid var(--border);padding:12px;margin-bottom:12px}
+.section-title{font-size:14px;font-weight:700;color:var(--main);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--main-lt)}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.col{flex:1;min-width:120px}
+
+/* Summary boxes */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.summary-box{background:var(--main-lt);border-radius:8px;padding:10px;text-align:center}
+.summary-box .label{font-size:11px;color:var(--main);font-weight:600}
+.summary-box .value{font-size:18px;font-weight:700;color:var(--main)}
+.summary-box .unit{font-size:11px;color:var(--gray)}
+.summary-box.warn{background:var(--red-lt)}.summary-box.warn .value{color:var(--red)}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:4px;padding:4px 0}
+.chip{background:var(--gray-lt);border-radius:12px;padding:2px 8px;font-size:11px;color:var(--gray)}
+.chip.warn{background:var(--red-lt);color:var(--red)}
+.chip.ok{background:var(--green-lt);color:var(--green)}
+
+/* Toggles */
+.toggle{position:relative;display:inline-block;width:44px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.3s}
+.slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked+.slider{background:var(--green)}
+.toggle input:checked+.slider::before{transform:translateX(20px)}
+
+/* Category colors */
+.cat-hot{background:#fff3e0}.cat-hot-new{background:#ffe0b2}
+.cat-room{background:#e8f5e9}.cat-room-new{background:#c8e6c9}
+.cat-man{background:#e3f2fd}.cat-man-new{background:#bbdefb}
+
+/* Progress bar */
+.prog-bar{height:12px;background:var(--gray-lt);border-radius:6px;overflow:hidden;margin:2px 0}
+.prog-fill{height:100%;background:var(--accent);transition:width .3s}
+
+/* Day tabs */
+.day-tabs{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto;align-items:flex-end}
+.day-tab{flex:none;padding:6px 12px;background:var(--gray-lt);border-radius:8px 8px 0 0;border:2px solid transparent;border-bottom:none;cursor:pointer;text-align:center;font-size:12px;font-weight:600;line-height:1.3;transition:all .15s}
+.day-tab.active{background:var(--main);border-color:var(--main);color:#fff;font-size:14px;padding:10px 16px;box-shadow:0 -2px 8px rgba(30,58,95,.25)}
+.day-tab.active .day-date{color:rgba(255,255,255,.8)}
+.day-tab.today{border-color:var(--orange)}
+.day-tab.active.today{border-color:var(--orange);background:var(--main)}
+.day-tab.special{background:#ffebee;border-color:var(--red)}
+.day-tab.active.special{background:var(--main);border-color:var(--main)}
+.day-tab-bar{height:3px;background:var(--main);border-radius:0 0 2px 2px;margin-bottom:8px}
+/* Selected day badge */
+.selected-day-badge{display:inline-flex;align-items:center;gap:6px;background:var(--main);color:#fff;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;margin-bottom:8px}
+
+/* Info bar */
+.info-bar{background:var(--accent-lt);border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:12px;font-size:12px}
+.info-item{display:flex;align-items:center;gap:4px}
+
+/* Check cells */
+.check-cell{background:transparent;transition:background .2s}
+.check-cell.done{background:var(--green-lt)}
+.check-cell.skip{background:#f5f5f5;opacity:.5}
+
+/* FAB */
+#fab-bot{position:fixed;bottom:80px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:22px;border:none;box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:100;display:none;align-items:center;justify-content:center}
+#fab-bot.show{display:flex}
+
+/* Chat panel */
+#chat-panel{position:fixed;bottom:140px;right:16px;width:320px;max-height:60vh;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:101;display:none;flex-direction:column;overflow:hidden}
+#chat-panel.show{display:flex}
+#chat-header{background:var(--main);color:#fff;padding:10px 14px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+#chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg.bot{background:var(--gray-lt);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.quick-btns{padding:8px;display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid var(--border)}
+.quick-btn{background:var(--accent-lt);color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:4px 10px;font-size:12px;cursor:pointer}
+#chat-input-row{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border)}
+#chat-input{flex:1;border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:13px}
+#chat-send{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;cursor:pointer}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:14px;padding:24px;width:min(520px,94vw);max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--main)}
+.modal-sub{font-size:12px;color:#666;margin-bottom:16px}
+.suggest-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.suggest-card label{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1}
+.suggest-card .reason{font-size:11px;color:#888;margin-top:2px}
+
+/* Setup wizard */
+#setup-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--main) 0%,var(--accent) 100%);padding:20px}
+#setup-screen.show{display:flex}
+.wizard-card{background:#fff;border-radius:16px;width:100%;max-width:480px;padding:24px;box-shadow:0 16px 48px rgba(0,0,0,.2)}
+.wizard-step{display:none}.wizard-step.active{display:block}
+.step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:20px}
+.step-dot{width:10px;height:10px;border-radius:50%;background:var(--border)}
+.step-dot.active{background:var(--accent)}
+.step-dot.done{background:var(--green)}
+.wizard-title{font-size:18px;font-weight:700;color:var(--main);margin-bottom:16px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#374151}
+.btn-primary{background:var(--accent);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;width:100%;margin-top:10px}
+.btn-secondary{background:var(--gray-lt);color:#374151;padding:8px 16px;border-radius:8px;font-size:13px}
+.btn-success{background:var(--green);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px}
+.btn-danger{background:var(--red);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px}
+.btn-orange{background:var(--orange);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px}
+.wizard-nav{display:flex;justify-content:space-between;margin-top:16px}
+
+/* Bottom bar */
+#bottom-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:8px 12px;display:flex;gap:8px;z-index:50}
+
+/* Alert */
+.alert{border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px}
+.alert-warn{background:#fff3e0;border:1px solid var(--orange);color:#e65100}
+.alert-danger{background:var(--red-lt);border:1px solid var(--red);color:var(--red)}
+.alert-ok{background:var(--green-lt);border:1px solid var(--green);color:#2e7d32}
+
+/* Utility */
+.text-right{text-align:right}.text-center{text-align:center}
+.font-bold{font-weight:700}.text-sm{font-size:11px}.text-lg{font-size:16px}
+.text-red{color:var(--red)}.text-green{color:var(--green)}.text-gray{color:var(--gray)}
+.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}
+.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}
+.flex{display:flex}.flex-wrap{flex-wrap:wrap}.gap-2{gap:8px}.items-center{align-items:center}
+.justify-between{justify-content:space-between}
+.overflow-auto{overflow:auto}
+.badge{display:inline-block;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700}
+.badge-base{background:var(--gray-lt);color:var(--gray)}
+.badge-plus{background:var(--green-lt);color:var(--green)}
+.badge-minus{background:var(--red-lt);color:var(--red)}
+.prod-count{font-size:20px;font-weight:700;color:var(--main)}
+.markdown-time{font-size:10px;color:var(--gray)}
+.withdraw-ok{color:var(--green);font-size:12px}
+.withdraw-ng{color:var(--red);font-size:12px}
+.rules-list{background:#fffde7;border-radius:8px;padding:12px;font-size:12px;line-height:1.8;color:#5d4037}
+.rules-list li{margin-left:16px}
+hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+@keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:.7;transform:scale(1.08)}}
+</style>
+</head>
+<body>
+
+<!-- Setup Screen -->
+<div id="setup-screen">
+  <div class="wizard-card">
+    <div class="step-indicator">
+      <div class="step-dot active" id="sd0"></div>
+      <div class="step-dot" id="sd1"></div>
+      <div class="step-dot" id="sd2"></div>
+      <div class="step-dot" id="sd3"></div>
+    </div>
+    <!-- Step 1 -->
+    <div class="wizard-step active" id="ws0">
+      <div class="wizard-title">ようこそ！店舗情報を入力</div>
+      <div class="form-group">
+        <label>店舗名</label>
+        <input type="text" id="setup-store-name" placeholder="例：松本新村店" value="松本新村店">
+      </div>
+      <div class="wizard-nav">
+        <div></div>
+        <button class="btn-primary" onclick="wizNext(0)">次へ →</button>
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div class="wizard-step" id="ws1">
+      <div class="wizard-title">使用カテゴリを選択</div>
+      <div id="setup-cats"></div>
+      <div class="wizard-nav">
+        <button class="btn-secondary" onclick="wizPrev(1)">← 戻る</button>
+        <button class="btn-primary" onclick="wizNext(1)">次へ →</button>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div class="wizard-step" id="ws2">
+      <div class="wizard-title">カテゴリ別設定</div>
+      <div id="setup-cat-cfg" style="max-height:320px;overflow-y:auto"></div>
+      <div class="wizard-nav">
+        <button class="btn-secondary" onclick="wizPrev(2)">← 戻る</button>
+        <button class="btn-primary" onclick="wizNext(2)">次へ →</button>
+      </div>
+    </div>
+    <!-- Step 4 -->
+    <div class="wizard-step" id="ws3">
+      <div class="wizard-title">商品登録</div>
+      <p style="font-size:13px;color:var(--gray);margin-bottom:12px">サンプルデータを読み込むか、後から追加できます。</p>
+      <button class="btn-success" style="width:100%;margin-bottom:8px" onclick="loadSampleProducts()">サンプルデータを使用</button>
+      <div id="setup-prod-count" style="font-size:13px;color:var(--green);margin-bottom:8px"></div>
+      <div class="wizard-nav">
+        <button class="btn-secondary" onclick="wizPrev(3)">← 戻る</button>
+        <button class="btn-primary" onclick="finishSetup()">完了して開始</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 週追加モーダル -->
+<div id="add-week-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:24px;width:min(340px,92vw);box-shadow:0 12px 40px rgba(0,0,0,.25)">
+    <div style="font-size:16px;font-weight:700;color:var(--main);margin-bottom:6px">📅 新しい週を追加</div>
+    <div style="font-size:12px;color:#666;margin-bottom:16px">火曜日の日付を選択してください</div>
+    <div class="form-group">
+      <label>週の開始日（火曜日）</label>
+      <input type="date" id="add-week-date" style="font-size:15px;padding:10px"
+        onkeydown="if(event.key==='Enter')confirmAddWeek()">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-secondary" style="flex:1" onclick="closeAddWeekModal()">キャンセル</button>
+      <button class="btn-primary" style="flex:1;margin-top:0" onclick="confirmAddWeek()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+  <div id="header">
+    <h1>FF管理システム</h1>
+    <span class="store-name" id="header-store"></span>
+  </div>
+  <div id="tabs">
+    <button class="tab-btn active" onclick="showTab(0)">①実績入力</button>
+    <button class="tab-btn" onclick="showTab(1)">②商品設定</button>
+    <button class="tab-btn" onclick="showTab(2)">③外部ファクト</button>
+    <button class="tab-btn" onclick="showTab(3)">④作成表</button>
+    <button class="tab-btn" onclick="showTab(4)">⑤予算管理</button>
+    <button class="tab-btn" onclick="showTab(5)">⑥値引額設定</button>
+  </div>
+  <div id="content">
+    <!-- Tab 0: 実績入力 -->
+    <div class="tab-panel active" id="tab0">
+      <div class="card" style="padding:10px 12px">
+        <div id="week-selector"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">週合計サマリー</div>
+        <div class="summary-grid" id="jisseki-summary"></div>
+      </div>
+      <div class="card">
+        <div class="flex justify-between items-center mb-2">
+          <div class="section-title" style="margin:0">実績入力</div>
+          <div class="flex gap-2">
+            <button class="btn-secondary" onclick="resetJisseki()">リセット</button>
+            <button class="btn-secondary" onclick="loadPrevJisseki()">前週引継ぎ</button>
+            <button class="btn-success" onclick="loadSampleJisseki()">サンプル読込</button>
+          </div>
+        </div>
+        <div class="overflow-auto"><div id="jisseki-table"></div></div>
+      </div>
+      <div class="card">
+        <div class="flex justify-between items-center mb-2">
+          <div class="section-title" style="margin:0">曜日別・時間帯別客数</div>
+          <button class="btn-secondary" onclick="resetCustZero()">全て0にリセット</button>
+        </div>
+        <div class="overflow-auto"><div id="cust-grid"></div></div>
+      </div>
+    </div>
+
+    <!-- Tab 1: 商品設定 -->
+    <div class="tab-panel" id="tab1">
+      <div class="card">
+        <div class="section-title">カテゴリ ON/OFF</div>
+        <div id="cat-toggle-area"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">カテゴリ別作成時間設定</div>
+        <div id="cat-cfg-area"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">商品マスタ</div>
+        <button class="btn-primary mb-2" onclick="addProduct()">+ 商品追加</button>
+        <div id="product-cards"></div>
+      </div>
+    </div>
+
+    <!-- Tab 2: 外部ファクト -->
+    <div class="tab-panel" id="tab2">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="section-title" style="margin:0">曜日別外部ファクト</div>
+          <button class="btn-secondary" style="padding:5px 12px;font-size:12px" onclick="resetExt()">🔄 全曜日リセット</button>
+        </div>
+        <div class="day-tabs" id="ext-day-tabs"></div>
+        <div id="ext-day-content"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+          <div class="section-title" style="margin:0">カテゴリ別投資ルール</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-secondary" style="padding:6px 12px;font-size:12px" onclick="openRuleSuggest()">🤖 最適設定を提案</button>
+            <button class="btn-primary" style="padding:6px 14px;font-size:13px" onclick="addRule()">＋ ルール追加</button>
+          </div>
+        </div>
+        <div id="rules-area"></div>
+      </div>
+    </div>
+
+    <!-- Tab 3: 作成表 -->
+    <div class="tab-panel" id="tab3">
+      <div class="day-tabs" id="prod-day-tabs"></div>
+      <div id="prod-day-content"></div>
+      <div class="rules-list mt-3">
+        <b>作成ルール7か条（毎週確認）</b>
+        <ol class="mt-1">
+          <li>次の作成開始時間までに定価在庫が売り切れた商品は1個追加作成（常温FF最終18時・ホットFF最終20時・中華まんは12時まで）</li>
+          <li>予約・追加注文が入った場合は作成・販売を行う</li>
+          <li>作成時間内（各時間帯1時間以内）に完了する</li>
+          <li>前時間帯の在庫が残っていても次の作成計画数は減らさない</li>
+          <li>値引きは廃棄約2時間前に行う</li>
+          <li>値引き時は新規に一列作り、定価商品と列を分ける</li>
+          <li>運用ルールは変更する場合があるので毎週確認する</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Tab 4: 予算管理 -->
+    <div class="tab-panel" id="tab4">
+      <div class="card">
+        <div class="section-title">先週の実績サマリー</div>
+        <div class="overflow-auto"><div id="budget-jisseki"></div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">来週の予算計画</div>
+        <div id="budget-plan"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">曜日別作成高</div>
+        <div class="overflow-auto"><div id="budget-daily"></div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">週次予算設定（手動）</div>
+        <div id="budget-manual"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">データ管理</div>
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn-primary" onclick="exportData()">エクスポート</button>
+          <button class="btn-secondary" onclick="importData()">インポート</button>
+          <button class="btn-danger" onclick="resetSetup()">店舗設定をリセット</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 5: 値引額設定 -->
+    <div class="tab-panel" id="tab5">
+      <div class="card">
+        <div class="section-title">値引額設定</div>
+        <div class="flex gap-2 mb-2 flex-wrap">
+          <button class="btn-primary" onclick="autoCalcDisc()">全商品を自動計算する</button>
+          <div style="flex:1;min-width:120px">
+            <select id="disc-cat-filter" onchange="renderDiscTab()">
+              <option value="">全カテゴリ</option>
+            </select>
+          </div>
+        </div>
+        <div id="disc-preview" class="mb-2"></div>
+        <div class="overflow-auto"><div id="disc-table"></div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">変更履歴（直近3件）</div>
+        <div id="disc-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom bar for tab3 -->
+  <div id="bottom-bar" style="display:none">
+    <button class="btn-secondary" onclick="resetChecks()">リセット</button>
+    <button class="btn-primary" onclick="checkCurrentSlot()">この時間帯 全完了</button>
+  </div>
+</div>
+
+<!-- Auto-optimize modal -->
+<div class="modal-overlay" id="rule-suggest-modal">
+  <div class="modal-box">
+    <div class="modal-title">🤖 最適ルールを自動提案</div>
+    <div class="modal-sub">客数データと実績から算出した推奨ルールです。チェックを入れたルールを適用します。</div>
+    <div id="rule-suggest-content"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn-secondary" onclick="closeRuleSuggest()">キャンセル</button>
+      <button class="btn-primary" onclick="applyRuleSuggest()">✓ チェックしたルールを適用</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB Bot -->
+<button id="fab-bot" onclick="toggleChat()">🤖</button>
+
+<!-- Chat Panel -->
+<div id="chat-panel">
+  <div id="chat-header">
+    <span>🤖 店長BOT</span>
+    <button onclick="toggleChat()" style="background:transparent;color:#fff;font-size:16px">✕</button>
+  </div>
+  <!-- APIキー入力エリア（未設定時のみ表示） -->
+  <div id="api-key-area" style="display:none;padding:12px;background:#fff3e0;border-bottom:1px solid #ffe0b2">
+    <div style="font-size:12px;font-weight:700;color:#e65100;margin-bottom:6px">🔑 Claude APIキーを設定してください</div>
+    <div style="font-size:11px;color:#666;margin-bottom:8px">console.anthropic.com で取得できます</div>
+    <div style="display:flex;gap:6px">
+      <input type="password" id="api-key-input" placeholder="sk-ant-..." style="flex:1;font-size:12px;padding:6px 8px;border:1px solid #ccc;border-radius:6px"
+        onkeydown="if(event.key==='Enter')saveApiKey()">
+      <button onclick="saveApiKey()" style="padding:6px 12px;background:#e65100;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap">保存</button>
+    </div>
+  </div>
+  <div id="chat-messages"></div>
+  <div class="quick-btns">
+    <button class="quick-btn" onclick="quickQ('在庫切れそう。追加作成すべき？')">在庫切れそう</button>
+    <button class="quick-btn" onclick="quickQ('作りすぎた。どうすれば？')">作りすぎた</button>
+    <button class="quick-btn" onclick="quickQ('雨が強くなってきた')">雨になってきた</button>
+    <button class="quick-btn" onclick="quickQ('新商品の反応がいい。増やしていい？')">新商品好調</button>
+  </div>
+  <div id="chat-input-row">
+    <input type="text" id="chat-input" placeholder="質問を入力..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button id="chat-send" onclick="sendChat()">送信</button>
+  </div>
+  <div style="text-align:right;padding:2px 8px 4px">
+    <button onclick="resetApiKey()" style="font-size:10px;color:#999;background:none;border:none;cursor:pointer">APIキーを変更</button>
+  </div>
+</div>
+
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const CATS = ['ホットFF','ホットFF新商品','常温FF','常温FF新商品','中華まん','中華まん新商品'];
+const DAYS = ['火','水','木','金','土','日','月'];
+const ALL_SLOTS = [6,10,14,17];
+const SLOT_LABELS = {6:'6:00',10:'10:00',14:'14:00',17:'17:00'};
+const CAT_CLASS = {
+  'ホットFF':'cat-hot','ホットFF新商品':'cat-hot-new',
+  '常温FF':'cat-room','常温FF新商品':'cat-room-new',
+  '中華まん':'cat-man','中華まん新商品':'cat-man-new'
+};
+
+const DEF_CUST = [
+  [2,1,1,1,1,2,4,28,31,25,20,28,36,28,19,16,17,16,23,30,23,15,10,3],
+  [2,1,1,1,1,2,4,28,32,26,21,28,36,29,19,17,17,16,24,31,24,16,10,4],
+  [2,1,1,1,1,2,3,28,31,23,19,26,35,28,19,15,16,15,23,29,22,15,11,4],
+  [2,1,1,1,1,2,4,28,31,25,20,29,36,28,19,16,17,17,23,30,23,17,10,4],
+  [3,2,1,1,2,2,6,35,40,32,27,38,48,39,25,22,21,21,31,38,31,20,13,7],
+  [2,2,1,1,1,2,5,32,38,30,25,35,46,37,24,21,20,20,30,37,31,20,14,6],
+  [2,1,1,1,1,2,4,28,32,26,21,29,38,30,19,17,17,17,24,31,24,17,10,4],
+];
+
+const DEF_PRODUCTS = [
+  {id:'p1',name:'からあげクンレギュラー',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:10,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
+  {id:'p2',name:'からあげクンレッド',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:20,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
+  {id:'p3',name:'からあげクンチーズ',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:30,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
+  {id:'p4',name:'パリパリチキン',category:'ホットFF',cost:145,stdPrice:298,shopPrice:298,disc:30,minCount:1,tags:'ワンハンド,揚げ物',order:40,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
+  {id:'p5',name:'ハッシュドポテト',category:'ホットFF',cost:85,stdPrice:148,shopPrice:148,disc:15,minCount:1,tags:'ワンハンド',order:50,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
+  {id:'p6',name:'からあげクンハバネロ',category:'ホットFF新商品',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:60,enabled:true,isNew:true,newDays:3,timeStart:7,timeEnd:22},
+  {id:'p7',name:'肉まん',category:'中華まん',cost:88,stdPrice:168,shopPrice:168,disc:17,minCount:1,tags:'まん',order:70,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:20},
+  {id:'p8',name:'あんまん',category:'中華まん',cost:88,stdPrice:168,shopPrice:168,disc:17,minCount:1,tags:'まん',order:80,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:20},
+  {id:'p9',name:'ポテトスナック',category:'常温FF',cost:80,stdPrice:170,shopPrice:170,disc:17,minCount:1,tags:'',order:90,enabled:true,isNew:false,newDays:0,timeStart:11,timeEnd:18},
+  {id:'p10',name:'ピザまん',category:'中華まん新商品',cost:95,stdPrice:198,shopPrice:198,disc:20,minCount:1,tags:'まん',order:100,enabled:true,isNew:true,newDays:3,timeStart:7,timeEnd:20},
+];
+
+const DEF_JISSEKI = {
+  p1:{teika:113,nebiki:4,haiki:2},p2:{teika:89,nebiki:3,haiki:1},
+  p3:{teika:82,nebiki:3,haiki:1},p4:{teika:58,nebiki:2,haiki:2},
+  p5:{teika:44,nebiki:2,haiki:1},p6:{teika:28,nebiki:1,haiki:0},
+  p7:{teika:85,nebiki:4,haiki:2},p8:{teika:68,nebiki:2,haiki:1},
+  p9:{teika:55,nebiki:2,haiki:1},p10:{teika:12,nebiki:1,haiki:0},
+};
+
+const DEF_EXT = [
+  {weather:'晴れ',temp:20,event:'',correction:0},
+  {weather:'晴れ',temp:23,event:'上高地開山祭',correction:15},
+  {weather:'曇り',temp:18,event:'',correction:-10},
+  {weather:'晴れ',temp:22,event:'',correction:0},
+  {weather:'晴れ',temp:25,event:'キッセイ公演',correction:10},
+  {weather:'晴れ',temp:20,event:'',correction:20},
+  {weather:'晴れ',temp:21,event:'',correction:15},
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let S = {
+  storeName:'',chainName:'',
+  PM:[],
+  catOn:{'ホットFF':true,'ホットFF新商品':true,'常温FF':true,'常温FF新商品':false,'中華まん':true,'中華まん新商品':false},
+  catCfg:{
+    'ホットFF':{ah:6,slots:[6,10,14,17]},
+    'ホットFF新商品':{ah:6,slots:[6,10,14,17]},
+    '常温FF':{ah:10,slots:[10]},
+    '常温FF新商品':{ah:10,slots:[10]},
+    '中華まん':{ah:10,slots:[6,10]},
+    '中華まん新商品':{ah:10,slots:[6,10]},
+  },
+  ji:{},prevJi:{},
+  cust:DEF_CUST.map(r=>[...r]),
+  ext:DEF_EXT.map(e=>({...e})),
+  rules:[],
+  checks:{},
+  budget:{target:0,discTarget:0,wasteTarget:0},
+  discHist:[],
+  weekStart:'2026-04-14', // 初期値は直近火曜日（loadS内で動的に再計算）
+  weeks:{},      // { '2026.4.14': {ji,cust,checks,weekStart} }
+  activeWeek:'', // 現在選択中の週キー
+};
+
+let currentTab=0, currentExtDay=0, currentProdDay=0, setupStep=0;
+let deleteConfirmKey=null, deleteConfirmTimer=null;
+
+// ============================================================
+// STORAGE
+// ============================================================
+function parseLocalDate(dateStr){
+  // YYYY-MM-DD をローカル時刻で解析（UTC変換による日付ズレを防ぐ）
+  const [y,m,d]=dateStr.split('-').map(Number);
+  return new Date(y,m-1,d);
+}
+function weekKeyFromDate(dateStr){
+  const d=parseLocalDate(dateStr);
+  return`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+}
+function weekKeyToDateStr(key){
+  const [y,m,d]=key.split('.');
+  return`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function getNextTuesday(fromDateStr){
+  const d=parseLocalDate(fromDateStr);
+  const day=d.getDay(); // 0=日,1=月,2=火,...
+  const diff=day===2?7:(2-day+7)%7||7; // 次の火曜（今日が火曜なら7日後）
+  d.setDate(d.getDate()+diff);
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getRecentTuesday(fromDateStr){
+  // 指定日以前で最も近い火曜日（今日が火曜ならその日）
+  const d=parseLocalDate(fromDateStr);
+  const day=d.getDay(); // 0=日,2=火,...
+  const diff=(day-2+7)%7; // 火曜に戻すための日数
+  d.setDate(d.getDate()-diff);
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function syncActiveWeek(){
+  if(!S.activeWeek)return;
+  S.weeks[S.activeWeek]={
+    ji:JSON.parse(JSON.stringify(S.ji||{})),
+    cust:(S.cust||[]).map(r=>[...r]),
+    checks:{...(S.checks||{})},
+    weekStart:S.weekStart
+  };
+}
+function saveS(){
+  syncActiveWeek();
+  try{localStorage.setItem('ffv6',JSON.stringify({
+    storeName:S.storeName,chainName:S.chainName,
+    PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
+    ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
+    rules:S.rules,checks:S.checks,budget:S.budget,discHist:S.discHist,
+    weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
+  }));}catch(e){console.warn('save error',e)}
+}
+function loadS(){
+  try{
+    const d=localStorage.getItem('ffv6');
+    if(d){const p=JSON.parse(d);Object.assign(S,p);}
+  }catch(e){console.warn('load error',e)}
+  // 旧データの互換性: weeks が空なら現在データで初期化
+  if(!S.weeks||Object.keys(S.weeks).length===0){
+    S.weeks={};
+    // 保存済みweekStartがある場合はそれを使う。なければ今日から直近火曜日を計算
+    const todayStr=(()=>{const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;})();
+    const defaultTuesday=S.weekStart||getRecentTuesday(todayStr);
+    const key=weekKeyFromDate(defaultTuesday);
+    S.weeks[key]={
+      ji:JSON.parse(JSON.stringify(S.ji||{})),
+      cust:(S.cust||[]).map(r=>[...r]),
+      checks:{...(S.checks||{})},
+      weekStart:defaultTuesday
+    };
+    S.weekStart=defaultTuesday;
+    S.activeWeek=key;
+  } else if(!S.activeWeek){
+    const keys=Object.keys(S.weeks).sort();
+    S.activeWeek=keys[keys.length-1];
+  }
+  // データ移行: 火曜日以外の週開始日を自動で火曜日に修正
+  const weekKeys=Object.keys(S.weeks);
+  let migrated=false;
+  weekKeys.forEach(key=>{
+    const w=S.weeks[key];
+    if(!w?.weekStart)return;
+    const d=parseLocalDate(w.weekStart);
+    if(d.getDay()!==2){ // 火曜日でない
+      const correctTuesday=getRecentTuesday(w.weekStart);
+      const newKey=weekKeyFromDate(correctTuesday);
+      if(newKey!==key){
+        w.weekStart=correctTuesday;
+        S.weeks[newKey]=w;
+        delete S.weeks[key];
+        if(S.activeWeek===key)S.activeWeek=newKey;
+        migrated=true;
+      }
+    }
+  });
+  // S.weekStart も火曜日でない場合は修正
+  if(S.weekStart){
+    const d=parseLocalDate(S.weekStart);
+    if(d.getDay()!==2){
+      S.weekStart=getRecentTuesday(S.weekStart);
+      migrated=true;
+    }
+  }
+  if(migrated)console.log('週開始日を火曜日に移行しました');
+}
+
+// ============================================================
+// SETUP WIZARD
+// ============================================================
+let setupCatOn={};
+let setupCatCfg={};
+
+function initSetup(){
+  CATS.forEach(c=>{setupCatOn[c]=S.catOn[c];setupCatCfg[c]={...S.catCfg[c],slots:[...S.catCfg[c].slots]};});
+  // Step2 cats
+  const el=document.getElementById('setup-cats');
+  el.innerHTML=CATS.map(c=>`
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px">
+      <input type="checkbox" id="sc_${c}" ${setupCatOn[c]?'checked':''} onchange="setupCatOn['${c}']=this.checked;renderSetupCatCfg()">
+      ${c}
+    </label>`).join('');
+  renderSetupCatCfg();
+}
+
+function renderSetupCatCfg(){
+  const el=document.getElementById('setup-cat-cfg');
+  el.innerHTML=CATS.filter(c=>setupCatOn[c]).map(c=>{
+    const cfg=setupCatCfg[c];
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
+      <b style="font-size:13px">${c}</b>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px">
+        <span>販売許容時間</span>
+        <input type="number" value="${cfg.ah}" min="1" max="24" style="width:60px"
+          onchange="setupCatCfg['${c}'].ah=parseInt(this.value)||6;renderSetupCatCfg()">時間
+      </div>
+      <div style="margin-top:6px;font-size:12px">作成時間:
+        ${ALL_SLOTS.map(h=>`
+          <label style="margin-right:8px">
+            <input type="checkbox" ${cfg.slots.includes(h)?'checked':''}
+              onchange="toggleSetupSlot('${c}',${h},this.checked)">
+            ${SLOT_LABELS[h]}
+          </label>`).join('')}
+      </div>
+    </div>`;
+  }).join('') || '<p style="color:var(--gray);font-size:13px">カテゴリが選択されていません</p>';
+}
+
+function toggleSetupSlot(cat,h,on){
+  const s=setupCatCfg[cat].slots;
+  if(on){if(!s.includes(h))s.push(h);s.sort((a,b)=>a-b);}
+  else{const i=s.indexOf(h);if(i>=0)s.splice(i,1);}
+}
+
+function wizNext(step){
+  document.getElementById(`ws${step}`).classList.remove('active');
+  document.getElementById(`sd${step}`).classList.remove('active');
+  document.getElementById(`sd${step}`).classList.add('done');
+  const next=step+1;
+  document.getElementById(`ws${next}`).classList.add('active');
+  document.getElementById(`sd${next}`).classList.add('active');
+  setupStep=next;
+}
+function wizPrev(step){
+  document.getElementById(`ws${step}`).classList.remove('active');
+  document.getElementById(`sd${step}`).classList.remove('active');
+  const prev=step-1;
+  document.getElementById(`ws${prev}`).classList.add('active');
+  document.getElementById(`sd${prev}`).classList.remove('done');
+  document.getElementById(`sd${prev}`).classList.add('active');
+  setupStep=prev;
+}
+
+function loadSampleProducts(){
+  S.PM=DEF_PRODUCTS.map(p=>({...p}));
+  document.getElementById('setup-prod-count').textContent=`${S.PM.length}件の商品を読み込みました`;
+  saveS();
+}
+
+function finishSetup(){
+  S.storeName=document.getElementById('setup-store-name').value||'店舗';
+  CATS.forEach(c=>{S.catOn[c]=setupCatOn[c];S.catCfg[c]={...setupCatCfg[c],slots:[...setupCatCfg[c].slots]};});
+  if(!S.PM||S.PM.length===0) S.PM=DEF_PRODUCTS.map(p=>({...p}));
+  localStorage.setItem('ffv6_setup','1');
+  saveS();
+  showApp();
+}
+
+// ============================================================
+// APP INIT
+// ============================================================
+function showApp(){
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('header-store').textContent=S.storeName;
+  renderAll();
+}
+
+function renderAll(){
+  renderJissekiTab();
+  renderProductTab();
+  renderExtTab();
+  renderProdDayTabs();
+  renderBudgetTab();
+  renderDiscTab();
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  loadS();
+  initGlobalInputHandlers();
+  if(!localStorage.getItem('ffv6_setup')){
+    document.getElementById('setup-screen').classList.add('show');
+    initSetup();
+  } else {
+    showApp();
+  }
+});
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function showTab(n){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  currentTab=n;
+  document.getElementById('fab-bot').classList.toggle('show',n===3);
+  document.getElementById('bottom-bar').style.display=n===3?'flex':'none';
+  if(n===3) renderProdDayContent(currentProdDay);
+  if(n===4) renderBudgetTab();
+}
+
+// ============================================================
+// CALCULATION HELPERS
+// ============================================================
+function getP(pid){return S.PM.find(p=>p.id===pid)||null}
+
+function getWeekTotal(){
+  return S.cust.reduce((s,r)=>s+r.reduce((a,b)=>a+b,0),0);
+}
+
+function getSlotCust(dayIdx,hs,he){
+  const row=S.cust[dayIdx]||[];
+  let sum=0;
+  for(let h=hs;h<he&&h<24;h++) sum+=row[h]||0;
+  return sum;
+}
+
+function getCatSlotRange(cat,slotH){
+  const cfg=S.catCfg[cat];if(!cfg)return null;
+  const idx=cfg.slots.indexOf(slotH);if(idx<0)return null;
+  const nextSlot=idx+1<cfg.slots.length?cfg.slots[idx+1]:null;
+  const discard=slotH+cfg.ah;
+  const end=nextSlot?Math.min(nextSlot,discard):Math.min(discard,24);
+  return [slotH,end];
+}
+
+function getMarkdownTime(cat,slotH){
+  const cfg=S.catCfg[cat];if(!cfg)return null;
+  return slotH+cfg.ah-2;
+}
+
+function roundCnt(v){
+  const frac=v-Math.floor(v);
+  return frac>=0.3?Math.ceil(v):Math.floor(v);
+}
+
+function stdDev(arr){
+  const n=arr.length;if(!n)return 0;
+  const mean=arr.reduce((a,b)=>a+b,0)/n;
+  return Math.sqrt(arr.map(x=>(x-mean)**2).reduce((a,b)=>a+b,0)/n);
+}
+
+function getDayCust(dayIdx){
+  return (S.cust[dayIdx]||[]).reduce((a,b)=>a+b,0);
+}
+
+function getCorrTarget(pid,dayIdx){
+  const p=getP(pid);if(!p)return 0;
+  const wt=getWeekTotal();if(!wt)return 0;
+  const ji=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
+  const teika=ji.teika||0;
+  const rate=teika/wt;
+  const valInput=p.shopPrice-p.cost;
+  const aggressive=valInput/(p.cost+valInput);
+  const dayCusts=S.cust.map((_,i)=>getDayCust(i));
+  const sd=stdDev(dayCusts);
+  const slack=sd*rate*aggressive;
+  const weekTarget=Math.max(teika+slack,(p.minCount||0)*7);
+  // Apply external correction
+  const extCorr=(S.ext[dayIdx]?.correction||0)/100;
+  // Apply rules
+  let ruleCorr=0;
+  (S.rules||[]).forEach(rule=>{
+    if(!rule.condition||!rule.tags||!rule.correction)return;
+    const pTags=(p.tags||'').split(',').map(t=>t.trim());
+    const rTags=(rule.tags||'').split(',').map(t=>t.trim());
+    const tagMatch=rTags.some(t=>t&&pTags.includes(t));
+    let dayMatch=false;
+    if(rule.condition==='毎日')dayMatch=true;
+    else if(rule.condition==='週末')dayMatch=[4,5].includes(dayIdx);
+    else if(rule.condition==='平日')dayMatch=![4,5].includes(dayIdx);
+    else{const di=DAYS.indexOf(rule.condition);if(di>=0)dayMatch=di===dayIdx;}
+    if(tagMatch&&dayMatch) ruleCorr+=parseFloat(rule.correction)||0;
+  });
+  return weekTarget*(1+extCorr+ruleCorr/100);
+}
+
+function getWithdraw(pid){
+  const p=getP(pid);if(!p)return 0;
+  const wt=getWeekTotal();if(!wt)return 0;
+  const ji=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
+  const teika=ji.teika||0;
+  const rate=teika/wt;
+  if(!rate)return 0;
+  return (p.cost/p.shopPrice)/rate;
+}
+
+function getProdCnt(pid,dayIdx,slotH){
+  const p=getP(pid);if(!p||!p.enabled)return 0;
+  if(!S.catOn[p.category])return 0;
+  const cfg=S.catCfg[p.category];if(!cfg)return 0;
+  if(!cfg.slots.includes(slotH))return 0;
+  const range=getCatSlotRange(p.category,slotH);if(!range)return 0;
+  const[hs,he]=range;
+  const ts=p.timeStart??7,te=p.timeEnd??22;
+  if(hs>=te||he<=ts)return p.minCount||0;
+  const sc=getSlotCust(dayIdx,hs,he);
+  const wt=getWeekTotal();if(!wt)return 0;
+  const ct=getCorrTarget(pid,dayIdx);
+  let cnt=roundCnt(ct*sc/wt);
+  cnt=Math.max(cnt,p.minCount||0);
+  const wl=getWithdraw(pid);
+  if(wl>0&&sc<wl&&!(p.minCount||0))return 0;
+  return cnt;
+}
+
+// ============================================================
+// JISSEKI CALCULATIONS
+// ============================================================
+function calcJissekiMetrics(pid){
+  const p=getP(pid);if(!p)return null;
+  const ji=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
+  const teika=ji.teika||0,nebiki=ji.nebiki||0,haiki=ji.haiki||0;
+  const wt=getWeekTotal();
+  const buyRate=wt?teika/wt*100:0;
+  const salesAmt=teika*p.shopPrice+nebiki*(p.shopPrice-p.disc);
+  const wasteAmt=haiki*p.cost;
+  const discAmt=nebiki*p.disc;
+  const totalCost=(teika+nebiki)*p.cost;
+  const profit=salesAmt-wasteAmt-discAmt-totalCost;
+  const profitRate=salesAmt?profit/salesAmt*100:0;
+  const sellChangeRate=salesAmt?discAmt/salesAmt*100:0;
+  const makeCnt=teika+nebiki+haiki;
+  const sellRate=makeCnt?(teika+nebiki)/makeCnt*100:0;
+  return{teika,nebiki,haiki,buyRate,salesAmt,wasteAmt,discAmt,totalCost,profit,profitRate,sellChangeRate,makeCnt,sellRate};
+}
+
+function calcSummary(){
+  let totalSales=0,totalWaste=0,totalDisc=0,totalProfit=0,totalMake=0,totalSold=0;
+  S.PM.forEach(p=>{
+    const m=calcJissekiMetrics(p.id);if(!m)return;
+    totalSales+=m.salesAmt;totalWaste+=m.wasteAmt;
+    totalDisc+=m.discAmt;totalProfit+=m.profit;
+    totalMake+=m.makeCnt;totalSold+=m.teika+m.nebiki;
+  });
+  const profitRate=totalSales?totalProfit/totalSales*100:0;
+  const sellRate=totalMake?totalSold/totalMake*100:0;
+  return{totalSales,totalWaste,totalDisc,totalProfit,profitRate,sellRate,totalMake};
+}
+
+// ============================================================
+// TAB 0: 実績入力
+// ============================================================
+function renderJissekiTab(){
+  renderWeekSelector();
+  renderJissekiSummary();
+  renderJissekiTable();
+  renderCustGrid();
+}
+
+function renderJissekiSummary(){
+  const{totalSales,totalWaste,totalDisc,totalProfit,profitRate,sellRate}=calcSummary();
+  const isWarn=profitRate<50;
+  const srClass=sellRate<90?'warn':sellRate<96?'summary-box ':''  ;
+  document.getElementById('jisseki-summary').innerHTML=`
+    <div class="summary-box"><div class="label">販売高</div><div class="value">${fmt(totalSales)}</div><div class="unit">円</div></div>
+    <div class="summary-box"><div class="label">廃棄高</div><div class="value">${fmt(totalWaste)}</div><div class="unit">円</div></div>
+    <div class="summary-box"><div class="label">値引高</div><div class="value">${fmt(totalDisc)}</div><div class="unit">円</div></div>
+    <div class="summary-box"><div class="label">利益高</div><div class="value">${fmt(totalProfit)}</div><div class="unit">円</div></div>
+    <div class="summary-box ${isWarn?'warn':''}"><div class="label">利益率</div><div class="value">${profitRate.toFixed(1)}</div><div class="unit">%</div></div>
+    <div class="summary-box ${sellRate>0&&sellRate<90?'warn':sellRate>0&&sellRate<96?'summary-box ':''}"><div class="label">販売率</div><div class="value" style="color:${sellRate>=96?'var(--green)':sellRate>=90?'var(--orange)':sellRate>0?'var(--red)':'inherit'}">${sellRate.toFixed(1)}</div><div class="unit">%</div></div>
+  `;
+}
+
+function renderJissekiTable(){
+  const el=document.getElementById('jisseki-table');
+  const catProds={};
+  CATS.forEach(c=>{catProds[c]=S.PM.filter(p=>p.category===c&&p.enabled).sort((a,b)=>a.order-b.order);});
+
+  let html=`<table><thead><tr>
+    <th style="width:140px;text-align:left">商品名</th>
+    <th style="width:60px">定価販売</th>
+    <th style="width:60px">値引販売</th>
+    <th style="width:50px">廃棄数</th>
+  </tr></thead><tbody>`;
+
+  CATS.forEach(cat=>{
+    const prods=catProds[cat];
+    if(!prods.length||!S.catOn[cat])return;
+    // Category row
+    html+=`<tr><td colspan="4" style="background:var(--main-lt);font-weight:700;text-align:left;padding:6px 8px">${cat}</td></tr>`;
+    // Product rows
+    prods.forEach(p=>{
+      const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
+      const m=calcJissekiMetrics(p.id);
+      const warnClass=m&&m.profitRate<50?'chip warn':'chip';
+      html+=`<tr class="${CAT_CLASS[cat]||''}">
+        <td style="text-align:left">${p.name}</td>
+        <td><input type="number" min="0" value="${ji.teika||0}" style="width:55px;text-align:center"
+          onchange="setJi('${p.id}','teika',parseInt(toHalf(this.value))||0)"></td>
+        <td><input type="number" min="0" value="${ji.nebiki||0}" style="width:55px;text-align:center"
+          onchange="setJi('${p.id}','nebiki',parseInt(toHalf(this.value))||0)"></td>
+        <td><input type="number" min="0" value="${ji.haiki||0}" style="width:45px;text-align:center"
+          onchange="setJi('${p.id}','haiki',parseInt(toHalf(this.value))||0)"></td>
+      </tr>
+      <tr class="${CAT_CLASS[cat]||''}">
+        <td colspan="4" style="padding:4px 8px">
+          <div class="chips">
+            <span class="chip">購入率: ${m?m.buyRate.toFixed(2):'0.00'}%</span>
+            <span class="chip">販売高: ${m?fmt(m.salesAmt):0}円</span>
+            <span class="chip">廃棄高: ${m?fmt(m.wasteAmt):0}円</span>
+            <span class="chip">値引高: ${m?fmt(m.discAmt):0}円</span>
+            <span class="chip">売変率: ${m?m.sellChangeRate.toFixed(1):'0.0'}%</span>
+            <span class="chip">利益高: ${m?fmt(m.profit):0}円</span>
+            <span class="${m&&m.profitRate<50?'chip warn':'chip'}">利益率: ${m?m.profitRate.toFixed(1):'0.0'}%</span>
+            <span class="${m&&m.sellRate<90?'chip warn':m&&m.sellRate<96?'chip':'chip'}" style="${m?`color:${m.sellRate>=96?'var(--green)':m.sellRate>=90?'var(--orange)':'var(--red)'}`:''}">${m&&m.makeCnt>0?`販売率: ${m.sellRate.toFixed(1)}%`:'販売率: -'}</span>
+          </div>
+        </td>
+      </tr>`;
+    });
+    // Category total
+    const catProdsE=prods;
+    let cSales=0,cWaste=0,cDisc=0,cProfit=0;
+    catProdsE.forEach(p=>{const m=calcJissekiMetrics(p.id);if(m){cSales+=m.salesAmt;cWaste+=m.wasteAmt;cDisc+=m.discAmt;cProfit+=m.profit;}});
+    const cPR=cSales?cProfit/cSales*100:0;
+    html+=`<tr style="background:#f0f4ff;font-weight:600">
+      <td style="text-align:left">${cat} 合計</td>
+      <td colspan="2" style="font-size:11px">販売高: ${fmt(cSales)}円</td>
+      <td style="font-size:11px">${cPR.toFixed(1)}%</td>
+    </tr>`;
+  });
+
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+function setJi(pid,key,val){
+  if(!S.ji[pid])S.ji[pid]={teika:0,nebiki:0,haiki:0};
+  S.ji[pid][key]=val;
+  saveS();
+  renderJissekiSummary();
+  renderJissekiTable();
+}
+
+// ============================================================
+// 週管理
+// ============================================================
+function renderWeekSelector(){
+  const el=document.getElementById('week-selector');
+  if(!el)return;
+  const keys=Object.keys(S.weeks).sort();
+  const canDelete=keys.length>1;
+  let html=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:12px;font-weight:700;color:var(--main);white-space:nowrap">📅 週</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1;overflow-x:auto">`;
+  const DOW=['日','月','火','水','木','金','土'];
+  keys.forEach(key=>{
+    const active=key===S.activeWeek;
+    const w=S.weeks[key];
+    const d=parseLocalDate(w?.weekStart||weekKeyToDateStr(key));
+    const dow=DOW[d.getDay()];
+    const label=`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}(${dow})週`;
+    html+=`<div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
+      <button onclick="switchWeek('${key}')"
+        style="padding:5px 14px;border-radius:20px;border:2px solid ${active?'var(--accent)':'var(--border)'};
+        background:${active?'var(--accent)':'#fff'};color:${active?'#fff':'#555'};
+        font-size:12px;font-weight:${active?700:400};cursor:pointer;white-space:nowrap;transition:all .15s">
+        ${label}${active?' ✓':''}
+      </button>
+      ${canDelete?(deleteConfirmKey===key
+        ?`<button onclick="deleteWeek('${key}')"
+          title="もう一度タップで削除"
+          style="padding:1px 6px;border-radius:10px;background:#e53935;border:none;color:#fff;font-size:10px;cursor:pointer;line-height:1.4;flex-shrink:0;font-weight:700;animation:pulse .6s infinite alternate">削除?</button>`
+        :`<button onclick="deleteWeek('${key}')"
+          title="タップで削除確認"
+          style="width:18px;height:18px;border-radius:50%;background:#e0e0e0;border:none;color:#666;font-size:10px;cursor:pointer;line-height:1;flex-shrink:0">×</button>`)
+      :''}
+    </div>`;
+  });
+  html+=`</div>
+    <button onclick="showAddWeekDialog()"
+      style="padding:5px 12px;border-radius:20px;border:2px dashed var(--border);background:#fff;color:var(--gray);font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0">
+      ＋ 追加
+    </button>
+  </div>`;
+  el.innerHTML=html;
+}
+function switchWeek(key){
+  if(key===S.activeWeek)return;
+  syncActiveWeek();
+  S.activeWeek=key;
+  const w=S.weeks[key];
+  S.ji=JSON.parse(JSON.stringify(w.ji||{}));
+  S.cust=(w.cust||[]).map(r=>[...r]);
+  S.checks={...(w.checks||{})};
+  S.weekStart=w.weekStart||weekKeyToDateStr(key);
+  saveS();
+  renderWeekSelector();
+  renderJissekiTab();
+  renderCustGrid();
+}
+function addWeek(dateStr){
+  syncActiveWeek();
+  const key=weekKeyFromDate(dateStr);
+  if(!S.weeks[key]){
+    S.weeks[key]={ji:{},cust:Array.from({length:7},()=>new Array(24).fill(0)),checks:{},weekStart:dateStr};
+  }
+  S.activeWeek=key;
+  S.ji=JSON.parse(JSON.stringify(S.weeks[key].ji));
+  S.cust=S.weeks[key].cust.map(r=>[...r]);
+  S.checks={...S.weeks[key].checks};
+  S.weekStart=dateStr;
+  saveS();
+  renderWeekSelector();
+  renderJissekiTab();
+  renderCustGrid();
+}
+function deleteWeek(key){
+  const keys=Object.keys(S.weeks);
+  if(keys.length<=1){alert('最後の週は削除できません');return;}
+  if(deleteConfirmKey===key){
+    // 2タップ目: 実際に削除
+    clearTimeout(deleteConfirmTimer);
+    deleteConfirmKey=null;
+    deleteConfirmTimer=null;
+    delete S.weeks[key];
+    if(S.activeWeek===key){
+      const remaining=Object.keys(S.weeks).sort();
+      switchWeek(remaining[remaining.length-1]);
+    } else {
+      saveS();renderWeekSelector();
+    }
+  } else {
+    // 1タップ目: 確認状態へ
+    if(deleteConfirmTimer)clearTimeout(deleteConfirmTimer);
+    deleteConfirmKey=key;
+    renderWeekSelector(); // ボタンを赤く表示
+    deleteConfirmTimer=setTimeout(()=>{
+      deleteConfirmKey=null;
+      deleteConfirmTimer=null;
+      renderWeekSelector(); // タイムアウトでリセット
+    },3000);
+  }
+}
+function showAddWeekDialog(){
+  const keys=Object.keys(S.weeks).sort();
+  const lastKey=keys[keys.length-1];
+  const lastWeekStart=S.weeks[lastKey]?.weekStart||weekKeyToDateStr(lastKey);
+  const defaultDate=getNextTuesday(lastWeekStart);
+  // モーダルを表示
+  document.getElementById('add-week-modal').style.display='flex';
+  const inp=document.getElementById('add-week-date');
+  inp.value=defaultDate;
+  inp.min=defaultDate;
+  setTimeout(()=>inp.focus(),50);
+}
+function closeAddWeekModal(){
+  document.getElementById('add-week-modal').style.display='none';
+}
+function confirmAddWeek(){
+  const val=document.getElementById('add-week-date').value;
+  if(!val){alert('日付を入力してください');return;}
+  const d=parseLocalDate(val);
+  if(d.getDay()!==2){
+    if(!confirm(`${val} は火曜日ではありません（${['日','月','火','水','木','金','土'][d.getDay()]}曜日）\nこの日付で作成しますか？`))return;
+  }
+  closeAddWeekModal();
+  addWeek(val);
+}
+
+function resetJisseki(){
+  if(!confirm('実績データをリセットしますか？'))return;
+  S.ji={};saveS();renderJissekiTab();
+}
+function loadPrevJisseki(){
+  if(!Object.keys(S.prevJi||{}).length){alert('前週データがありません');return;}
+  S.ji=JSON.parse(JSON.stringify(S.prevJi));saveS();renderJissekiTab();
+}
+function loadSampleJisseki(){
+  S.ji=JSON.parse(JSON.stringify(DEF_JISSEKI));saveS();renderJissekiTab();
+}
+
+function renderCustGrid(){
+  const el=document.getElementById('cust-grid');
+  const wt=getWeekTotal();
+  const TH='position:sticky;left:0;background:#fff;z-index:2;white-space:nowrap;padding:4px 8px;';
+  const TH_STICKY_LT='position:sticky;left:0;background:var(--main-lt);font-weight:700;white-space:nowrap;padding:4px 8px;text-align:center;';
+  const inputStyle='width:46px;text-align:center;border:1px solid var(--border);border-radius:4px;padding:3px 2px;font-size:13px';
+  let html=`<div style="font-size:11px;color:var(--gray);margin-bottom:6px">💡 矢印キーで移動 / Enterで下へ / Tabで右へ移動できます</div>`;
+  html+=`<table style="border-collapse:collapse;font-size:13px;min-width:1400px"><thead><tr>
+    <th style="${TH}">曜日</th>
+    ${Array.from({length:24},(_,h)=>`<th style="width:54px;white-space:nowrap;padding:4px 4px;text-align:center">${h}:00</th>`).join('')}
+    <th style="width:54px;white-space:nowrap;padding:4px 8px;text-align:center">日計</th>
+  </tr></thead><tbody>`;
+  DAYS.forEach((d,di)=>{
+    const dayTotal=getDayCust(di);
+    html+=`<tr><td style="${TH_STICKY_LT}">${d}</td>`;
+    for(let h=0;h<24;h++){
+      html+=`<td style="padding:2px 2px">
+        <input type="text" inputmode="numeric" id="cust-${di}-${h}" value="${S.cust[di][h]||0}"
+          style="${inputStyle}"
+          onfocus="this.select()"
+          oninput="custInputHandler(this,${di},${h})"
+          oncompositionend="custInputHandler(this,${di},${h})"
+          onkeydown="custKeyNav(event,${di},${h})">
+      </td>`;
+    }
+    html+=`<td id="cust-day-${di}" style="font-weight:700;text-align:center;white-space:nowrap;padding:4px 8px">${dayTotal}</td></tr>`;
+  });
+  html+=`<tr style="background:var(--main-lt);font-weight:700"><td style="${TH_STICKY_LT}">合計</td>`;
+  for(let h=0;h<24;h++){
+    const hTotal=S.cust.reduce((s,r)=>s+(r[h]||0),0);
+    html+=`<td id="cust-h-${h}" style="text-align:center;white-space:nowrap;padding:4px 4px">${hTotal}</td>`;
+  }
+  html+=`<td id="cust-week-total" style="text-align:center;white-space:nowrap;padding:4px 8px">${wt}</td></tr>`;
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+function toHalf(s){
+  return String(s||'')
+    .replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .replace(/[－ー]/g,'-')
+    .replace(/[．]/g,'.');
+}
+function toHalfInt(s){return toHalf(s).replace(/[^0-9\-]/g,'');}
+function toHalfNum(s){return toHalf(s).replace(/[^0-9\-\.]/g,'');}
+function custInputHandler(el,di,h){
+  const half=toHalfInt(el.value);
+  if(el.value!==half)el.value=half;
+  setCust(di,h,parseInt(half)||0);
+}
+function initGlobalInputHandlers(){
+  // フォーカス時に自動全選択（数値入力のみ）
+  document.addEventListener('focusin',function(e){
+    const el=e.target;
+    if(el.tagName!=='INPUT')return;
+    if(el.type==='number'||el.inputMode==='numeric'){
+      setTimeout(()=>el.select(),10);
+    }
+  },true);
+  // IME確定時（全角→半角変換）
+  document.addEventListener('compositionend',function(e){
+    const el=e.target;
+    if(el.tagName!=='INPUT')return;
+    if(el.type==='number'){
+      const composed=e.data||'';
+      const half=toHalf(composed);
+      const num=parseFloat(half);
+      if(!isNaN(num)){el.value=half;el.dispatchEvent(new Event('change',{bubbles:true}));}
+    } else {
+      const half=toHalf(el.value);
+      if(half!==el.value){
+        el.value=half;
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+    }
+  },true);
+  // 通常入力時（type="text"+inputmode="numeric"の全角変換）
+  document.addEventListener('input',function(e){
+    if(e.isComposing)return;
+    const el=e.target;
+    if(el.tagName!=='INPUT'||el.type!=='text'||el.inputMode!=='numeric')return;
+    const half=toHalf(el.value);
+    if(half!==el.value){
+      const pos=el.selectionStart;
+      el.value=half;
+      try{el.setSelectionRange(pos,pos);}catch(err){}
+    }
+  },true);
+  // Enterキーで次の入力欄へ移動（客数グリッドは除く・そちらは独自ハンドラ）
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    const el=e.target;
+    if(el.tagName!=='INPUT'&&el.tagName!=='SELECT')return;
+    if(el.id&&el.id.startsWith('cust-'))return;
+    if(el.type==='checkbox'||el.type==='radio'||el.type==='submit'||el.type==='button')return;
+    e.preventDefault();
+    const getFocusable=()=>Array.from(document.querySelectorAll(
+      'input:not([disabled]):not([type=hidden]):not([type=checkbox]):not([type=radio]), select:not([disabled])'
+    )).filter(f=>f.offsetParent!==null&&!(f.id&&f.id.startsWith('cust-')));
+    // 再描画前に現在のインデックスを確保
+    const idx=getFocusable().indexOf(el);
+    if(idx<0)return;
+    // blur()で自然にonchangeを発火（手動dispatchしない）
+    el.blur();
+    // 再描画完了後に同インデックス+1の要素にフォーカス
+    setTimeout(()=>{
+      const next=getFocusable()[idx+1];
+      if(next){next.focus();if(next.tagName==='INPUT')setTimeout(()=>next.select(),10);}
+    },50);
+  },true);
+}
+function custKeyNav(e,di,h){
+  let nd=di,nh=h;
+  if(e.key==='ArrowRight'){nh=h+1;if(nh>23){nh=0;nd=(di+1)%7;}}
+  else if(e.key==='ArrowLeft'){nh=h-1;if(nh<0){nh=23;nd=(di-1+7)%7;}}
+  else if(e.key==='ArrowDown'||e.key==='Enter'){e.preventDefault();nd=(di+1)%7;}
+  else if(e.key==='ArrowUp'){e.preventDefault();nd=(di-1+7)%7;}
+  else return;
+  if(e.key!=='Tab'){
+    e.preventDefault();
+    const next=document.getElementById(`cust-${nd}-${nh}`);
+    if(next){next.focus();next.select();}
+  }
+}
+
+function setCust(di,h,val){
+  S.cust[di][h]=val;saveS();
+  // 合計セルのみ更新（グリッド再描画なし）
+  const dayTot=getDayCust(di);
+  const dEl=document.getElementById(`cust-day-${di}`);
+  if(dEl)dEl.textContent=dayTot;
+  const hTot=S.cust.reduce((s,r)=>s+(r[h]||0),0);
+  const hEl=document.getElementById(`cust-h-${h}`);
+  if(hEl)hEl.textContent=hTot;
+  const wEl=document.getElementById('cust-week-total');
+  if(wEl)wEl.textContent=getWeekTotal();
+}
+
+function resetCustZero(){
+  if(!confirm('全ての客数を0にリセットしますか？'))return;
+  S.cust=Array.from({length:7},()=>new Array(24).fill(0));saveS();renderCustGrid();
+}
+
+// ============================================================
+// TAB 1: 商品設定
+// ============================================================
+function renderProductTab(){
+  renderCatToggles();
+  renderCatCfgArea();
+  renderProductCards();
+}
+
+function renderCatToggles(){
+  document.getElementById('cat-toggle-area').innerHTML=`
+    <div style="display:flex;flex-wrap:wrap;gap:12px">
+      ${CATS.map(c=>`
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <label class="toggle">
+            <input type="checkbox" ${S.catOn[c]?'checked':''} onchange="toggleCat('${c}',this.checked)">
+            <span class="slider"></span>
+          </label>
+          ${c}
+        </label>`).join('')}
+    </div>`;
+}
+
+function toggleCat(cat,on){
+  S.catOn[cat]=on;saveS();renderProductTab();
+}
+
+function renderCatCfgArea(){
+  const el=document.getElementById('cat-cfg-area');
+  el.innerHTML=CATS.map(c=>{
+    const cfg=S.catCfg[c];
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;${S.catOn[c]?'':'opacity:.5'}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <b style="font-size:13px">${c}</b>
+        <button class="btn-secondary" style="font-size:11px" onclick="suggestSlots('${c}')">最適時間を提案</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;flex-wrap:wrap">
+        <span>販売許容時間:</span>
+        <input type="number" value="${cfg.ah}" min="1" max="24" style="width:60px"
+          onchange="setCatCfg('${c}','ah',parseInt(this.value)||6)">時間
+        <span style="color:var(--gray)">値引き目安: ${cfg.slots.map(h=>`${getMarkdownTime(c,h)}:00`).join('/')}</span>
+      </div>
+      <div style="margin-top:6px;font-size:12px;display:flex;flex-wrap:wrap;gap:12px">
+        作成時間:
+        ${ALL_SLOTS.map(h=>`
+          <label>
+            <input type="checkbox" ${cfg.slots.includes(h)?'checked':''} ${!S.catOn[c]?'disabled':''}
+              onchange="toggleCatSlot('${c}',${h},this.checked)">
+            ${SLOT_LABELS[h]}
+          </label>`).join('')}
+      </div>
+      <div id="suggest_${c.replace(/\s/g,'_')}" style="display:none;margin-top:8px;background:var(--accent-lt);border-radius:6px;padding:8px;font-size:12px"></div>
+    </div>`;
+  }).join('');
+}
+
+function setCatCfg(cat,key,val){
+  S.catCfg[cat][key]=val;saveS();renderCatCfgArea();
+}
+function toggleCatSlot(cat,h,on){
+  const s=S.catCfg[cat].slots;
+  if(on){if(!s.includes(h))s.push(h);s.sort((a,b)=>a-b);}
+  else{const i=s.indexOf(h);if(i>=0)s.splice(i,1);}
+  saveS();renderCatCfgArea();
+}
+
+function suggestSlots(cat){
+  const key=`suggest_${cat.replace(/\s/g,'_')}`;
+  const el=document.getElementById(key);
+  // Find peak hour ranges
+  const hourTotals=Array(24).fill(0);
+  S.cust.forEach(r=>r.forEach((v,h)=>hourTotals[h]+=v));
+  const wt=getWeekTotal();
+  // Suggest slots where hourly% is high before a slot
+  const suggestions=ALL_SLOTS.filter(h=>{
+    const slotTotal=hourTotals.slice(h,h+3).reduce((a,b)=>a+b,0);
+    return wt?slotTotal/wt>0.05:false;
+  });
+  el.style.display='block';
+  el.innerHTML=`<b>提案:</b> ${suggestions.map(h=>SLOT_LABELS[h]).join(', ')} が客数ピーク前の時刻です
+    <br><button class="btn-secondary mt-1" onclick="adoptSuggest('${cat}',[${suggestions}])">この提案を採用する</button>`;
+}
+
+function adoptSuggest(cat,slots){
+  S.catCfg[cat].slots=slots.sort((a,b)=>a-b);saveS();renderCatCfgArea();
+}
+
+function renderProductCards(){
+  const el=document.getElementById('product-cards');
+  const sorted=[...S.PM].sort((a,b)=>a.order-b.order);
+  el.innerHTML=sorted.map(p=>renderProductCard(p)).join('');
+}
+
+function renderProductCard(p){
+  return `<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden">
+    <div style="background:var(--main-lt);padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:700;font-size:13px">${p.name}</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label class="toggle"><input type="checkbox" ${p.enabled?'checked':''} onchange="setProdField('${p.id}','enabled',this.checked)"><span class="slider"></span></label>
+        <button class="btn-danger" style="padding:4px 8px;font-size:11px" onclick="delProduct('${p.id}')">削除</button>
+      </div>
+    </div>
+    <div style="padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+      <div><label>カテゴリ</label>
+        <select onchange="setProdField('${p.id}','category',this.value)">
+          ${CATS.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}
+        </select></div>
+      <div><label>表示順</label>
+        <input type="number" value="${p.order}" onchange="setProdField('${p.id}','order',parseInt(toHalf(this.value))||0)"></div>
+      <div><label>原価(円)</label>
+        <input type="number" value="${p.cost}" step="0.01" onchange="setProdField('${p.id}','cost',parseFloat(toHalf(this.value))||0)"></div>
+      <div><label>標準売価(円)</label>
+        <input type="number" value="${p.stdPrice}" onchange="setProdField('${p.id}','stdPrice',parseInt(toHalf(this.value))||0)"></div>
+      <div><label>店頭売価(円)</label>
+        <input type="number" value="${p.shopPrice}" onchange="setProdField('${p.id}','shopPrice',parseInt(toHalf(this.value))||0)"></div>
+      <div><label>値引額(円)</label>
+        <input type="number" value="${p.disc}" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)"></div>
+      <div><label>最低作成数</label>
+        <input type="number" value="${p.minCount||0}" min="0" onchange="setProdField('${p.id}','minCount',parseInt(toHalf(this.value))||0)"></div>
+      <div><label>タグ</label>
+        <input type="text" value="${p.tags||''}" onchange="setProdField('${p.id}','tags',this.value)"></div>
+      <div><label>販売開始時</label>
+        <input type="number" value="${p.timeStart??7}" min="0" max="23" onchange="setProdField('${p.id}','timeStart',parseInt(toHalf(this.value))||0)"></div>
+      <div><label>販売終了時</label>
+        <input type="number" value="${p.timeEnd??22}" min="1" max="24" onchange="setProdField('${p.id}','timeEnd',parseInt(this.value)||24)"></div>
+      <div style="grid-column:span 2">
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" ${p.isNew?'checked':''} onchange="setProdField('${p.id}','isNew',this.checked)">
+          新商品フラグ
+          ${p.isNew?`&nbsp;データ収集期間: <input type="number" value="${p.newDays||0}" min="0" style="width:50px" onchange="setProdField('${p.id}','newDays',parseInt(toHalf(this.value))||0)">日`:''}
+        </label>
+      </div>
+      <div><label>商品名</label>
+        <input type="text" value="${p.name}" onchange="setProdField('${p.id}','name',this.value)"></div>
+    </div>
+  </div>`;
+}
+
+function setProdField(pid,key,val){
+  const p=S.PM.find(x=>x.id===pid);if(!p)return;
+  p[key]=val;saveS();renderProductCards();
+}
+
+function addProduct(){
+  const id='p'+(Date.now());
+  S.PM.push({id,name:'新商品',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:999,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22});
+  saveS();renderProductCards();
+}
+
+function delProduct(pid){
+  if(!confirm('この商品を削除しますか？'))return;
+  S.PM=S.PM.filter(p=>p.id!==pid);saveS();renderProductCards();
+}
+
+// ============================================================
+// TAB 2: 外部ファクト
+// ============================================================
+function renderExtTab(){
+  renderExtDayTabs();
+  renderExtDayContent(currentExtDay);
+  renderRulesArea();
+}
+
+function renderExtDayTabs(){
+  document.getElementById('ext-day-tabs').innerHTML=DAYS.map((d,i)=>
+    `<div class="day-tab ${i===currentExtDay?'active':''}" onclick="selectExtDay(${i})">${d}</div>`
+  ).join('');
+}
+
+function selectExtDay(i){currentExtDay=i;renderExtDayTabs();renderExtDayContent(i);}
+
+function renderExtDayContent(i){
+  const e=S.ext[i]||{weather:'晴れ',temp:getSeasonalTemp().temp,event:'',correction:0};
+  const day=DAYS[i];
+  const {temp:defaultTemp,label:season}=getSeasonalTemp();
+  const btnStyle='padding:3px 8px;font-size:11px;border-radius:5px;border:1px solid var(--border);background:#f5f5f5;cursor:pointer;color:#555;white-space:nowrap';
+  const btnStyleDay='padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid var(--red);background:#fff5f5;cursor:pointer;color:var(--red);font-weight:600';
+  document.getElementById('ext-day-content').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-top:8px">
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label style="margin:0">天気</label>
+          <button style="${btnStyle}" onclick="resetExtField(${i},'weather','晴れ')">↩ リセット</button>
+        </div>
+        <select onchange="setExt(${i},'weather',this.value)">
+          ${['晴れ','曇り','雨','雪','台風'].map(w=>`<option ${e.weather===w?'selected':''}>${w}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label style="margin:0">気温(℃)</label>
+          <button style="${btnStyle}" onclick="resetExtField(${i},'temp',null)">↩ ${season}(${defaultTemp}℃)</button>
+        </div>
+        <input type="number" value="${e.temp}" onchange="setExt(${i},'temp',parseFloat(toHalf(this.value))||0)">
+      </div>
+      <div class="form-group" style="grid-column:span 2">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label style="margin:0">イベント</label>
+          <button style="${btnStyle}" onclick="resetExtField(${i},'event','')">↩ リセット</button>
+        </div>
+        <input type="text" value="${e.event||''}" placeholder="例: 上高地開山祭" onchange="setExt(${i},'event',this.value)">
+      </div>
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label style="margin:0">補正係数(%)</label>
+          <button style="${btnStyle}" onclick="resetExtField(${i},'correction',0)">↩ リセット</button>
+        </div>
+        <input type="number" value="${e.correction||0}" onchange="setExt(${i},'correction',parseFloat(toHalf(this.value))||0)">
+        <span style="font-size:11px;color:var(--gray)">プラスで増産・マイナスで減産</span>
+      </div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button style="${btnStyleDay}" onclick="resetExtDay(${i})">🔄 ${day}曜日を全てリセット</button>
+    </div>`;
+}
+
+function setExt(i,key,val){
+  if(!S.ext[i])S.ext[i]={weather:'晴れ',temp:20,event:'',correction:0};
+  S.ext[i][key]=val;saveS();renderExtDayContent(i);
+}
+function getSeasonalTemp(){
+  const m=new Date().getMonth()+1;
+  if(m>=3&&m<=5)return{temp:15,label:'春'};
+  if(m>=6&&m<=8)return{temp:28,label:'夏'};
+  if(m>=9&&m<=11)return{temp:15,label:'秋'};
+  return{temp:5,label:'冬'};
+}
+function resetExtField(i,key,defaultVal){
+  if(!S.ext[i])S.ext[i]={weather:'晴れ',temp:getSeasonalTemp().temp,event:'',correction:0};
+  const val=(key==='temp')?getSeasonalTemp().temp:defaultVal;
+  S.ext[i][key]=val;saveS();renderExtDayContent(i);
+}
+function resetExtDay(i){
+  const {temp,label}=getSeasonalTemp();
+  if(!confirm(`${DAYS[i]}曜日の外部ファクトを全てリセットしますか？\n気温は${label}のデフォルト（${temp}℃）になります。`))return;
+  S.ext[i]={weather:'晴れ',temp,event:'',correction:0};
+  saveS();renderExtDayContent(i);
+}
+function resetExt(){
+  const {temp,label}=getSeasonalTemp();
+  if(!confirm(`全曜日の外部ファクト情報をリセットしますか？\n気温は${label}のデフォルト（${temp}℃）になります。`))return;
+  S.ext=Array.from({length:7},()=>({weather:'晴れ',temp,event:'',correction:0}));
+  saveS();renderExtTab();
+}
+
+function renderRulesArea(){
+  const el=document.getElementById('rules-area');
+  const rules=S.rules||[];
+
+  // Available tags from products
+  const allTags=[...new Set(S.PM.flatMap(p=>(p.tags||'').split(',').map(t=>t.trim()).filter(Boolean)))];
+
+  let html=`<p style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.6">
+    特定の曜日・タグ条件の商品に補正係数を追加できます。<br>
+    例：「週末 × 揚げ物タグ → <b>+20%</b>」にすると、土日の揚げ物商品の作成数が20%増えます。
+  </p>`;
+
+  if(!rules.length){
+    html+=`<div style="text-align:center;padding:20px;color:var(--gray);font-size:13px;border:2px dashed var(--border);border-radius:8px">
+      ルールがありません。「＋ルール追加」で作成してください。
+    </div>`;
+  } else {
+    html+=rules.map((r,i)=>{
+      const corr=parseFloat(r.correction)||0;
+      const corrColor=corr>0?'var(--green)':corr<0?'var(--red)':'var(--gray)';
+      const corrSign=corr>0?'+':'';
+      const condLabel=r.condition||'毎日';
+      const tagLabel=r.tags?`「${r.tags}」タグ`:'（タグ未設定）';
+      const summary=`<b style="color:${corrColor}">${corrSign}${corr}%</b> 補正`;
+      return `
+      <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff">
+        <!-- サマリー行 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:600;color:#333">
+            📅 <span style="color:var(--main)">${condLabel}</span>
+            &nbsp;×&nbsp;
+            🏷 <span style="color:var(--accent)">${r.tags||'（タグ未設定）'}</span>
+            &nbsp;→&nbsp;${summary}
+          </div>
+          <button class="btn-danger" style="padding:4px 10px;font-size:12px" onclick="delRule(${i})">削除</button>
+        </div>
+        <!-- 入力行 -->
+        <div style="display:grid;grid-template-columns:auto 1fr auto 1fr auto 80px;gap:6px;align-items:center;font-size:12px">
+          <label style="white-space:nowrap;color:#666;font-weight:600">適用曜日</label>
+          <select style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px" onchange="setRule(${i},'condition',this.value)">
+            ${['毎日','週末','平日',...DAYS].map(c=>`<option ${r.condition===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <label style="white-space:nowrap;color:#666;font-weight:600;margin-left:8px">対象タグ</label>
+          <input type="text" value="${r.tags||''}" placeholder="例: 揚げ物, ワンハンド"
+            style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px"
+            list="tag-list-${i}" onchange="setRule(${i},'tags',this.value)" oninput="setRule(${i},'tags',this.value)">
+          <datalist id="tag-list-${i}">${allTags.map(t=>`<option value="${t}">`).join('')}</datalist>
+          <label style="white-space:nowrap;color:#666;font-weight:600;margin-left:8px">補正</label>
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="number" value="${r.correction||0}" placeholder="例: 20"
+              style="width:60px;padding:5px 6px;border-radius:6px;border:1px solid var(--border);font-size:12px;text-align:center"
+              onchange="setRuleAndRefresh(${i},'correction',parseFloat(toHalf(this.value))||0)">
+            <span style="font-size:12px;color:#666">%</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  el.innerHTML=html;
+}
+
+function addRule(){
+  if(!S.rules)S.rules=[];
+  S.rules.push({condition:'毎日',tags:'',correction:0});saveS();renderRulesArea();
+}
+
+// ============================================================
+// AUTO SUGGEST RULES
+// ============================================================
+function openRuleSuggest(){
+  const suggestions = calcRuleSuggestions();
+  const el = document.getElementById('rule-suggest-content');
+
+  if(!suggestions.length){
+    el.innerHTML=`<div style="text-align:center;padding:24px;color:#888;font-size:13px">
+      <div style="font-size:28px;margin-bottom:8px">✅</div>
+      現在の外部要因・予算データから追加提案はありません。<br>
+      天気・イベント・実績を入力すると提案が生成されます。
+    </div>`;
+  } else {
+    // カテゴリ別にグループ化
+    const groups={};
+    suggestions.forEach((s,i)=>{
+      const g=s.category||'その他';
+      if(!groups[g])groups[g]=[];
+      groups[g].push({...s,_idx:i});
+    });
+    el.innerHTML=Object.entries(groups).map(([grp,items])=>`
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.05em;margin-bottom:6px;padding:0 2px">
+          ${items[0].icon||'📌'} ${grp}
+        </div>
+        ${items.map(s=>`
+        <div class="suggest-card">
+          <label>
+            <input type="checkbox" id="sug_${s._idx}" checked style="width:18px;height:18px;cursor:pointer;flex-shrink:0">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <span style="background:var(--main-lt);color:var(--main);border-radius:6px;padding:2px 8px;font-size:12px">${s.condition}</span>
+                <span style="color:#666">×</span>
+                <span style="background:#fff3e0;color:#e65100;border-radius:6px;padding:2px 8px;font-size:12px">🏷 ${s.tags||'全商品'}</span>
+                <span style="color:#666">→</span>
+                <span style="font-size:14px;font-weight:800;color:${s.correction>0?'var(--green)':'var(--red)'}">
+                  ${s.correction>0?'+':''}${s.correction}%
+                </span>
+              </div>
+              <div class="reason" style="margin-top:4px">${s.reason}</div>
+            </div>
+          </label>
+        </div>`).join('')}
+      </div>`).join('');
+  }
+
+  window._ruleSuggestions = suggestions;
+  document.getElementById('rule-suggest-modal').classList.add('show');
+}
+
+function closeRuleSuggest(){
+  document.getElementById('rule-suggest-modal').classList.remove('show');
+}
+
+function applyRuleSuggest(){
+  const suggestions = window._ruleSuggestions||[];
+  if(!S.rules)S.rules=[];
+  suggestions.forEach((s,i)=>{
+    const cb = document.getElementById(`sug_${i}`);
+    if(cb&&cb.checked){
+      // 同じ条件+タグのルールが既にあれば更新、なければ追加
+      const existing = S.rules.findIndex(r=>r.condition===s.condition&&r.tags===s.tags);
+      if(existing>=0) S.rules[existing].correction=s.correction;
+      else S.rules.push({condition:s.condition,tags:s.tags,correction:s.correction});
+    }
+  });
+  saveS();
+  closeRuleSuggest();
+  renderRulesArea();
+}
+
+function calcRuleSuggestions(){
+  const sugs=[];
+  const weekendIdx=[4,5],weekdayIdx=[0,1,2,3,6];
+
+  // ── ① 天気・気温ベース ──────────────────
+  const coldDays=S.ext.filter(e=>(e.temp??20)<=13).length;
+  const rainDays=S.ext.filter(e=>(e.weather||'').match(/雨|雪/)).length;
+  const hotDays =S.ext.filter(e=>(e.temp??20)>=27).length;
+
+  if(coldDays>=2){
+    sugs.push({condition:'毎日',tags:'まん',correction:15,
+      icon:'🥶',category:'天気・気温',
+      reason:`来週${coldDays}日が13℃以下の寒い予報。中華まんの需要増が見込まれます`});
+  }
+  if(hotDays>=2){
+    sugs.push({condition:'毎日',tags:'まん',correction:-15,
+      icon:'🌡️',category:'天気・気温',
+      reason:`来週${hotDays}日が27℃超えの暑い予報。中華まんの売れ行き低下が見込まれます`});
+  }
+  if(rainDays>=2){
+    sugs.push({condition:'毎日',tags:'ワンハンド',correction:-10,
+      icon:'🌧️',category:'天気・気温',
+      reason:`来週${rainDays}日が雨/雪予報。外出客減少によりワンハンド商品の需要が落ちやすい傾向があります`});
+  }
+
+  // ── ② イベントベース ──────────────────
+  S.ext.forEach((e,i)=>{
+    if(!e.event)return;
+    const isWE=[4,5].includes(i);
+    const cond=isWE?'週末':DAYS[i]; // 特定曜日で提案
+    // イベント系はワンハンドが売れやすい傾向
+    sugs.push({condition:cond,tags:'ワンハンド',correction:20,
+      icon:'🎪',category:'イベント',
+      reason:`${DAYS[i]}曜「${e.event}」開催。来客増加によりワンハンド商品の需要が高まります`});
+  });
+
+  // ── ③ 予算・実績ベース ──────────────────
+  const MCAT_TAG={'ホットFF':'揚げ物','常温FF':'','中華まん':'まん'};
+  ['ホットFF','常温FF','中華まん'].forEach(mc=>{
+    const catKeys=CATS.filter(c=>c.startsWith(mc));
+    let make=0,sold=0,profit=0,sales=0;
+    S.PM.filter(p=>catKeys.includes(p.category)&&p.enabled).forEach(p=>{
+      const m=calcJissekiMetrics(p.id);if(!m||!m.makeCnt)return;
+      make+=m.makeCnt;sold+=m.teika+m.nebiki;profit+=m.profit;sales+=m.salesAmt;
+    });
+    if(make<5)return; // データ不足はスキップ
+    const sr=sold/make*100;
+    const pr=sales?profit/sales*100:0;
+    const tag=MCAT_TAG[mc];if(!tag)return;
+
+    if(sr<90){
+      sugs.push({condition:'毎日',tags:tag,correction:-10,
+        icon:'📉',category:'予算・実績',
+        reason:`${mc}の販売率${sr.toFixed(0)}%（目標96%）。廃棄が多い状態です。作成数を減らして利益改善を図ります`});
+    } else if(sr>=99&&pr>50){
+      sugs.push({condition:'毎日',tags:tag,correction:10,
+        icon:'📈',category:'予算・実績',
+        reason:`${mc}の販売率${sr.toFixed(0)}%とほぼ完売。販売機会の損失が発生している可能性があります`});
+    }
+  });
+
+  // ── ④ 時間帯別客数分布ベース ──────────────────
+  const total=getWeekTotal();
+  if(total>0){
+    // 朝（6〜10時）・昼（10〜14時）・夕（14〜17時）・夜（17〜22時）のシェア
+    const share=(hs,he)=>{
+      let c=0;for(let h=hs;h<he;h++)c+=S.cust.reduce((s,r)=>s+(r[h]||0),0);
+      return c/total;
+    };
+    const morningShare=share(6,10);
+    const nightShare=share(17,22);
+    const weekendAvg=weekendIdx.reduce((s,i)=>s+getDayCust(i),0)/weekendIdx.length;
+    const weekdayAvg=weekdayIdx.reduce((s,i)=>s+getDayCust(i),0)/weekdayIdx.length;
+    const weekendBoost=weekdayAvg>0?Math.round((weekendAvg/weekdayAvg-1)*100):0;
+
+    if(morningShare>0.20){
+      sugs.push({condition:'毎日',tags:'ワンハンド',correction:8,
+        icon:'🌅',category:'時間帯',
+        reason:`朝（6〜10時）の客数が全体の${(morningShare*100).toFixed(0)}%と多め。朝の需要に対応するため増産を提案します`});
+    }
+    if(nightShare>0.28){
+      sugs.push({condition:'毎日',tags:'揚げ物',correction:10,
+        icon:'🌆',category:'時間帯',
+        reason:`夕方〜夜（17〜22時）の客数が全体の${(nightShare*100).toFixed(0)}%と高水準。最終時間帯の補充を強化します`});
+    }
+    if(weekendBoost>=10){
+      const boost=Math.round(weekendBoost*0.45);
+      sugs.push({condition:'週末',tags:'揚げ物',correction:boost,
+        icon:'📅',category:'時間帯',
+        reason:`週末客数が平日比+${weekendBoost}%。土日の需要増に対応するため揚げ物を+${boost}%提案します`});
+    }
+  }
+
+  // 重複排除（同じcondition+tagsは先勝ち）
+  const seen=new Map();
+  sugs.forEach(s=>{const k=s.condition+'|'+s.tags;if(!seen.has(k))seen.set(k,s);});
+  return [...seen.values()];
+}
+function setRule(i,key,val){if(!S.rules[i])return;S.rules[i][key]=val;saveS();}
+function setRuleAndRefresh(i,key,val){if(!S.rules[i])return;S.rules[i][key]=val;saveS();renderRulesArea();}
+function delRule(i){S.rules.splice(i,1);saveS();renderRulesArea();}
+
+// ============================================================
+// TAB 3: 作成表
+// ============================================================
+function getWeekDates(){
+  const base=new Date(S.weekStart||'2026-04-22');
+  return DAYS.map((_,i)=>{const d=new Date(base);d.setDate(d.getDate()+i);return d;});
+}
+
+function renderProdDayTabs(){
+  const dates=getWeekDates();
+  const today=new Date();
+  const todayStr=today.toDateString();
+  const tabsHTML=DAYS.map((d,i)=>{
+    const dt=dates[i];
+    const isToday=dt.toDateString()===todayStr;
+    const dayCorr=S.ext[i]?.correction||0;
+    const isSpecial=dayCorr>=10;
+    const todayDot=isToday?`<span style="display:block;width:6px;height:6px;background:var(--orange);border-radius:50%;margin:2px auto 0"></span>`:'';
+    return `<div class="day-tab ${i===currentProdDay?'active':''} ${isToday?'today':''} ${isSpecial&&i!==currentProdDay?'special':''}"
+      onclick="selectProdDay(${i})" style="min-width:54px">
+      ${d}<br><span class="day-date" style="font-size:10px;${i===currentProdDay?'':'color:#666'}">${dt.getMonth()+1}/${dt.getDate()}</span>${todayDot}
+    </div>`;
+  }).join('');
+  document.getElementById('prod-day-tabs').innerHTML=tabsHTML+`<div class="day-tab-bar" style="flex:1;align-self:flex-end"></div>`;
+}
+
+function selectProdDay(i){currentProdDay=i;renderProdDayTabs();renderProdDayContent(i);}
+
+function renderProdDayContent(dayIdx){
+  const el=document.getElementById('prod-day-content');
+  const e=S.ext[dayIdx]||{weather:'晴れ',temp:20,event:'',correction:0};
+  const wt=getWeekTotal();
+  const dates=getWeekDates();
+  const dt=dates[dayIdx];
+  const dayNames=['日','月','火','水','木','金','土'];
+  const fullDayName=DAYS[dayIdx]+'曜日';
+  const dateStr=`${dt.getMonth()+1}月${dt.getDate()}日（${fullDayName}）`;
+
+  // Selected day badge
+  let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+    <div class="selected-day-badge">📅 ${dateStr} を表示中</div>
+    ${e.correction!==0?`<span style="background:${e.correction>0?'#e8f5e9':'#e3f2fd'};color:${e.correction>0?'#2e7d32':'#1565c0'};border-radius:12px;padding:3px 10px;font-size:12px;font-weight:700">${e.correction>0?'▲':'▼'} 補正${e.correction>0?'+':''}${e.correction}%</span>`:''}
+  </div>`;
+
+  // Info bar
+  html+=`<div class="info-bar">
+    <span class="info-item">🌤 ${e.weather} ${e.temp}℃</span>
+    ${e.event?`<span class="info-item">📅 ${e.event}</span>`:''}
+    <span class="info-item">補正: <b>${e.correction>=0?'+':''}${e.correction}%</b></span>
+    <span class="info-item">週総客数: <b>${wt}</b></span>
+  </div>`;
+
+  // Progress bars for each slot
+  html+=`<div class="card">`;
+  html+=`<div class="section-title">スロット別進捗</div>`;
+  ALL_SLOTS.forEach(slotH=>{
+    const prods=S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]?.slots.includes(slotH));
+    if(!prods.length)return;
+    const total=prods.length;
+    const done=prods.filter(p=>S.checks[`${dayIdx}_${slotH}_${p.id}`]).length;
+    const pct=total?Math.round(done/total*100):0;
+    const icon=pct===100?'✅':pct>0?'🔵':'⬜';
+    html+=`<div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
+        <span>${SLOT_LABELS[slotH]} ${icon}</span>
+        <span>${done}/${total} (${pct}%)</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // Category sections
+  CATS.forEach(cat=>{
+    if(!S.catOn[cat])return;
+    const cfg=S.catCfg[cat];if(!cfg||!cfg.slots.length)return;
+    const prods=S.PM.filter(p=>p.enabled&&p.category===cat).sort((a,b)=>a.order-b.order);
+    if(!prods.length)return;
+
+    html+=`<div class="card">`;
+    html+=`<div class="section-title">${cat}</div>`;
+    html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
+    html+=`<thead><tr><th style="width:110px;text-align:left">商品名</th>`;
+    cfg.slots.forEach(h=>html+=`<th style="width:90px">${SLOT_LABELS[h]}</th>`);
+    html+=`</tr></thead><tbody>`;
+
+    prods.forEach(p=>{
+      html+=`<tr><td style="text-align:left;font-size:12px">${p.name}</td>`;
+      cfg.slots.forEach(slotH=>{
+        const cnt=getProdCnt(p.id,dayIdx,slotH);
+        const chkKey=`${dayIdx}_${slotH}_${p.id}`;
+        const checked=!!S.checks[chkKey];
+        const wl=getWithdraw(p.id);
+        const range=getCatSlotRange(cat,slotH);
+        const sc=range?getSlotCust(dayIdx,range[0],range[1]):0;
+        const isSkip=wl>0&&sc<wl&&!(p.minCount||0);
+        const mdTime=getMarkdownTime(cat,slotH);
+        const baseJi=S.ji[p.id]?.teika||0;
+        const wkTotal=wt||1;
+        const slotCust=range?getSlotCust(dayIdx,range[0],range[1]):0;
+        const baseCnt=roundCnt(baseJi*slotCust/wkTotal);
+        const diff=cnt-baseCnt;
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" style="position:relative;padding:6px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <span class="prod-count">${isSkip?'-':cnt}</span>
+            <div>
+              <span class="badge badge-base">${baseCnt}</span>
+              ${diff>0?`<span class="badge badge-plus">+${diff}</span>`:diff<0?`<span class="badge badge-minus">${diff}</span>`:''}
+            </div>
+            <span class="${wl>0&&sc>=wl?'withdraw-ok':'withdraw-ng'}">${wl>0&&sc>=wl?'✓':'⚠'} ${Math.round(wl)}</span>
+            <span class="markdown-time">${mdTime}:00値引</span>
+            <input type="checkbox" ${checked?'checked':''} ${isSkip?'disabled':''}
+              onchange="setCheck('${chkKey}',this.checked)" style="margin-top:2px">
+          </div>
+        </td>`;
+      });
+      html+=`</tr>`;
+    });
+
+    html+=`</tbody></table></div>`;
+
+    // Category daily total
+    let catDayHigh=0;
+    prods.forEach(p=>{
+      cfg.slots.forEach(h=>{
+        catDayHigh+=getProdCnt(p.id,dayIdx,h)*p.shopPrice;
+      });
+    });
+    html+=`<div style="text-align:right;font-size:12px;margin-top:6px;color:var(--gray)">作成高: <b>${fmt(catDayHigh)}円</b></div>`;
+    html+=`</div>`;
+  });
+
+  el.innerHTML=html;
+}
+
+function setCheck(key,val){
+  S.checks[key]=val;saveS();renderProdDayContent(currentProdDay);
+}
+
+function resetChecks(){
+  if(!confirm('チェックをリセットしますか？'))return;
+  S.checks={};saveS();renderProdDayContent(currentProdDay);
+}
+
+function checkCurrentSlot(){
+  const now=new Date();
+  const h=now.getHours();
+  let slot=6;
+  if(h>=17)slot=17;else if(h>=14)slot=14;else if(h>=10)slot=10;
+  const prods=S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]?.slots.includes(slot));
+  prods.forEach(p=>{S.checks[`${currentProdDay}_${slot}_${p.id}`]=true;});
+  saveS();renderProdDayContent(currentProdDay);
+}
+
+// ============================================================
+// TAB 4: 予算管理
+// ============================================================
+function renderBudgetTab(){
+  renderBudgetJisseki();
+  renderBudgetPlan();
+  renderBudgetDaily();
+  renderBudgetManual();
+}
+
+function renderBudgetJisseki(){
+  const TARGET_SR=96; // 適正販売率の目標
+  const el=document.getElementById('budget-jisseki');
+  const mainCats=['ホットFF','常温FF','中華まん'];
+  const rows=mainCats.map(mc=>{
+    const catKeys=CATS.filter(c=>c.startsWith(mc));
+    const prods=S.PM.filter(p=>catKeys.includes(p.category)&&p.enabled);
+    let salesAmt=0,wasteAmt=0,discAmt=0,profit=0,makeCnt=0,soldCnt=0,teikaCnt=0;
+    prods.forEach(p=>{
+      const m=calcJissekiMetrics(p.id);if(!m)return;
+      salesAmt+=m.salesAmt;wasteAmt+=m.wasteAmt;discAmt+=m.discAmt;profit+=m.profit;
+      makeCnt+=m.makeCnt;soldCnt+=m.teika+m.nebiki;teikaCnt+=m.teika;
+    });
+    const makeAmt=prods.reduce((s,p)=>{const m=calcJissekiMetrics(p.id);return s+(m?m.makeCnt:0)*p.shopPrice;},0);
+    const profitRate=salesAmt?profit/salesAmt*100:0;
+    const saleRate=makeCnt?soldCnt/makeCnt*100:0;       // 販売率（定価+値引）
+    const propRate=makeCnt?teikaCnt/makeCnt*100:0;      // 適正販売率（定価のみ）
+    const nebikiCnt=soldCnt-teikaCnt;
+    const haikiCnt=makeCnt-soldCnt;
+    return{mc,salesAmt,wasteAmt,discAmt,profit,profitRate,makeAmt,saleRate,propRate,makeCnt,soldCnt,teikaCnt,nebikiCnt,haikiCnt};
+  });
+
+  // ── 金額サマリーテーブル ──────────────────────────
+  let html=`<table><thead><tr>
+    <th style="text-align:left">カテゴリ</th><th>作成高</th><th>販売高</th><th>廃棄高</th><th>値引高</th><th>利益高</th><th>利益率</th>
+  </tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const prWarn=r.profitRate<50?'text-red':r.profitRate<40?'text-red':'';
+    html+=`<tr>
+      <td style="text-align:left;font-weight:600">${r.mc}</td>
+      <td>${fmt(r.makeAmt)}</td><td>${fmt(r.salesAmt)}</td><td>${fmt(r.wasteAmt)}</td><td>${fmt(r.discAmt)}</td>
+      <td>${fmt(r.profit)}</td>
+      <td class="${r.profitRate<50?'text-red':r.profitRate<55?'text-orange':'text-green'}">${r.profitRate.toFixed(1)}%</td>
+    </tr>`;
+  });
+  const tot=rows.reduce((a,r)=>({salesAmt:a.salesAmt+r.salesAmt,wasteAmt:a.wasteAmt+r.wasteAmt,discAmt:a.discAmt+r.discAmt,profit:a.profit+r.profit,makeAmt:a.makeAmt+r.makeAmt,makeCnt:a.makeCnt+r.makeCnt,soldCnt:a.soldCnt+r.soldCnt,teikaCnt:a.teikaCnt+r.teikaCnt,nebikiCnt:a.nebikiCnt+r.nebikiCnt,haikiCnt:a.haikiCnt+r.haikiCnt}),{salesAmt:0,wasteAmt:0,discAmt:0,profit:0,makeAmt:0,makeCnt:0,soldCnt:0,teikaCnt:0,nebikiCnt:0,haikiCnt:0});
+  const tPR=tot.salesAmt?tot.profit/tot.salesAmt*100:0;
+  html+=`<tr style="font-weight:700;background:var(--main-lt)">
+    <td style="text-align:left">合計</td><td>${fmt(tot.makeAmt)}</td><td>${fmt(tot.salesAmt)}</td><td>${fmt(tot.wasteAmt)}</td><td>${fmt(tot.discAmt)}</td>
+    <td>${fmt(tot.profit)}</td><td class="${tPR<50?'text-red':tPR<55?'text-orange':'text-green'}">${tPR.toFixed(1)}%</td>
+  </tr>`;
+  html+='</tbody></table>';
+
+  // ── 販売率・適正販売率セクション ──────────────────────────
+  html+=`<div style="margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:var(--main);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+      📊 カテゴリ別 販売率・適正販売率
+      <span style="font-size:11px;font-weight:400;color:#888">目標：適正販売率 ${TARGET_SR}%以上</span>
+    </div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">
+      販売率＝定価+値引販売÷作成数　／　適正販売率＝定価販売のみ÷作成数（値引きなしで売れた割合）
+    </div>`;
+
+  [...rows,{mc:'合計',...tot,
+    saleRate:tot.makeCnt?tot.soldCnt/tot.makeCnt*100:0,
+    propRate:tot.makeCnt?tot.teikaCnt/tot.makeCnt*100:0
+  }].forEach((r,idx)=>{
+    if(!r.makeCnt)return;
+    const isTotal=r.mc==='合計';
+    const diffFromTarget=r.propRate-TARGET_SR; // 適正販売率と目標の差
+    const diffBetween=r.saleRate-r.propRate;   // 販売率と適正販売率の差（値引き販売の割合）
+
+    const targetColor=diffFromTarget>=0?'var(--green)':diffFromTarget>=-5?'var(--orange)':'var(--red)';
+    const targetIcon=diffFromTarget>=0?'✓':diffFromTarget>=-5?'△':'✗';
+
+    // バー用の割合
+    const teikaPct=r.makeCnt?r.teikaCnt/r.makeCnt*100:0;
+    const nebikiPct=r.makeCnt?r.nebikiCnt/r.makeCnt*100:0;
+    const haikiPct=r.makeCnt?r.haikiCnt/r.makeCnt*100:0;
+
+    html+=`<div style="border:${isTotal?'2px solid var(--main)':'1px solid var(--border)'};border-radius:10px;padding:12px 14px;margin-bottom:8px;background:${isTotal?'var(--main-lt)':'#fff'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <span style="font-weight:700;font-size:${isTotal?'14':'13'}px">${r.mc}</span>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <!-- 販売率 -->
+          <div style="text-align:center">
+            <div style="font-size:10px;color:#888;margin-bottom:1px">販売率</div>
+            <div style="font-size:16px;font-weight:800;color:${r.saleRate>=96?'var(--green)':r.saleRate>=90?'var(--orange)':'var(--red)'}">${r.saleRate.toFixed(1)}%</div>
+          </div>
+          <div style="color:#ccc;font-size:16px">→</div>
+          <!-- 適正販売率 -->
+          <div style="text-align:center">
+            <div style="font-size:10px;color:#888;margin-bottom:1px">適正販売率</div>
+            <div style="font-size:16px;font-weight:800;color:${targetColor}">${r.propRate.toFixed(1)}%</div>
+          </div>
+          <!-- 目標差バッジ -->
+          <div style="background:${diffFromTarget>=0?'#e8f5e9':diffFromTarget>=-5?'#fff8e1':'#ffebee'};
+                      color:${targetColor};border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap">
+            ${targetIcon} 目標比 ${diffFromTarget>=0?'+':''}${diffFromTarget.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+      <!-- 販売内訳バー -->
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-bottom:3px">
+          <span>販売内訳（作成数ベース）</span>
+          <span style="color:${diffBetween>5?'var(--orange)':'#888'}">値引き販売: ${diffBetween.toFixed(1)}%${diffBetween>5?' ⚠':''}　廃棄: ${haikiPct.toFixed(1)}%</span>
+        </div>
+        <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:#eee">
+          <div style="width:${teikaPct}%;background:var(--accent);transition:width .3s" title="定価販売 ${teikaPct.toFixed(1)}%"></div>
+          <div style="width:${nebikiPct}%;background:var(--orange);transition:width .3s" title="値引販売 ${nebikiPct.toFixed(1)}%"></div>
+          <div style="width:${haikiPct}%;background:var(--red);opacity:.7;transition:width .3s" title="廃棄 ${haikiPct.toFixed(1)}%"></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:4px;font-size:10px">
+          <span style="color:var(--accent)">■ 定価販売 ${teikaPct.toFixed(1)}%</span>
+          <span style="color:var(--orange)">■ 値引販売 ${nebikiPct.toFixed(1)}%</span>
+          <span style="color:var(--red)">■ 廃棄 ${haikiPct.toFixed(1)}%</span>
+        </div>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+
+  // Alerts
+  const tSR=tot.makeCnt?tot.soldCnt/tot.makeCnt*100:0;
+  const tPropR=tot.makeCnt?tot.teikaCnt/tot.makeCnt*100:0;
+  let alerts='';
+  if(tPropR>0&&tPropR<90)alerts+=`<div class="alert alert-danger">⚠ 適正販売率が90%未満です（${tPropR.toFixed(1)}%）。廃棄・値引きが多い状態です</div>`;
+  else if(tPropR>0&&tPropR<TARGET_SR)alerts+=`<div class="alert alert-warn">△ 適正販売率が目標${TARGET_SR}%未満です（${tPropR.toFixed(1)}%）</div>`;
+  if(tot.makeAmt&&tot.wasteAmt/tot.makeAmt*100>8)alerts+=`<div class="alert alert-warn">廃棄率が8%を超えています</div>`;
+  el.innerHTML=alerts+html;
+}
+
+function renderBudgetPlan(){
+  const el=document.getElementById('budget-plan');
+  // Next week formal
+  let nextMake=0;
+  S.PM.forEach(p=>{
+    if(!p.enabled||!S.catOn[p.category])return;
+    const cfg=S.catCfg[p.category];if(!cfg)return;
+    DAYS.forEach((_,di)=>{
+      cfg.slots.forEach(h=>{nextMake+=getProdCnt(p.id,di,h)*p.shopPrice;});
+    });
+  });
+  // Avg daily from jisseki
+  let avgDaily=0;
+  S.PM.forEach(p=>{
+    const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
+    avgDaily+=(ji.teika+ji.nebiki+ji.haiki)*p.shopPrice;
+  });
+  avgDaily=avgDaily/7;
+  const nextMakeTmp=avgDaily*7;
+
+  // Waste rate
+  let totalMakeAmt=0,totalWasteAmt=0,totalSalesAmt=0,totalDiscAmt=0;
+  S.PM.forEach(p=>{
+    const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
+    const m=calcJissekiMetrics(p.id);if(!m)return;
+    totalMakeAmt+=(ji.teika+ji.nebiki+ji.haiki)*p.shopPrice;
+    totalWasteAmt+=m.wasteAmt;totalSalesAmt+=m.salesAmt;totalDiscAmt+=m.discAmt;
+  });
+  const wasteRate=totalMakeAmt?totalWasteAmt/totalMakeAmt:0;
+  const discRateOnSales=totalSalesAmt?totalDiscAmt/totalSalesAmt:0;
+  const wasteBudget=nextMake*wasteRate;
+  const discOptimal=totalSalesAmt?(totalSalesAmt-totalDiscAmt-totalWasteAmt)*discRateOnSales:0;
+  const costRate=S.PM.reduce((s,p)=>s+(p.cost/p.shopPrice),0)/(S.PM.length||1);
+  const discMax=nextMake*costRate;
+  const discDiff=discMax-discOptimal;
+  const newBudget=Math.max(0,discDiff);
+
+  el.innerHTML=`
+    <div class="summary-grid">
+      <div class="summary-box"><div class="label">次週作成高（仮）</div><div class="value">${fmt(nextMakeTmp)}</div><div class="unit">円</div></div>
+      <div class="summary-box"><div class="label">次週作成高（正式）</div><div class="value">${fmt(nextMake)}</div><div class="unit">円</div></div>
+      <div class="summary-box"><div class="label">廃棄予算</div><div class="value">${fmt(wasteBudget)}</div><div class="unit">円 (${(wasteRate*100).toFixed(1)}%)</div></div>
+      <div class="summary-box"><div class="label">値引予算（最適）</div><div class="value">${fmt(discOptimal)}</div><div class="unit">円</div></div>
+      <div class="summary-box"><div class="label">値引予算（最大）</div><div class="value">${fmt(discMax)}</div><div class="unit">円</div></div>
+      <div class="summary-box"><div class="label">新商品予算</div><div class="value">${fmt(newBudget)}</div><div class="unit">円</div></div>
+    </div>
+    ${nextMake>nextMakeTmp*1.2?'<div class="alert alert-warn">次週作成高が前週比+20%以上です</div>':''}
+  `;
+}
+
+function renderBudgetDaily(){
+  const el=document.getElementById('budget-daily');
+  const dates=getWeekDates();
+  let html=`<table><thead><tr><th style="width:80px">カテゴリ</th>`;
+  DAYS.forEach((d,i)=>html+=`<th>${d}<br><span style="font-size:10px">${dates[i].getMonth()+1}/${dates[i].getDate()}</span></th>`);
+  html+=`<th>週計</th><th>日平均</th></tr></thead><tbody>`;
+  const mainCats=['ホットFF','常温FF','中華まん'];
+  let totals=Array(7).fill(0),grandTotal=0;
+  mainCats.forEach(mc=>{
+    const catKeys=CATS.filter(c=>c.startsWith(mc));
+    html+=`<tr><td style="text-align:left">${mc}</td>`;
+    let rowTotal=0;
+    DAYS.forEach((_,di)=>{
+      let d=0;
+      S.PM.filter(p=>p.enabled&&catKeys.includes(p.category)).forEach(p=>{
+        const cfg=S.catCfg[p.category];if(!cfg)return;
+        cfg.slots.forEach(h=>{d+=getProdCnt(p.id,di,h)*p.shopPrice;});
+      });
+      totals[di]+=d;rowTotal+=d;
+      html+=`<td>${fmt(d)}</td>`;
+    });
+    grandTotal+=rowTotal;
+    html+=`<td style="font-weight:700">${fmt(rowTotal)}</td><td>${fmt(rowTotal/7)}</td></tr>`;
+  });
+  html+=`<tr style="font-weight:700;background:var(--main-lt)"><td>合計</td>`;
+  totals.forEach(t=>html+=`<td>${fmt(t)}</td>`);
+  html+=`<td>${fmt(grandTotal)}</td><td>${fmt(grandTotal/7)}</td></tr>`;
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+function renderBudgetManual(){
+  const b=S.budget||{};
+  document.getElementById('budget-manual').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:13px">
+      <div><label>作成高予算(円)</label>
+        <input type="number" value="${b.target||0}" onchange="S.budget.target=parseInt(toHalf(this.value))||0;saveS()"></div>
+      <div><label>値引予算(円)</label>
+        <input type="number" value="${b.discTarget||0}" onchange="S.budget.discTarget=parseInt(toHalf(this.value))||0;saveS()"></div>
+      <div><label>廃棄予算(円)</label>
+        <input type="number" value="${b.wasteTarget||0}" onchange="S.budget.wasteTarget=parseInt(toHalf(this.value))||0;saveS()"></div>
+    </div>`;
+}
+
+// ============================================================
+// TAB 5: 値引額設定
+// ============================================================
+function renderDiscTab(){
+  // Populate filter
+  const sel=document.getElementById('disc-cat-filter');
+  const cur=sel.value;
+  sel.innerHTML=`<option value="">全カテゴリ</option>`+CATS.map(c=>`<option ${c===cur?'selected':''}>${c}</option>`).join('');
+
+  const filter=sel.value;
+  const prods=S.PM.filter(p=>!filter||p.category===filter).sort((a,b)=>a.order-b.order);
+
+  let html=`<table><thead><tr>
+    <th style="text-align:left">商品名</th><th>カテゴリ</th><th>現在の値引額</th><th>変更後の値引額</th>
+  </tr></thead><tbody>`;
+  prods.forEach(p=>{
+    html+=`<tr>
+      <td style="text-align:left">${p.name}</td>
+      <td>${p.category}</td>
+      <td>${p.disc}円</td>
+      <td>
+        <input type="number" value="${p.disc}" step="1" style="width:80px"
+          onchange="setDisc('${p.id}',parseInt(toHalf(this.value))||0,this)">
+      </td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('disc-table').innerHTML=html;
+  renderDiscHistory();
+}
+
+function setDisc(pid,val,el){
+  el.style.borderColor='';el.title='';
+  const p=getP(pid);if(!p)return;
+  const old=p.disc;
+  p.disc=val;
+  if(!S.discHist)S.discHist=[];
+  S.discHist.unshift({pid,name:p.name,from:old,to:val,date:new Date().toLocaleDateString()});
+  if(S.discHist.length>3*S.PM.length)S.discHist=S.discHist.slice(0,3*S.PM.length);
+  saveS();renderDiscHistory();
+}
+
+function autoCalcDisc(){
+  const preview=S.PM.map(p=>({
+    id:p.id,name:p.name,current:p.disc,
+    suggested:Math.ceil(p.cost*0.25),
+    adopt:true
+  }));
+  let html=`<div style="border:1px solid var(--accent);border-radius:8px;padding:12px;background:var(--accent-lt)">
+    <b style="font-size:13px">自動計算プレビュー</b>
+    <table style="margin-top:8px"><thead><tr><th>商品名</th><th>現在</th><th>自動算出</th><th>採用</th></tr></thead><tbody>`;
+  preview.forEach(p=>{
+    html+=`<tr>
+      <td style="text-align:left">${p.name}</td>
+      <td>${p.current}円</td><td>${p.suggested}円</td>
+      <td><input type="checkbox" id="adc_${p.id}" checked></td>
+    </tr>`;
+  });
+  html+=`</tbody></table>
+    <button class="btn-primary mt-2" onclick="applyAutoDisc()">この値引額で設定する</button>
+  </div>`;
+  document.getElementById('disc-preview').innerHTML=html;
+  window._discPreview=preview;
+}
+
+function applyAutoDisc(){
+  if(!window._discPreview)return;
+  window._discPreview.forEach(item=>{
+    const cb=document.getElementById(`adc_${item.id}`);
+    if(cb&&cb.checked){
+      const p=getP(item.id);if(!p)return;
+      if(!S.discHist)S.discHist=[];
+      S.discHist.unshift({pid:p.id,name:p.name,from:p.disc,to:item.suggested,date:new Date().toLocaleDateString()});
+      p.disc=item.suggested;
+    }
+  });
+  saveS();document.getElementById('disc-preview').innerHTML='';renderDiscTab();
+}
+
+function renderDiscHistory(){
+  const hist=(S.discHist||[]).slice(0,3);
+  if(!hist.length){document.getElementById('disc-history').innerHTML='<p style="color:var(--gray);font-size:13px">履歴なし</p>';return;}
+  document.getElementById('disc-history').innerHTML=hist.map(h=>
+    `<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <b>${h.name}</b>: ${h.from}円 → ${h.to}円 <span style="color:var(--gray)">(${h.date})</span>
+    </div>`
+  ).join('');
+}
+
+// ============================================================
+
+function resetSetup(){
+  if(!confirm('店舗設定をリセットしますか？すべてのデータが失われます。'))return;
+  localStorage.removeItem('ffv6_setup');localStorage.removeItem('ffv6');
+  location.reload();
+}
+
+// ============================================================
+// CHAT BOT
+// ============================================================
+let chatOpen=false;
+function toggleChat(){
+  chatOpen=!chatOpen;
+  const p=document.getElementById('chat-panel');
+  p.classList.toggle('show',chatOpen);
+  if(chatOpen){
+    const hasKey=!!localStorage.getItem('claude_api_key');
+    document.getElementById('api-key-area').style.display=hasKey?'none':'block';
+    if(!document.getElementById('chat-messages').children.length){
+      addMsg('bot', hasKey
+        ? 'こんにちは！FF管理について何でも聞いてください。'
+        : 'APIキーを設定すると使えるようになります。');
+    }
+  }
+}
+
+function addMsg(role,text){
+  const el=document.getElementById('chat-messages');
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;div.textContent=text;
+  el.appendChild(div);el.scrollTop=el.scrollHeight;
+}
+
+function quickQ(q){
+  document.getElementById('chat-input').value=q;sendChat();
+}
+
+async function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const q=inp.value.trim();if(!q)return;
+  inp.value='';addMsg('user',q);
+
+  // Context
+  const e=S.ext[currentProdDay]||{};
+  const wt=getWeekTotal();
+  const {totalSales,totalWaste,profitRate}=calcSummary();
+  const ctx=`現在の状況: 曜日=${DAYS[currentProdDay]}, 天気=${e.weather||'不明'}, 気温=${e.temp||0}℃, イベント=${e.event||'なし'}, 補正=${e.correction||0}%, 週総客数=${wt}, 販売高=${fmt(totalSales)}円, 廃棄高=${fmt(totalWaste)}円, 利益率=${profitRate.toFixed(1)}%`;
+
+  // APIキー確認
+  let apiKey=localStorage.getItem('claude_api_key');
+  if(!apiKey){
+    document.getElementById('api-key-area').style.display='block';
+    addMsg('bot','先にAPIキーを設定してください（上の入力欄）');
+    return;
+  }
+
+  addMsg('bot','…考え中');
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:512,
+        system:`あなたはコンビニFF（ファストフード）管理の専門アドバイザーです。
+クルー（アルバイトスタッフ）からの現場報告に対して、【利益を最大化する】ための具体的な行動指示を出してください。
+
+## 回答ルール
+- 必ず「今すぐやること」を箇条書きで最初に出す
+- 数字（作成数・値引き額・時間帯）を具体的に示す
+- 廃棄を減らしつつ販売機会も逃さないバランスを重視する
+- 200文字以内で簡潔に。長文禁止。
+- 語尾は「〜してください」など指示形で統一
+
+## 現在の店舗状況
+${ctx}`,
+        messages:[{role:'user',content:q}]
+      })
+    });
+    const data=await resp.json();
+    const msgs=document.getElementById('chat-messages');
+    if(data.error){
+      msgs.lastChild.textContent='エラー: '+data.error.message;
+      // 認証エラーの場合はAPIキー入力を再表示
+      if(data.error.type==='authentication_error'){
+        localStorage.removeItem('claude_api_key');
+        document.getElementById('api-key-area').style.display='block';
+      }
+    } else {
+      msgs.lastChild.textContent=data.content?.[0]?.text||'回答を取得できませんでした';
+    }
+    msgs.scrollTop=msgs.scrollHeight;
+  }catch(err){
+    const msgs=document.getElementById('chat-messages');
+    msgs.lastChild.textContent='通信エラー: '+err.message;
+  }
+}
+function saveApiKey(){
+  const val=document.getElementById('api-key-input').value.trim();
+  if(!val){return;}
+  localStorage.setItem('claude_api_key',val);
+  document.getElementById('api-key-input').value='';
+  document.getElementById('api-key-area').style.display='none';
+  const msgs=document.getElementById('chat-messages');
+  msgs.innerHTML='';
+  addMsg('bot','APIキーを設定しました！FF管理について何でも聞いてください。');
+}
+function resetApiKey(){
+  localStorage.removeItem('claude_api_key');
+  document.getElementById('api-key-area').style.display='block';
+  document.getElementById('api-key-input').value='';
+  addMsg('bot','APIキーをリセットしました。新しいキーを入力してください。');
+}
+
+// ============================================================
+// UTIL
+// ============================================================
+function fmt(n){return Math.round(n).toLocaleString('ja-JP');}
+
+</script>
+</body>
+</html>
