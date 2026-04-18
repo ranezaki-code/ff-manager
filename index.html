@@ -1014,7 +1014,6 @@ function renderJissekiTab(){
 function renderJissekiSummary(){
   const{totalSales,totalWaste,totalDisc,totalProfit,profitRate,sellRate}=calcSummary();
   const isWarn=profitRate<50;
-  const srClass=sellRate<90?'warn':sellRate<96?'summary-box ':''  ;
   document.getElementById('jisseki-summary').innerHTML=`
     <div class="summary-box"><div class="label">販売高</div><div class="value">${fmt(totalSales)}</div><div class="unit">円</div></div>
     <div class="summary-box"><div class="label">廃棄高</div><div class="value">${fmt(totalWaste)}</div><div class="unit">円</div></div>
@@ -2274,7 +2273,6 @@ function renderBudgetJisseki(){
     <th style="text-align:left">カテゴリ</th><th>作成高</th><th>販売高</th><th>廃棄高</th><th>値引高</th><th>利益高</th><th>利益率</th>
   </tr></thead><tbody>`;
   rows.forEach(r=>{
-    const prWarn=r.profitRate<50?'text-red':r.profitRate<40?'text-red':'';
     html+=`<tr>
       <td style="text-align:left;font-weight:600">${r.mc}</td>
       <td>${fmt(r.makeAmt)}</td><td>${fmt(r.salesAmt)}</td><td>${fmt(r.wasteAmt)}</td><td>${fmt(r.discAmt)}</td>
@@ -2486,6 +2484,11 @@ function renderBudgetPlan(){
         <div class="label">次週利益率</div>
         <div class="value" style="color:${pColor}">${nextProfitRate.toFixed(1)}</div><div class="unit">%</div>
         <div style="font-size:10px;color:#999;margin-top:2px">利益高÷売上高（正式）</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">実績 適正販売率<span style="font-size:9px">（全週累計）</span></div>
+        <div class="value" style="color:${sumAll?(tekisei_rate*100>=96?'var(--green)':tekisei_rate*100>=90?'var(--orange)':'var(--red)'):'#999'}">${sumAll?(tekisei_rate*100).toFixed(1):'--'}</div><div class="unit">%</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">定価販売÷作成数（廃棄率算出の根拠）</div>
       </div>
     </div>
     ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>想定廃棄額・売変額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
