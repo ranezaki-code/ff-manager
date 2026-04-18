@@ -2942,8 +2942,6 @@ function renderBudgetManual(){
 // ============================================================
 // TAB 6: 発注管理表
 // ============================================================
-let orderSlotMode=false;
-
 function renderOrderTable(){
   const el=document.getElementById('order-table-content');
   if(!el)return;
@@ -2957,34 +2955,35 @@ function renderOrderTable(){
     return;
   }
 
-  // 曜日ヘッダーのスタイル（土=青, 日=赤, 他=通常）
-  const dayColors=['','','','','#1565c0','#c62828',''];
-  const thDay=(d,i,dt)=>`<th style="text-align:center;min-width:52px;padding:8px 4px;${dayColors[i]?'color:'+dayColors[i]+';font-weight:700':''}">
-    ${d}<br><span style="font-size:10px;font-weight:400;opacity:.8">${dt.getMonth()+1}/${dt.getDate()}</span></th>`;
-
   let html=`
   <div class="card" style="padding:14px 12px">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
       <div>
-        <div style="font-size:16px;font-weight:700;color:var(--main)">📋 週次発注計画</div>
+        <div style="font-size:16px;font-weight:700;color:var(--main)">📋 発注スケジュール</div>
         <div style="font-size:12px;color:#666;margin-top:2px">${dateRange}</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="slot-mode-btn" onclick="toggleOrderSlotMode()"
-          style="padding:6px 12px;font-size:12px;border-radius:8px;border:1px solid var(--main);cursor:pointer;${orderSlotMode?'background:var(--main);color:#fff':'background:#fff;color:var(--main)'}">
-          ${orderSlotMode?'▼ スロット別':'▶ スロット別'}
-        </button>
-        <button onclick="window.print()" style="padding:6px 12px;font-size:12px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">🖨 印刷</button>
-      </div>
+      <button onclick="window.print()" style="padding:6px 12px;font-size:12px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">🖨 印刷</button>
     </div>
     ${S.PM.some(p=>p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0))?
-      '<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-bottom:10px;display:inline-block">📈 黄色 = 投資/新商品追加分を含む</div>':''}
+      '<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">📈 黄色 = 投資/新商品追加分を含む</div>':''}
   </div>`;
 
-  // ── カテゴリごとのテーブル ──
+  // ── 発注スケジュール（発注日ベース） ──
+  html += buildOrderScheduleHTML(dates, activeCats);
+
+  el.innerHTML=html;
+}
+
+// 旧：作成数ベースの週次計画テーブル（削除済み・発注日ベース表のみ残存）
+/* LEGACY_REMOVED_START
+function _legacyRemoved(){
+  const activeCats=[];
+  let html='';
+  // 曜日ヘッダーのスタイル（土=青, 日=赤, 他=通常）
+  const dayColors=['','','','','#1565c0','#c62828',''];
+  const thDay=(d,i,dt)=>`<th>${d}</th>`;
   let grandTotals=Array(7).fill(0);
   let grandWeek=0;
-
   activeCats.forEach(cat=>{
     const cfg=S.catCfg[cat];
     const prods=S.PM.filter(p=>p.enabled&&p.category===cat).sort((a,b)=>a.order-b.order);
@@ -3103,10 +3102,9 @@ function renderOrderTable(){
   </div>`;
 
   // ── 発注スケジュール ──
-  html += buildOrderScheduleHTML(dates, activeCats);
-
-  el.innerHTML=html;
+  // (legacy end)
 }
+LEGACY_REMOVED_END */
 
 // ============================================================
 // 発注スケジュール（水・土発注休み＋朝締夕納品タイムラグ対応）
@@ -3300,11 +3298,6 @@ function buildOrderScheduleHTML(dates, activeCats){
   </div>`; // close 発注スケジュール div
 
   return html;
-}
-
-function toggleOrderSlotMode(){
-  orderSlotMode=!orderSlotMode;
-  renderOrderTable();
 }
 
 // ============================================================
