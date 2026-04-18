@@ -315,11 +315,23 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 
     <!-- Tab 2: 外部ファクト -->
     <div class="tab-panel" id="tab2">
-      <!-- 商圏リサーチ読み込みカード -->
+      <!-- 商圏リサーチ・お店づくり冊子 読み込みカード -->
       <div class="card" style="border-left:4px solid var(--accent)">
+        <!-- 商圏リサーチ読み込み -->
         <div id="research-card-content">
           <div style="color:var(--gray);font-size:13px">読み込み中...</div>
         </div>
+        <!-- セパレータ -->
+        <div style="border-top:1px solid var(--border);margin:12px -4px"></div>
+        <!-- お店づくり冊子読み込み -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--main)">📄 お店づくり冊子読み込み</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:3px">PDFをアップロードしてFF関連施策を自動抽出・施策欄に追加</div>
+          </div>
+          <button id="booklet-upload-btn" onclick="openBookletUpload()" style="padding:9px 18px;background:#5C6BC0;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📄 PDFを選択</button>
+        </div>
+        <input type="file" id="booklet-file-input" accept="application/pdf" style="display:none" onchange="handleBookletFileInput(this)">
       </div>
       <!-- 当週の施策カード -->
       <div class="card">
@@ -492,6 +504,13 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <button style="padding:10px 18px;background:#eee;color:#333;border:none;border-radius:8px;font-size:13px;cursor:pointer" onclick="closeGdSetupModal()">キャンセル</button>
       <button style="padding:10px 22px;background:var(--main);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer" onclick="saveGdClientId()">保存</button>
     </div>
+  </div>
+</div>
+
+<!-- Booklet Preview Modal -->
+<div id="booklet-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:20px 24px;max-width:660px;width:calc(100% - 24px);max-height:92vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.25)">
+    <div id="booklet-preview-content"></div>
   </div>
 </div>
 
@@ -3314,6 +3333,260 @@ function resetApiKey(){
   document.getElementById('api-key-area').style.display='block';
   document.getElementById('api-key-input').value='';
   addMsg('bot','APIキーをリセットしました。新しいキーを入力してください。');
+}
+
+// ============================================================
+// お店づくり冊子読み込み（PDF → Claude API解析）
+// ============================================================
+
+let _bookletFileName='', _bookletPolicies=[], _bookletAdopted=new Set();
+
+function openBookletUpload(){
+  const apiKey=localStorage.getItem('claude_api_key');
+  if(!apiKey){
+    alert('Claude APIキーが設定されていません。\n④作成表タブ右下の「🤖 店長BOT」ボタンからAPIキーを設定してください。');
+    return;
+  }
+  const inp=document.getElementById('booklet-file-input');
+  if(inp){inp.value='';inp.click();}
+}
+
+function handleBookletFileInput(input){
+  const file=input.files?.[0];
+  if(!file) return;
+  if(file.type!=='application/pdf'){alert('PDFファイルのみ対応しています。');return;}
+  if(file.size>32*1024*1024){
+    alert('ファイルサイズが上限（32MB）を超えています。\n圧縮してから再試行してください。');return;
+  }
+  analyzeBookletPDF(file);
+}
+
+async function analyzeBookletPDF(file){
+  const apiKey=localStorage.getItem('claude_api_key');
+  if(!apiKey) return;
+
+  const btn=document.getElementById('booklet-upload-btn');
+  const origText=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='⏳ 解析中...';}
+
+  try{
+    // FileReader で base64 変換（大容量PDF対応）
+    const base64Data=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result.split(',')[1]);
+      reader.onerror=reject;
+      reader.readAsDataURL(file);
+    });
+
+    const prompt=`このPDFはコンビニのお店づくり冊子（本部からの業務指示書）です。
+FF（ファストフード）の作成数計画に影響する施策のみを抽出してください。
+
+【抽出対象】
+・ホットFF・常温FF・中華まんの新商品情報（商品名・発売日）
+・FF系キャンペーン・販促（コラボ、増量施策、アプリクーポンなど）
+・ワンハンド需要に影響するイベント・スポーツ施策
+・FF商品の値引き・割引施策
+
+【除外】
+・FF以外の商品（飲料・日配・加工食品・酒類など）
+・店舗設備・IT・人事・勤務・発注システム関連情報
+
+以下のJSON形式のみで回答（JSON以外のテキスト禁止）：
+{
+  "policies": [
+    {
+      "type": "新商品",
+      "name": "からあげクン〇〇味",
+      "category": "ホットFF",
+      "period": "5月1日〜5月31日",
+      "impact": 15,
+      "days": "all",
+      "note": "新フレーバー発売。発売直後は需要増が見込まれる"
+    }
+  ]
+}
+
+フィールド説明：
+・type: 「新商品」「キャンペーン」「値引き」「イベント」のいずれか
+・name: 施策・商品名（具体的かつ簡潔に）
+・category: 「ホットFF」「常温FF」「中華まん」「全FF」のいずれか
+・period: 適用期間（例：「5月1日〜5月31日」「5月1日〜」）。なければnull
+・impact: 推奨補正係数（%・整数）。増産=プラス、削減=マイナス
+・days: 「all」「weekday」「weekend」または「火」「水」「木」「金」「土」「日」「月」
+・note: 注意点・背景（1行）。なければ空文字
+
+FFに影響する施策が見つからない場合は {"policies": []} を返す。`;
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2048,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64Data}},
+            {type:'text',text:prompt}
+          ]
+        }]
+      })
+    });
+
+    const data=await resp.json();
+    if(data.error) throw new Error(data.error.message);
+
+    const text=data.content?.[0]?.text||'';
+    const m=text.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('AI応答のJSON解析に失敗しました。再試行してください。');
+
+    const result=JSON.parse(m[0]);
+    const policies=result.policies||[];
+
+    if(!policies.length){
+      showToast('FFに影響する施策は見つかりませんでした','info');
+      return;
+    }
+    showBookletPreviewModal(policies,file.name);
+
+  }catch(err){
+    const authErr=err.message?.toLowerCase().includes('auth')||err.message?.toLowerCase().includes('invalid');
+    alert('❌ 解析エラー:\n'+err.message+(authErr?'\n\nAPIキーを確認してください。':''));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=origText;}
+  }
+}
+
+// --- お店づくり冊子 プレビューモーダル ---
+
+function showBookletPreviewModal(policies,fileName){
+  _bookletPolicies=policies;
+  _bookletFileName=fileName||'';
+  _bookletAdopted=new Set(policies.map((_,i)=>i)); // デフォルト：全採用
+  document.getElementById('booklet-preview-modal').style.display='flex';
+  renderBookletPreviewContent();
+}
+
+function renderBookletPreviewContent(){
+  const p=_bookletPolicies, ad=_bookletAdopted;
+  const typeStyles={
+    '新商品':    {bg:'#e3f2fd',color:'#1565c0',icon:'🆕'},
+    'キャンペーン':{bg:'#e8f5e9',color:'#1b5e20',icon:'🎯'},
+    '値引き':    {bg:'#fff3e0',color:'#e65100',icon:'💴'},
+    'イベント':  {bg:'#f3e5f5',color:'#4a148c',icon:'🎪'}
+  };
+  const dayOpts=[{v:'all',l:'全日'},{v:'weekday',l:'平日'},{v:'weekend',l:'週末'},...DAYS.map(d=>({v:d,l:d}))];
+  const adoptedCount=ad.size;
+
+  const cards=p.map((pol,i)=>{
+    const isAd=ad.has(i);
+    const ts=typeStyles[pol.type]||{bg:'#f5f5f5',color:'#555',icon:'📌'};
+    const impColor=(pol.impact||0)>0?'var(--green)':(pol.impact||0)<0?'var(--red)':'#333';
+    return `<div id="booklet-policy-${i}" style="border:2px solid ${isAd?'var(--main)':'#e0e0e0'};border-radius:10px;padding:12px 14px;margin-bottom:8px;background:${isAd?'#f8faff':'#fafafa'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">
+            <span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:${ts.bg};color:${ts.color}">${ts.icon} ${pol.type}</span>
+            <span style="padding:2px 8px;border-radius:10px;font-size:11px;background:#f0f0f0;color:#666">${pol.category||'全FF'}</span>
+          </div>
+          <div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:3px">${pol.name}</div>
+          ${pol.period?`<div style="font-size:12px;color:#666;margin-bottom:2px">📅 ${pol.period}</div>`:''}
+          ${pol.note?`<div style="font-size:11px;color:#888;margin-bottom:4px">💬 ${pol.note}</div>`:''}
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px">
+            <label style="font-size:12px;color:#666;display:flex;align-items:center;gap:4px">適用：
+              <select onchange="updateBookletPolicy(${i},'days',this.value)" style="font-size:12px;padding:3px 6px;border-radius:5px;border:1px solid var(--border)">
+                ${dayOpts.map(o=>`<option value="${o.v}"${pol.days===o.v?' selected':''}>${o.l}</option>`).join('')}
+              </select>
+            </label>
+            <label style="font-size:12px;color:#666;display:flex;align-items:center;gap:4px">補正：
+              <input type="number" value="${pol.impact||0}"
+                style="width:52px;text-align:center;font-size:13px;font-weight:600;padding:3px;border-radius:5px;border:1px solid var(--border);color:${impColor}"
+                onchange="updateBookletPolicy(${i},'impact',parseInt(toHalf(this.value))||0)">
+              <span style="font-size:12px;color:#666">%</span>
+            </label>
+          </div>
+        </div>
+        <button onclick="toggleBookletPolicy(${i})" style="padding:7px 14px;border-radius:8px;border:2px solid ${isAd?'var(--main)':'#ccc'};font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;background:${isAd?'var(--main)':'#fff'};color:${isAd?'#fff':'#888'}">
+          ${isAd?'✓ 採用':'スキップ'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('booklet-preview-content').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--main)">📄 お店づくり冊子 解析結果</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px">📋 ${_bookletFileName} ｜ FFに影響する施策 ${p.length}件を検出</div>
+      </div>
+      <button onclick="closeBookletPreviewModal()" style="background:transparent;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#f0f4ff;border-radius:8px;border:1px solid #c5d5ff;margin-bottom:12px">
+      <span style="font-size:13px;font-weight:700;color:var(--main)">${adoptedCount}件を採用予定</span>
+      <button onclick="adoptAllBookletPolicies()" style="padding:5px 12px;background:var(--main);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✓ 全て採用</button>
+      <button onclick="skipAllBookletPolicies()" style="padding:5px 12px;background:#eee;color:#555;border:none;border-radius:6px;font-size:12px;cursor:pointer">全てスキップ</button>
+    </div>
+
+    <div style="max-height:46vh;overflow-y:auto;padding-right:2px">${cards}</div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <button onclick="closeBookletPreviewModal()" style="padding:10px 20px;background:#eee;color:#555;border:none;border-radius:8px;font-size:13px;cursor:pointer">キャンセル</button>
+      <button onclick="applyBookletPolicies()" ${adoptedCount===0?'disabled':''}
+        style="padding:10px 24px;background:var(--main);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;opacity:${adoptedCount===0?.4:1}">
+        ＋ ${adoptedCount}件を施策に追加
+      </button>
+    </div>`;
+}
+
+function toggleBookletPolicy(i){
+  if(_bookletAdopted.has(i)) _bookletAdopted.delete(i);
+  else _bookletAdopted.add(i);
+  renderBookletPreviewContent();
+}
+function adoptAllBookletPolicies(){
+  _bookletAdopted=new Set(_bookletPolicies.map((_,i)=>i));
+  renderBookletPreviewContent();
+}
+function skipAllBookletPolicies(){
+  _bookletAdopted=new Set();
+  renderBookletPreviewContent();
+}
+function updateBookletPolicy(i,key,val){
+  if(!_bookletPolicies[i]) return;
+  _bookletPolicies[i][key]=val;
+  // impact の文字色だけDOM更新（再描画せず）
+  if(key==='impact'){
+    const inp=document.querySelector(`#booklet-policy-${i} input[type=number]`);
+    if(inp) inp.style.color=val>0?'var(--green)':val<0?'var(--red)':'#333';
+  }
+}
+function closeBookletPreviewModal(){
+  document.getElementById('booklet-preview-modal').style.display='none';
+  _bookletPolicies=[];_bookletAdopted=new Set();
+}
+function applyBookletPolicies(){
+  if(!S.施策) S.施策=[];
+  let count=0;
+  [..._bookletAdopted].sort((a,b)=>a-b).forEach(i=>{
+    const pol=_bookletPolicies[i];if(!pol) return;
+    S.施策.push({
+      id:'sch_'+Date.now()+'_'+i,
+      name:pol.name+(pol.period?`（${pol.period}）`:''),
+      days:pol.days||'all',
+      impact:parseInt(pol.impact)||0
+    });
+    count++;
+  });
+  saveS();
+  closeBookletPreviewModal();
+  render施策Section();
+  showToast(`✅ ${count}件の施策を追加しました！`,'success');
 }
 
 // ============================================================
