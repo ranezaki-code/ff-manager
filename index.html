@@ -2404,8 +2404,8 @@ function renderBudgetPlan(){
     nextTotalCost+=cnt_week*p.cost;
     // 商品別の実績レート（S.ji + 他週）
     const ji=_getJiAllWeeks(p.id);
-    const haiki_rate_p =ji.total?ji.haiki/ji.total:0;  // 廃棄比率
-    const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0; // 値引比率
+    const haiki_rate_p =ji.total?ji.haiki/ji.total:1.0; // 廃棄比率（実績なし→保守的に100%想定）
+    const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0; // 値引比率（実績なし→0%）
     // 想定廃棄額（売価ベース）= 作成数 × 廃棄率 × 売価
     nextWasteAmt+=cnt_week*haiki_rate_p*p.shopPrice;
     // 想定値引額 = 作成数 × 値引率 × 商品別値引額（p.disc）
