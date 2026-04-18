@@ -3042,7 +3042,6 @@ const ORDER_COLS = [
   { id:3,     label:'金',     subLabel:'土・日の作成分', noOrder:false, isPreWeek:false, isFuture:false, note:'（土休み→前倒し）' },
   { id:4,     label:'土',     subLabel:'発注休み',       noOrder:true,  isPreWeek:false, isFuture:false },
   { id:5,     label:'日',     subLabel:'月の作成分',     noOrder:false, isPreWeek:false, isFuture:false },
-  { id:6,     label:'月',     subLabel:'翌週火（参考）', noOrder:false, isPreWeek:false, isFuture:true  },
 ];
 
 // 各発注列がカバーする作成日インデックスの配列
@@ -3052,7 +3051,6 @@ const ORDER_COL_COVERS = {
   2:     [3],    // 木     → 金
   3:     [4,5],  // 金     → 土+日
   5:     [6],    // 日     → 月
-  6:     [0],    // 月     → 翌週火（参考・週計に含めない）
 };
 
 function buildOrderScheduleHTML(dates, activeCats){
@@ -3087,8 +3085,7 @@ function buildOrderScheduleHTML(dates, activeCats){
     朝締め発注 → 当日夜納品 → 翌日の作成に使用<br>
     ・<span style="color:#e65100;font-weight:700">前週月発注</span>：今週火曜の作成分（週始まりに必須）<br>
     ・<b>火曜発注</b>：水・木の作成分を合算（水曜は発注休みのため木分も火に前倒し）<br>
-    ・<b>金曜発注</b>：土・日の作成分を合算（土曜は発注休みのため日分も金に前倒し）<br>
-    ・<span style="color:#1565c0;font-weight:700">月曜発注</span>：翌週火曜の参考値（今週火と同数）。週計には含まず。
+    ・<b>金曜発注</b>：土・日の作成分を合算（土曜は発注休みのため日分も金に前倒し）
   </div>`;
 
   // 各列の週発注計（月発注=翌週分は除外）
@@ -3114,7 +3111,7 @@ function buildOrderScheduleHTML(dates, activeCats){
           <tr>
             <th style="text-align:left;padding:8px 12px;font-size:12px;min-width:110px;position:sticky;left:0;background:#f0f4ff;z-index:1">商品名</th>
             ${ORDER_COLS.map((col,ci)=>thCol(col, colDates[ci])).join('')}
-            <th style="text-align:center;min-width:52px;padding:8px 4px;background:#e8eef8;font-size:11px">週発注計<div style="font-weight:400;font-size:9px;color:#888">（月除く）</div></th>
+            <th style="text-align:center;min-width:52px;padding:8px 4px;background:#e8eef8">週発注計</th>
           </tr>
         </thead>
         <tbody>`;
