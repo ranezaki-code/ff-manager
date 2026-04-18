@@ -3019,65 +3019,92 @@ function renderOrderTable(){
 // ============================================================
 // 発注スケジュール（水・土発注休み＋朝締夕納品タイムラグ対応）
 // ============================================================
-// 作成日インデックス: 0=火, 1=水, 2=木, 3=金, 4=土, 5=日, 6=月
-// 発注ルール:
-//   火(0)発注 → 水(1)+木(2)作成分  ← 水は発注休みなので木分も火に前倒し
-//   木(2)発注 → 金(3)作成分
-//   金(3)発注 → 土(4)+日(5)作成分  ← 土は発注休みなので日分も金に前倒し
-//   日(5)発注 → 月(6)作成分
-//   月(6)発注 → 翌週火(0)作成分    ← 今週火と同数を参考表示
-//   水(1)/土(4) → 発注なし
-//   ※火(0)作成分は前週月曜発注済み（この表の範囲外）
+// 完全な発注サイクル（8列）:
+//   前週月 → 今週火(0)作成分  ← 週始まりの必須発注
+//   火(0)  → 水(1)+木(2)作成分（水発注休みのため木分も前倒し）
+//   水(1)  → 発注なし
+//   木(2)  → 金(3)作成分
+//   金(3)  → 土(4)+日(5)作成分（土発注休みのため日分も前倒し）
+//   土(4)  → 発注なし
+//   日(5)  → 月(6)作成分
+//   月(6)  → 翌週火(0)作成分（前週月と同じ、参考表示）
+//
+// 週発注計 = 前週月+火+木+金+日 の合算（今週7日分すべてをカバー）
+// 月発注は翌週分のため週計には含めない
 
-const ORDER_DAY_COVERS = {
-  0: { days:[1,2], subLabel:'水・木の作成分', extraNote:'（水発注休み→前倒し）' },
-  2: { days:[3],   subLabel:'金の作成分',     extraNote:'' },
-  3: { days:[4,5], subLabel:'土・日の作成分', extraNote:'（土発注休み→前倒し）' },
-  5: { days:[6],   subLabel:'月の作成分',     extraNote:'' },
-  6: { days:[0],   subLabel:'翌週火（参考）', extraNote:'今週火と同数' },
+// ORDER_COLS: 発注日の定義（表示列順）
+// id:'pre' = 前週月（特殊列）、id:0〜6 = 火〜月のインデックス
+const ORDER_COLS = [
+  { id:'pre', label:'前週月', subLabel:'今週火の作成分', noOrder:false, isPreWeek:true,  isFuture:false },
+  { id:0,     label:'火',     subLabel:'水・木の作成分', noOrder:false, isPreWeek:false, isFuture:false, note:'（水休み→前倒し）' },
+  { id:1,     label:'水',     subLabel:'発注休み',       noOrder:true,  isPreWeek:false, isFuture:false },
+  { id:2,     label:'木',     subLabel:'金の作成分',     noOrder:false, isPreWeek:false, isFuture:false },
+  { id:3,     label:'金',     subLabel:'土・日の作成分', noOrder:false, isPreWeek:false, isFuture:false, note:'（土休み→前倒し）' },
+  { id:4,     label:'土',     subLabel:'発注休み',       noOrder:true,  isPreWeek:false, isFuture:false },
+  { id:5,     label:'日',     subLabel:'月の作成分',     noOrder:false, isPreWeek:false, isFuture:false },
+  { id:6,     label:'月',     subLabel:'翌週火（参考）', noOrder:false, isPreWeek:false, isFuture:true  },
+];
+
+// 各発注列がカバーする作成日インデックスの配列
+const ORDER_COL_COVERS = {
+  'pre': [0],    // 前週月 → 今週火
+  0:     [1,2],  // 火     → 水+木
+  2:     [3],    // 木     → 金
+  3:     [4,5],  // 金     → 土+日
+  5:     [6],    // 日     → 月
+  6:     [0],    // 月     → 翌週火（参考・週計に含めない）
 };
-const ORDER_NO_ORDER = new Set([1,4]); // 水, 土
 
 function buildOrderScheduleHTML(dates, activeCats){
-  const dayColors=['','','','','#1565c0','#c62828',''];
+  // 前週月の日付計算（週開始火曜の前日）
+  const preMonDate = new Date(dates[0]);
+  preMonDate.setDate(preMonDate.getDate()-1);
 
-  // 列ヘッダー（発注日ラベル＋サブ説明）
-  const thOrder=(d,i,dt)=>{
-    const noOrd=ORDER_NO_ORDER.has(i);
-    const cover=ORDER_DAY_COVERS[i];
-    const isFuture=i===6;
-    const bg=noOrd?'background:#f0f0f0':isFuture?'background:#e8f4fd':'background:#f0f4ff';
+  // 列ヘッダー生成
+  const thCol=(col, dt)=>{
+    const noOrd=col.noOrder;
+    const isPre=col.isPreWeek;
+    const isFut=col.isFuture;
+    let bg, labelColor, subColor;
+    if(noOrd)      { bg='background:#f0f0f0'; labelColor='#bbb'; subColor='#ccc'; }
+    else if(isPre) { bg='background:#fff3e0'; labelColor='#e65100'; subColor='#e65100'; }
+    else if(isFut) { bg='background:#e8f4fd'; labelColor='#1565c0'; subColor='#1976d2'; }
+    else           { bg='background:#f0f4ff'; labelColor='inherit'; subColor='#FF9800'; }
+
     return`<th style="text-align:center;min-width:52px;padding:6px 4px;${bg}">
-      <div style="font-weight:700;font-size:13px;color:${noOrd?'#bbb':dayColors[i]||'inherit'}">${d}</div>
-      <div style="font-size:9px;color:${noOrd?'#ccc':'#888'};margin-top:1px">${dt.getMonth()+1}/${dt.getDate()}</div>
-      <div style="font-size:9px;font-weight:600;margin-top:3px;line-height:1.3;color:${noOrd?'#ccc':isFuture?'#1976d2':'#FF9800'}">${
-        noOrd?'発注休み':(cover?.subLabel||'')
-      }</div>
+      <div style="font-weight:700;font-size:13px;color:${labelColor}">${col.label}</div>
+      <div style="font-size:9px;color:${noOrd?'#ccc':'#999'};margin-top:1px">${dt.getMonth()+1}/${dt.getDate()}</div>
+      <div style="font-size:9px;font-weight:600;margin-top:3px;line-height:1.3;color:${subColor}">${col.subLabel}</div>
     </th>`;
   };
 
   let html=`
   <div style="margin-top:20px;border-top:2px dashed #ddd;padding-top:16px">
   <div style="font-size:15px;font-weight:700;color:var(--main);margin-bottom:4px">📦 発注スケジュール（発注日ベース）</div>
-  <div style="font-size:12px;color:#666;margin-bottom:8px">水曜・土曜は発注休み。朝締め発注 → 当日夜納品。翌日以降の作成分に充当。</div>
-  <div style="font-size:11px;line-height:1.6;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:7px 10px;margin-bottom:12px;color:#6d4c41">
+  <div style="font-size:12px;color:#666;margin-bottom:8px">水曜・土曜は発注休み。朝締め発注 → 当日夜納品 → 翌日以降の作成に充当。</div>
+  <div style="font-size:11px;line-height:1.7;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:8px 12px;margin-bottom:12px;color:#5d4037">
     <b>発注タイムラグの考え方：</b><br>
-    朝締め発注 → 当日夜納品 → 翌日以降の作成に使用<br>
+    朝締め発注 → 当日夜納品 → 翌日の作成に使用<br>
+    ・<span style="color:#e65100;font-weight:700">前週月発注</span>：今週火曜の作成分（週始まりに必須）<br>
     ・<b>火曜発注</b>：水・木の作成分を合算（水曜は発注休みのため木分も火に前倒し）<br>
     ・<b>金曜発注</b>：土・日の作成分を合算（土曜は発注休みのため日分も金に前倒し）<br>
-    ・<b>火曜の作成分</b>は前週月曜日に発注済み（この表には含まれません）<br>
-    ・<b>月曜欄</b>は翌週火曜分の参考値（今週火曜と同数）
+    ・<span style="color:#1565c0;font-weight:700">月曜発注</span>：翌週火曜の参考値（今週火と同数）。週計には含まず。
   </div>`;
 
-  let grandTotals=Array(7).fill(0);
-  let grandWeek=0;
+  // 各列の週発注計（月発注=翌週分は除外）
+  const COL_COUNT = ORDER_COLS.length; // 8
+  let grandColTotals = Array(COL_COUNT).fill(0);
+  let grandWeek = 0;
 
   activeCats.forEach(cat=>{
     const cfg=S.catCfg[cat];
     const prods=S.PM.filter(p=>p.enabled&&p.category===cat).sort((a,b)=>a.order-b.order);
     if(!prods.length)return;
 
-    const catDayTotals=Array(7).fill(0);
+    const catColTotals = Array(COL_COUNT).fill(0);
+
+    // ヘッダー行の日付列（前週月 + 火〜月）
+    const colDates = ORDER_COLS.map((col,ci)=> ci===0 ? preMonDate : dates[col.id]);
 
     html+=`<div class="card" style="margin-top:8px;padding:0;overflow:hidden">
       <div style="background:var(--main);color:#fff;padding:8px 14px;font-size:13px;font-weight:700">${cat}</div>
@@ -3085,9 +3112,9 @@ function buildOrderScheduleHTML(dates, activeCats){
       <table style="width:100%;border-collapse:collapse">
         <thead>
           <tr>
-            <th style="text-align:left;padding:8px 12px;font-size:12px;min-width:120px;position:sticky;left:0;background:#f0f4ff;z-index:1;background:#f0f4ff">商品名</th>
-            ${DAYS.map((d,i)=>thOrder(d,i,dates[i])).join('')}
-            <th style="text-align:center;min-width:52px;padding:8px 4px;background:#e8eef8">週発注計</th>
+            <th style="text-align:left;padding:8px 12px;font-size:12px;min-width:110px;position:sticky;left:0;background:#f0f4ff;z-index:1">商品名</th>
+            ${ORDER_COLS.map((col,ci)=>thCol(col, colDates[ci])).join('')}
+            <th style="text-align:center;min-width:52px;padding:8px 4px;background:#e8eef8;font-size:11px">週発注計<div style="font-weight:400;font-size:9px;color:#888">（月除く）</div></th>
           </tr>
         </thead>
         <tbody>`;
@@ -3095,33 +3122,36 @@ function buildOrderScheduleHTML(dates, activeCats){
     prods.forEach((p,pi)=>{
       const rowBg=pi%2===0?'#fff':'#fafafa';
 
-      // 各発注日の発注数を計算
-      const orderQtys=DAYS.map((_,orderDayIdx)=>{
-        if(ORDER_NO_ORDER.has(orderDayIdx)) return 0;
-        const cover=ORDER_DAY_COVERS[orderDayIdx];
-        if(!cover) return 0;
-        return cover.days.reduce((sum,createDayIdx)=>{
+      // 各列の発注数を計算
+      const colQtys = ORDER_COLS.map(col=>{
+        if(col.noOrder) return 0;
+        const covers = ORDER_COL_COVERS[col.id];
+        if(!covers) return 0;
+        return covers.reduce((sum,createDayIdx)=>{
           const base=cfg.slots.reduce((s,h)=>s+getProdCnt(p.id,createDayIdx,h),0);
           const extra=cfg.slots.reduce((s,h)=>s+getInvestExtra(p.id,createDayIdx,h),0);
           return sum+base+extra;
         },0);
       });
-      const weekTotal=orderQtys.reduce((s,v)=>s+v,0);
-      orderQtys.forEach((v,i)=>{ catDayTotals[i]+=v; });
+
+      // 週計（月=翌週分 除外）
+      const weekTotal = colQtys.reduce((s,v,i)=> ORDER_COLS[i].isFuture ? s : s+v, 0);
+      colQtys.forEach((v,i)=>{ catColTotals[i]+=v; });
 
       html+=`<tr style="background:${rowBg};border-bottom:1px solid #eee">
-        <td style="padding:8px 12px;position:sticky;left:0;background:${rowBg};z-index:1">
+        <td style="padding:8px 10px;position:sticky;left:0;background:${rowBg};z-index:1">
           <div style="font-size:13px;font-weight:600">${p.name}</div>
         </td>
-        ${orderQtys.map((qty,di)=>{
-          const noOrd=ORDER_NO_ORDER.has(di);
-          const isFuture=di===6;
+        ${colQtys.map((qty,ci)=>{
+          const col=ORDER_COLS[ci];
+          if(col.noOrder) return`<td style="text-align:center;padding:6px 4px;background:#f5f5f5">
+            <span style="font-size:16px;color:#ddd">✕</span></td>`;
           const isZero=qty===0;
-          if(noOrd) return`<td style="text-align:center;padding:6px 4px;background:#f5f5f5">
-            <span style="font-size:14px;color:#ddd">✕</span></td>`;
-          return`<td style="text-align:center;padding:6px 4px;${isFuture?'background:#e8f4fd':''}">
-            <span style="font-size:20px;font-weight:700;color:${isZero?'#ddd':isFuture?'#1976d2':'var(--main)'}">
-              ${isZero?'—':qty}</span>
+          let bg='', color=isZero?'#ddd':'var(--main)';
+          if(col.isPreWeek){ bg='background:#fff8f0'; if(!isZero) color='#e65100'; }
+          else if(col.isFuture){ bg='background:#e8f4fd'; if(!isZero) color='#1565c0'; }
+          return`<td style="text-align:center;padding:6px 4px;${bg}">
+            <span style="font-size:20px;font-weight:700;color:${color}">${isZero?'—':qty}</span>
           </td>`;
         }).join('')}
         <td style="text-align:center;padding:6px 4px;background:#f0f4ff">
@@ -3131,18 +3161,20 @@ function buildOrderScheduleHTML(dates, activeCats){
     });
 
     // カテゴリ小計行
-    const catWeek=catDayTotals.reduce((s,v)=>s+v,0);
-    catDayTotals.forEach((v,i)=>{ grandTotals[i]+=v; });
+    const catWeek = catColTotals.reduce((s,v,i)=> ORDER_COLS[i].isFuture ? s : s+v, 0);
+    catColTotals.forEach((v,i)=>{ grandColTotals[i]+=v; });
     grandWeek+=catWeek;
 
     html+=`<tr style="font-weight:700;background:#e8eef8;border-top:2px solid #cdd7ec">
-      <td style="padding:8px 12px;position:sticky;left:0;background:#e8eef8;z-index:1;font-size:12px">小計</td>
-      ${catDayTotals.map((v,i)=>{
-        const noOrd=ORDER_NO_ORDER.has(i);
-        const isFuture=i===6;
-        if(noOrd) return`<td style="text-align:center;padding:6px 4px;background:#f0f0f0"><span style="color:#ccc">✕</span></td>`;
-        return`<td style="text-align:center;padding:6px 4px;${isFuture?'background:#daeef9':''}">
-          <span style="font-size:16px;font-weight:700;${isFuture?'color:#1976d2':''}">${v||'—'}</span>
+      <td style="padding:8px 10px;position:sticky;left:0;background:#e8eef8;z-index:1;font-size:12px">小計</td>
+      ${catColTotals.map((v,ci)=>{
+        const col=ORDER_COLS[ci];
+        if(col.noOrder) return`<td style="text-align:center;padding:6px 4px;background:#f0f0f0"><span style="color:#ccc">✕</span></td>`;
+        let bg='', color='inherit';
+        if(col.isPreWeek){ bg='background:#fff0e0'; color='#e65100'; }
+        else if(col.isFuture){ bg='background:#daeef9'; color='#1565c0'; }
+        return`<td style="text-align:center;padding:6px 4px;${bg}">
+          <span style="font-size:16px;font-weight:700;color:${color}">${v||'—'}</span>
         </td>`;
       }).join('')}
       <td style="text-align:center;padding:6px 4px;background:#d0dcf4">
@@ -3158,13 +3190,15 @@ function buildOrderScheduleHTML(dates, activeCats){
     <table style="width:100%;border-collapse:collapse">
       <tbody>
         <tr style="background:var(--main)">
-          <td style="padding:10px 14px;color:#fff;font-size:13px;font-weight:700;min-width:120px;position:sticky;left:0;background:var(--main);z-index:1">発注合計</td>
-          ${grandTotals.map((v,i)=>{
-            const noOrd=ORDER_NO_ORDER.has(i);
-            const isFuture=i===6;
-            if(noOrd) return`<td style="text-align:center;padding:8px 4px;min-width:52px;background:rgba(0,0,0,.25)">
-              <span style="font-size:12px;color:rgba(255,255,255,.35)">休み</span></td>`;
-            return`<td style="text-align:center;padding:8px 4px;min-width:52px;${isFuture?'background:rgba(25,118,210,.3)':''}">
+          <td style="padding:10px 12px;color:#fff;font-size:13px;font-weight:700;min-width:110px;position:sticky;left:0;background:var(--main);z-index:1">発注合計</td>
+          ${grandColTotals.map((v,ci)=>{
+            const col=ORDER_COLS[ci];
+            if(col.noOrder) return`<td style="text-align:center;padding:8px 4px;min-width:52px;background:rgba(0,0,0,.25)">
+              <span style="font-size:11px;color:rgba(255,255,255,.3)">休み</span></td>`;
+            let bg='';
+            if(col.isPreWeek) bg='background:rgba(230,81,0,.5)';
+            else if(col.isFuture) bg='background:rgba(21,101,192,.4)';
+            return`<td style="text-align:center;padding:8px 4px;min-width:52px;${bg}">
               <span style="font-size:20px;font-weight:700;color:#fff">${v||'—'}</span></td>`;
           }).join('')}
           <td style="text-align:center;padding:8px 4px;background:rgba(0,0,0,.15);min-width:52px">
