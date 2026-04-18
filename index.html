@@ -2137,22 +2137,26 @@ function renderBudgetPlan(){
     });
   });
 
-  // ── 実績数量レート集計（全週を合算してレートを算出）──
-  // S.weeksに保存済みの全週jissekiを合算し、過去実績から廃棄・値引レートを算出
-  // ※S.jiはsyncActiveWeek()によりS.weeks[activeWeek].jiと同一なのでweeksのみ使用
+  // ── 実績数量レート集計（S.ji＋全週を合算してレートを算出）──
+  // S.jiは常に最新のアクティブ週データ。S.weeks[activeWeek].jiとの同期ズレを防ぐため
+  // S.jiを必ず含め、他の週は重複しないよう activeWeek をスキップして加算する
   let sumTeika=0, sumNebiki=0, sumHaiki=0;
   let sumNebikiDiscAmt=0, sumNebikiShopAmt=0;
-  const weekJiList=Object.values(S.weeks||{}).map(w=>w.ji||{});
-  // 全週のデータが空ならS.jiを直接使う（フォールバック）
-  if(weekJiList.length===0)weekJiList.push(S.ji||{});
-  S.PM.forEach(p=>{
-    weekJiList.forEach(jiSrc=>{
+  const _addJi=(jiSrc)=>{
+    S.PM.forEach(p=>{
       const ji=jiSrc[p.id];if(!ji)return;
       const t=ji.teika||0, n=ji.nebiki||0, h=ji.haiki||0;
-      sumTeika +=t; sumNebiki+=n; sumHaiki+=h;
-      sumNebikiDiscAmt +=n*p.disc;       // 値引合計金額
-      sumNebikiShopAmt +=n*p.shopPrice;  // 値引対象の定価合計
+      sumTeika+=t; sumNebiki+=n; sumHaiki+=h;
+      sumNebikiDiscAmt+=n*p.disc;
+      sumNebikiShopAmt+=n*p.shopPrice;
     });
+  };
+  // ① アクティブ週：S.jiから直接読む（最新データを保証）
+  _addJi(S.ji||{});
+  // ② 他の週：S.weeksから activeWeek 以外を加算
+  Object.entries(S.weeks||{}).forEach(([key,w])=>{
+    if(key===S.activeWeek)return; // アクティブ週はS.jiで既に計上
+    _addJi(w.ji||{});
   });
   const sumAll=sumTeika+sumNebiki+sumHaiki;
 
