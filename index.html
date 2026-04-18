@@ -173,6 +173,8 @@ th{background:var(--main-lt);font-weight:600;color:var(--main)}
 hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 @keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:.7;transform:scale(1.08)}}
 </style>
+<!-- Google Identity Services (OAuth 2.0) -->
+<script async src="https://accounts.google.com/gsi/client"></script>
 </head>
 <body>
 
@@ -313,6 +315,12 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 
     <!-- Tab 2: 外部ファクト -->
     <div class="tab-panel" id="tab2">
+      <!-- 商圏リサーチ読み込みカード -->
+      <div class="card" style="border-left:4px solid var(--accent)">
+        <div id="research-card-content">
+          <div style="color:var(--gray);font-size:13px">読み込み中...</div>
+        </div>
+      </div>
       <!-- 当週の施策カード -->
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
@@ -462,6 +470,35 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <button class="btn-secondary" style="flex:1;padding:10px" onclick="closeCorrectionSuggestModal()">キャンセル</button>
       <button class="btn-primary" style="flex:1;padding:10px;margin-top:0" id="apply-corrections-btn" onclick="applyAllSuggestedCorrections()">✓ 一括適用</button>
     </div>
+  </div>
+</div>
+
+<!-- Google Drive Setup Modal -->
+<div id="gd-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:24px;max-width:520px;width:calc(100% - 32px);box-shadow:0 16px 48px rgba(0,0,0,.25)">
+    <div style="font-size:16px;font-weight:700;color:var(--main);margin-bottom:6px">🔧 Google Drive 連携設定</div>
+    <div style="font-size:13px;color:var(--gray);margin-bottom:16px;line-height:1.6">
+      Google CloudコンソールでOAuth 2.0クライアントIDを作成し、<br>
+      「ウェブアプリケーション」タイプで以下の承認済みオリジンを追加してください：<br>
+      <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:12px">http://localhost:7823</code>
+    </div>
+    <div style="margin-bottom:6px;font-size:13px;font-weight:600">OAuth 2.0 クライアントID</div>
+    <input id="gd-client-id-input" type="text" placeholder="XXXXXXXXXXXX.apps.googleusercontent.com"
+      style="width:100%;font-size:13px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;margin-bottom:6px">
+    <div style="font-size:12px;color:var(--gray);margin-bottom:16px">
+      📌 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--accent)">Google Cloud Console → API とサービス → 認証情報</a> から作成
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button style="padding:10px 18px;background:#eee;color:#333;border:none;border-radius:8px;font-size:13px;cursor:pointer" onclick="closeGdSetupModal()">キャンセル</button>
+      <button style="padding:10px 22px;background:var(--main);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer" onclick="saveGdClientId()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Research Preview Modal -->
+<div id="research-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:20px 24px;max-width:640px;width:calc(100% - 24px);max-height:90vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.25)">
+    <div id="research-preview-content"></div>
   </div>
 </div>
 
@@ -1605,6 +1642,7 @@ function delProduct(pid){
 // TAB 2: 外部ファクト
 // ============================================================
 function renderExtTab(){
+  renderResearchCard();
   render施策Section();
   renderExtDayTabs();
   renderExtDayContent(currentExtDay);
@@ -3276,6 +3314,410 @@ function resetApiKey(){
   document.getElementById('api-key-area').style.display='block';
   document.getElementById('api-key-input').value='';
   addMsg('bot','APIキーをリセットしました。新しいキーを入力してください。');
+}
+
+// ============================================================
+// 商圏リサーチ読み込み（Google Drive API + Claude API）
+// ============================================================
+
+const GD_FOLDER_ID = '1o5rqqR2SriBrgIIREaGk1ggaeoxtXBMF';
+
+// --- トークン管理 ---
+function gdGetClientId(){ return localStorage.getItem('gd_client_id')||''; }
+function gdGetToken(){
+  const t=localStorage.getItem('gd_access_token');
+  const exp=parseInt(localStorage.getItem('gd_token_expiry')||'0');
+  return (t&&Date.now()<exp)?t:null;
+}
+function gdSetToken(tok,expiresIn){
+  localStorage.setItem('gd_access_token',tok);
+  localStorage.setItem('gd_token_expiry',String(Date.now()+(expiresIn||3600)*1000-90000));// -1.5分マージン
+}
+function gdClearToken(){
+  localStorage.removeItem('gd_access_token');
+  localStorage.removeItem('gd_token_expiry');
+}
+
+// --- OAuth サインイン ---
+function gdSignIn(){
+  const clientId=gdGetClientId();
+  if(!clientId){showGdSetupModal();return;}
+  if(!window.google?.accounts?.oauth2){
+    showToast('Google APIを読み込み中です。数秒後に再試行してください。','warn');return;
+  }
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id:clientId,
+    scope:'https://www.googleapis.com/auth/drive.readonly',
+    callback:(resp)=>{
+      if(resp.error){showToast('認証エラー: '+resp.error,'error');return;}
+      gdSetToken(resp.access_token,resp.expires_in);
+      renderResearchCard();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function gdRevokeSession(){
+  gdClearToken();
+  renderResearchCard();
+  showToast('Googleセッションを終了しました','info');
+}
+
+// --- Drive REST API ヘルパー ---
+async function gdApiGet(url){
+  const tok=gdGetToken();
+  if(!tok) throw new Error('NO_TOKEN');
+  const resp=await fetch(url,{headers:{'Authorization':'Bearer '+tok}});
+  if(resp.status===401){gdClearToken();throw new Error('TOKEN_EXPIRED');}
+  if(!resp.ok) throw new Error(`Drive API ${resp.status}: ${await resp.text()}`);
+  return resp.json();
+}
+
+async function gdReadFileContent(fileId,mimeType){
+  const tok=gdGetToken();
+  if(!tok) throw new Error('NO_TOKEN');
+  let url;
+  if(mimeType==='application/vnd.google-apps.document'){
+    url=`https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`;
+  } else {
+    url=`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  }
+  const resp=await fetch(url,{headers:{'Authorization':'Bearer '+tok}});
+  if(resp.status===401){gdClearToken();throw new Error('TOKEN_EXPIRED');}
+  if(!resp.ok) throw new Error(`ファイル読み込みエラー ${resp.status}`);
+  return resp.text();
+}
+
+// --- 今週フォルダ → 外部要因ファイルを探す ---
+async function gdLoadResearchFile(){
+  const weekKey=S.activeWeek; // e.g. "2026.4.22"
+  const folderName=weekKey+'週計画';
+
+  // ①今週フォルダを検索
+  const fq=encodeURIComponent(`'${GD_FOLDER_ID}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const fd=await gdApiGet(`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id,name)&pageSize=5`);
+  if(!fd.files?.length){
+    throw new Error(`「${folderName}」フォルダが見つかりませんでした。\nGoogle DriveでID: ${GD_FOLDER_ID} のフォルダを確認してください。`);
+  }
+  const weekFolderId=fd.files[0].id;
+
+  // ②外部要因調査結果ファイルを検索（名前に「外部要因調査結果」を含む）
+  const rq=encodeURIComponent(`'${weekFolderId}' in parents and name contains '外部要因調査結果' and trashed=false`);
+  const rd=await gdApiGet(`https://www.googleapis.com/drive/v3/files?q=${rq}&fields=files(id,name,mimeType)&pageSize=10`);
+  if(!rd.files?.length){
+    throw new Error(`「外部要因調査結果」ファイルが見つかりませんでした。\nフォルダ：${folderName}\n\nファイル名に「外部要因調査結果」が含まれていることを確認してください。`);
+  }
+
+  const file=rd.files[0];
+  const content=await gdReadFileContent(file.id,file.mimeType);
+  return {content,fileName:file.name,weekKey};
+}
+
+// --- Claude API でリサーチ内容を解析 ---
+async function parseResearchContent(content,weekKey){
+  const apiKey=localStorage.getItem('claude_api_key');
+
+  // 曜日と日付を組み立て
+  const ws=S.weekStart||weekKeyToDateStr(weekKey);
+  const dateLabels=DAYS.map((day,i)=>{
+    const d=parseLocalDate(ws);d.setDate(d.getDate()+i);
+    return `${day}曜（${d.getMonth()+1}/${d.getDate()}）`;
+  });
+
+  const prompt=`以下はコンビニFF（ファストフード）向けの商圏リサーチ調査結果です。
+対象週：${weekKey}週（${dateLabels.join('、')}）
+
+===調査内容===
+${content.slice(0,8000)}
+==================
+
+上記から各曜日（火〜月）の外部ファクトを抽出してください。
+情報が見当たらない項目はデフォルト値を使用してください。
+
+必ずこのJSON形式のみで回答してください（JSON以外のテキスト禁止）：
+{
+  "火": {"weather":"晴れ","tempMax":22,"tempMin":12,"event":"","correction":0},
+  "水": {"weather":"曇り","tempMax":18,"tempMin":10,"event":"上高地開山祭","correction":10},
+  "木": {"weather":"雨","tempMax":15,"tempMin":8,"event":"","correction":-5},
+  "金": {"weather":"晴れ","tempMax":20,"tempMin":11,"event":"","correction":0},
+  "土": {"weather":"晴れ","tempMax":23,"tempMin":13,"event":"","correction":15},
+  "日": {"weather":"晴れ","tempMax":22,"tempMin":12,"event":"","correction":10},
+  "月": {"weather":"曇り","tempMax":19,"tempMin":10,"event":"","correction":5}
+}
+
+制約：
+- weather は「晴れ」「曇り」「雨」「雪」「台風」のいずれか
+- tempMax・tempMin は整数（℃）
+- event はイベント名（なければ空文字""）
+- correction は補正係数（%・整数）：好条件=プラス、悪条件=マイナス`;
+
+  if(apiKey){
+    try{
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-opus-4-5',max_tokens:1024,messages:[{role:'user',content:prompt}]})
+      });
+      const data=await resp.json();
+      if(!data.error){
+        const text=data.content?.[0]?.text||'';
+        const m=text.match(/\{[\s\S]*\}/);
+        if(m){
+          const parsed=JSON.parse(m[0]);
+          if(DAYS.every(d=>parsed[d])) return {result:parsed,source:'Claude AI'};
+        }
+      }
+    }catch(e){console.warn('Claude parse failed:',e);}
+  }
+
+  // フォールバック：簡易テキスト解析
+  return {result:parseResearchFallback(content),source:'テキスト解析（APIキー未設定）'};
+}
+
+function parseResearchFallback(content){
+  const {temp}=getSeasonalTemp();
+  const result={};
+  const weatherKw=[['台風','台風'],['雪','雪'],['雨','雨'],['曇','曇り'],['晴','晴れ']];
+  DAYS.forEach((day,i)=>{
+    result[day]={weather:'晴れ',tempMax:temp+7,tempMin:temp-3,event:'',correction:0};
+    // 曜日セクションを抽出
+    const re=new RegExp(`${day}[曜日]?([^]*?)(?=${DAYS[(i+1)%DAYS.length]}[曜日]|$)`,'i');
+    const m=content.match(re);
+    if(!m) return;
+    const sec=m[1]||m[0];
+    // 天気
+    for(const [kw,val] of weatherKw){if(sec.includes(kw)){result[day].weather=val;break;}}
+    // 気温
+    const tm=sec.match(/(\d+)[〜～~](\d+)[度℃]/)||sec.match(/最高[：:・ ]?(\d+)/);
+    if(tm){result[day].tempMax=parseInt(tm[2]||tm[1]);result[day].tempMin=parseInt(tm[1]||0);}
+    // イベント（括弧内または「〇〇イベント/祭り/フェス」）
+    const em=sec.match(/「([^」]+)」|([^\s]+(?:祭り?|フェス|イベント|マラソン|花火|市))/);
+    if(em) result[day].event=(em[1]||em[2]).trim();
+    // 補正係数の簡易推定
+    let corr=0;
+    if(result[day].weather==='雨') corr-=5;
+    if(result[day].weather==='雪') corr-=10;
+    if(result[day].weather==='台風') corr-=25;
+    if(result[day].event) corr+=5;
+    if(result[day].tempMax<=5||result[day].tempMax>=33) corr-=5;
+    result[day].correction=corr;
+  });
+  return result;
+}
+
+// --- UIカード描画 ---
+function renderResearchCard(){
+  const el=document.getElementById('research-card-content');
+  if(!el) return;
+  const hasClientId=!!gdGetClientId();
+  const hasToken=!!gdGetToken();
+  const weekKey=S.activeWeek;
+
+  let html=`<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+    <div>
+      <div class="section-title" style="margin:0;display:flex;align-items:center;gap:6px">
+        <span>📥 商圏リサーチ読み込み</span>
+        ${hasToken?'<span style="font-size:11px;background:#e8f5e9;color:var(--green);padding:2px 8px;border-radius:10px;font-weight:600">Google連携済</span>':''}
+      </div>
+      <div style="font-size:12px;color:var(--gray);margin-top:3px">Google Driveのリサーチ結果を読み込み、天気・イベント・補正係数を自動セット</div>
+    </div>`;
+
+  if(!hasClientId){
+    html+=`<button onclick="showGdSetupModal()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">🔧 Google連携を設定</button>`;
+  } else if(!hasToken){
+    html+=`<div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="gdSignIn()" style="padding:8px 16px;background:#4285F4;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Googleにサインイン
+      </button>
+      <button onclick="showGdSetupModal()" style="padding:8px 10px;background:#f0f0f0;color:#666;border:none;border-radius:8px;font-size:12px;cursor:pointer">⚙️ 設定変更</button>
+    </div>`;
+  } else {
+    html+=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <button id="research-load-btn" onclick="loadResearch()" style="padding:9px 18px;background:var(--main);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">📥 読み込む（${weekKey}週）</button>
+      <button onclick="gdRevokeSession()" style="padding:7px 12px;background:#f0f0f0;color:#666;border:none;border-radius:8px;font-size:12px;cursor:pointer">サインアウト</button>
+    </div>`;
+  }
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+// --- 読み込みメイン処理 ---
+async function loadResearch(){
+  if(!gdGetToken()){gdSignIn();return;}
+  const btn=document.getElementById('research-load-btn');
+  const origText=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='⏳ ファイル検索中...';}
+  try{
+    const {content,fileName,weekKey}=await gdLoadResearchFile();
+    if(btn){btn.textContent='🤖 AI解析中...';}
+    const {result,source}=await parseResearchContent(content,weekKey);
+    showResearchPreviewModal(result,fileName,source);
+  }catch(err){
+    if(err.message==='TOKEN_EXPIRED'||err.message==='NO_TOKEN'){
+      showToast('セッションが切れました。再サインインしてください。','warn');
+      gdSignIn();
+    } else {
+      alert('❌ 読み込みエラー:\n\n'+err.message);
+    }
+  } finally {
+    if(btn){btn.disabled=false;btn.textContent=origText;}
+  }
+}
+
+// --- Google Drive 設定モーダル ---
+function showGdSetupModal(){
+  document.getElementById('gd-client-id-input').value=gdGetClientId();
+  document.getElementById('gd-setup-modal').style.display='flex';
+}
+function closeGdSetupModal(){document.getElementById('gd-setup-modal').style.display='none';}
+function saveGdClientId(){
+  const val=document.getElementById('gd-client-id-input').value.trim();
+  if(!val){alert('クライアントIDを入力してください');return;}
+  localStorage.setItem('gd_client_id',val);
+  closeGdSetupModal();
+  renderResearchCard();
+  showToast('クライアントIDを保存しました','success');
+}
+
+// --- リサーチプレビューモーダル ---
+let _researchPreviewData=null;
+
+function showResearchPreviewModal(parsed,fileName,source){
+  _researchPreviewData=JSON.parse(JSON.stringify(parsed));
+  const modal=document.getElementById('research-preview-modal');
+  modal.style.display='flex';
+  renderResearchPreviewContent(fileName,source);
+}
+
+function renderResearchPreviewContent(fileName,source){
+  const parsed=_researchPreviewData;
+  const {temp}=getSeasonalTemp();
+  const weatherOpts=['晴れ','曇り','雨','雪','台風'];
+  const fName=fileName||'';
+  const src=source||'';
+
+  const rows=DAYS.map((day,i)=>{
+    const d=parsed[day]||{weather:'晴れ',tempMax:temp+7,tempMin:temp-3,event:'',correction:0};
+    const isWeekend=i>=4&&i<=5;
+    const dayColor=i===4?'#1565c0':i===5?'#c62828':'inherit';
+    const corrColor=(d.correction||0)>0?'var(--green)':(d.correction||0)<0?'var(--red)':'#333';
+    return `<tr style="background:${isWeekend?'#fffbf0':'#fff'};border-bottom:1px solid #f0f0f0">
+      <td style="padding:8px 10px;font-weight:700;font-size:14px;color:${dayColor};white-space:nowrap">${day}</td>
+      <td style="padding:5px 6px">
+        <select onchange="updateResearchPreview('${day}','weather',this.value)" style="font-size:12px;padding:4px 6px;border-radius:5px;border:1px solid var(--border);background:#fff;cursor:pointer">
+          ${weatherOpts.map(w=>`<option${d.weather===w?' selected':''}>${w}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:5px 6px;text-align:center">
+        <div style="display:flex;align-items:center;gap:2px">
+          <input type="number" value="${d.tempMax}" style="width:50px;text-align:center;font-size:13px;padding:4px 2px;border-radius:5px;border:1px solid var(--border)"
+            onchange="updateResearchPreview('${day}','tempMax',parseInt(toHalf(this.value))||0)">
+          <span style="font-size:11px;color:var(--gray)">/</span>
+          <input type="number" value="${d.tempMin}" style="width:50px;text-align:center;font-size:13px;padding:4px 2px;border-radius:5px;border:1px solid var(--border)"
+            onchange="updateResearchPreview('${day}','tempMin',parseInt(toHalf(this.value))||0)">
+        </div>
+      </td>
+      <td style="padding:5px 6px">
+        <input type="text" value="${(d.event||'').replace(/"/g,'&quot;')}" placeholder="なし"
+          style="width:100%;font-size:12px;padding:4px 6px;border-radius:5px;border:1px solid var(--border);min-width:90px;box-sizing:border-box"
+          onchange="updateResearchPreview('${day}','event',this.value)">
+      </td>
+      <td style="padding:5px 8px;text-align:center">
+        <div style="display:flex;align-items:center;gap:2px">
+          <input type="number" value="${d.correction||0}"
+            style="width:52px;text-align:center;font-size:13px;font-weight:600;padding:4px 2px;border-radius:5px;border:1px solid var(--border);color:${corrColor}"
+            onchange="updateResearchPreview('${day}','correction',parseInt(toHalf(this.value))||0)">
+          <span style="font-size:11px;color:var(--gray)">%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('research-preview-content').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--main)">📋 解析結果の確認・調整</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px">📄 ${fName} &nbsp;｜&nbsp; 🤖 ${src}</div>
+      </div>
+      <button onclick="closeResearchPreviewModal()" style="background:transparent;border:none;font-size:20px;cursor:pointer;color:#999;padding:0 4px">✕</button>
+    </div>
+
+    <div style="background:#fff8e1;border:1px solid #ffd54f;border-radius:8px;padding:8px 12px;font-size:12px;color:#795548;margin-bottom:12px">
+      💡 数値を手動で調整してから「確認して保存」してください。気温は最高/最低（℃）で表示しています。
+    </div>
+
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:var(--main);color:#fff">
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;min-width:36px">曜</th>
+            <th style="padding:8px 10px;text-align:left;min-width:90px">天気</th>
+            <th style="padding:8px 10px;text-align:center;min-width:110px">気温(最高/最低)</th>
+            <th style="padding:8px 10px;text-align:left;min-width:120px">イベント</th>
+            <th style="padding:8px 10px;text-align:center;min-width:80px">補正係数</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+      <button onclick="closeResearchPreviewModal()" style="padding:10px 20px;background:#eee;color:#555;border:none;border-radius:8px;font-size:13px;cursor:pointer">キャンセル</button>
+      <button onclick="applyResearch()" style="padding:10px 26px;background:var(--main);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">✅ 確認して保存</button>
+    </div>`;
+}
+
+function updateResearchPreview(day,key,val){
+  if(!_researchPreviewData) return;
+  if(!_researchPreviewData[day]) _researchPreviewData[day]={};
+  _researchPreviewData[day][key]=val;
+}
+
+function closeResearchPreviewModal(){
+  document.getElementById('research-preview-modal').style.display='none';
+  _researchPreviewData=null;
+}
+
+function applyResearch(){
+  if(!_researchPreviewData) return;
+  const {temp}=getSeasonalTemp();
+  DAYS.forEach((day,i)=>{
+    const d=_researchPreviewData[day];if(!d) return;
+    if(!S.ext[i]) S.ext[i]={weather:'晴れ',temp,event:'',correction:0};
+    if(d.weather) S.ext[i].weather=d.weather;
+    // 最高・最低の平均を気温フィールドにセット
+    const hi=typeof d.tempMax==='number'?d.tempMax:null;
+    const lo=typeof d.tempMin==='number'?d.tempMin:null;
+    if(hi!==null&&lo!==null) S.ext[i].temp=Math.round((hi+lo)/2);
+    else if(hi!==null) S.ext[i].temp=hi;
+    if(typeof d.event!=='undefined') S.ext[i].event=d.event;
+    if(typeof d.correction==='number') S.ext[i].correction=d.correction;
+  });
+  saveS();
+  closeResearchPreviewModal();
+  renderExtTab();
+  showToast('✅ 商圏リサーチを外部ファクトに反映しました！','success');
+}
+
+// --- トースト通知 ---
+function showToast(msg,type='info'){
+  let el=document.getElementById('ff-toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='ff-toast';
+    el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);text-align:center';
+    document.body.appendChild(el);
+  }
+  const colors={success:'#1b5e20;background:#e8f5e9',error:'#b71c1c;background:#ffebee',warn:'#e65100;background:#fff3e0',info:'#0d47a1;background:#e3f2fd'};
+  const [color,bg]=(colors[type]||colors.info).split(';background:');
+  el.style.color='#'+color.replace('#','');
+  el.style.background='#'+bg;
+  el.style.border=`1px solid currentColor`;
+  el.style.opacity='1';
+  el.textContent=msg;
+  clearTimeout(el._timer);
+  el._timer=setTimeout(()=>{el.style.opacity='0';},3000);
 }
 
 // ============================================================
