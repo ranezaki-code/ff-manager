@@ -312,6 +312,19 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 
     <!-- Tab 2: 外部ファクト -->
     <div class="tab-panel" id="tab2">
+      <!-- 当週の施策カード -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+          <div class="section-title" style="margin:0">📋 当週の施策</div>
+          <button class="btn-primary" style="padding:6px 14px;font-size:13px" onclick="add施策()">＋ 施策を追加</button>
+        </div>
+        <p style="font-size:12px;color:var(--gray);margin-bottom:10px">本部からの販促・新商品発売・キャンペーンなどを登録。補正係数の提案に反映されます。</p>
+        <div id="施策-area"></div>
+        <div style="margin-top:10px;text-align:right">
+          <button style="background:var(--main);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none" onclick="suggestAllCorrections()">🤖 全曜日の補正係数を一括提案</button>
+        </div>
+      </div>
+      <!-- 曜日別外部ファクト -->
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div class="section-title" style="margin:0">曜日別外部ファクト</div>
@@ -432,6 +445,19 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   </div>
 </div>
 
+<!-- 補正係数一括提案モーダル -->
+<div id="correction-suggest-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:20px 24px;max-width:500px;width:calc(100% - 32px);max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.2)">
+    <div style="font-size:16px;font-weight:700;color:var(--main);margin-bottom:4px">🤖 補正係数の提案</div>
+    <div style="font-size:12px;color:var(--gray);margin-bottom:14px">数値は手動で調整してから「一括適用」できます</div>
+    <div id="correction-suggest-content"></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-secondary" style="flex:1;padding:10px" onclick="closeCorrectionSuggestModal()">キャンセル</button>
+      <button class="btn-primary" style="flex:1;padding:10px;margin-top:0" id="apply-corrections-btn" onclick="applyAllSuggestedCorrections()">✓ 一括適用</button>
+    </div>
+  </div>
+</div>
+
 <!-- FAB Bot -->
 <button id="fab-bot" onclick="toggleChat()">🤖</button>
 
@@ -546,6 +572,7 @@ let S = {
   checks:{},
   budget:{target:0,wasteTarget:0,newProductBudgets:{}},
   discHist:[],
+  施策:[],   // [{id,name,days:'all'|'weekday'|'weekend'|曜日,impact:0}]
   weekStart:'2026-04-14', // 初期値は直近火曜日（loadS内で動的に再計算）
   weeks:{},      // { '2026.4.14': {ji,cust,checks,weekStart} }
   activeWeek:'', // 現在選択中の週キー
@@ -604,6 +631,7 @@ function saveS(){
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
     rules:S.rules,checks:S.checks,budget:S.budget,discHist:S.discHist,
+    施策:S.施策,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
   }));}catch(e){console.warn('save error',e)}
 }
@@ -701,6 +729,7 @@ function loadS(){
   // データ移行: budget.newProductBudgets がない場合は初期化
   if(!S.budget)S.budget={target:0,wasteTarget:0,newProductBudgets:{}};
   if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
+  if(!S.施策)S.施策=[];
 }
 
 // ============================================================
@@ -1512,6 +1541,7 @@ function delProduct(pid){
 // TAB 2: 外部ファクト
 // ============================================================
 function renderExtTab(){
+  render施策Section();
   renderExtDayTabs();
   renderExtDayContent(currentExtDay);
   renderRulesArea();
@@ -1557,12 +1587,15 @@ function renderExtDayContent(i){
         <input type="text" value="${e.event||''}" placeholder="例: 上高地開山祭" onchange="setExt(${i},'event',this.value)">
       </div>
       <div class="form-group">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:4px">
           <label style="margin:0">補正係数(%)</label>
-          <button style="${btnStyle}" onclick="resetExtField(${i},'correction',0)">↩ リセット</button>
+          <div style="display:flex;gap:4px">
+            <button style="${btnStyle}" onclick="resetExtField(${i},'correction',0)">↩ リセット</button>
+            <button style="padding:3px 8px;font-size:11px;border-radius:5px;border:1px solid var(--accent);background:var(--accent-lt);cursor:pointer;color:var(--accent);white-space:nowrap;font-weight:600" onclick="suggestCorrectionForDay(${i})">🤖 提案</button>
+          </div>
         </div>
         <input type="number" value="${e.correction||0}" onchange="setExt(${i},'correction',parseFloat(toHalf(this.value))||0)">
-        <span style="font-size:11px;color:var(--gray)">プラスで増産・マイナスで減産</span>
+        <span style="font-size:11px;color:var(--gray)">プラスで増産・マイナスで減産　／　施策・イベントから自動提案できます</span>
       </div>
     </div>
     <div style="margin-top:12px;text-align:right">
@@ -1597,6 +1630,217 @@ function resetExt(){
   if(!confirm(`全曜日の外部ファクト情報をリセットしますか？\n気温は${label}のデフォルト（${temp}℃）になります。`))return;
   S.ext=Array.from({length:7},()=>({weather:'晴れ',temp,event:'',correction:0}));
   saveS();renderExtTab();
+}
+
+// ============================================================
+// 当週の施策
+// ============================================================
+function render施策Section(){
+  const el=document.getElementById('施策-area');
+  if(!el)return;
+  if(!S.施策)S.施策=[];
+  if(!S.施策.length){
+    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--gray);font-size:13px;border:2px dashed var(--border);border-radius:8px">施策がありません。「＋ 施策を追加」で登録してください。</div>';
+    return;
+  }
+  const dayOpts=[{v:'all',l:'全日'},{v:'weekday',l:'平日'},{v:'weekend',l:'週末'},...DAYS.map(d=>({v:d,l:d}))];
+  el.innerHTML=S.施策.map((s,i)=>{
+    const imp=parseFloat(s.impact)||0;
+    const impColor=imp>0?'var(--green)':imp<0?'var(--red)':'var(--gray)';
+    const dayVal=s.days||'all';
+    return `<div style="display:grid;grid-template-columns:1fr 80px 90px auto;gap:6px;align-items:center;padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid var(--border);margin-bottom:6px">
+      <input type="text" value="${s.name||''}" placeholder="施策名（例：からあげクン新フレーバー発売）"
+        style="font-size:13px;min-width:0"
+        onchange="set施策Field(${i},'name',this.value)"
+        onblur="save施策Name(${i},this.value)">
+      <select style="font-size:12px;padding:5px 4px" onchange="set施策Field(${i},'days',this.value)">
+        ${dayOpts.map(o=>`<option value="${o.v}"${dayVal===o.v?' selected':''}>${o.l}</option>`).join('')}
+      </select>
+      <div style="display:flex;align-items:center;gap:3px">
+        <input type="number" value="${imp}" style="width:52px;font-size:12px;text-align:center;padding:5px 4px"
+          onchange="set施策Field(${i},'impact',parseFloat(toHalf(this.value))||0)">
+        <span style="font-size:12px;color:${impColor};font-weight:700;white-space:nowrap">${imp>0?'+':''}${imp}%</span>
+      </div>
+      <button style="padding:5px 10px;font-size:12px;background:var(--red-lt);color:var(--red);border:1px solid var(--red);border-radius:6px;cursor:pointer;white-space:nowrap" onclick="remove施策(${i})">削除</button>
+    </div>`;
+  }).join('');
+}
+
+function add施策(){
+  if(!S.施策)S.施策=[];
+  S.施策.push({id:'sch_'+Date.now(),name:'',days:'all',impact:0});
+  saveS();render施策Section();
+}
+function remove施策(i){
+  if(!S.施策)return;
+  S.施策.splice(i,1);
+  saveS();render施策Section();
+}
+function set施策Field(i,key,val){
+  if(!S.施策||!S.施策[i])return;
+  S.施策[i][key]=val;
+  // name 変更はblurで保存（入力中は再レンダリングしない）
+  if(key!=='name'){saveS();render施策Section();}
+  // else: onblur で save施策Name を呼ぶ
+}
+function save施策Name(i,val){
+  if(!S.施策||!S.施策[i])return;
+  S.施策[i].name=val;saveS();
+}
+
+// 施策が特定曜日に適用されるか（DAYS: ['火','水','木','金','土','日','月']）
+function 施策AppliesTo(s,dayIdx){
+  const d=s.days||'all';
+  if(d==='all')return true;
+  if(d==='weekday')return[0,1,2,3,6].includes(dayIdx); // 火水木金月
+  if(d==='weekend')return[4,5].includes(dayIdx);        // 土日
+  return DAYS.indexOf(d)===dayIdx;
+}
+
+// ルールベースの補正係数計算（APIなし時のフォールバック）
+function calcRuleBasedCorrection(dayIdx){
+  const e=S.ext[dayIdx]||{};
+  let total=0;
+  // 施策のインパクト合算
+  (S.施策||[]).forEach(s=>{if(施策AppliesTo(s,dayIdx))total+=parseFloat(s.impact)||0;});
+  // 天気補正
+  const w=e.weather||'晴れ';
+  if(w==='雨')total-=5;else if(w==='雪')total-=10;else if(w==='台風')total-=25;
+  // イベントありなら +5%
+  if((e.event||'').trim())total+=5;
+  // 極端な気温補正
+  const t=parseFloat(e.temp)||20;
+  if(t<=5)total-=5;else if(t>=33)total-=5;
+  return Math.round(total);
+}
+
+// 単日の補正係数提案（🤖 提案ボタン）
+async function suggestCorrectionForDay(dayIdx){
+  const apiKey=localStorage.getItem('claude_api_key');
+  const e=S.ext[dayIdx]||{};
+  if(!apiKey){
+    const val=calcRuleBasedCorrection(dayIdx);
+    setExt(dayIdx,'correction',val);
+    return;
+  }
+  const 施策List=(S.施策||[]).filter(s=>施策AppliesTo(s,dayIdx))
+    .map(s=>`・${s.name}（想定${s.impact>0?'+':''}${s.impact}%）`).join('\n')||'（施策なし）';
+  const prompt=`${DAYS[dayIdx]}曜日の作成数補正係数（%）を整数1つだけ答えてください。\n\n当日:\n天気=${e.weather||'晴れ'}, 気温=${e.temp||20}℃, イベント=${e.event||'なし'}\n\n当週の施策:\n${施策List}\n\n整数のみ（例: 15 / -5 / 0）`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:64,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error.message);
+    const text=data.content?.[0]?.text||'0';
+    const num=parseInt((text.match(/-?\d+/)||['0'])[0]);
+    setExt(dayIdx,'correction',num);
+  }catch(err){
+    setExt(dayIdx,'correction',calcRuleBasedCorrection(dayIdx));
+  }
+}
+
+// 全曜日一括提案
+async function suggestAllCorrections(){
+  const modal=document.getElementById('correction-suggest-modal');
+  const content=document.getElementById('correction-suggest-content');
+  const applyBtn=document.getElementById('apply-corrections-btn');
+  modal.style.display='flex';
+  content.innerHTML='<div style="text-align:center;padding:24px;color:var(--gray)">⏳ 計算中...</div>';
+  applyBtn.disabled=true;
+  window._suggestedCorrections={};
+  const apiKey=localStorage.getItem('claude_api_key');
+  if(!apiKey){
+    const sug={};
+    DAYS.forEach((_,i)=>{sug[i]=calcRuleBasedCorrection(i);});
+    showCorrectionSuggestions(sug,'ルールベース（AI提案にはAPIキーが必要です）',false);
+    return;
+  }
+  const 施策Text=(S.施策||[]).map(s=>{
+    const dl=s.days==='all'?'全日':s.days==='weekday'?'平日（火〜金・月）':s.days==='weekend'?'週末（土・日）':s.days+'曜日';
+    return`・${s.name}（${dl}、想定${s.impact>0?'+':''}${s.impact}%）`;
+  }).join('\n')||'（施策なし）';
+  const dayText=DAYS.map((d,i)=>{
+    const e=S.ext[i]||{};
+    return`${d}曜日: 天気=${e.weather||'晴れ'}, 気温=${e.temp||20}℃, イベント=${e.event||'なし'}`;
+  }).join('\n');
+  const prompt=`コンビニFF（ファストフード）の作成数補正係数を提案してください。\n\n当週の施策:\n${施策Text}\n\n各曜日の状況:\n${dayText}\n\n補正係数=作成数の増減率（プラス=増産・マイナス=減産）。\n必ずこのJSON形式のみで回答（他テキスト禁止）:\n{"火":数値,"水":数値,"木":数値,"金":数値,"土":数値,"日":数値,"月":数値,"理由":"簡潔に"}`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:512,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error.message);
+    const text=data.content?.[0]?.text||'';
+    const match=text.match(/\{[\s\S]*\}/);
+    if(!match)throw new Error('JSON解析失敗');
+    const parsed=JSON.parse(match[0]);
+    const sug={};
+    DAYS.forEach((d,i)=>{sug[i]=typeof parsed[d]==='number'?parsed[d]:calcRuleBasedCorrection(i);});
+    showCorrectionSuggestions(sug,parsed['理由']||'AI提案完了',true);
+  }catch(err){
+    const sug={};
+    DAYS.forEach((_,i)=>{sug[i]=calcRuleBasedCorrection(i);});
+    showCorrectionSuggestions(sug,`ルールベース（AI: ${err.message}）`,false);
+  }
+}
+
+function showCorrectionSuggestions(suggestions,note,isAI){
+  window._suggestedCorrections=suggestions;
+  const content=document.getElementById('correction-suggest-content');
+  let html=`<div style="font-size:12px;padding:8px 10px;background:${isAI?'var(--main-lt)':'#fff3e0'};border-radius:6px;margin-bottom:12px;color:${isAI?'var(--main)':'#e65100'}">
+    ${isAI?'🤖 AI提案':'📐 ルールベース'} ${note}
+  </div>
+  <table style="width:100%"><tbody>`;
+  DAYS.forEach((d,i)=>{
+    const cur=S.ext[i]?.correction||0;
+    const sug=suggestions[i]??0;
+    const diff=sug-cur;
+    const color=sug>0?'var(--green)':sug<0?'var(--red)':'var(--gray)';
+    const sign=sug>0?'+':'';
+    const diffStr=diff===0?'<span style="color:var(--gray)">変更なし</span>':`<span style="color:var(--accent)">${cur>0?'+':''}${cur}% → <b>${sign}${sug}%</b></span>`;
+    html+=`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 6px;font-weight:700;width:36px;font-size:14px">${d}</td>
+      <td style="padding:8px 6px;width:100px">
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="number" value="${sug}" style="width:56px;text-align:center;font-size:13px;padding:4px"
+            onchange="(function(v,i){window._suggestedCorrections[i]=parseFloat(v)||0;updateSuggestRow(i);})(this.value,${i})">
+          <span style="font-size:12px;color:${color};font-weight:700">%</span>
+        </div>
+      </td>
+      <td style="padding:8px 6px;font-size:12px" id="sr_${i}">${diffStr}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  content.innerHTML=html;
+  document.getElementById('apply-corrections-btn').disabled=false;
+}
+function updateSuggestRow(dayIdx){
+  const sug=window._suggestedCorrections[dayIdx]??0;
+  const cur=S.ext[dayIdx]?.correction||0;
+  const diff=sug-cur;
+  const sign=sug>0?'+':'';
+  const diffStr=diff===0?'<span style="color:var(--gray)">変更なし</span>':`<span style="color:var(--accent)">${cur>0?'+':''}${cur}% → <b>${sign}${sug}%</b></span>`;
+  const el=document.getElementById('sr_'+dayIdx);
+  if(el)el.innerHTML=diffStr;
+}
+function applyAllSuggestedCorrections(){
+  const sug=window._suggestedCorrections||{};
+  DAYS.forEach((_,i)=>{
+    if(!S.ext[i])S.ext[i]={weather:'晴れ',temp:getSeasonalTemp().temp,event:'',correction:0};
+    if(sug[i]!==undefined)S.ext[i].correction=sug[i];
+  });
+  saveS();
+  closeCorrectionSuggestModal();
+  renderExtDayTabs();
+  renderExtDayContent(currentExtDay);
+}
+function closeCorrectionSuggestModal(){
+  document.getElementById('correction-suggest-modal').style.display='none';
 }
 
 function renderRulesArea(){
