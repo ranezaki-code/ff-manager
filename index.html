@@ -971,6 +971,49 @@ function getProdCnt(pid,dayIdx,slotH){
   return cnt;
 }
 
+// 全週の実績を集計するヘルパー（グローバル）
+function getJiAllWeeks(pid){
+  const base=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
+  let t=base.teika||0,n=base.nebiki||0,h=base.haiki||0;
+  Object.entries(S.weeks||{}).forEach(([key,w])=>{
+    if(key===S.activeWeek)return;
+    const j=(w.ji||{})[pid];if(!j)return;
+    t+=j.teika||0;n+=j.nebiki||0;h+=j.haiki||0;
+  });
+  return{teika:t,nebiki:n,haiki:h,total:t+n+h};
+}
+
+// 投資/新商品の1スロットあたり追加作成数を返す（perDay個/日をスロット数で均等分配）
+function getInvestExtra(pid,dayIdx,slotH){
+  const p=getP(pid);if(!p||!p.enabled)return 0;
+  const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.length)return 0;
+  const slotIdx=cfg.slots.indexOf(slotH);if(slotIdx<0)return 0;
+  const isInvest=p.isInvest&&(S.budget.investCounts?.[p.id]||0)>0;
+  const isNew=p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0;
+  if(!isInvest&&!isNew)return 0;
+  const perDay=isInvest?(S.budget.investCounts[p.id]||0):(S.budget.newProductCounts[p.id]||0);
+  if(!perDay)return 0;
+  const numSlots=cfg.slots.length;
+  // perDay個をnumSlotsスロットに均等配分（余りは前スロットへ）
+  return Math.floor(perDay/numSlots)+(slotIdx<(perDay%numSlots)?1:0);
+}
+
+// 投資追加の提案値（1日あたり個数）を返す
+function suggestInvestPerDay(pid){
+  const p=getP(pid);if(!p||!p.enabled)return 1;
+  const cfg=S.catCfg[p.category];if(!cfg)return 1;
+  const ji=getJiAllWeeks(pid);
+  // 日平均計画作成数
+  const avgDay=DAYS.reduce((s,_,di)=>s+cfg.slots.reduce((ss,h)=>ss+getProdCnt(pid,di,h),0),0)/7;
+  if(!ji.total)return 1; // 実績なし → 保守的に1個/日
+  const haikiR=ji.haiki/ji.total;
+  const sellR=(ji.teika+ji.nebiki)/ji.total;
+  if(haikiR>=0.7) return 1;                              // 廃棄多 → 慎重
+  if(haikiR>=0.5) return 2;                              // 廃棄やや多
+  if(sellR>=0.8)  return Math.max(1,Math.round(avgDay*0.15)); // 好調 → 15%増
+  return Math.max(1,Math.round(avgDay*0.1));             // 標準 → 10%増
+}
+
 // ============================================================
 // JISSEKI CALCULATIONS
 // ============================================================
@@ -2146,7 +2189,11 @@ function renderProdDayContent(dayIdx){
     ${e.event?`<span class="info-item">📅 ${e.event}</span>`:''}
     <span class="info-item">補正: <b>${e.correction>=0?'+':''}${e.correction}%</b></span>
     <span class="info-item">週総客数: <b>${wt}</b></span>
-  </div>`;
+  </div>
+  ${(()=>{
+    const hasInvest=S.PM.some(p=>p.enabled&&(p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)));
+    return hasInvest?'<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:6px 12px;font-size:11px;color:#92400e;margin-bottom:6px">📈 <b>黄色セル</b> = 投資/新商品追加分（⑤予算管理で設定）　<a onclick="showTab(4)" style="color:var(--main);cursor:pointer;text-decoration:underline">→ 予算管理で編集</a></div>':''
+  })()}`;
 
   // Progress bars for each slot
   html+=`<div class="card">`;
@@ -2183,9 +2230,12 @@ function renderProdDayContent(dayIdx){
     html+=`</tr></thead><tbody>`;
 
     prods.forEach(p=>{
-      html+=`<tr><td style="text-align:left;font-size:12px">${p.name}</td>`;
+      const hasExtra=p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0);
+      html+=`<tr><td style="text-align:left;font-size:12px">${p.name}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
       cfg.slots.forEach(slotH=>{
         const cnt=getProdCnt(p.id,dayIdx,slotH);
+        const extra=getInvestExtra(p.id,dayIdx,slotH);
+        const totalCnt=cnt+extra;
         const chkKey=`${dayIdx}_${slotH}_${p.id}`;
         const checked=!!S.checks[chkKey];
         const wl=getWithdraw(p.id);
@@ -2198,12 +2248,13 @@ function renderProdDayContent(dayIdx){
         const slotCust=range?getSlotCust(dayIdx,range[0],range[1]):0;
         const baseCnt=roundCnt(baseJi*slotCust/wkTotal);
         const diff=cnt-baseCnt;
-        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" style="position:relative;padding:6px">
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" style="position:relative;padding:6px${extra>0?';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px':''}">
           <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-            <span class="prod-count">${isSkip?'-':cnt}</span>
+            <span class="prod-count" style="${extra>0?'color:#d97706':''}"> ${isSkip?'-':totalCnt}</span>
             <div>
               <span class="badge badge-base">${baseCnt}</span>
               ${diff>0?`<span class="badge badge-plus">+${diff}</span>`:diff<0?`<span class="badge badge-minus">${diff}</span>`:''}
+              ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700">📈+${extra}</span>`:''}
             </div>
             <span class="${wl>0&&sc>=wl?'withdraw-ok':'withdraw-ng'}">${wl>0&&sc>=wl?'✓':'⚠'} ${Math.round(wl)}</span>
             <span class="markdown-time">${mdTime}:00値引</span>
@@ -2385,21 +2436,6 @@ function renderBudgetJisseki(){
 function renderBudgetPlan(){
   const el=document.getElementById('budget-plan');
 
-  // ── 商品別に実績レートを取得するヘルパー ──
-  // S.jiを最優先、他週はアクティブ週以外を加算
-  const _getJiAllWeeks=(pid)=>{
-    // アクティブ週（S.ji）
-    const base=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
-    let t=base.teika||0, n=base.nebiki||0, h=base.haiki||0;
-    // 他の週を加算
-    Object.entries(S.weeks||{}).forEach(([key,w])=>{
-      if(key===S.activeWeek)return;
-      const j=(w.ji||{})[pid];if(!j)return;
-      t+=j.teika||0; n+=j.nebiki||0; h+=j.haiki||0;
-    });
-    return{teika:t,nebiki:n,haiki:h,total:t+n+h};
-  };
-
   // ── 作成計画から商品別に集計（同一ループで廃棄・値引も計算）──
   // 廃棄率・値引率は商品ごとの実績から。値引額は商品ごとのp.discを使用。
   let nextMake=0, nextTotalCost=0, nextWasteAmt=0, nextDiscAmt=0;
@@ -2416,7 +2452,7 @@ function renderBudgetPlan(){
     nextMake     +=cnt_week*p.shopPrice;
     nextTotalCost+=cnt_week*p.cost;
     // 商品別の実績レート（S.ji + 他週）
-    const ji=_getJiAllWeeks(p.id);
+    const ji=getJiAllWeeks(p.id);
     // ※ ji.total=0（実績未入力）の場合は廃棄率100%・値引率0%を使用する。
     //   作成計画がある以上、実績なし=全廃棄リスクとして保守的に見積もるのが正当。
     //   利益がマイナスになるのは意図した動作（「このまま作ると赤字」の警告）。
@@ -2443,16 +2479,16 @@ function renderBudgetPlan(){
   if(!S.budget.investCounts)S.budget.investCounts={};
   // 上限 = 売上高 − 原価（全投資ゼロ時の利益高＝投資できる上限）
   const newBudgetMax=Math.max(0,nextSalesAmt-nextTotalCost);
-  // 新商品予算（正式）= 商品ごと手入力個数 × 原価 の合計
+  // 新商品予算（正式）= 1日あたり個数 × 7日 × 原価 の合計
   const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
-    .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*p.cost,0);
-  // 新商品予算の総個数（表示用）
+    .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*7*p.cost,0);
+  // 新商品予算の1日あたり総個数（表示用）
   const newBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
     .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
-  // 定番投資予算（正式）= 投資対象フラグON商品の手入力個数 × 原価 の合計
+  // 定番投資予算（正式）= 1日あたり個数 × 7日 × 原価 の合計
   const investBudgetFormal=S.PM.filter(p=>p.enabled&&p.isInvest)
-    .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*p.cost,0);
-  // 定番投資予算の総個数（表示用）
+    .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*7*p.cost,0);
+  // 定番投資予算の1日あたり総個数（表示用）
   const investBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.isInvest)
     .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
 
@@ -2501,15 +2537,15 @@ function renderBudgetPlan(){
       </div>
       <div class="summary-box" style="border:2px solid var(--main)">
         <div class="label">新商品予算（正式）</div>
-        <div class="value" style="color:var(--main)">${newBudgetTotalCnt}</div><div class="unit">個</div>
-        <div style="font-size:11px;color:var(--main);font-weight:600;margin-top:2px">${fmt(newBudgetFormal)}円</div>
-        <div style="font-size:10px;color:#999;margin-top:1px">個数×原価 合計 ↓</div>
+        <div class="value" style="color:var(--main)">${newBudgetTotalCnt}</div><div class="unit">個/日</div>
+        <div style="font-size:11px;color:var(--main);font-weight:600;margin-top:2px">${fmt(newBudgetFormal)}円/週</div>
+        <div style="font-size:10px;color:#999;margin-top:1px">個/日×7×原価 ↓</div>
       </div>
       <div class="summary-box" style="border:2px solid var(--orange)">
         <div class="label" style="color:var(--orange)">定番投資予算（正式）</div>
-        <div class="value" style="color:var(--orange)">${investBudgetTotalCnt}</div><div class="unit">個</div>
-        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-top:2px">${fmt(investBudgetFormal)}円</div>
-        <div style="font-size:10px;color:#999;margin-top:1px">個数×原価 合計 ↓</div>
+        <div class="value" style="color:var(--orange)">${investBudgetTotalCnt}</div><div class="unit">個/日</div>
+        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-top:2px">${fmt(investBudgetFormal)}円/週</div>
+        <div style="font-size:10px;color:#999;margin-top:1px">個/日×7×原価 ↓</div>
       </div>
       <div class="summary-box">
         <div class="label">次週利益高</div>
@@ -2547,36 +2583,42 @@ function renderBudgetPlan(){
 
 function renderNewProductBudgetTable(maxBudget){
   if(!S.budget.newProductCounts)S.budget.newProductCounts={};
-  // 「新商品」カテゴリの商品のみ表示
   const NEW_CAT_SUFFIX='新商品';
   const prods=S.PM.filter(p=>p.enabled&&p.category.endsWith(NEW_CAT_SUFFIX));
   if(!prods.length)return '<div style="color:#999;font-size:12px">新商品カテゴリの商品がありません（②商品設定で「ホットFF新商品」等のカテゴリを設定してください）</div>';
-  const totalAmt=prods.reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*p.cost,0);
+  const totalAmt=prods.reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*7*p.cost,0);
   const totalCnt=prods.reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
   const over=totalAmt>maxBudget;
-  let html=`<table><thead><tr>
+  let html=`<div style="font-size:11px;color:#666;margin-bottom:6px">
+    📝 1日あたりの追加作成数を入力してください。<b>④作成表に黄色で反映</b>されます。
+    <button onclick="suggestAllNewCounts()" style="margin-left:8px;padding:3px 10px;font-size:11px;background:var(--main);color:#fff;border:none;border-radius:6px;cursor:pointer">🤖 全商品提案</button>
+  </div>
+  <table><thead><tr>
     <th style="text-align:left">商品名</th>
-    <th>カテゴリ</th>
-    <th style="width:90px">原価</th>
-    <th style="width:130px">追加作成数（個）</th>
-    <th style="width:110px">予算額（円）</th>
+    <th>原価</th>
+    <th style="width:160px">1日あたり追加数（個）</th>
+    <th style="width:120px">予算（円/週）</th>
   </tr></thead><tbody>`;
   prods.forEach(p=>{
     const cnt=S.budget.newProductCounts[p.id]||0;
-    const amt=cnt*p.cost;
+    const amt=cnt*7*p.cost;
+    const sug=suggestInvestPerDay(p.id);
     html+=`<tr>
-      <td style="text-align:left;font-size:12px">${p.name}</td>
-      <td style="font-size:11px;color:#666">${p.category}</td>
+      <td style="text-align:left;font-size:12px">${p.name}<br><span style="font-size:10px;color:#888">${p.category}</span></td>
       <td style="font-size:12px;color:#555">${fmt(p.cost)}円</td>
-      <td><input type="number" value="${cnt}" min="0" step="1" style="width:70px;text-align:right"
-        onchange="setNewProductCount('${p.id}',parseInt(toHalf(this.value))||0)">個</td>
+      <td>
+        <input type="number" value="${cnt}" min="0" step="1" style="width:65px;text-align:right"
+          onchange="setNewProductCount('${p.id}',parseInt(toHalf(this.value))||0)">個/日
+        <button onclick="setNewProductCount('${p.id}',${sug})" style="margin-left:6px;padding:2px 8px;font-size:11px;background:#eff6ff;color:var(--main);border:1px solid var(--main);border-radius:6px;cursor:pointer">🤖 ${sug}個</button>
+      </td>
       <td style="font-size:12px;font-weight:600;color:var(--main)">${fmt(amt)}円</td>
     </tr>`;
   });
   html+=`</tbody><tfoot><tr style="font-weight:700;background:var(--main-lt)">
-    <td colspan="3" style="text-align:right">合計</td>
-    <td style="color:var(--main)">${totalCnt}個</td>
-    <td style="color:${over?'var(--red)':'var(--main)'};">${fmt(totalAmt)}円
+    <td style="text-align:right">合計</td>
+    <td></td>
+    <td style="color:var(--main)">${totalCnt}個/日</td>
+    <td style="color:${over?'var(--red)':'var(--main)'};">${fmt(totalAmt)}円/週
       ${over?'<span style="font-size:10px;color:var(--red)"> ⚠ 上限超過</span>':''}
     </td>
   </tr></tfoot></table>`;
@@ -2591,37 +2633,46 @@ function setNewProductCount(pid,cnt){
 
 function renderInvestBudgetTable(maxBudget,newBudgetFormal){
   if(!S.budget.investCounts)S.budget.investCounts={};
-  // 投資対象フラグONの商品
   const prods=S.PM.filter(p=>p.enabled&&p.isInvest);
   if(!prods.length)return '<div style="color:#999;font-size:12px">投資対象商品がありません（②商品設定で「📈 定番投資対象」をONにしてください）</div>';
-  const totalAmt=prods.reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*p.cost,0);
+  const totalAmt=prods.reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*7*p.cost,0);
   const totalCnt=prods.reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
-  // 利用可能上限 = 投資予算（上限）− 新商品予算（正式）
   const availMax=Math.max(0,maxBudget-newBudgetFormal);
   const over=totalAmt>availMax;
-  let html=`<table><thead><tr>
+  let html=`<div style="font-size:11px;color:#666;margin-bottom:6px">
+    📝 1日あたりの追加作成数を入力してください。<b>④作成表に黄色で反映</b>されます。
+    <button onclick="suggestAllInvestCounts()" style="margin-left:8px;padding:3px 10px;font-size:11px;background:var(--orange);color:#fff;border:none;border-radius:6px;cursor:pointer">🤖 全商品提案</button>
+  </div>
+  <table><thead><tr>
     <th style="text-align:left">商品名</th>
-    <th>カテゴリ</th>
-    <th style="width:90px">原価</th>
-    <th style="width:130px">追加作成数（個）</th>
-    <th style="width:110px">予算額（円）</th>
+    <th>原価 / 廃棄率</th>
+    <th style="width:180px">1日あたり追加数（個）</th>
+    <th style="width:130px">予算（円/週）</th>
   </tr></thead><tbody>`;
   prods.forEach(p=>{
     const cnt=S.budget.investCounts[p.id]||0;
-    const amt=cnt*p.cost;
+    const amt=cnt*7*p.cost;
+    const ji=getJiAllWeeks(p.id);
+    const haikiPct=ji.total?Math.round(ji.haiki/ji.total*100):null;
+    const sug=suggestInvestPerDay(p.id);
     html+=`<tr>
-      <td style="text-align:left;font-size:12px">${p.name}</td>
-      <td style="font-size:11px;color:#666">${p.category}</td>
-      <td style="font-size:12px;color:#555">${fmt(p.cost)}円</td>
-      <td><input type="number" value="${cnt}" min="0" step="1" style="width:70px;text-align:right"
-        onchange="setInvestCount('${p.id}',parseInt(toHalf(this.value))||0)">個</td>
+      <td style="text-align:left;font-size:12px">${p.name}<br><span style="font-size:10px;color:#888">${p.category}</span></td>
+      <td style="font-size:11px;color:#555">${fmt(p.cost)}円<br>
+        ${haikiPct!==null?`<span style="color:${haikiPct>=50?'var(--red)':'var(--orange)'}">廃棄${haikiPct}%</span>`:'<span style="color:#aaa">実績なし</span>'}
+      </td>
+      <td>
+        <input type="number" value="${cnt}" min="0" step="1" style="width:65px;text-align:right"
+          onchange="setInvestCount('${p.id}',parseInt(toHalf(this.value))||0)">個/日
+        <button onclick="setInvestCount('${p.id}',${sug})" style="margin-left:6px;padding:2px 8px;font-size:11px;background:#fff8e1;color:#d97706;border:1px solid #f59e0b;border-radius:6px;cursor:pointer">🤖 ${sug}個</button>
+      </td>
       <td style="font-size:12px;font-weight:600;color:var(--orange)">${fmt(amt)}円</td>
     </tr>`;
   });
   html+=`</tbody><tfoot><tr style="font-weight:700;background:#fff3e0">
-    <td colspan="3" style="text-align:right">合計</td>
-    <td style="color:var(--orange)">${totalCnt}個</td>
-    <td style="color:${over?'var(--red)':'var(--orange)'};">${fmt(totalAmt)}円
+    <td style="text-align:right">合計</td>
+    <td></td>
+    <td style="color:var(--orange)">${totalCnt}個/日</td>
+    <td style="color:${over?'var(--red)':'var(--orange)'};">${fmt(totalAmt)}円/週
       ${over?`<span style="font-size:10px;color:var(--red)"> ⚠ 上限超過</span>`:''}
     </td>
   </tr></tfoot></table>
@@ -2632,6 +2683,22 @@ function renderInvestBudgetTable(maxBudget,newBudgetFormal){
 function setInvestCount(pid,cnt){
   if(!S.budget.investCounts)S.budget.investCounts={};
   S.budget.investCounts[pid]=cnt;
+  saveS();renderBudgetPlan();
+}
+
+function suggestAllInvestCounts(){
+  if(!S.budget.investCounts)S.budget.investCounts={};
+  S.PM.filter(p=>p.enabled&&p.isInvest).forEach(p=>{
+    S.budget.investCounts[p.id]=suggestInvestPerDay(p.id);
+  });
+  saveS();renderBudgetPlan();
+}
+
+function suggestAllNewCounts(){
+  if(!S.budget.newProductCounts)S.budget.newProductCounts={};
+  S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品')).forEach(p=>{
+    S.budget.newProductCounts[p.id]=suggestInvestPerDay(p.id);
+  });
   saveS();renderBudgetPlan();
 }
 
