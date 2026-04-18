@@ -2115,7 +2115,8 @@ function renderBudgetJisseki(){
 
 function renderBudgetPlan(){
   const el=document.getElementById('budget-plan');
-  // Next week formal
+
+  // ── 次週作成高（正式）: 作成表の計画値から算出 ──
   let nextMake=0;
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
@@ -2124,40 +2125,104 @@ function renderBudgetPlan(){
       cfg.slots.forEach(h=>{nextMake+=getProdCnt(p.id,di,h)*p.shopPrice;});
     });
   });
-  // Avg daily from jisseki
+
+  // ── 次週作成高（仮）: 実績の日平均×7 ──
   let avgDaily=0;
   S.PM.forEach(p=>{
     const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
     avgDaily+=(ji.teika+ji.nebiki+ji.haiki)*p.shopPrice;
   });
-  avgDaily=avgDaily/7;
-  const nextMakeTmp=avgDaily*7;
+  const nextMakeTmp=(avgDaily/7)*7; // 日平均×7日
 
-  // Waste rate
-  let totalMakeAmt=0,totalWasteAmt=0,totalSalesAmt=0,totalDiscAmt=0;
+  // ── 実績集計 ──
+  let totalMakeAmt=0,totalWasteAmt=0,totalSalesAmt=0,totalDiscAmt=0,totalProfitAmt=0,totalCostAmt=0;
   S.PM.forEach(p=>{
     const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
     const m=calcJissekiMetrics(p.id);if(!m)return;
     totalMakeAmt+=(ji.teika+ji.nebiki+ji.haiki)*p.shopPrice;
-    totalWasteAmt+=m.wasteAmt;totalSalesAmt+=m.salesAmt;totalDiscAmt+=m.discAmt;
+    totalWasteAmt+=m.wasteAmt;
+    totalSalesAmt+=m.salesAmt;
+    totalDiscAmt+=m.discAmt;
+    totalProfitAmt+=m.profit;
+    totalCostAmt+=m.totalCost;
   });
-  const wasteRate=totalMakeAmt?totalWasteAmt/totalMakeAmt:0;
-  const discRateOnSales=totalSalesAmt?totalDiscAmt/totalSalesAmt:0;
-  const wasteBudget=nextMake*wasteRate;
-  const discOptimal=totalSalesAmt?(totalSalesAmt-totalDiscAmt-totalWasteAmt)*discRateOnSales:0;
-  const costRate=S.PM.reduce((s,p)=>s+(p.cost/p.shopPrice),0)/(S.PM.length||1);
-  const discMax=nextMake*costRate;
-  const discDiff=discMax-discOptimal;
-  const newBudget=Math.max(0,discDiff);
+
+  // ── 実績レート ──
+  const wasteRate   =totalMakeAmt ?totalWasteAmt /totalMakeAmt :0; // 廃棄率（作成高比）
+  const salesRatio  =totalMakeAmt ?totalSalesAmt /totalMakeAmt :0; // 売上高率（作成高比）
+  const discRateOnSales =totalSalesAmt?totalDiscAmt /totalSalesAmt:0; // 値引率（売上高比）
+  const costRateOnSales =totalSalesAmt?totalCostAmt /totalSalesAmt:0; // 原価率（売上高比）
+
+  // ── 次週想定値（作成計画×実績レートで推計）──
+  // 次週売上高 = 次週作成高（正式） × 売上高率
+  const nextSalesAmt  =nextMake*salesRatio;
+  // 想定廃棄額 = 次週作成高（正式） × 廃棄率
+  const nextWasteAmt  =nextMake*wasteRate;
+  // 想定値引額 = 次週売上高 × 値引率
+  const nextDiscAmt   =nextSalesAmt*discRateOnSales;
+  // 次週売上原価 = 次週売上高 × 原価率
+  const nextCostAmt   =nextSalesAmt*costRateOnSales;
+  // 次週利益高 = 次週売上高 − 想定廃棄額 − 想定値引額 − 次週売上原価
+  const nextProfitAmt =nextSalesAmt-nextWasteAmt-nextDiscAmt-nextCostAmt;
+  // 次週利益率 = 次週利益高 ÷ 次週売上高
+  const nextProfitRate=nextSalesAmt?nextProfitAmt/nextSalesAmt*100:0;
+
+  // ── 新商品予算 ──
+  // 最大値 = 次週作成高（正式） × 平均原価率（利益ゼロ上限）
+  const avgCostRate  =S.PM.reduce((s,p)=>s+(p.cost/p.shopPrice),0)/(S.PM.length||1);
+  const newBudgetMax =nextMake*avgCostRate;
+  // 正式 = 最大値 − 想定値引額（値引きに使う分を除いた残り）
+  const newBudgetFormal=Math.max(0,newBudgetMax-nextDiscAmt);
+
+  const pColor=nextProfitRate>=30?'var(--green)':nextProfitRate>=15?'var(--orange)':'var(--red)';
 
   el.innerHTML=`
     <div class="summary-grid">
-      <div class="summary-box"><div class="label">次週作成高（仮）</div><div class="value">${fmt(nextMakeTmp)}</div><div class="unit">円</div></div>
-      <div class="summary-box"><div class="label">次週作成高（正式）</div><div class="value">${fmt(nextMake)}</div><div class="unit">円</div></div>
-      <div class="summary-box"><div class="label">廃棄予算</div><div class="value">${fmt(wasteBudget)}</div><div class="unit">円 (${(wasteRate*100).toFixed(1)}%)</div></div>
-      <div class="summary-box"><div class="label">値引予算（最適）</div><div class="value">${fmt(discOptimal)}</div><div class="unit">円</div></div>
-      <div class="summary-box"><div class="label">値引予算（最大）</div><div class="value">${fmt(discMax)}</div><div class="unit">円</div></div>
-      <div class="summary-box"><div class="label">新商品予算</div><div class="value">${fmt(newBudget)}</div><div class="unit">円</div></div>
+      <div class="summary-box">
+        <div class="label">次週作成高（仮）</div>
+        <div class="value">${fmt(nextMakeTmp)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">実績日平均×7</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">次週作成高（正式）</div>
+        <div class="value">${fmt(nextMake)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成表計画から算出</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">次週売上高</div>
+        <div class="value">${fmt(nextSalesAmt)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成高×実績売上率${(salesRatio*100).toFixed(1)}%</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">次週利益高</div>
+        <div class="value" style="color:${pColor}">${fmt(nextProfitAmt)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売上高−廃棄−値引−原価</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">次週利益率</div>
+        <div class="value" style="color:${pColor}">${nextProfitRate.toFixed(1)}</div><div class="unit">%</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">実績利益率から推計</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">想定廃棄額</div>
+        <div class="value">${fmt(nextWasteAmt)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成高×実績廃棄率${(wasteRate*100).toFixed(1)}%</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">想定値引額</div>
+        <div class="value">${fmt(nextDiscAmt)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売上高×実績値引率${(discRateOnSales*100).toFixed(1)}%</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">新商品予算（最大値）</div>
+        <div class="value">${fmt(newBudgetMax)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成高×平均原価率</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">新商品予算（正式）</div>
+        <div class="value">${fmt(newBudgetFormal)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">最大値−想定値引額</div>
+      </div>
     </div>
     ${nextMake>nextMakeTmp*1.2?'<div class="alert alert-warn">次週作成高が前週比+20%以上です</div>':''}
   `;
