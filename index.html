@@ -520,16 +520,16 @@ const DEF_CUST = [
 ];
 
 const DEF_PRODUCTS = [
-  {id:'p1',name:'からあげクンレギュラー',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:10,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
-  {id:'p2',name:'からあげクンレッド',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:20,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
-  {id:'p3',name:'からあげクンチーズ',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:30,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
-  {id:'p4',name:'パリパリチキン',category:'ホットFF',cost:145,stdPrice:298,shopPrice:298,disc:30,minCount:1,tags:'ワンハンド,揚げ物',order:40,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
-  {id:'p5',name:'ハッシュドポテト',category:'ホットFF',cost:85,stdPrice:148,shopPrice:148,disc:15,minCount:1,tags:'ワンハンド',order:50,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22},
-  {id:'p6',name:'からあげクンハバネロ',category:'ホットFF新商品',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:60,enabled:true,isNew:true,newDays:3,timeStart:7,timeEnd:22},
-  {id:'p7',name:'肉まん',category:'中華まん',cost:88,stdPrice:168,shopPrice:168,disc:17,minCount:1,tags:'まん',order:70,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:20},
-  {id:'p8',name:'あんまん',category:'中華まん',cost:88,stdPrice:168,shopPrice:168,disc:17,minCount:1,tags:'まん',order:80,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:20},
-  {id:'p9',name:'ポテトスナック',category:'常温FF',cost:80,stdPrice:170,shopPrice:170,disc:17,minCount:1,tags:'',order:90,enabled:true,isNew:false,newDays:0,timeStart:11,timeEnd:18},
-  {id:'p10',name:'ピザまん',category:'中華まん新商品',cost:95,stdPrice:198,shopPrice:198,disc:20,minCount:1,tags:'まん',order:100,enabled:true,isNew:true,newDays:3,timeStart:7,timeEnd:20},
+  {id:'p1',name:'からあげクンレギュラー',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:10,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},
+  {id:'p2',name:'からあげクンレッド',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:20,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},
+  {id:'p3',name:'からあげクンチーズ',category:'ホットFF',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:30,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},
+  {id:'p4',name:'パリパリチキン',category:'ホットFF',cost:145,stdPrice:298,shopPrice:298,disc:30,minCount:1,tags:'ワンハンド,揚げ物',order:40,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},
+  {id:'p5',name:'ハッシュドポテト',category:'ホットFF',cost:85,stdPrice:148,shopPrice:148,disc:15,minCount:1,tags:'ワンハンド',order:50,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},
+  {id:'p6',name:'からあげクンハバネロ',category:'ホットFF新商品',cost:115.65,stdPrice:278,shopPrice:278,disc:29,minCount:1,tags:'ワンハンド,揚げ物',order:60,enabled:true,isNew:true,newDays:3,isInvest:false,timeStart:7,timeEnd:22},
+  {id:'p7',name:'肉まん',category:'中華まん',cost:88,stdPrice:168,shopPrice:168,disc:17,minCount:1,tags:'まん',order:70,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:20},
+  {id:'p8',name:'あんまん',category:'中華まん',cost:88,stdPrice:168,shopPrice:168,disc:17,minCount:1,tags:'まん',order:80,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:20},
+  {id:'p9',name:'ポテトスナック',category:'常温FF',cost:80,stdPrice:170,shopPrice:170,disc:17,minCount:1,tags:'',order:90,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:11,timeEnd:18},
+  {id:'p10',name:'ピザまん',category:'中華まん新商品',cost:95,stdPrice:198,shopPrice:198,disc:20,minCount:1,tags:'まん',order:100,enabled:true,isNew:true,newDays:3,isInvest:false,timeStart:7,timeEnd:20},
 ];
 
 const DEF_JISSEKI = {
@@ -570,7 +570,7 @@ let S = {
   ext:DEF_EXT.map(e=>({...e})),
   rules:[],
   checks:{},
-  budget:{target:0,wasteTarget:0,newProductBudgets:{}},
+  budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{}},
   discHist:[],
   施策:[],   // [{id,name,days:'all'|'weekday'|'weekend'|曜日,impact:0}]
   weekStart:'2026-04-14', // 初期値は直近火曜日（loadS内で動的に再計算）
@@ -727,8 +727,11 @@ function loadS(){
   if(migrated)console.log('週開始日を火曜日に移行しました');
 
   // データ移行: budget.newProductBudgets がない場合は初期化
-  if(!S.budget)S.budget={target:0,wasteTarget:0,newProductBudgets:{}};
+  if(!S.budget)S.budget={target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{}};
   if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
+  if(!S.budget.investBudgets)S.budget.investBudgets={};
+  // isInvest フラグがない既存商品にデフォルト false を付与
+  S.PM.forEach(p=>{if(p.isInvest===undefined)p.isInvest=false;});
   if(!S.施策)S.施策=[];
 }
 
@@ -1507,6 +1510,11 @@ function renderProductCard(p){
           新商品フラグ
           ${p.isNew?`&nbsp;データ収集期間: <input type="number" value="${p.newDays||0}" min="0" style="width:50px" onchange="setProdField('${p.id}','newDays',parseInt(toHalf(this.value))||0)">日`:''}
         </label>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <input type="checkbox" ${p.isInvest?'checked':''} onchange="setProdField('${p.id}','isInvest',this.checked);renderBudgetPlan()">
+          <span style="color:var(--orange);font-weight:600">📈 定番投資対象</span>
+          <span style="font-size:11px;color:#999">（売れにくい定番商品を投資として管理）</span>
+        </label>
       </div>
       <div><label>商品名</label>
         <input type="text" value="${p.name}" onchange="setProdField('${p.id}','name',this.value)"></div>
@@ -1521,7 +1529,7 @@ function setProdField(pid,key,val){
 
 function addProduct(){
   const id='p'+(Date.now());
-  S.PM.push({id,name:'新商品',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:999,enabled:true,isNew:false,newDays:0,timeStart:7,timeEnd:22});
+  S.PM.push({id,name:'新商品',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:999,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22});
   saveS();renderProductCards();
 }
 
@@ -1533,6 +1541,7 @@ function delProduct(pid){
   Object.values(S.weeks||{}).forEach(w=>{if(w.ji)delete w.ji[pid];});
   Object.keys(S.checks).forEach(k=>{if(k.endsWith('_'+pid))delete S.checks[k];});
   if(S.budget.newProductBudgets)delete S.budget.newProductBudgets[pid];
+  if(S.budget.investBudgets)delete S.budget.investBudgets[pid];
   saveS();renderProductCards();
 }
 
@@ -2426,14 +2435,16 @@ function renderBudgetPlan(){
 
   // ── 新商品予算 ──
   if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
-  // 最大値 = 売上高 − 原価（新商品ゼロ時の利益高＝投資できる上限）
+  if(!S.budget.investBudgets)S.budget.investBudgets={};
+  // 最大値 = 売上高 − 原価（全投資ゼロ時の利益高＝投資できる上限）
   const newBudgetMax=Math.max(0,nextSalesAmt-nextTotalCost);
   // 正式 = 商品ごと手入力の合計
   const newBudgetFormal=Object.values(S.budget.newProductBudgets).reduce((s,v)=>s+(v||0),0);
+  // 定番投資予算（正式）= 投資対象フラグON商品の手入力合計
+  const investBudgetFormal=Object.values(S.budget.investBudgets).reduce((s,v)=>s+(v||0),0);
 
-  // 次週利益高 = 売上高 − 原価 − 新商品予算（正式）
-  // ※新商品予算（正式）が全廃棄になっても利益マイナスにならないよう差し引く
-  const nextProfitAmt=nextSalesAmt-nextTotalCost-newBudgetFormal;
+  // 次週利益高 = 売上高 − 原価 − 新商品予算（正式）− 定番投資予算（正式）
+  const nextProfitAmt=nextSalesAmt-nextTotalCost-newBudgetFormal-investBudgetFormal;
   // 次週利益率 = 次週利益高 ÷ 次週売上高（正式）
   const nextProfitRate=nextSalesAmt?nextProfitAmt/nextSalesAmt*100:0;
 
@@ -2480,10 +2491,15 @@ function renderBudgetPlan(){
         <div class="value" style="color:var(--main)">${fmt(newBudgetFormal)}</div><div class="unit">円</div>
         <div style="font-size:10px;color:#999;margin-top:2px">商品別手入力の合計 ↓</div>
       </div>
+      <div class="summary-box" style="border:2px solid var(--orange)">
+        <div class="label" style="color:var(--orange)">定番投資予算（正式）</div>
+        <div class="value" style="color:var(--orange)">${fmt(investBudgetFormal)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">投資対象商品の手入力合計 ↓</div>
+      </div>
       <div class="summary-box">
         <div class="label">次週利益高</div>
         <div class="value" style="color:${pColor}">${fmt(nextProfitAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">売上高−原価−新商品予算（正式）</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売上高−原価−新商品予算−定番投資予算</div>
       </div>
       <div class="summary-box">
         <div class="label">次週利益率</div>
@@ -2505,6 +2521,11 @@ function renderBudgetPlan(){
     <div style="margin-top:16px">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">📦 新商品予算（正式）— 商品別入力</div>
       ${renderNewProductBudgetTable(newBudgetMax)}
+    </div>
+    <div style="margin-top:16px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:var(--orange)">📈 定番投資予算（正式）— 商品別入力</div>
+      <div style="font-size:11px;color:#999;margin-bottom:8px">②商品設定で「定番投資対象」チェックONにした商品が表示されます</div>
+      ${renderInvestBudgetTable(newBudgetMax,newBudgetFormal)}
     </div>
   `;
 }
@@ -2544,9 +2565,46 @@ function renderNewProductBudgetTable(maxBudget){
 function setNewProductBudget(pid,val){
   if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
   S.budget.newProductBudgets[pid]=val;
-  saveS();
-  // 合計欄だけ更新（全再レンダリング不要）
-  renderBudgetPlan();
+  saveS();renderBudgetPlan();
+}
+
+function renderInvestBudgetTable(maxBudget,newBudgetFormal){
+  if(!S.budget.investBudgets)S.budget.investBudgets={};
+  // 投資対象フラグONの定番商品（新商品カテゴリは除く）
+  const prods=S.PM.filter(p=>p.enabled&&p.isInvest);
+  if(!prods.length)return '<div style="color:#999;font-size:12px">投資対象商品がありません（②商品設定で「📈 定番投資対象」をONにしてください）</div>';
+  const total=Object.values(S.budget.investBudgets).reduce((s,v)=>s+(v||0),0);
+  // 利用可能上限 = 最大予算 − 新商品予算（正式）
+  const availMax=Math.max(0,maxBudget-newBudgetFormal);
+  const over=total>availMax;
+  let html=`<table><thead><tr>
+    <th style="text-align:left">商品名</th>
+    <th>カテゴリ</th>
+    <th>定番投資予算（正式）</th>
+  </tr></thead><tbody>`;
+  prods.forEach(p=>{
+    const val=S.budget.investBudgets[p.id]||0;
+    html+=`<tr>
+      <td style="text-align:left;font-size:12px">${p.name}</td>
+      <td style="font-size:11px;color:#666">${p.category}</td>
+      <td><input type="number" value="${val}" min="0" step="100" style="width:100px"
+        onchange="setInvestBudget('${p.id}',parseInt(toHalf(this.value))||0)">円</td>
+    </tr>`;
+  });
+  html+=`</tbody><tfoot><tr style="font-weight:700;background:#fff3e0">
+    <td colspan="2" style="text-align:right">合計</td>
+    <td style="color:${over?'var(--red)':'var(--orange)'}">${fmt(total)}円
+      ${over?`<span style="font-size:10px;color:var(--red)">⚠ 上限（${fmt(availMax)}円）超過</span>`:''}
+    </td>
+  </tr></tfoot></table>
+  <div style="font-size:10px;color:#999;margin-top:4px">※上限 = 新商品予算（最大値）${fmt(maxBudget)}円 − 新商品予算（正式）${fmt(newBudgetFormal)}円 = ${fmt(availMax)}円</div>`;
+  return html;
+}
+
+function setInvestBudget(pid,val){
+  if(!S.budget.investBudgets)S.budget.investBudgets={};
+  S.budget.investBudgets[pid]=val;
+  saveS();renderBudgetPlan();
 }
 
 function renderBudgetDaily(){
