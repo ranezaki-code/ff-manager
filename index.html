@@ -333,6 +333,27 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         </div>
         <input type="file" id="booklet-file-input" accept="application/pdf" style="display:none" onchange="handleBookletFileInput(this)">
       </div>
+      <!-- お店づくり冊子ライブラリカード -->
+      <div class="card" style="border-left:4px solid #5C6BC0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+          <div>
+            <div class="section-title" style="margin:0">📚 お店づくり冊子ライブラリ</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px">月ごとにPDFを保存。毎週「施策に反映」ボタンで当週の施策欄に追加できます。</div>
+          </div>
+          <button onclick="showAddMonthModal()" style="padding:6px 13px;background:#fff;color:#5C6BC0;border:2px solid #5C6BC0;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">＋ 月を追加</button>
+        </div>
+        <div id="booklet-library-content"></div>
+        <!-- 月追加モーダル（インライン） -->
+        <div id="add-month-inline" style="display:none;margin-top:8px;padding:10px 12px;background:#f8f0ff;border-radius:8px;border:1px solid #ce93d8">
+          <div style="font-size:13px;font-weight:600;color:#6a1b9a;margin-bottom:6px">追加する月を選択</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="month" id="add-month-input" style="font-size:13px;padding:6px 10px;border-radius:6px;border:1px solid var(--border)">
+            <button onclick="confirmAddMonth()" style="padding:7px 16px;background:#5C6BC0;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">追加</button>
+            <button onclick="document.getElementById('add-month-inline').style.display='none'" style="padding:7px 12px;background:#eee;color:#666;border:none;border-radius:6px;font-size:13px;cursor:pointer">✕</button>
+          </div>
+        </div>
+      </div>
+
       <!-- 当週の施策カード -->
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
@@ -341,7 +362,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         </div>
         <p style="font-size:12px;color:var(--gray);margin-bottom:10px">本部からの販促・新商品発売・キャンペーンなどを登録。補正係数の提案に反映されます。</p>
         <div id="施策-area"></div>
-        <div style="margin-top:10px;text-align:right">
+        <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center">
+          <button id="apply-month-booklet-btn" onclick="applyCurrentMonthBooklet()" style="padding:8px 14px;background:#5C6BC0;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" title="ライブラリに読み込み済みの今月のお店づくりから施策を反映">📚 今月のお店づくりから反映</button>
           <button style="background:var(--main);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none" onclick="suggestAllCorrections()">🤖 全曜日の補正係数を一括提案</button>
         </div>
       </div>
@@ -636,6 +658,8 @@ let S = {
   budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{}},
   discHist:[],
   施策:[],   // [{id,name,days:'all'|'weekday'|'weekend'|曜日,impact:0}]
+  booklets:{}, // { 'YYYY-MM': {fileName, extractedAt, policies:[...]} }
+  bookletDisplayMonths:[], // ライブラリに表示するが未読込の月（ユーザーが手動追加）
   weekStart:'2026-04-14', // 初期値は直近火曜日（loadS内で動的に再計算）
   weeks:{},      // { '2026.4.14': {ji,cust,checks,weekStart} }
   activeWeek:'', // 現在選択中の週キー
@@ -695,6 +719,7 @@ function saveS(){
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
     rules:S.rules,checks:S.checks,budget:S.budget,discHist:S.discHist,
     施策:S.施策,
+    booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
   }));}catch(e){console.warn('save error',e)}
 }
@@ -799,6 +824,8 @@ function loadS(){
   // isInvest フラグがない既存商品にデフォルト false を付与
   S.PM.forEach(p=>{if(p.isInvest===undefined)p.isInvest=false;});
   if(!S.施策)S.施策=[];
+  if(!S.booklets)S.booklets={};
+  if(!S.bookletDisplayMonths)S.bookletDisplayMonths=[];
 }
 
 // ============================================================
@@ -1662,6 +1689,7 @@ function delProduct(pid){
 // ============================================================
 function renderExtTab(){
   renderResearchCard();
+  renderBookletLibrary();
   render施策Section();
   renderExtDayTabs();
   renderExtDayContent(currentExtDay);
@@ -3587,6 +3615,302 @@ function applyBookletPolicies(){
   closeBookletPreviewModal();
   render施策Section();
   showToast(`✅ ${count}件の施策を追加しました！`,'success');
+}
+
+// ============================================================
+// お店づくり冊子ライブラリ（月ごとに保存・毎週反映）
+// ============================================================
+
+function getCurrentYM(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function ymToLabel(ym){
+  const [y,m]=ym.split('-');
+  return `${y}年${parseInt(m)}月`;
+}
+function getBookletDisplayMonths(){
+  const currentYM=getCurrentYM();
+  const months=new Set([currentYM,...Object.keys(S.booklets||{}),...(S.bookletDisplayMonths||[])]);
+  return [...months].sort().reverse(); // 新しい月順
+}
+
+// --- ライブラリカード描画 ---
+function renderBookletLibrary(){
+  const el=document.getElementById('booklet-library-content');
+  if(!el) return;
+  if(!S.booklets) S.booklets={};
+  const currentYM=getCurrentYM();
+  const months=getBookletDisplayMonths();
+
+  if(!months.length){el.innerHTML='<div style="color:var(--gray);font-size:13px;text-align:center;padding:12px">まだ月が追加されていません。「＋ 月を追加」から開始してください。</div>';return;}
+
+  // 反映ボタンのラベルを今月に合わせて更新
+  const applyBtn=document.getElementById('apply-month-booklet-btn');
+  if(applyBtn) applyBtn.textContent=`📚 ${ymToLabel(currentYM)}のお店づくりから反映`;
+
+  el.innerHTML=months.map(ym=>{
+    const isCurrent=ym===currentYM;
+    const stored=S.booklets[ym];
+    const tagStyle=isCurrent
+      ?'background:var(--accent);color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-right:4px'
+      :'background:#eee;color:#666;padding:1px 7px;border-radius:10px;font-size:11px;margin-right:4px';
+    const rowBg=isCurrent?'#f0f4ff':'#fafafa';
+    const rowBorder=isCurrent?'1px solid #c5d5ff':'1px solid var(--border)';
+
+    if(stored){
+      const dt=new Date(stored.extractedAt);
+      const dtStr=`${dt.getMonth()+1}/${dt.getDate()} 読込`;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:${rowBg};border:${rowBorder};margin-bottom:6px;flex-wrap:wrap">
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="${tagStyle}">${isCurrent?'今月':'📅'}</span>
+          <span style="font-weight:700;font-size:14px">${ymToLabel(ym)}</span>
+          <span style="font-size:12px;color:var(--green)">✅ ${stored.policies.length}件保存</span>
+          <span style="font-size:11px;color:var(--gray)">${dtStr} ／ ${stored.fileName}</span>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button onclick="showMonthPolicies('${ym}')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer">📋 施策を見る</button>
+          <button onclick="applyMonthBooklet('${ym}')" style="padding:5px 10px;font-size:12px;border-radius:6px;background:var(--main);color:#fff;border:none;cursor:pointer;font-weight:600">⚡ 今週に反映</button>
+          <button onclick="reloadMonthlyBooklet('${ym}')" style="padding:5px 8px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer" title="PDFを再読込">🔄</button>
+          <button onclick="deleteMonthlyBooklet('${ym}')" style="padding:5px 8px;font-size:12px;border-radius:6px;border:1px solid #ffcdd2;background:#fff5f5;color:var(--red);cursor:pointer" title="削除">🗑</button>
+        </div>
+      </div>`;
+    } else {
+      // 未読込
+      return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:#fafafa;border:1px dashed ${isCurrent?'#FF9800':'var(--border)'};margin-bottom:6px;flex-wrap:wrap">
+        <div style="flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="${tagStyle}">${isCurrent?'今月':'📅'}</span>
+          <span style="font-weight:700;font-size:14px">${ymToLabel(ym)}</span>
+          <span style="font-size:12px;color:var(--gray)">未読込</span>
+        </div>
+        <div style="display:flex;gap:5px">
+          <input type="file" id="monthly-file-input-${ym}" accept="application/pdf" style="display:none"
+            onchange="handleMonthlyFile('${ym}',this)">
+          <button id="monthly-upload-btn-${ym}" onclick="checkApiThenUpload('${ym}')"
+            style="padding:6px 14px;font-size:12px;border-radius:6px;background:#5C6BC0;color:#fff;border:none;cursor:pointer;font-weight:600">
+            📄 PDFを読み込む
+          </button>
+          ${!isCurrent?`<button onclick="removeDisplayMonth('${ym}')" style="padding:5px 8px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;color:var(--gray)" title="表示から削除">✕</button>`:''}
+        </div>
+      </div>`;
+    }
+  }).join('');
+}
+
+// --- 月を追加 ---
+function showAddMonthModal(){
+  const inline=document.getElementById('add-month-inline');
+  if(!inline) return;
+  // デフォルト値：来月
+  const next=new Date();next.setMonth(next.getMonth()+1);
+  document.getElementById('add-month-input').value=`${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
+  inline.style.display='block';
+}
+function confirmAddMonth(){
+  const val=document.getElementById('add-month-input')?.value;
+  if(!val){alert('月を選択してください');return;}
+  if(S.booklets[val]||(S.bookletDisplayMonths||[]).includes(val)){
+    alert('この月はすでにライブラリにあります');return;
+  }
+  if(!S.bookletDisplayMonths) S.bookletDisplayMonths=[];
+  S.bookletDisplayMonths.push(val);
+  saveS();
+  document.getElementById('add-month-inline').style.display='none';
+  renderBookletLibrary();
+}
+function removeDisplayMonth(ym){
+  S.bookletDisplayMonths=(S.bookletDisplayMonths||[]).filter(m=>m!==ym);
+  saveS();
+  renderBookletLibrary();
+}
+
+// --- PDFアップロード＆解析＆保存 ---
+function checkApiThenUpload(ym){
+  const apiKey=localStorage.getItem('claude_api_key');
+  if(!apiKey){
+    alert('Claude APIキーが設定されていません。\n④作成表タブ右下の「🤖 店長BOT」ボタンからAPIキーを設定してください。');return;
+  }
+  const inp=document.getElementById(`monthly-file-input-${ym}`);
+  if(inp){inp.value='';inp.click();}
+}
+function handleMonthlyFile(ym,input){
+  const file=input.files?.[0];
+  if(!file) return;
+  if(file.type!=='application/pdf'){alert('PDFファイルのみ対応しています。');return;}
+  if(file.size>32*1024*1024){alert('ファイルサイズが上限（32MB）を超えています。\n圧縮してから再試行してください。');return;}
+  analyzeAndStoreBooklet(file,ym);
+}
+
+async function analyzeAndStoreBooklet(file,ym){
+  const apiKey=localStorage.getItem('claude_api_key');
+  if(!apiKey) return;
+  const [year,month]=ym.split('-');
+  const label=ymToLabel(ym);
+
+  const btn=document.getElementById(`monthly-upload-btn-${ym}`);
+  const origText=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='⏳ 解析中...';}
+
+  try{
+    const base64Data=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result.split(',')[1]);
+      reader.onerror=reject;
+      reader.readAsDataURL(file);
+    });
+
+    const prompt=`このPDFは${year}年${parseInt(month)}月のコンビニお店づくり冊子（本部からの業務指示書）です。
+FF（ファストフード）の作成数計画に影響する施策のみを抽出してください。
+
+【抽出対象】
+・ホットFF・常温FF・中華まんの新商品情報（商品名・発売日）
+・FF系キャンペーン・販促（コラボ、増量施策、アプリクーポンなど）
+・ワンハンド需要に影響するイベント・スポーツ施策
+・FF商品の値引き・割引施策
+
+【除外】FF以外の商品・設備・IT・人事・勤務・発注システム関連
+
+以下のJSON形式のみで回答（JSON以外のテキスト禁止）：
+{
+  "policies": [
+    {
+      "type": "新商品",
+      "name": "からあげクン〇〇味",
+      "category": "ホットFF",
+      "period": "5月1日〜5月31日",
+      "impact": 15,
+      "days": "all",
+      "note": "新フレーバー発売"
+    }
+  ]
+}
+
+type: 「新商品」「キャンペーン」「値引き」「イベント」
+category: 「ホットFF」「常温FF」「中華まん」「全FF」
+period: 適用期間。なければnull
+impact: 推奨補正係数（%・整数）。増産=プラス、削減=マイナス
+days: 「all」「weekday」「weekend」または「火」〜「月」
+note: 注意点（1行）
+
+FFに影響する施策がなければ {"policies": []} を返す。`;
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2048,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64Data}},
+            {type:'text',text:prompt}
+          ]
+        }]
+      })
+    });
+
+    const data=await resp.json();
+    if(data.error) throw new Error(data.error.message);
+
+    const text=data.content?.[0]?.text||'';
+    const m=text.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('AI応答のJSON解析に失敗しました。再試行してください。');
+
+    const result=JSON.parse(m[0]);
+    const policies=result.policies||[];
+
+    // ライブラリに保存
+    if(!S.booklets) S.booklets={};
+    S.booklets[ym]={fileName:file.name,extractedAt:new Date().toISOString(),policies};
+    // displayMonths から削除（storageに昇格したため）
+    S.bookletDisplayMonths=(S.bookletDisplayMonths||[]).filter(d=>d!==ym);
+    saveS();
+    renderBookletLibrary();
+
+    if(policies.length){
+      showToast(`✅ ${label}: ${policies.length}件の施策を保存しました`,'success');
+    } else {
+      showToast(`${label}: FFに影響する施策は見つかりませんでした`,'info');
+    }
+  }catch(err){
+    alert('❌ 解析エラー:\n'+err.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=origText;}
+  }
+}
+
+// --- 月ごとの施策を閲覧 ---
+function showMonthPolicies(ym){
+  const stored=S.booklets?.[ym];
+  if(!stored){showToast('データが見つかりません','warn');return;}
+  if(!stored.policies?.length){showToast(`${ymToLabel(ym)}: 保存された施策はありません`,'info');return;}
+  showBookletPreviewModal(stored.policies,`${ymToLabel(ym)} - ${stored.fileName}`);
+}
+
+// --- 今週の施策に反映 ---
+function applyCurrentMonthBooklet(){
+  applyMonthBooklet(getCurrentYM());
+}
+function applyMonthBooklet(ym){
+  const stored=S.booklets?.[ym];
+  if(!stored||!stored.policies?.length){
+    showToast(`${ymToLabel(ym)}のお店づくりがまだ読み込まれていません。PDFを読み込んでください。`,'warn');
+    return;
+  }
+  // 既存の既に施策名に存在するものを除いた候補を準備（重複防止）
+  const existingNames=new Set((S.施策||[]).map(s=>s.name));
+  const newPolicies=stored.policies.filter(p=>{
+    const baseName=p.name+(p.period?`（${p.period}）`:'');
+    return !existingNames.has(baseName);
+  });
+  if(!newPolicies.length){
+    showToast(`${ymToLabel(ym)}の全施策はすでに追加済みです`,'info');
+    return;
+  }
+  // 既存のshowBookletPreviewModalを再利用
+  showBookletPreviewModal(newPolicies,`${ymToLabel(ym)} - ${stored.fileName}`);
+}
+
+// --- 再読込 ---
+function reloadMonthlyBooklet(ym){
+  const stored=S.booklets?.[ym];
+  const label=ymToLabel(ym);
+  const msg=stored
+    ?`${label}のお店づくりを再読込しますか？\n現在保存済みの${stored.policies.length}件のデータは上書きされます。`
+    :`${label}のお店づくりPDFを読み込みます。`;
+  if(!confirm(msg)) return;
+  const apiKey=localStorage.getItem('claude_api_key');
+  if(!apiKey){alert('APIキーが設定されていません。');return;}
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='application/pdf';inp.style.display='none';
+  inp.onchange=()=>{
+    if(inp.files?.[0]) analyzeAndStoreBooklet(inp.files[0],ym);
+    document.body.removeChild(inp);
+  };
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+// --- 削除 ---
+function deleteMonthlyBooklet(ym){
+  const label=ymToLabel(ym);
+  const stored=S.booklets?.[ym];
+  if(!confirm(`${label}のお店づくりデータ（${stored?.policies?.length||0}件）を削除しますか？`)) return;
+  delete S.booklets[ym];
+  // displayMonths にも残す（未読込表示に戻す）
+  const currentYM=getCurrentYM();
+  if(ym!==currentYM&&!(S.bookletDisplayMonths||[]).includes(ym)){
+    // currentMonth 以外はライブラリから消える
+  }
+  saveS();
+  renderBookletLibrary();
+  showToast(`${label}のデータを削除しました`,'info');
 }
 
 // ============================================================
