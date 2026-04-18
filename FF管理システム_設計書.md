@@ -1,4 +1,4 @@
-# FF管理システム 完全設計書 v18
+# FF管理システム 完全設計書 v19
 ## ローソン松本新村店 専用
 
 ---
@@ -1336,6 +1336,92 @@ PDFの客数割合1・2・3に対応：
 ---
 
 ## 更新履歴
+
+### v19（2026-04-18）
+
+#### 定番投資予算システムを追加
+
+売れにくい定番商品を「投資」として管理し、その予算を利益高から差し引くシステムを追加。
+新商品予算と同じ仕組みで、定番商品に対して適用できる。
+
+**背景・目的**
+
+作成数が少ない売れない定番商品は、廃棄リスクはあるが中長期的な品揃え・認知のために投資的に作ることがある。
+こうした商品を「定番投資対象」としてフラグ管理し、その予算をP&L上で明示的に損失計上することで、予算計画の精度を上げる。
+
+**商品設定（②商品設定タブ）**
+
+各商品カードに「📈 定番投資対象」チェックボックスを追加：
+
+```html
+<label>
+  <input type="checkbox" onchange="setProdField(pid,'isInvest',this.checked)">
+  📈 定番投資対象（売れにくい定番商品を投資として管理）
+</label>
+```
+
+- データ構造：各商品に `isInvest: false` フラグを追加
+- `isNew: true` 商品（新商品カテゴリ）とは独立して設定可能
+- `loadS()` マイグレーション：既存商品に `isInvest===undefined` なら `false` を付与
+
+**予算計画（⑤予算管理タブ）**
+
+1. **定番投資予算（正式）集計ボックス**（オレンジ色・新商品予算の隣に配置）
+   - 値：`investBudgetFormal = Σ S.budget.investBudgets[pid]`（商品別手入力合計）
+   - 説明：「投資対象商品の手入力合計 ↓」
+
+2. **定番投資予算テーブル**（商品別手入力）
+   - 「②商品設定で定番投資対象チェックONにした商品が表示される」
+   - 各行：商品名 / カテゴリ / 定番投資予算（正式）入力欄（円）
+   - 合計行：橙色で合計額を表示
+   - 上限注記：`上限 = 新商品予算（最大値）- 新商品予算（正式）`
+
+3. **次週利益高の計算式を更新**
+
+   変更前：
+   ```
+   nextProfitAmt = nextSalesAmt - nextTotalCost - newBudgetFormal
+   ```
+   変更後：
+   ```
+   nextProfitAmt = nextSalesAmt - nextTotalCost - newBudgetFormal - investBudgetFormal
+   ```
+   UIラベルの説明文も「売上高−原価−新商品予算−定番投資予算」に更新。
+
+**データ構造の変更**
+
+```javascript
+// S.budget に追加
+S.budget.investBudgets = {}  // { [pid]: amount }
+
+// 各商品に追加
+{ id, name, ..., isInvest: false }
+```
+
+**新規関数**
+
+```javascript
+// 定番投資予算を設定してUIを再描画
+function setInvestBudget(pid, val) {
+  S.budget.investBudgets[pid] = val;
+  saveS(); renderBudgetPlan();
+}
+
+// 定番投資予算テーブルをHTMLで返す
+function renderInvestBudgetTable(maxBudget, newBudgetFormal) { ... }
+```
+
+**削除時クリーンアップ**
+
+`delProduct()` で `S.budget.investBudgets[pid]` も削除するよう更新。
+
+**検証済み**
+
+- 定番投資予算 0円→1,000円に変更すると次週利益高が -1,000円に変化 ✅
+- 次週利益率も連動更新 ✅
+- テーブル合計が正しく反映 ✅
+
+---
 
 ### v18（2026-04-18）
 
