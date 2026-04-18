@@ -2123,54 +2123,49 @@ function renderBudgetJisseki(){
 function renderBudgetPlan(){
   const el=document.getElementById('budget-plan');
 
-  // ── 作成計画から次週作成高・原価を集計 ──
-  let nextMake=0, nextTotalCost=0;
+  // ── 商品別に実績レートを取得するヘルパー ──
+  // S.jiを最優先、他週はアクティブ週以外を加算
+  const _getJiAllWeeks=(pid)=>{
+    // アクティブ週（S.ji）
+    const base=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
+    let t=base.teika||0, n=base.nebiki||0, h=base.haiki||0;
+    // 他の週を加算
+    Object.entries(S.weeks||{}).forEach(([key,w])=>{
+      if(key===S.activeWeek)return;
+      const j=(w.ji||{})[pid];if(!j)return;
+      t+=j.teika||0; n+=j.nebiki||0; h+=j.haiki||0;
+    });
+    return{teika:t,nebiki:n,haiki:h,total:t+n+h};
+  };
+
+  // ── 作成計画から商品別に集計（同一ループで廃棄・値引も計算）──
+  // 廃棄率・値引率は商品ごとの実績から。値引額は商品ごとのp.discを使用。
+  let nextMake=0, nextTotalCost=0, nextWasteAmt=0, nextDiscAmt=0;
+  let sumTeika=0, sumNebiki=0, sumHaiki=0; // 適正販売率表示用
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category];if(!cfg)return;
+    // 商品の週合計作成数
+    let cnt_week=0;
     DAYS.forEach((_,di)=>{
-      cfg.slots.forEach(h=>{
-        const cnt=getProdCnt(p.id,di,h);
-        nextMake     +=cnt*p.shopPrice;
-        nextTotalCost+=cnt*p.cost;
-      });
+      cfg.slots.forEach(h=>{ cnt_week+=getProdCnt(p.id,di,h); });
     });
-  });
-
-  // ── 実績数量レート集計（S.ji＋全週を合算してレートを算出）──
-  // S.jiは常に最新のアクティブ週データ。S.weeks[activeWeek].jiとの同期ズレを防ぐため
-  // S.jiを必ず含め、他の週は重複しないよう activeWeek をスキップして加算する
-  let sumTeika=0, sumNebiki=0, sumHaiki=0;
-  let sumNebikiDiscAmt=0, sumNebikiShopAmt=0;
-  const _addJi=(jiSrc)=>{
-    S.PM.forEach(p=>{
-      const ji=jiSrc[p.id];if(!ji)return;
-      const t=ji.teika||0, n=ji.nebiki||0, h=ji.haiki||0;
-      sumTeika+=t; sumNebiki+=n; sumHaiki+=h;
-      sumNebikiDiscAmt+=n*p.disc;
-      sumNebikiShopAmt+=n*p.shopPrice;
-    });
-  };
-  // ① アクティブ週：S.jiから直接読む（最新データを保証）
-  _addJi(S.ji||{});
-  // ② 他の週：S.weeksから activeWeek 以外を加算
-  Object.entries(S.weeks||{}).forEach(([key,w])=>{
-    if(key===S.activeWeek)return; // アクティブ週はS.jiで既に計上
-    _addJi(w.ji||{});
+    nextMake     +=cnt_week*p.shopPrice;
+    nextTotalCost+=cnt_week*p.cost;
+    // 商品別の実績レート（S.ji + 他週）
+    const ji=_getJiAllWeeks(p.id);
+    const haiki_rate_p =ji.total?ji.haiki/ji.total:0;  // 廃棄比率
+    const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0; // 値引比率
+    // 想定廃棄額（売価ベース）= 作成数 × 廃棄率 × 売価
+    nextWasteAmt+=cnt_week*haiki_rate_p*p.shopPrice;
+    // 想定値引額 = 作成数 × 値引率 × 商品別値引額（p.disc）
+    nextDiscAmt +=cnt_week*nebiki_rate_p*p.disc;
+    // 全体集計（適正販売率の表示用）
+    sumTeika+=ji.teika; sumNebiki+=ji.nebiki; sumHaiki+=ji.haiki;
   });
   const sumAll=sumTeika+sumNebiki+sumHaiki;
-
-  // 数量レート（適正販売率ベース）
-  const haiki_rate  =sumAll?sumHaiki /sumAll:0;  // 廃棄比率
-  const nebiki_rate =sumAll?sumNebiki/sumAll:0;  // 値引比率
-  // 値引単価率 = Σ(値引枚数×値引額) / Σ(値引枚数×定価)
-  const avg_disc_rate=sumNebikiShopAmt?sumNebikiDiscAmt/sumNebikiShopAmt:0;
-
-  // ── 次週想定値（作成計画＋実績レートから直接算出）──
-  // 想定廃棄額（売価ベース）= 次週作成高 × 廃棄比率
-  const nextWasteAmt =nextMake*haiki_rate;
-  // 想定値引額 = 次週作成高 × 値引比率 × 値引単価率
-  const nextDiscAmt  =nextMake*nebiki_rate*avg_disc_rate;
+  // 全体の適正販売率（表示用）
+  const tekisei_rate=sumAll?sumTeika/sumAll:0;
   // 次週売上高（正式）= 次週作成高 − 想定廃棄額 − 想定値引額
   const nextSalesAmt =nextMake-nextWasteAmt-nextDiscAmt;
   // 次週利益高 = 次週売上高（正式）− 次週原価合計
@@ -2199,12 +2194,12 @@ function renderBudgetPlan(){
       <div class="summary-box">
         <div class="label">想定廃棄額<span style="font-size:9px">（売価ベース）</span></div>
         <div class="value">${fmt(nextWasteAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成高×廃棄率${(haiki_rate*100).toFixed(1)}%`:'①実績に廃棄数を入力↑'}</div>
+        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成数×廃棄率×売価（適正販売率${(tekisei_rate*100).toFixed(1)}%から算出）`:'①実績に廃棄数を入力↑'}</div>
       </div>
       <div class="summary-box">
         <div class="label">想定値引額</div>
         <div class="value">${fmt(nextDiscAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成高×値引率${(nebiki_rate*100).toFixed(1)}%×値引単価率${(avg_disc_rate*100).toFixed(1)}%`:'①実績に値引数を入力↑'}</div>
+        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成数×値引率×値引額（商品別設定）`:'①実績に値引数を入力↑'}</div>
       </div>
       <div class="summary-box">
         <div class="label">次週売上高（正式）</div>
