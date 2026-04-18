@@ -2606,10 +2606,13 @@ function renderNewProductBudgetTable(maxBudget){
     html+=`<tr>
       <td style="text-align:left;font-size:12px">${p.name}<br><span style="font-size:10px;color:#888">${p.category}</span></td>
       <td style="font-size:12px;color:#555">${fmt(p.cost)}円</td>
-      <td>
-        <input type="number" value="${cnt}" min="0" step="1" style="width:65px;text-align:right"
-          onchange="setNewProductCount('${p.id}',parseInt(toHalf(this.value))||0)">個/日
-        <button onclick="setNewProductCount('${p.id}',${sug})" style="margin-left:6px;padding:2px 8px;font-size:11px;background:#eff6ff;color:var(--main);border:1px solid var(--main);border-radius:6px;cursor:pointer">🤖 ${sug}個</button>
+      <td style="padding:6px 8px">
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+          <input type="number" value="${cnt}" min="0" step="1" style="width:60px;text-align:right"
+            onchange="setNewProductCount('${p.id}',parseInt(toHalf(this.value))||0)">
+          <span style="font-size:12px;color:#555">個/日</span>
+        </div>
+        <button onclick="setNewProductCount('${p.id}',${sug})" style="padding:3px 10px;font-size:11px;background:#eff6ff;color:var(--main);border:1px solid var(--main);border-radius:6px;cursor:pointer;white-space:nowrap">🤖 提案: ${sug}個</button>
       </td>
       <td style="font-size:12px;font-weight:600;color:var(--main)">${fmt(amt)}円</td>
     </tr>`;
@@ -2660,10 +2663,13 @@ function renderInvestBudgetTable(maxBudget,newBudgetFormal){
       <td style="font-size:11px;color:#555">${fmt(p.cost)}円<br>
         ${haikiPct!==null?`<span style="color:${haikiPct>=50?'var(--red)':'var(--orange)'}">廃棄${haikiPct}%</span>`:'<span style="color:#aaa">実績なし</span>'}
       </td>
-      <td>
-        <input type="number" value="${cnt}" min="0" step="1" style="width:65px;text-align:right"
-          onchange="setInvestCount('${p.id}',parseInt(toHalf(this.value))||0)">個/日
-        <button onclick="setInvestCount('${p.id}',${sug})" style="margin-left:6px;padding:2px 8px;font-size:11px;background:#fff8e1;color:#d97706;border:1px solid #f59e0b;border-radius:6px;cursor:pointer">🤖 ${sug}個</button>
+      <td style="padding:6px 8px">
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+          <input type="number" value="${cnt}" min="0" step="1" style="width:60px;text-align:right"
+            onchange="setInvestCount('${p.id}',parseInt(toHalf(this.value))||0)">
+          <span style="font-size:12px;color:#555">個/日</span>
+        </div>
+        <button onclick="setInvestCount('${p.id}',${sug})" style="padding:3px 10px;font-size:11px;background:#fff8e1;color:#d97706;border:1px solid #f59e0b;border-radius:6px;cursor:pointer;white-space:nowrap">🤖 提案: ${sug}個</button>
       </td>
       <td style="font-size:12px;font-weight:600;color:var(--orange)">${fmt(amt)}円</td>
     </tr>`;
