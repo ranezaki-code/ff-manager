@@ -249,7 +249,10 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 <div id="app" style="display:none">
   <div id="header">
     <h1>FF管理システム</h1>
-    <span class="store-name" id="header-store"></span>
+    <button onclick="openStoreManager()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px">
+      <span id="header-store"></span>
+      <span style="font-size:10px;opacity:.8">▼</span>
+    </button>
   </div>
   <div id="tabs">
     <button class="tab-btn active" onclick="showTab(0)">①実績入力</button>
@@ -403,6 +406,18 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   </div>
 </div>
 
+<!-- 店舗管理モーダル -->
+<div class="modal-overlay" id="store-manager-modal" style="display:none">
+  <div class="modal-box" style="max-width:380px;width:90%">
+    <div class="modal-title">🏪 店舗管理</div>
+    <div id="store-list-area" style="margin-bottom:16px"></div>
+    <button class="btn-primary" style="width:100%" onclick="addNewStore()">＋ 新しい店舗を追加</button>
+    <div style="margin-top:8px">
+      <button class="btn-secondary" style="width:100%" onclick="closeStoreManager()">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- Auto-optimize modal -->
 <div class="modal-overlay" id="rule-suggest-modal">
   <div class="modal-box">
@@ -537,6 +552,8 @@ let S = {
 
 let currentTab=0, currentExtDay=0, currentProdDay=0, setupStep=0;
 let deleteConfirmKey=null, deleteConfirmTimer=null;
+let currentStoreId=null;
+let storeList=[]; // [{id, name}]
 
 // ============================================================
 // STORAGE
@@ -580,7 +597,8 @@ function syncActiveWeek(){
 }
 function saveS(){
   syncActiveWeek();
-  try{localStorage.setItem('ffv6',JSON.stringify({
+  const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
+  try{localStorage.setItem(key,JSON.stringify({
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
@@ -589,10 +607,48 @@ function saveS(){
   }));}catch(e){console.warn('save error',e)}
 }
 function loadS(){
-  try{
-    const d=localStorage.getItem('ffv6');
-    if(d){const p=JSON.parse(d);Object.assign(S,p);}
-  }catch(e){console.warn('load error',e)}
+  // ストアリストを読み込む
+  const sl=localStorage.getItem('ffv6_stores');
+  storeList=sl?JSON.parse(sl):[];
+
+  // 既存データの移行（ffv6があってffv6_storesがない場合）
+  if(!sl&&localStorage.getItem('ffv6')){
+    const oldData=JSON.parse(localStorage.getItem('ffv6'));
+    const id='store_'+Date.now();
+    const name=oldData.storeName||'店舗1';
+    storeList=[{id,name}];
+    localStorage.setItem('ffv6_stores',JSON.stringify(storeList));
+    localStorage.setItem('ffv6_store_'+id,localStorage.getItem('ffv6'));
+    if(localStorage.getItem('ffv6_setup'))localStorage.setItem('ffv6_setup_'+id,'1');
+    currentStoreId=id;
+    localStorage.setItem('ffv6_current',id);
+  } else {
+    currentStoreId=localStorage.getItem('ffv6_current');
+    if(!currentStoreId||!storeList.find(s=>s.id===currentStoreId)){
+      if(storeList.length>0){
+        currentStoreId=storeList[0].id;
+        localStorage.setItem('ffv6_current',currentStoreId);
+      }
+    }
+  }
+
+  // 完全初回（storeListが空）の場合
+  if(storeList.length===0){
+    const id='store_'+Date.now();
+    currentStoreId=id;
+    storeList=[{id,name:''}];
+    localStorage.setItem('ffv6_stores',JSON.stringify(storeList));
+    localStorage.setItem('ffv6_current',id);
+  }
+
+  // アクティブ店舗のデータを読み込む
+  if(currentStoreId){
+    try{
+      const d=localStorage.getItem('ffv6_store_'+currentStoreId);
+      if(d) Object.assign(S,JSON.parse(d));
+    }catch(e){console.warn('load store error',e)}
+  }
+
   // 旧データの互換性: weeks が空なら現在データで初期化
   if(!S.weeks||Object.keys(S.weeks).length===0){
     S.weeks={};
@@ -718,7 +774,11 @@ function finishSetup(){
   S.storeName=document.getElementById('setup-store-name').value||'店舗';
   CATS.forEach(c=>{S.catOn[c]=setupCatOn[c];S.catCfg[c]={...setupCatCfg[c],slots:[...setupCatCfg[c].slots]};});
   if(!S.PM||S.PM.length===0) S.PM=DEF_PRODUCTS.map(p=>({...p}));
-  localStorage.setItem('ffv6_setup','1');
+  localStorage.setItem('ffv6_setup_'+currentStoreId,'1');
+  // storeList の name を更新
+  const st=storeList.find(s=>s.id===currentStoreId);
+  if(st) st.name=S.storeName;
+  localStorage.setItem('ffv6_stores',JSON.stringify(storeList));
   saveS();
   showApp();
 }
@@ -745,7 +805,7 @@ function renderAll(){
 window.addEventListener('DOMContentLoaded',()=>{
   loadS();
   initGlobalInputHandlers();
-  if(!localStorage.getItem('ffv6_setup')){
+  if(!localStorage.getItem('ffv6_setup_'+currentStoreId)){
     document.getElementById('setup-screen').classList.add('show');
     initSetup();
   } else {
@@ -2240,8 +2300,89 @@ function renderDiscHistory(){
 
 function resetSetup(){
   if(!confirm('店舗設定をリセットしますか？すべてのデータが失われます。'))return;
+  localStorage.removeItem('ffv6_setup_'+currentStoreId);
+  localStorage.removeItem('ffv6_store_'+currentStoreId);
+  // 後方互換
   localStorage.removeItem('ffv6_setup');localStorage.removeItem('ffv6');
   location.reload();
+}
+
+// ============================================================
+// STORE MANAGER
+// ============================================================
+function openStoreManager(){
+  renderStoreList();
+  document.getElementById('store-manager-modal').style.display='flex';
+}
+function closeStoreManager(){
+  document.getElementById('store-manager-modal').style.display='none';
+}
+function renderStoreList(){
+  const el=document.getElementById('store-list-area');
+  if(!el)return;
+  el.innerHTML=storeList.map(s=>{
+    const active=s.id===currentStoreId;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;margin-bottom:6px;background:${active?'var(--main-lt)':'#f5f5f5'};border:2px solid ${active?'var(--accent)':'transparent'}">
+      <span style="flex:1;font-size:14px;font-weight:${active?700:400}">${s.name}${active?' ✓':''}</span>
+      ${!active?`<button onclick="switchStore('${s.id}')" style="padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">切替</button>`:''}
+      ${storeList.length>1?`<button onclick="deleteStore('${s.id}')" style="padding:5px 10px;background:${deleteStoreConfirmId===s.id?'#e53935':'#f5f5f5'};border:1px solid ${deleteStoreConfirmId===s.id?'#e53935':'#ddd'};border-radius:6px;font-size:12px;cursor:pointer;color:${deleteStoreConfirmId===s.id?'#fff':'#999'}">${deleteStoreConfirmId===s.id?'削除?':'削除'}</button>`:''}
+    </div>`;
+  }).join('');
+}
+function switchStore(id){
+  if(id===currentStoreId)return;
+  saveS(); // 現在のデータを保存
+  currentStoreId=id;
+  localStorage.setItem('ffv6_current',id);
+  // Sをリセット
+  const fresh={storeName:'',chainName:'',PM:[],catOn:{'ホットFF':true,'ホットFF新商品':true,'常温FF':true,'常温FF新商品':false,'中華まん':true,'中華まん新商品':false},catCfg:JSON.parse(JSON.stringify({
+    'ホットFF':{ah:6,slots:[6,10,14,17]},'ホットFF新商品':{ah:6,slots:[6,10,14,17]},
+    '常温FF':{ah:10,slots:[10]},'常温FF新商品':{ah:10,slots:[10]},
+    '中華まん':{ah:10,slots:[6,10]},'中華まん新商品':{ah:10,slots:[6,10]}
+  })),ji:{},prevJi:{},cust:DEF_CUST.map(r=>[...r]),ext:DEF_EXT.map(e=>({...e})),rules:[],checks:{},budget:{target:0,discTarget:0,wasteTarget:0},discHist:[],weekStart:'',weeks:{},activeWeek:''};
+  Object.assign(S,fresh);
+  loadS();
+  closeStoreManager();
+  if(localStorage.getItem('ffv6_setup_'+currentStoreId)){
+    document.getElementById('header-store').textContent=S.storeName;
+    showApp();
+  } else {
+    document.getElementById('setup-screen').style.display='flex';
+    document.getElementById('app').style.display='none';
+    document.getElementById('setup-store-name').value=storeList.find(s=>s.id===id)?.name||'';
+    setupStep=0;
+    initSetup();
+    document.querySelectorAll('.wizard-step').forEach((el,i)=>el.classList.toggle('active',i===0));
+    document.querySelectorAll('.step-dot').forEach((el,i)=>el.classList.toggle('active',i===0));
+  }
+}
+function addNewStore(){
+  const id='store_'+Date.now();
+  const name='新しい店舗';
+  storeList.push({id,name});
+  localStorage.setItem('ffv6_stores',JSON.stringify(storeList));
+  closeStoreManager();
+  switchStore(id);
+}
+let deleteStoreConfirmId=null;
+let deleteStoreTimer=null;
+function deleteStore(id){
+  if(storeList.length<=1){alert('最後の店舗は削除できません');return;}
+  if(deleteStoreConfirmId===id){
+    clearTimeout(deleteStoreTimer);
+    deleteStoreConfirmId=null;
+    localStorage.removeItem('ffv6_store_'+id);
+    localStorage.removeItem('ffv6_setup_'+id);
+    storeList=storeList.filter(s=>s.id!==id);
+    localStorage.setItem('ffv6_stores',JSON.stringify(storeList));
+    if(currentStoreId===id)switchStore(storeList[0].id);
+    else renderStoreList();
+  } else {
+    if(deleteStoreTimer)clearTimeout(deleteStoreTimer);
+    deleteStoreConfirmId=id;
+    renderStoreList();
+    deleteStoreTimer=setTimeout(()=>{deleteStoreConfirmId=null;renderStoreList();},3000);
+  }
 }
 
 // ============================================================
