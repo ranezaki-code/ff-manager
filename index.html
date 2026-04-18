@@ -2673,6 +2673,66 @@ function renderDiscHistory(){
 
 // ============================================================
 
+// ============================================================
+// エクスポート / インポート
+// ============================================================
+function exportData(){
+  // 全店舗データをまとめてエクスポート
+  const exportObj={
+    version:'ffv6',
+    exportedAt:new Date().toISOString(),
+    stores:storeList,
+    currentStoreId:currentStoreId,
+    storeData:{}
+  };
+  storeList.forEach(store=>{
+    const raw=localStorage.getItem('ffv6_store_'+store.id);
+    if(raw)exportObj.storeData[store.id]=JSON.parse(raw);
+  });
+  const json=JSON.stringify(exportObj,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const date=new Date();
+  const dateStr=`${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
+  a.href=url;
+  a.download=`FF管理データ_${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='.json,application/json';
+  input.onchange=async(e)=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    try{
+      const text=await file.text();
+      const obj=JSON.parse(text);
+      if(obj.version!=='ffv6')throw new Error('このファイルはFF管理システムのデータではありません');
+      if(!confirm(`「${file.name}」のデータを読み込みます。\n現在のデータは上書きされます。よろしいですか？`))return;
+      // 店舗リストを復元
+      if(obj.stores)localStorage.setItem('ffv6_stores',JSON.stringify(obj.stores));
+      // 各店舗データを復元
+      if(obj.storeData){
+        Object.entries(obj.storeData).forEach(([id,data])=>{
+          localStorage.setItem('ffv6_store_'+id,JSON.stringify(data));
+          localStorage.setItem('ffv6_setup_'+id,'1');
+        });
+      }
+      // アクティブ店舗を復元
+      if(obj.currentStoreId)localStorage.setItem('ffv6_current',obj.currentStoreId);
+      alert('インポート完了！ページをリロードします。');
+      location.reload();
+    }catch(err){
+      alert('インポートエラー: '+err.message);
+    }
+  };
+  input.click();
+}
+
 function resetSetup(){
   if(!confirm('店舗設定をリセットしますか？すべてのデータが失われます。'))return;
   localStorage.removeItem('ffv6_setup_'+currentStoreId);
