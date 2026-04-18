@@ -1499,7 +1499,13 @@ function addProduct(){
 
 function delProduct(pid){
   if(!confirm('この商品を削除しますか？'))return;
-  S.PM=S.PM.filter(p=>p.id!==pid);saveS();renderProductCards();
+  S.PM=S.PM.filter(p=>p.id!==pid);
+  // 孤立データをクリーンアップ
+  delete S.ji[pid];
+  Object.values(S.weeks||{}).forEach(w=>{if(w.ji)delete w.ji[pid];});
+  Object.keys(S.checks).forEach(k=>{if(k.endsWith('_'+pid))delete S.checks[k];});
+  if(S.budget.newProductBudgets)delete S.budget.newProductBudgets[pid];
+  saveS();renderProductCards();
 }
 
 // ============================================================
