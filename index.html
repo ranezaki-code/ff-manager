@@ -2166,23 +2166,29 @@ function renderBudgetPlan(){
   const sumAll=sumTeika+sumNebiki+sumHaiki;
   // 全体の適正販売率（表示用）
   const tekisei_rate=sumAll?sumTeika/sumAll:0;
-  // 次週売上高（正式）= 次週作成高 − 想定廃棄額 − 想定値引額
+  // 次週売上高（正式）= 次週作成高 − 想定廃棄額 − 想定売変額
   const nextSalesAmt =nextMake-nextWasteAmt-nextDiscAmt;
-  // 次週利益高 = 次週売上高（正式）− 次週原価合計
-  const nextProfitAmt=nextSalesAmt-nextTotalCost;
+  // 想定売変率 = 想定売変額 ÷ 次週売上高（正式）
+  const nextDiscRate =nextSalesAmt?nextDiscAmt/nextSalesAmt*100:0;
+
+  // ── 新商品予算 ──
+  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
+  // 最大値 = 売上高 − 原価（新商品ゼロ時の利益高＝投資できる上限）
+  const newBudgetMax=Math.max(0,nextSalesAmt-nextTotalCost);
+  // 正式 = 商品ごと手入力の合計
+  const newBudgetFormal=Object.values(S.budget.newProductBudgets).reduce((s,v)=>s+(v||0),0);
+
+  // 次週利益高 = 売上高 − 原価 − 新商品予算（正式）
+  // ※新商品予算（正式）が全廃棄になっても利益マイナスにならないよう差し引く
+  const nextProfitAmt=nextSalesAmt-nextTotalCost-newBudgetFormal;
   // 次週利益率 = 次週利益高 ÷ 次週売上高（正式）
   const nextProfitRate=nextSalesAmt?nextProfitAmt/nextSalesAmt*100:0;
 
-  // ── 新商品予算 ──
-  // 最大値 = 次週利益高（利益がゼロになる上限）
-  const newBudgetMax=Math.max(0,nextProfitAmt);
-  // 正式 = 商品ごと手入力の合計
-  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
-  const newBudgetFormal=Object.values(S.budget.newProductBudgets).reduce((s,v)=>s+(v||0),0);
-
   const pColor=nextProfitRate>=30?'var(--green)':nextProfitRate>=15?'var(--orange)':'var(--red)';
-  const hasJisseki=sumAll>0;
+  const maxColor=newBudgetMax>=0?'var(--green)':'var(--red)';
   const hasNebikiHaiki=(sumNebiki+sumHaiki)>0;
+  const haikuRate=sumAll?(sumHaiki/sumAll*100).toFixed(1):0;
+  const nebikiRateDisp=sumAll?(sumNebiki/sumAll*100).toFixed(1):0;
 
   el.innerHTML=`
     <div class="summary-grid">
@@ -2194,40 +2200,45 @@ function renderBudgetPlan(){
       <div class="summary-box">
         <div class="label">想定廃棄額<span style="font-size:9px">（売価ベース）</span></div>
         <div class="value">${fmt(nextWasteAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成数×廃棄率×売価（適正販売率${(tekisei_rate*100).toFixed(1)}%から算出）`:'①実績に廃棄数を入力↑'}</div>
+        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成数×廃棄率${haikuRate}%×売価`:'①実績に廃棄数を入力↑'}</div>
       </div>
       <div class="summary-box">
-        <div class="label">想定値引額</div>
+        <div class="label">想定売変額</div>
         <div class="value">${fmt(nextDiscAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成数×値引率×値引額（商品別設定）`:'①実績に値引数を入力↑'}</div>
+        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成数×値引率${nebikiRateDisp}%×値引額（商品別）`:'①実績に値引数を入力↑'}</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">想定売変率</div>
+        <div class="value">${nextDiscRate.toFixed(1)}</div><div class="unit">%</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">想定売変額÷次週売上高</div>
       </div>
       <div class="summary-box">
         <div class="label">次週売上高（正式）</div>
         <div class="value">${fmt(nextSalesAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">作成高−廃棄額−値引額</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">次週利益高</div>
-        <div class="value" style="color:${pColor}">${fmt(nextProfitAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">売上高（正式）−原価</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">次週利益率</div>
-        <div class="value" style="color:${pColor}">${nextProfitRate.toFixed(1)}</div><div class="unit">%</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">利益高÷売上高（正式）</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成高−廃棄額−売変額</div>
       </div>
       <div class="summary-box">
         <div class="label">新商品予算（最大値）</div>
-        <div class="value">${fmt(newBudgetMax)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">次週利益高（上限）</div>
+        <div class="value" style="color:${maxColor}">${fmt(newBudgetMax)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売上高−原価（赤字にならない上限）</div>
       </div>
       <div class="summary-box" style="border:2px solid var(--main)">
         <div class="label">新商品予算（正式）</div>
         <div class="value" style="color:var(--main)">${fmt(newBudgetFormal)}</div><div class="unit">円</div>
         <div style="font-size:10px;color:#999;margin-top:2px">商品別手入力の合計 ↓</div>
       </div>
+      <div class="summary-box">
+        <div class="label">次週利益高</div>
+        <div class="value" style="color:${pColor}">${fmt(nextProfitAmt)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売上高−原価−新商品予算（正式）</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">次週利益率</div>
+        <div class="value" style="color:${pColor}">${nextProfitRate.toFixed(1)}</div><div class="unit">%</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">利益高÷売上高（正式）</div>
+      </div>
     </div>
-    ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>想定廃棄額・値引額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
+    ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>想定廃棄額・売変額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
     <div style="margin-top:16px">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">📦 新商品予算（正式）— 商品別入力</div>
       ${renderNewProductBudgetTable(newBudgetMax)}
