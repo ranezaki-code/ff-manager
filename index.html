@@ -149,6 +149,7 @@ th{background:var(--main-lt);font-weight:600;color:var(--main)}
 .alert-warn{background:#fff3e0;border:1px solid var(--orange);color:#e65100}
 .alert-danger{background:var(--red-lt);border:1px solid var(--red);color:var(--red)}
 .alert-ok{background:var(--green-lt);border:1px solid var(--green);color:#2e7d32}
+.alert-info{background:#e3f2fd;border:1px solid #90caf9;color:#1565c0}
 
 /* Utility */
 .text-right{text-align:right}.text-center{text-align:center}
@@ -543,7 +544,7 @@ let S = {
   ext:DEF_EXT.map(e=>({...e})),
   rules:[],
   checks:{},
-  budget:{target:0,discTarget:0,wasteTarget:0},
+  budget:{target:0,wasteTarget:0,newProductBudgets:{}},
   discHist:[],
   weekStart:'2026-04-14', // 初期値は直近火曜日（loadS内で動的に再計算）
   weeks:{},      // { '2026.4.14': {ji,cust,checks,weekStart} }
@@ -696,6 +697,10 @@ function loadS(){
     }
   }
   if(migrated)console.log('週開始日を火曜日に移行しました');
+
+  // データ移行: budget.newProductBudgets がない場合は初期化
+  if(!S.budget)S.budget={target:0,wasteTarget:0,newProductBudgets:{}};
+  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
 }
 
 // ============================================================
@@ -2118,117 +2123,149 @@ function renderBudgetJisseki(){
 function renderBudgetPlan(){
   const el=document.getElementById('budget-plan');
 
-  // ── 次週作成高（正式）: 作成表の計画値から算出 ──
-  let nextMake=0;
+  // ── 作成計画から次週作成高・原価を集計 ──
+  let nextMake=0, nextTotalCost=0;
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category];if(!cfg)return;
     DAYS.forEach((_,di)=>{
-      cfg.slots.forEach(h=>{nextMake+=getProdCnt(p.id,di,h)*p.shopPrice;});
+      cfg.slots.forEach(h=>{
+        const cnt=getProdCnt(p.id,di,h);
+        nextMake     +=cnt*p.shopPrice;
+        nextTotalCost+=cnt*p.cost;
+      });
     });
   });
 
-  // ── 次週作成高（仮）: 実績の日平均×7 ──
-  let avgDaily=0;
+  // ── 実績数量レート集計 ──
+  // テイカ数・値引数・廃棄数・値引金額・値引定価合計 を全商品で合算
+  let sumTeika=0, sumNebiki=0, sumHaiki=0;
+  let sumNebikiDiscAmt=0, sumNebikiShopAmt=0;
   S.PM.forEach(p=>{
     const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
-    avgDaily+=(ji.teika+ji.nebiki+ji.haiki)*p.shopPrice;
+    const t=ji.teika||0, n=ji.nebiki||0, h=ji.haiki||0;
+    sumTeika +=t; sumNebiki+=n; sumHaiki+=h;
+    sumNebikiDiscAmt +=n*p.disc;        // 値引合計金額
+    sumNebikiShopAmt +=n*p.shopPrice;   // 値引対象の定価合計
   });
-  const nextMakeTmp=(avgDaily/7)*7; // 日平均×7日
+  const sumAll=sumTeika+sumNebiki+sumHaiki;
 
-  // ── 実績集計 ──
-  let totalMakeAmt=0,totalWasteAmt=0,totalSalesAmt=0,totalDiscAmt=0,totalProfitAmt=0,totalCostAmt=0;
-  S.PM.forEach(p=>{
-    const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
-    const m=calcJissekiMetrics(p.id);if(!m)return;
-    totalMakeAmt+=(ji.teika+ji.nebiki+ji.haiki)*p.shopPrice;
-    totalWasteAmt+=m.wasteAmt;
-    totalSalesAmt+=m.salesAmt;
-    totalDiscAmt+=m.discAmt;
-    totalProfitAmt+=m.profit;
-    totalCostAmt+=m.totalCost;
-  });
+  // 数量レート（適正販売率ベース）
+  const haiki_rate  =sumAll?sumHaiki /sumAll:0;  // 廃棄比率
+  const nebiki_rate =sumAll?sumNebiki/sumAll:0;  // 値引比率
+  // 値引単価率 = Σ(値引枚数×値引額) / Σ(値引枚数×定価)
+  const avg_disc_rate=sumNebikiShopAmt?sumNebikiDiscAmt/sumNebikiShopAmt:0;
 
-  // ── 実績レート ──
-  const wasteRate   =totalMakeAmt ?totalWasteAmt /totalMakeAmt :0; // 廃棄率（作成高比）
-  const salesRatio  =totalMakeAmt ?totalSalesAmt /totalMakeAmt :0; // 売上高率（作成高比）
-  const discRateOnSales =totalSalesAmt?totalDiscAmt /totalSalesAmt:0; // 値引率（売上高比）
-  const costRateOnSales =totalSalesAmt?totalCostAmt /totalSalesAmt:0; // 原価率（売上高比）
-
-  // ── 次週想定値（作成計画×実績レートで推計）──
-  // 次週売上高 = 次週作成高（正式） × 売上高率
-  const nextSalesAmt  =nextMake*salesRatio;
-  // 想定廃棄額 = 次週作成高（正式） × 廃棄率
-  const nextWasteAmt  =nextMake*wasteRate;
-  // 想定値引額 = 次週売上高 × 値引率（参考表示のみ・利益計算には含めない）
-  const nextDiscAmt   =nextSalesAmt*discRateOnSales;
-  // 次週売上原価 = 次週売上高 × 原価率
-  const nextCostAmt   =nextSalesAmt*costRateOnSales;
-  // 次週利益高 = 次週売上高（値引後）− 想定廃棄額 − 次週売上原価
-  // ※ nextSalesAmt は値引後の実受取金額のため nextDiscAmt は引かない
-  const nextProfitAmt =nextSalesAmt-nextWasteAmt-nextCostAmt;
-  // 次週利益率 = 次週利益高 ÷ 次週売上高
+  // ── 次週想定値（作成計画＋実績レートから直接算出）──
+  // 想定廃棄額（売価ベース）= 次週作成高 × 廃棄比率
+  const nextWasteAmt =nextMake*haiki_rate;
+  // 想定値引額 = 次週作成高 × 値引比率 × 値引単価率
+  const nextDiscAmt  =nextMake*nebiki_rate*avg_disc_rate;
+  // 次週売上高（正式）= 次週作成高 − 想定廃棄額 − 想定値引額
+  const nextSalesAmt =nextMake-nextWasteAmt-nextDiscAmt;
+  // 次週利益高 = 次週売上高（正式）− 次週原価合計
+  const nextProfitAmt=nextSalesAmt-nextTotalCost;
+  // 次週利益率 = 次週利益高 ÷ 次週売上高（正式）
   const nextProfitRate=nextSalesAmt?nextProfitAmt/nextSalesAmt*100:0;
 
   // ── 新商品予算 ──
-  // 最大値 = 次週作成高（正式） × 平均原価率（利益ゼロ上限）
-  const avgCostRate  =S.PM.reduce((s,p)=>s+(p.cost/p.shopPrice),0)/(S.PM.length||1);
-  const newBudgetMax =nextMake*avgCostRate;
-  // 正式 = 最大値 − 想定値引額（値引きに使う分を除いた残り）
-  const newBudgetFormal=Math.max(0,newBudgetMax-nextDiscAmt);
+  // 最大値 = 次週利益高（利益がゼロになる上限）
+  const newBudgetMax=Math.max(0,nextProfitAmt);
+  // 正式 = 商品ごと手入力の合計
+  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
+  const newBudgetFormal=Object.values(S.budget.newProductBudgets).reduce((s,v)=>s+(v||0),0);
 
   const pColor=nextProfitRate>=30?'var(--green)':nextProfitRate>=15?'var(--orange)':'var(--red)';
+  const hasJisseki=sumAll>0;
 
   el.innerHTML=`
     <div class="summary-grid">
       <div class="summary-box">
-        <div class="label">次週作成高（仮）</div>
-        <div class="value">${fmt(nextMakeTmp)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">実績日平均×7</div>
-      </div>
-      <div class="summary-box">
         <div class="label">次週作成高（正式）</div>
         <div class="value">${fmt(nextMake)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">作成表計画から算出</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成計画表から算出</div>
       </div>
       <div class="summary-box">
-        <div class="label">次週売上高</div>
-        <div class="value">${fmt(nextSalesAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">作成高×実績売上率${(salesRatio*100).toFixed(1)}%</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">次週利益高</div>
-        <div class="value" style="color:${pColor}">${fmt(nextProfitAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">売上高（値引後）−廃棄−原価</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">次週利益率</div>
-        <div class="value" style="color:${pColor}">${nextProfitRate.toFixed(1)}</div><div class="unit">%</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">実績利益率から推計</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">想定廃棄額</div>
+        <div class="label">想定廃棄額<span style="font-size:9px">（売価ベース）</span></div>
         <div class="value">${fmt(nextWasteAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">作成高×実績廃棄率${(wasteRate*100).toFixed(1)}%</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">${hasJisseki?`作成高×廃棄率${(haiki_rate*100).toFixed(1)}%`:'実績なし'}</div>
       </div>
       <div class="summary-box">
         <div class="label">想定値引額</div>
         <div class="value">${fmt(nextDiscAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">売上高×実績値引率${(discRateOnSales*100).toFixed(1)}%</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">${hasJisseki?`作成高×値引率${(nebiki_rate*100).toFixed(1)}%×値引単価率${(avg_disc_rate*100).toFixed(1)}%`:'実績なし'}</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">次週売上高（正式）</div>
+        <div class="value">${fmt(nextSalesAmt)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成高−廃棄額−値引額</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">次週利益高</div>
+        <div class="value" style="color:${pColor}">${fmt(nextProfitAmt)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売上高（正式）−原価</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">次週利益率</div>
+        <div class="value" style="color:${pColor}">${nextProfitRate.toFixed(1)}</div><div class="unit">%</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">利益高÷売上高（正式）</div>
       </div>
       <div class="summary-box">
         <div class="label">新商品予算（最大値）</div>
         <div class="value">${fmt(newBudgetMax)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">作成高×平均原価率</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">次週利益高（上限）</div>
       </div>
-      <div class="summary-box">
+      <div class="summary-box" style="border:2px solid var(--main)">
         <div class="label">新商品予算（正式）</div>
-        <div class="value">${fmt(newBudgetFormal)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">最大値−想定値引額</div>
+        <div class="value" style="color:var(--main)">${fmt(newBudgetFormal)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">商品別手入力の合計 ↓</div>
       </div>
     </div>
-    ${nextMake>nextMakeTmp*1.2?'<div class="alert alert-warn">次週作成高が前週比+20%以上です</div>':''}
+    ${!hasJisseki?'<div class="alert alert-info">実績データがないため廃棄・値引の推計は0円です。実績を入力すると自動反映されます。</div>':''}
+    <div style="margin-top:16px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px">📦 新商品予算（正式）— 商品別入力</div>
+      ${renderNewProductBudgetTable(newBudgetMax)}
+    </div>
   `;
+}
+
+function renderNewProductBudgetTable(maxBudget){
+  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
+  // 有効商品のみ表示
+  const prods=S.PM.filter(p=>p.enabled);
+  if(!prods.length)return '<div style="color:#999;font-size:12px">商品が登録されていません</div>';
+  const total=Object.values(S.budget.newProductBudgets).reduce((s,v)=>s+(v||0),0);
+  const over=total>maxBudget;
+  let html=`<table><thead><tr>
+    <th style="text-align:left">商品名</th>
+    <th>カテゴリ</th>
+    <th>新商品予算（正式）</th>
+  </tr></thead><tbody>`;
+  prods.forEach(p=>{
+    const val=S.budget.newProductBudgets[p.id]||0;
+    html+=`<tr>
+      <td style="text-align:left;font-size:12px">${p.name}</td>
+      <td style="font-size:11px;color:#666">${p.category}</td>
+      <td><input type="number" value="${val}" min="0" step="100" style="width:100px"
+        data-budget-pid="${p.id}"
+        onchange="setNewProductBudget('${p.id}',parseInt(toHalf(this.value))||0)">円</td>
+    </tr>`;
+  });
+  html+=`</tbody><tfoot><tr style="font-weight:700;background:var(--main-lt)">
+    <td colspan="2" style="text-align:right">合計</td>
+    <td style="color:${over?'var(--red)':'var(--green)'}">${fmt(total)}円
+      ${over?'<span style="font-size:10px;color:var(--red)">⚠ 最大値超過</span>':''}
+    </td>
+  </tr></tfoot></table>`;
+  return html;
+}
+
+function setNewProductBudget(pid,val){
+  if(!S.budget.newProductBudgets)S.budget.newProductBudgets={};
+  S.budget.newProductBudgets[pid]=val;
+  saveS();
+  // 合計欄だけ更新（全再レンダリング不要）
+  renderBudgetPlan();
 }
 
 function renderBudgetDaily(){
@@ -2265,13 +2302,15 @@ function renderBudgetDaily(){
 function renderBudgetManual(){
   const b=S.budget||{};
   document.getElementById('budget-manual').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:13px">
-      <div><label>作成高予算(円)</label>
-        <input type="number" value="${b.target||0}" onchange="S.budget.target=parseInt(toHalf(this.value))||0;saveS()"></div>
-      <div><label>値引予算(円)</label>
-        <input type="number" value="${b.discTarget||0}" onchange="S.budget.discTarget=parseInt(toHalf(this.value))||0;saveS()"></div>
-      <div><label>廃棄予算(円)</label>
-        <input type="number" value="${b.wasteTarget||0}" onchange="S.budget.wasteTarget=parseInt(toHalf(this.value))||0;saveS()"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+      <div><label>作成高予算（円）</label>
+        <input type="number" value="${b.target||0}" onchange="S.budget.target=parseInt(toHalf(this.value))||0;saveS()">
+        <div style="font-size:10px;color:#999;margin-top:2px">目標作成高を手入力</div>
+      </div>
+      <div><label>廃棄予算（円）</label>
+        <input type="number" value="${b.wasteTarget||0}" onchange="S.budget.wasteTarget=parseInt(toHalf(this.value))||0;saveS()">
+        <div style="font-size:10px;color:#999;margin-top:2px">廃棄の上限予算を手入力</div>
+      </div>
     </div>`;
 }
 
@@ -2407,7 +2446,7 @@ function switchStore(id){
     'ホットFF':{ah:6,slots:[6,10,14,17]},'ホットFF新商品':{ah:6,slots:[6,10,14,17]},
     '常温FF':{ah:10,slots:[10]},'常温FF新商品':{ah:10,slots:[10]},
     '中華まん':{ah:10,slots:[6,10]},'中華まん新商品':{ah:10,slots:[6,10]}
-  })),ji:{},prevJi:{},cust:DEF_CUST.map(r=>[...r]),ext:DEF_EXT.map(e=>({...e})),rules:[],checks:{},budget:{target:0,discTarget:0,wasteTarget:0},discHist:[],weekStart:'',weeks:{},activeWeek:''};
+  })),ji:{},prevJi:{},cust:DEF_CUST.map(r=>[...r]),ext:DEF_EXT.map(e=>({...e})),rules:[],checks:{},budget:{target:0,wasteTarget:0,newProductBudgets:{}},discHist:[],weekStart:'',weeks:{},activeWeek:''};
   Object.assign(S,fresh);
   loadS();
   closeStoreManager();
