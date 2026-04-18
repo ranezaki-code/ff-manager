@@ -577,6 +577,7 @@ const CATS = ['ホットFF','ホットFF新商品','常温FF','常温FF新商品
 const DAYS = ['火','水','木','金','土','日','月'];
 const ALL_SLOTS = [6,10,14,17];
 const SLOT_LABELS = {6:'6:00',10:'10:00',14:'14:00',17:'17:00'};
+const PROD_TAGS = ['ワンハンド','揚げ物','複数個入'];
 const CAT_CLASS = {
   'ホットFF':'cat-hot','ホットFF新商品':'cat-hot-new',
   '常温FF':'cat-room','常温FF新商品':'cat-room-new',
@@ -1592,28 +1593,87 @@ function adoptSuggest(cat,slots){
   S.catCfg[cat].slots=slots.sort((a,b)=>a-b);saveS();renderCatCfgArea();
 }
 
+let _dragPid=null, _dragOverPid=null;
+
 function renderProductCards(){
   const el=document.getElementById('product-cards');
-  const sorted=[...S.PM].sort((a,b)=>a.order-b.order);
+  const sorted=[...S.PM].sort((a,b)=>(a.order??0)-(b.order??0));
   el.innerHTML=sorted.map(p=>renderProductCard(p)).join('');
+  // ドラッグ＆ドロップ: カード全体にイベント設定
+  el.querySelectorAll('[data-pid]').forEach(card=>{
+    card.addEventListener('dragstart',e=>{
+      _dragPid=card.dataset.pid;
+      e.dataTransfer.effectAllowed='move';
+      setTimeout(()=>card.style.opacity='0.4',0);
+    });
+    card.addEventListener('dragend',()=>{
+      card.style.opacity='';
+      _dragPid=null; _dragOverPid=null;
+      el.querySelectorAll('[data-pid]').forEach(c=>c.style.outline='');
+    });
+    card.addEventListener('dragover',e=>{
+      e.preventDefault(); e.dataTransfer.dropEffect='move';
+      if(card.dataset.pid!==_dragPid){
+        card.style.outline='2px solid var(--accent)';
+        _dragOverPid=card.dataset.pid;
+      }
+    });
+    card.addEventListener('dragleave',()=>card.style.outline='');
+    card.addEventListener('drop',e=>{
+      e.preventDefault();
+      card.style.outline='';
+      if(!_dragPid||_dragPid===card.dataset.pid) return;
+      // 順序を入れ替え
+      const fromIdx=S.PM.findIndex(p=>p.id===_dragPid);
+      const toIdx=S.PM.findIndex(p=>p.id===card.dataset.pid);
+      if(fromIdx<0||toIdx<0) return;
+      const sorted2=[...S.PM].sort((a,b)=>(a.order??0)-(b.order??0));
+      const fi=sorted2.findIndex(p=>p.id===_dragPid);
+      const ti=sorted2.findIndex(p=>p.id===card.dataset.pid);
+      sorted2.splice(fi,1);
+      sorted2.splice(ti,0,S.PM[fromIdx]);
+      sorted2.forEach((p,i)=>p.order=i);
+      saveS(); renderProductCards();
+    });
+  });
 }
 
 function renderProductCard(p){
-  return `<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden">
-    <div style="background:var(--main-lt);padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-weight:700;font-size:13px">${p.name}</span>
-      <div style="display:flex;gap:8px;align-items:center">
+  const isNewCat=p.category.endsWith('新商品');
+  const curTags=new Set((p.tags||'').split(',').map(t=>t.trim()).filter(Boolean));
+
+  // ステータスバッジ
+  let badges='';
+  if(p.isNew||isNewCat) badges+=`<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:2px 7px;border-radius:10px;font-weight:700">🆕 新商品</span>`;
+  if(p.isInvest) badges+=`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:4px">📈 投資</span>`;
+  if(!p.isNew&&!isNewCat&&!p.isInvest) badges+=`<span style="font-size:10px;background:#f5f5f5;color:#888;padding:2px 7px;border-radius:10px">定番</span>`;
+
+  return `<div data-pid="${p.id}" draggable="true"
+    style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;cursor:default">
+    <!-- ヘッダー -->
+    <div style="background:var(--main-lt);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <span style="cursor:grab;font-size:18px;color:#aaa;line-height:1;flex-shrink:0" title="ドラッグして並び替え">⠿</span>
+        <div style="min-width:0">
+          <span style="font-weight:700;font-size:13px">${p.name}</span>
+          <div style="margin-top:2px;display:flex;gap:4px;flex-wrap:wrap">${badges}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
         <label class="toggle"><input type="checkbox" ${p.enabled?'checked':''} onchange="setProdField('${p.id}','enabled',this.checked)"><span class="slider"></span></label>
         <button class="btn-danger" style="padding:4px 8px;font-size:11px" onclick="delProduct('${p.id}')">削除</button>
       </div>
     </div>
+    <!-- 設定フィールド -->
     <div style="padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+      <div style="grid-column:span 2"><label>商品名</label>
+        <input type="text" value="${p.name}" onchange="setProdField('${p.id}','name',this.value)"></div>
       <div><label>カテゴリ</label>
         <select onchange="setProdField('${p.id}','category',this.value)">
           ${CATS.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}
         </select></div>
-      <div><label>表示順</label>
-        <input type="number" value="${p.order}" onchange="setProdField('${p.id}','order',parseInt(toHalf(this.value))||0)"></div>
+      <div><label>最低作成数</label>
+        <input type="number" value="${p.minCount||0}" min="0" onchange="setProdField('${p.id}','minCount',parseInt(toHalf(this.value))||0)"></div>
       <div><label>原価(円)</label>
         <input type="number" value="${p.cost}" step="0.01" onchange="setProdField('${p.id}','cost',parseFloat(toHalf(this.value))||0)"></div>
       <div><label>標準売価(円)</label>
@@ -1622,28 +1682,51 @@ function renderProductCard(p){
         <input type="number" value="${p.shopPrice}" onchange="setProdField('${p.id}','shopPrice',parseInt(toHalf(this.value))||0)"></div>
       <div><label>値引額(円)</label>
         <input type="number" value="${p.disc}" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)"></div>
-      <div><label>最低作成数</label>
-        <input type="number" value="${p.minCount||0}" min="0" onchange="setProdField('${p.id}','minCount',parseInt(toHalf(this.value))||0)"></div>
-      <div><label>タグ</label>
-        <input type="text" value="${p.tags||''}" onchange="setProdField('${p.id}','tags',this.value)"></div>
       <div><label>販売開始時</label>
         <input type="number" value="${p.timeStart??7}" min="0" max="23" onchange="setProdField('${p.id}','timeStart',parseInt(toHalf(this.value))||0)"></div>
       <div><label>販売終了時</label>
         <input type="number" value="${p.timeEnd??22}" min="1" max="24" onchange="setProdField('${p.id}','timeEnd',parseInt(this.value)||24)"></div>
+      <!-- タグ（チェックボックス） -->
       <div style="grid-column:span 2">
-        <label style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" ${p.isNew?'checked':''} onchange="setProdField('${p.id}','isNew',this.checked)">
-          新商品フラグ
-          ${p.isNew?`&nbsp;データ収集期間: <input type="number" value="${p.newDays||0}" min="0" style="width:50px" onchange="setProdField('${p.id}','newDays',parseInt(toHalf(this.value))||0)">日`:''}
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;margin-top:4px">
-          <input type="checkbox" ${p.isInvest?'checked':''} onchange="setProdField('${p.id}','isInvest',this.checked);renderBudgetPlan()">
-          <span style="color:var(--orange);font-weight:600">📈 定番投資対象</span>
-          <span style="font-size:11px;color:#999">（売れにくい定番商品を投資として管理）</span>
-        </label>
+        <label style="display:block;margin-bottom:4px">タグ</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          ${PROD_TAGS.map(tag=>`
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+              <input type="checkbox" ${curTags.has(tag)?'checked':''} onchange="toggleProdTag('${p.id}','${tag}',this.checked)">
+              ${tag}
+            </label>`).join('')}
+        </div>
       </div>
-      <div><label>商品名</label>
-        <input type="text" value="${p.name}" onchange="setProdField('${p.id}','name',this.value)"></div>
+      <!-- 種別チェック -->
+      <div style="grid-column:span 2;background:#fafafa;border-radius:6px;padding:8px 10px;border:1px solid #eee">
+        <div style="font-size:11px;color:#999;margin-bottom:6px;font-weight:600">商品種別</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="type_${p.id}" value="standard"
+              ${!p.isNew&&!p.isInvest?'checked':''}
+              onchange="setProdType('${p.id}','standard')">
+            <span style="font-size:12px;color:#555">📦 定番商品</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="type_${p.id}" value="new"
+              ${p.isNew?'checked':''}
+              onchange="setProdType('${p.id}','new')">
+            <span style="font-size:12px;color:#1565c0;font-weight:600">🆕 新商品</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="type_${p.id}" value="invest"
+              ${p.isInvest?'checked':''}
+              onchange="setProdType('${p.id}','invest')">
+            <span style="font-size:12px;color:#e65100;font-weight:600">📈 投資対象</span>
+          </label>
+        </div>
+        ${p.isNew?`<div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px">
+          <span style="color:#666">データ収集期間:</span>
+          <input type="number" value="${p.newDays||0}" min="0" style="width:55px"
+            onchange="setProdField('${p.id}','newDays',parseInt(toHalf(this.value))||0)">
+          <span style="color:#666">日</span>
+        </div>`:''}
+      </div>
     </div>
   </div>`;
 }
@@ -1653,10 +1736,30 @@ function setProdField(pid,key,val){
   p[key]=val;saveS();renderProductCards();
 }
 
+function setProdType(pid,type){
+  const p=S.PM.find(x=>x.id===pid);if(!p)return;
+  p.isNew=(type==='new');
+  p.isInvest=(type==='invest');
+  if(type!=='new') p.newDays=0;
+  saveS();renderProductCards();renderBudgetPlan();
+}
+
+function toggleProdTag(pid,tag,checked){
+  const p=S.PM.find(x=>x.id===pid);if(!p)return;
+  const tags=new Set((p.tags||'').split(',').map(t=>t.trim()).filter(Boolean));
+  checked?tags.add(tag):tags.delete(tag);
+  p.tags=[...tags].join(',');
+  saveS();renderProductCards();
+}
+
 function addProduct(){
   const id='p'+(Date.now());
-  S.PM.push({id,name:'新商品',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:999,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22});
+  const minOrder=S.PM.length?Math.min(...S.PM.map(p=>p.order??0)):0;
+  S.PM.unshift({id,name:'新商品',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:minOrder-1,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22});
   saveS();renderProductCards();
+  // 追加カードの先頭へスクロール
+  const el=document.getElementById('product-cards');
+  if(el) el.scrollIntoView({block:'start',behavior:'smooth'});
 }
 
 function delProduct(pid){
@@ -4113,10 +4216,21 @@ ${content.slice(0,8000)}
 
   if(apiKey){
     try{
+      // PDF か テキストかで content ブロックを切り替え
+      let msgContent;
+      if(content.startsWith('__PDF_BASE64__:')){
+        const b64=content.slice('__PDF_BASE64__:'.length);
+        msgContent=[
+          {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+          {type:'text',text:prompt.replace(content.slice(0,8000),'（添付PDFを参照）')}
+        ];
+      } else {
+        msgContent=prompt;
+      }
       const resp=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:'claude-opus-4-5',max_tokens:1024,messages:[{role:'user',content:prompt}]})
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,messages:[{role:'user',content:msgContent}]})
       });
       const data=await resp.json();
       if(!data.error){
@@ -4169,37 +4283,85 @@ function parseResearchFallback(content){
 function renderResearchCard(){
   const el=document.getElementById('research-card-content');
   if(!el) return;
-  const hasClientId=!!gdGetClientId();
-  const hasToken=!!gdGetToken();
   const weekKey=S.activeWeek;
+  // 読み込み済みかチェック
+  const loaded=S.weeks?.[weekKey]?.researchLoaded;
+  const loadedAt=S.weeks?.[weekKey]?.researchLoadedAt;
+  const loadedFile=S.weeks?.[weekKey]?.researchFileName||'';
 
-  let html=`<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
-    <div>
-      <div class="section-title" style="margin:0;display:flex;align-items:center;gap:6px">
-        <span>📥 商圏リサーチ読み込み</span>
-        ${hasToken?'<span style="font-size:11px;background:#e8f5e9;color:var(--green);padding:2px 8px;border-radius:10px;font-weight:600">Google連携済</span>':''}
-      </div>
-      <div style="font-size:12px;color:var(--gray);margin-top:3px">Google Driveのリサーチ結果を読み込み、天気・イベント・補正係数を自動セット</div>
-    </div>`;
-
-  if(!hasClientId){
-    html+=`<button onclick="showGdSetupModal()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">🔧 Google連携を設定</button>`;
-  } else if(!hasToken){
-    html+=`<div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button onclick="gdSignIn()" style="padding:8px 16px;background:#4285F4;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
-        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        Googleにサインイン
-      </button>
-      <button onclick="showGdSetupModal()" style="padding:8px 10px;background:#f0f0f0;color:#666;border:none;border-radius:8px;font-size:12px;cursor:pointer">⚙️ 設定変更</button>
-    </div>`;
-  } else {
-    html+=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-      <button id="research-load-btn" onclick="loadResearch()" style="padding:9px 18px;background:var(--main);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">📥 読み込む（${weekKey}週）</button>
-      <button onclick="gdRevokeSession()" style="padding:7px 12px;background:#f0f0f0;color:#666;border:none;border-radius:8px;font-size:12px;cursor:pointer">サインアウト</button>
-    </div>`;
+  let statusBadge='';
+  if(loaded){
+    const dt=loadedAt?new Date(loadedAt).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    statusBadge=`<span style="font-size:11px;background:#e8f5e9;color:var(--green);padding:2px 8px;border-radius:10px;font-weight:600">✅ 読込済 ${dt}</span>`;
   }
-  html+=`</div>`;
-  el.innerHTML=html;
+
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="section-title" style="margin:0;display:flex;align-items:center;gap:6px">
+          <span>🌍 商圏リサーチ読み込み</span>
+          ${statusBadge}
+        </div>
+        <div style="font-size:12px;color:var(--gray);margin-top:3px">
+          ${loaded?`<span style="color:#666">${loadedFile}</span>`:
+          'テキスト/PDFファイルを読み込み、天気・イベント・補正係数を自動セット'}
+        </div>
+      </div>
+      <button id="research-file-btn" onclick="openResearchFileInput()"
+        style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+        📄 ファイルを選択
+      </button>
+    </div>
+    <input type="file" id="research-file-input" accept=".txt,.md,.pdf,.csv"
+      style="display:none" onchange="handleResearchFileInput(this)">`;
+}
+
+function openResearchFileInput(){
+  const apiKey=localStorage.getItem('claude_api_key');
+  if(!apiKey){
+    alert('Claude APIキーが設定されていません。\n④作成表タブ右下の「🤖 店長BOT」からAPIキーを設定してください。');
+    return;
+  }
+  const inp=document.getElementById('research-file-input');
+  if(inp){inp.value='';inp.click();}
+}
+
+async function handleResearchFileInput(input){
+  const file=input.files?.[0];
+  if(!file) return;
+  if(file.size>32*1024*1024){alert('ファイルサイズが上限（32MB）を超えています。');return;}
+
+  const btn=document.getElementById('research-file-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 解析中...';}
+
+  try{
+    let content='';
+    if(file.type==='application/pdf'){
+      // PDF: base64で送信
+      const base64=await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=()=>res(r.result.split(',')[1]);
+        r.onerror=rej;
+        r.readAsDataURL(file);
+      });
+      content='__PDF_BASE64__:'+base64;
+    } else {
+      content=await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=()=>res(r.result);
+        r.onerror=rej;
+        r.readAsText(file,'UTF-8');
+      });
+    }
+    const weekKey=S.activeWeek;
+    const {result,source}=await parseResearchContent(content,weekKey);
+    showResearchPreviewModal(result,file.name,source);
+  }catch(err){
+    alert('❌ 読み込みエラー:\n'+err.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='📄 ファイルを選択';}
+    renderResearchCard();
+  }
 }
 
 // --- 読み込みメイン処理 ---
@@ -4241,10 +4403,11 @@ function saveGdClientId(){
 }
 
 // --- リサーチプレビューモーダル ---
-let _researchPreviewData=null;
+let _researchPreviewData=null, _researchPreviewFileName='';
 
 function showResearchPreviewModal(parsed,fileName,source){
   _researchPreviewData=JSON.parse(JSON.stringify(parsed));
+  _researchPreviewFileName=fileName||'';
   const modal=document.getElementById('research-preview-modal');
   modal.style.display='flex';
   renderResearchPreviewContent(fileName,source);
@@ -4342,6 +4505,12 @@ function closeResearchPreviewModal(){
 function applyResearch(){
   if(!_researchPreviewData) return;
   const {temp}=getSeasonalTemp();
+  // 読み込み済みフラグ保存
+  const weekKey=S.activeWeek;
+  if(!S.weeks[weekKey]) S.weeks[weekKey]={};
+  S.weeks[weekKey].researchLoaded=true;
+  S.weeks[weekKey].researchLoadedAt=new Date().toISOString();
+  S.weeks[weekKey].researchFileName=_researchPreviewFileName||'';
   DAYS.forEach((day,i)=>{
     const d=_researchPreviewData[day];if(!d) return;
     if(!S.ext[i]) S.ext[i]={weather:'晴れ',temp,event:'',correction:0};
