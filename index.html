@@ -2403,10 +2403,10 @@ function renderBudgetPlan(){
     nextTotalCost+=cnt_week*p.cost;
     // 商品別の実績レート（S.ji + 他週）
     const ji=_getJiAllWeeks(p.id);
-    // ※ ji.total=0 は「販売率=0」ではなく「実績未入力」を意味する。
-    //   実績未入力の場合は廃棄・値引を 0 で計算し、警告を表示する。
-    //   （「定価販売数=0で作成数>0」という実績がある場合のみ廃棄100%が正当）
-    const haiki_rate_p =ji.total?ji.haiki/ji.total:0;
+    // ※ ji.total=0（実績未入力）の場合は廃棄率100%・値引率0%を使用する。
+    //   作成計画がある以上、実績なし=全廃棄リスクとして保守的に見積もるのが正当。
+    //   利益がマイナスになるのは意図した動作（「このまま作ると赤字」の警告）。
+    const haiki_rate_p =ji.total?ji.haiki/ji.total:1.0;
     const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0;
     if(!ji.total&&cnt_week>0) noDataProds.push(p.name);
     // 想定廃棄額（売価ベース）= 作成数 × 廃棄率 × 売価
@@ -2497,9 +2497,9 @@ function renderBudgetPlan(){
       </div>
     </div>
     ${noDataProds.length?`<div class="alert alert-warn" style="background:#fff8e1;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px">
-      ⚠️ <b>実績データなし商品が${noDataProds.length}件あります。</b>廃棄率・値引率を 0% で計算しているため、予算計画が楽観的になっています。<br>
+      ⚠️ <b>実績データなし商品が${noDataProds.length}件あります。廃棄率100%で計算しています。</b><br>
       <span style="color:#92400e">対象商品：${noDataProds.join('、')}</span><br>
-      <span style="color:#78350f">→ ①実績入力タブでこれらの商品の実績（定価販売数・値引販売数・廃棄数）を入力してください。</span>
+      <span style="color:#78350f">→ これらの商品を作成計画から除外するか、①実績入力タブで実績を入力すると正確な計算になります。</span>
     </div>`:''}
     ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>想定廃棄額・売変額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
     <div style="margin-top:16px">
