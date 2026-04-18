@@ -2137,16 +2137,22 @@ function renderBudgetPlan(){
     });
   });
 
-  // ── 実績数量レート集計 ──
-  // テイカ数・値引数・廃棄数・値引金額・値引定価合計 を全商品で合算
+  // ── 実績数量レート集計（全週を合算してレートを算出）──
+  // S.weeksに保存済みの全週jissekiを合算し、過去実績から廃棄・値引レートを算出
+  // ※S.jiはsyncActiveWeek()によりS.weeks[activeWeek].jiと同一なのでweeksのみ使用
   let sumTeika=0, sumNebiki=0, sumHaiki=0;
   let sumNebikiDiscAmt=0, sumNebikiShopAmt=0;
+  const weekJiList=Object.values(S.weeks||{}).map(w=>w.ji||{});
+  // 全週のデータが空ならS.jiを直接使う（フォールバック）
+  if(weekJiList.length===0)weekJiList.push(S.ji||{});
   S.PM.forEach(p=>{
-    const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
-    const t=ji.teika||0, n=ji.nebiki||0, h=ji.haiki||0;
-    sumTeika +=t; sumNebiki+=n; sumHaiki+=h;
-    sumNebikiDiscAmt +=n*p.disc;        // 値引合計金額
-    sumNebikiShopAmt +=n*p.shopPrice;   // 値引対象の定価合計
+    weekJiList.forEach(jiSrc=>{
+      const ji=jiSrc[p.id];if(!ji)return;
+      const t=ji.teika||0, n=ji.nebiki||0, h=ji.haiki||0;
+      sumTeika +=t; sumNebiki+=n; sumHaiki+=h;
+      sumNebikiDiscAmt +=n*p.disc;       // 値引合計金額
+      sumNebikiShopAmt +=n*p.shopPrice;  // 値引対象の定価合計
+    });
   });
   const sumAll=sumTeika+sumNebiki+sumHaiki;
 
@@ -2177,6 +2183,7 @@ function renderBudgetPlan(){
 
   const pColor=nextProfitRate>=30?'var(--green)':nextProfitRate>=15?'var(--orange)':'var(--red)';
   const hasJisseki=sumAll>0;
+  const hasNebikiHaiki=(sumNebiki+sumHaiki)>0;
 
   el.innerHTML=`
     <div class="summary-grid">
@@ -2188,12 +2195,12 @@ function renderBudgetPlan(){
       <div class="summary-box">
         <div class="label">想定廃棄額<span style="font-size:9px">（売価ベース）</span></div>
         <div class="value">${fmt(nextWasteAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${hasJisseki?`作成高×廃棄率${(haiki_rate*100).toFixed(1)}%`:'実績なし'}</div>
+        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成高×廃棄率${(haiki_rate*100).toFixed(1)}%`:'①実績に廃棄数を入力↑'}</div>
       </div>
       <div class="summary-box">
         <div class="label">想定値引額</div>
         <div class="value">${fmt(nextDiscAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${hasJisseki?`作成高×値引率${(nebiki_rate*100).toFixed(1)}%×値引単価率${(avg_disc_rate*100).toFixed(1)}%`:'実績なし'}</div>
+        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成高×値引率${(nebiki_rate*100).toFixed(1)}%×値引単価率${(avg_disc_rate*100).toFixed(1)}%`:'①実績に値引数を入力↑'}</div>
       </div>
       <div class="summary-box">
         <div class="label">次週売上高（正式）</div>
@@ -2221,7 +2228,7 @@ function renderBudgetPlan(){
         <div style="font-size:10px;color:#999;margin-top:2px">商品別手入力の合計 ↓</div>
       </div>
     </div>
-    ${!hasJisseki?'<div class="alert alert-info">実績データがないため廃棄・値引の推計は0円です。実績を入力すると自動反映されます。</div>':''}
+    ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>想定廃棄額・値引額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
     <div style="margin-top:16px">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">📦 新商品予算（正式）— 商品別入力</div>
       ${renderNewProductBudgetTable(newBudgetMax)}
