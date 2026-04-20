@@ -307,7 +307,12 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       </div>
       <div class="card">
         <div class="section-title">商品マスタ</div>
-        <button class="btn-primary mb-2" onclick="addProduct()">+ 商品追加</button>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          <button class="btn-primary" style="width:auto;margin:0;padding:6px 14px;font-size:13px" onclick="addProduct()">+ 商品追加</button>
+          <button type="button" onclick="collapseAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer">すべて閉じる</button>
+          <button type="button" onclick="expandAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer">すべて開く</button>
+          <span style="font-size:11px;color:#888;margin-left:auto">💡 ⠿ドラッグ または ▲▼ で並び替え</span>
+        </div>
         <div id="product-cards"></div>
       </div>
     </div>
@@ -1620,34 +1625,67 @@ function renderProductCards(){
   });
 }
 
+// 展開中カードのID（セッション内メモリ）
+const _expandedCards=new Set();
+function toggleCardExpand(pid,e){
+  if(e){ e.stopPropagation(); }
+  if(_expandedCards.has(pid)) _expandedCards.delete(pid);
+  else _expandedCards.add(pid);
+  renderProductCards();
+}
+function collapseAllCards(){ _expandedCards.clear(); renderProductCards(); }
+function expandAllCards(){ S.PM.forEach(p=>_expandedCards.add(p.id)); renderProductCards(); }
+function moveProduct(pid,dir){
+  const sorted=[...S.PM].sort((a,b)=>(a.order??0)-(b.order??0));
+  const idx=sorted.findIndex(x=>x.id===pid);
+  const swapIdx=idx+dir;
+  if(idx<0||swapIdx<0||swapIdx>=sorted.length) return;
+  // order を入れ替え
+  const a=sorted[idx], b=sorted[swapIdx];
+  const tmp=a.order; a.order=b.order; b.order=tmp;
+  saveS(); renderProductCards();
+}
+
 function renderProductCard(p){
   const isNewCat=p.category.endsWith('新商品');
   const curTags=new Set((p.tags||'').split(',').map(t=>t.trim()).filter(Boolean));
+  const expanded=_expandedCards.has(p.id);
 
-  // ステータスバッジ
+  // ステータスバッジ（コンパクト）
   let badges='';
-  if(p.isNew||isNewCat) badges+=`<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:2px 7px;border-radius:10px;font-weight:700">🆕 新商品</span>`;
-  if(p.isInvest) badges+=`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:4px">📈 投資</span>`;
-  if(!p.isNew&&!isNewCat&&!p.isInvest) badges+=`<span style="font-size:10px;background:#f5f5f5;color:#888;padding:2px 7px;border-radius:10px">定番</span>`;
+  if(p.isNew||isNewCat) badges+=`<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:1px 6px;border-radius:8px;font-weight:700">🆕</span>`;
+  if(p.isInvest) badges+=`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:8px;font-weight:700">📈</span>`;
+
+  // 一覧で見える要約: カテゴリ + 売価 + 値引
+  const summary=`<span style="font-size:10px;color:#888">${p.category}</span>
+    <span style="font-size:10px;color:#555">¥${p.shopPrice}</span>
+    <span style="font-size:10px;color:#d97706">-¥${p.disc}</span>`;
 
   return `<div data-pid="${p.id}" draggable="true"
-    style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;cursor:default">
-    <!-- ヘッダー -->
-    <div style="background:var(--main-lt);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <div style="display:flex;align-items:center;gap:8px;min-width:0">
-        <span style="cursor:grab;font-size:18px;color:#aaa;line-height:1;flex-shrink:0" title="ドラッグして並び替え">⠿</span>
-        <div style="min-width:0">
-          <span style="font-weight:700;font-size:13px">${p.name}</span>
-          <div style="margin-top:2px;display:flex;gap:4px;flex-wrap:wrap">${badges}</div>
-        </div>
+    style="border:1px solid var(--border);border-radius:6px;margin-bottom:4px;overflow:hidden;cursor:default;${!p.enabled?'opacity:.55':''}">
+    <!-- コンパクトヘッダー（常に表示）-->
+    <div style="background:var(--main-lt);padding:4px 6px;display:flex;align-items:center;gap:6px;font-size:12px">
+      <span style="cursor:grab;font-size:16px;color:#888;padding:0 2px;flex-shrink:0;user-select:none" title="ドラッグで並び替え">⠿</span>
+      <div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">
+        <button type="button" onclick="moveProduct('${p.id}',-1)" style="padding:0;width:18px;height:14px;border:1px solid #ccc;background:#fff;border-radius:3px;cursor:pointer;font-size:9px;line-height:1" title="上へ">▲</button>
+        <button type="button" onclick="moveProduct('${p.id}',1)" style="padding:0;width:18px;height:14px;border:1px solid #ccc;background:#fff;border-radius:3px;cursor:pointer;font-size:9px;line-height:1" title="下へ">▼</button>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-        <label class="toggle"><input type="checkbox" ${p.enabled?'checked':''} onchange="setProdField('${p.id}','enabled',this.checked)"><span class="slider"></span></label>
-        <button class="btn-danger" style="padding:4px 8px;font-size:11px" onclick="delProduct('${p.id}')">削除</button>
+      <div onclick="toggleCardExpand('${p.id}',event)" style="flex:1;min-width:0;cursor:pointer;display:flex;align-items:center;gap:6px;overflow:hidden">
+        <span style="font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</span>
+        ${badges}
+        <span style="display:flex;gap:6px;margin-left:auto;white-space:nowrap">${summary}</span>
       </div>
+      <label class="toggle" onclick="event.stopPropagation()" title="有効/無効">
+        <input type="checkbox" ${p.enabled?'checked':''} onchange="setProdField('${p.id}','enabled',this.checked)">
+        <span class="slider"></span>
+      </label>
+      <button type="button" onclick="toggleCardExpand('${p.id}',event)"
+        style="padding:2px 6px;font-size:11px;border:none;background:transparent;color:#666;cursor:pointer" title="${expanded?'閉じる':'詳細を開く'}">
+        ${expanded?'▲':'▼'}
+      </button>
     </div>
-    <!-- 設定フィールド -->
-    <div style="padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+    ${expanded?`
+    <div style="padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
       <div style="grid-column:span 2"><label>商品名</label>
         <input type="text" value="${p.name}" onchange="setProdField('${p.id}','name',this.value)"></div>
       <div><label>カテゴリ</label>
@@ -1722,7 +1760,10 @@ function renderProductCard(p){
           <span style="color:#666">日</span>
         </div>`:''}
       </div>
-    </div>
+      <div style="grid-column:span 2;text-align:right">
+        <button class="btn-danger" style="padding:3px 10px;font-size:11px" onclick="delProduct('${p.id}')">削除</button>
+      </div>
+    </div>`:''}
   </div>`;
 }
 
@@ -1768,6 +1809,7 @@ function addProduct(){
   const id='p'+(Date.now());
   const minOrder=S.PM.length?Math.min(...S.PM.map(p=>p.order??0)):0;
   S.PM.unshift({id,name:'新商品',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:minOrder-1,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22});
+  _expandedCards.add(id); // 新規商品は自動で展開
   saveS();renderProductCards();
   // 追加カードの先頭へスクロール
   const el=document.getElementById('product-cards');
