@@ -944,6 +944,7 @@ function showTab(n){
   document.getElementById('bottom-bar').style.display=n===3?'flex':'none';
   if(n===3) renderProdDayContent(currentProdDay);
   if(n===4) renderBudgetTab();
+  if(n===5) renderDiscTab();
   if(n===6) renderOrderTable();
 }
 
@@ -1680,6 +1681,10 @@ function renderProductCard(p){
         <input type="number" value="${p.stdPrice}" onchange="setProdField('${p.id}','stdPrice',parseInt(toHalf(this.value))||0)"></div>
       <div><label>店頭売価(円)</label>
         <input type="number" value="${p.shopPrice}" onchange="setProdField('${p.id}','shopPrice',parseInt(toHalf(this.value))||0)"></div>
+      <div><label>値入率(%) <span style="font-size:10px;color:#999">売価基準</span></label>
+        <input type="number" value="${calcMarkupRate(p)}" step="0.1" min="0" max="100"
+          onchange="setMarkupRate('${p.id}',parseFloat(toHalf(this.value))||0)"
+          title="値入率=(店頭売価-原価)/店頭売価×100。変更すると原価が再計算されます"></div>
       <div><label>値引額(円)</label>
         <input type="number" value="${p.disc}" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)"></div>
       <div><label>販売開始時</label>
@@ -1734,6 +1739,26 @@ function renderProductCard(p){
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
   p[key]=val;saveS();renderProductCards();
+  // 値引額は⑥値引額設定タブにも反映
+  if(key==='disc' && document.getElementById('disc-table')){ renderDiscTab(); }
+}
+
+// 値入率（売価基準）= (店頭売価 − 原価) / 店頭売価 × 100
+function calcMarkupRate(p){
+  const sp=Number(p.shopPrice)||0;
+  if(sp<=0) return 0;
+  const rate=(sp-Number(p.cost||0))/sp*100;
+  return Math.round(rate*10)/10;
+}
+
+// 値入率入力 → 原価を逆算（店頭売価を基準に）
+function setMarkupRate(pid,rate){
+  const p=S.PM.find(x=>x.id===pid);if(!p)return;
+  const sp=Number(p.shopPrice)||0;
+  if(sp<=0){ alert('店頭売価を先に入力してください'); renderProductCards(); return; }
+  if(rate<0) rate=0; if(rate>100) rate=100;
+  p.cost=Math.round(sp*(1-rate/100)*100)/100;
+  saveS();renderProductCards();
 }
 
 function setProdType(pid,type){
@@ -3340,6 +3365,8 @@ function setDisc(pid,val,el){
   S.discHist.unshift({pid,name:p.name,from:old,to:val,date:new Date().toLocaleDateString()});
   if(S.discHist.length>3*S.PM.length)S.discHist=S.discHist.slice(0,3*S.PM.length);
   saveS();renderDiscHistory();
+  // ②商品設定の値引額フィールドにも反映（既にレンダリング済みの場合のみ）
+  if(document.getElementById('product-cards')) renderProductCards();
 }
 
 function autoCalcDisc(){
