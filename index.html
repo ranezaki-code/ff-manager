@@ -1671,7 +1671,7 @@ function renderProductCard(p){
         <button type="button" onclick="moveProduct('${p.id}',1)" style="padding:0;width:18px;height:14px;border:1px solid #ccc;background:#fff;border-radius:3px;cursor:pointer;font-size:9px;line-height:1" title="下へ">▼</button>
       </div>
       <div onclick="toggleCardExpand('${p.id}',event)" style="flex:1;min-width:0;cursor:pointer;display:flex;align-items:center;gap:6px;overflow:hidden">
-        <span style="font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</span>
+        <span style="font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${!p.name?'color:#bbb;font-weight:400':''}">${p.name||'(名称未設定)'}</span>
         ${badges}
         <span style="display:flex;gap:6px;margin-left:auto;white-space:nowrap">${summary}</span>
       </div>
@@ -1689,7 +1689,7 @@ function renderProductCard(p){
     ${expanded?`
     <div style="padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
       <div style="grid-column:span 2"><label>商品名</label>
-        <input type="text" value="${p.name}" onchange="setProdField('${p.id}','name',this.value)"></div>
+        <input type="text" value="${p.name||''}" placeholder="商品名を入力" onchange="setProdField('${p.id}','name',this.value)"></div>
       <div><label>カテゴリ</label>
         <select onchange="setProdField('${p.id}','category',this.value)">
           ${CATS.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}
@@ -1766,9 +1766,15 @@ function renderProductCard(p){
   </div>`;
 }
 
+// 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
+const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','timeStart','timeEnd','newDays']);
+
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
-  p[key]=val;saveS();renderProductCards();
+  p[key]=val;saveS();
+  // 入力系フィールドは再描画しない（フォーカス奪取を防ぐ）
+  if(_PROD_FIELDS_SILENT.has(key)) return;
+  renderProductCards();
 }
 
 // 値入率（売価基準）= (店頭売価 − 原価) / 店頭売価 × 100
@@ -1807,9 +1813,15 @@ function toggleProdTag(pid,tag,checked){
 function addProduct(){
   const id='p'+(Date.now());
   const minOrder=S.PM.length?Math.min(...S.PM.map(p=>p.order??0)):0;
-  S.PM.unshift({id,name:'新商品',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:minOrder-1,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22});
+  S.PM.unshift({id,name:'',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:minOrder-1,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22});
   _expandedCards.add(id); // 新規商品は自動で展開
   saveS();renderProductCards();
+  // 新規カードの商品名入力にフォーカス
+  setTimeout(()=>{
+    const card=document.querySelector(`[data-pid="${id}"]`);
+    const nameInput=card?.querySelector('input[type="text"]');
+    if(nameInput){ nameInput.focus(); nameInput.select(); }
+  },50);
   // 追加カードの先頭へスクロール
   const el=document.getElementById('product-cards');
   if(el) el.scrollIntoView({block:'start',behavior:'smooth'});
