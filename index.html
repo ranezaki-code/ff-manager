@@ -1679,6 +1679,8 @@ function renderProductCard(p){
         <input type="checkbox" ${p.enabled?'checked':''} onchange="setProdField('${p.id}','enabled',this.checked)">
         <span class="slider"></span>
       </label>
+      <button type="button" onclick="event.stopPropagation();delProduct('${p.id}')"
+        style="padding:2px 6px;font-size:12px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:4px;cursor:pointer;line-height:1" title="削除">🗑</button>
       <button type="button" onclick="toggleCardExpand('${p.id}',event)"
         style="padding:2px 6px;font-size:11px;border:none;background:transparent;color:#666;cursor:pointer" title="${expanded?'閉じる':'詳細を開く'}">
         ${expanded?'▲':'▼'}
@@ -1759,9 +1761,6 @@ function renderProductCard(p){
             onchange="setProdField('${p.id}','newDays',parseInt(toHalf(this.value))||0)">
           <span style="color:#666">日</span>
         </div>`:''}
-      </div>
-      <div style="grid-column:span 2;text-align:right">
-        <button class="btn-danger" style="padding:3px 10px;font-size:11px" onclick="delProduct('${p.id}')">削除</button>
       </div>
     </div>`:''}
   </div>`;
