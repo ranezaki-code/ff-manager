@@ -1662,10 +1662,13 @@ function renderProductCard(p){
         <input type="number" value="${p.stdPrice}" onchange="setProdField('${p.id}','stdPrice',parseInt(toHalf(this.value))||0)"></div>
       <div><label>店頭売価(円)</label>
         <input type="number" value="${p.shopPrice}" onchange="setProdField('${p.id}','shopPrice',parseInt(toHalf(this.value))||0)"></div>
-      <div><label>値入率(%) <span style="font-size:10px;color:#999">売価基準</span></label>
-        <input type="number" value="${calcMarkupRate(p)}" step="0.1" min="0" max="100"
-          onchange="setMarkupRate('${p.id}',parseFloat(toHalf(this.value))||0)"
-          title="値入率=(店頭売価-原価)/店頭売価×100。変更すると原価が再計算されます"></div>
+      <div><label>値入率(%) <span style="font-size:10px;color:#999">売価基準</span>
+        <button type="button" onclick="recalcMarkupFromCost('${p.id}')"
+          style="margin-left:4px;padding:1px 6px;font-size:10px;border-radius:5px;border:1px solid var(--main);background:#fff;color:var(--main);cursor:pointer"
+          title="(店頭売価-原価)/店頭売価×100 で再計算して上書き">自動</button></label>
+        <input type="number" value="${p.markupRate ?? calcMarkupRate(p)}" step="0.1" min="0" max="100"
+          onchange="setProdField('${p.id}','markupRate',parseFloat(toHalf(this.value))||0)"
+          title="値入率は独立して保存されます。「自動」ボタンで原価・店頭売価から再計算できます"></div>
       <div><label>値引額(円)</label>
         <div style="display:flex;gap:4px">
           <input type="number" value="${p.disc}" style="flex:1;min-width:0" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)">
@@ -1736,13 +1739,12 @@ function calcMarkupRate(p){
   return Math.round(rate*10)/10;
 }
 
-// 値入率入力 → 原価を逆算（店頭売価を基準に）
-function setMarkupRate(pid,rate){
+// 「自動」ボタン: 原価・店頭売価から値入率を再計算して p.markupRate に上書き
+function recalcMarkupFromCost(pid){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
   const sp=Number(p.shopPrice)||0;
-  if(sp<=0){ alert('店頭売価を先に入力してください'); renderProductCards(); return; }
-  if(rate<0) rate=0; if(rate>100) rate=100;
-  p.cost=Math.round(sp*(1-rate/100)*100)/100;
+  if(sp<=0){ alert('店頭売価が0円です'); return; }
+  p.markupRate=calcMarkupRate(p);
   saveS();renderProductCards();
 }
 
