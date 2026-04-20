@@ -1408,16 +1408,17 @@ function initGlobalInputHandlers(){
       setTimeout(()=>el.select(),10);
     }
   },true);
-  // IME確定時（全角→半角変換）
+  // IME確定時（数値入力のみ全角→半角変換。通常テキストは触らない）
   document.addEventListener('compositionend',function(e){
     const el=e.target;
     if(el.tagName!=='INPUT')return;
+    // 数値入力のみ変換対象。通常の text 入力（商品名など）は IME 確定結果を尊重してそのまま残す
     if(el.type==='number'){
       const composed=e.data||'';
       const half=toHalf(composed);
       const num=parseFloat(half);
       if(!isNaN(num)){el.value=half;el.dispatchEvent(new Event('change',{bubbles:true}));}
-    } else {
+    } else if(el.type==='text' && el.inputMode==='numeric'){
       const half=toHalf(el.value);
       if(half!==el.value){
         el.value=half;
@@ -1425,6 +1426,7 @@ function initGlobalInputHandlers(){
         el.dispatchEvent(new Event('change',{bubbles:true}));
       }
     }
+    // 普通の text（商品名等）は触らない → 2重入力バグ回避
   },true);
   // 通常入力時（type="text"+inputmode="numeric"の全角変換）
   document.addEventListener('input',function(e){
@@ -1441,6 +1443,8 @@ function initGlobalInputHandlers(){
   // Enterキーで次の入力欄へ移動（客数グリッドは除く・そちらは独自ハンドラ）
   document.addEventListener('keydown',function(e){
     if(e.key!=='Enter')return;
+    // IME変換中のEnterはスキップ（確定のEnterを奪わない）
+    if(e.isComposing||e.keyCode===229)return;
     const el=e.target;
     if(el.tagName!=='INPUT'&&el.tagName!=='SELECT')return;
     if(el.id&&el.id.startsWith('cust-'))return;
