@@ -949,9 +949,14 @@ function getCatSlotRange(cat,slotH){
   return [slotH,end];
 }
 
+// 作成開始から売場陳列完了までの所要時間（時間）
+const PREP_HOURS=1;
+
 function getMarkdownTime(cat,slotH){
   const cfg=S.catCfg[cat];if(!cfg)return null;
-  return slotH+cfg.ah-2;
+  // 売場陳列完了(=slotH+PREP_HOURS)から賞味時間(cfg.ah)経過で廃棄
+  // 値引きは廃棄の2時間前 → slotH + PREP_HOURS + cfg.ah - 2
+  return slotH+PREP_HOURS+cfg.ah-2;
 }
 
 function roundCnt(v){
