@@ -263,8 +263,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <button class="tab-btn" onclick="showTab(2)">③外部ファクト</button>
     <button class="tab-btn" onclick="showTab(3)">④作成表</button>
     <button class="tab-btn" onclick="showTab(4)">⑤予算管理</button>
-    <button class="tab-btn" onclick="showTab(5)">⑥値引額設定</button>
-    <button class="tab-btn" onclick="showTab(6)">⑦発注管理表</button>
+    <button class="tab-btn" onclick="showTab(5)">⑥発注管理表</button>
   </div>
   <div id="content">
     <!-- Tab 0: 実績入力 -->
@@ -423,29 +422,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       </div>
     </div>
 
-    <!-- Tab 5: 値引額設定 -->
+    <!-- Tab 5: 発注管理表 -->
     <div class="tab-panel" id="tab5">
-      <div class="card">
-        <div class="section-title">値引額設定</div>
-        <div class="flex gap-2 mb-2 flex-wrap">
-          <button class="btn-primary" onclick="autoCalcDisc()">全商品を自動計算する</button>
-          <div style="flex:1;min-width:120px">
-            <select id="disc-cat-filter" onchange="renderDiscTab()">
-              <option value="">全カテゴリ</option>
-            </select>
-          </div>
-        </div>
-        <div id="disc-preview" class="mb-2"></div>
-        <div class="overflow-auto"><div id="disc-table"></div></div>
-      </div>
-      <div class="card">
-        <div class="section-title">変更履歴（直近3件）</div>
-        <div id="disc-history"></div>
-      </div>
-    </div>
-
-    <!-- Tab 6: 発注管理表 -->
-    <div class="tab-panel" id="tab6">
       <div id="order-table-content"></div>
     </div>
 
@@ -919,7 +897,6 @@ function renderAll(){
   renderExtTab();
   renderProdDayTabs();
   renderBudgetTab();
-  renderDiscTab();
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
@@ -944,8 +921,7 @@ function showTab(n){
   document.getElementById('bottom-bar').style.display=n===3?'flex':'none';
   if(n===3) renderProdDayContent(currentProdDay);
   if(n===4) renderBudgetTab();
-  if(n===5) renderDiscTab();
-  if(n===6) renderOrderTable();
+  if(n===5) renderOrderTable();
 }
 
 // ============================================================
@@ -1686,7 +1662,13 @@ function renderProductCard(p){
           onchange="setMarkupRate('${p.id}',parseFloat(toHalf(this.value))||0)"
           title="値入率=(店頭売価-原価)/店頭売価×100。変更すると原価が再計算されます"></div>
       <div><label>値引額(円)</label>
-        <input type="number" value="${p.disc}" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)"></div>
+        <div style="display:flex;gap:4px">
+          <input type="number" value="${p.disc}" style="flex:1;min-width:0" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)">
+          <button type="button" onclick="calcDiscForProduct('${p.id}')"
+            style="padding:4px 8px;font-size:11px;border-radius:6px;border:1px solid var(--main);background:#fff;color:var(--main);cursor:pointer;white-space:nowrap"
+            title="原価×25%（切上）で自動算出">算出</button>
+        </div>
+      </div>
       <div><label>販売開始時</label>
         <input type="number" value="${p.timeStart??7}" min="0" max="23" onchange="setProdField('${p.id}','timeStart',parseInt(toHalf(this.value))||0)"></div>
       <div><label>販売終了時</label>
@@ -1739,8 +1721,6 @@ function renderProductCard(p){
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
   p[key]=val;saveS();renderProductCards();
-  // 値引額は⑥値引額設定タブにも反映
-  if(key==='disc' && document.getElementById('disc-table')){ renderDiscTab(); }
 }
 
 // 値入率（売価基準）= (店頭売価 − 原価) / 店頭売価 × 100
@@ -3326,94 +3306,19 @@ function buildOrderScheduleHTML(dates, activeCats){
 }
 
 // ============================================================
-// TAB 5: 値引額設定
+// 値引額 自動算出（商品単品）: 原価の約25%を目安
 // ============================================================
-function renderDiscTab(){
-  // Populate filter
-  const sel=document.getElementById('disc-cat-filter');
-  const cur=sel.value;
-  sel.innerHTML=`<option value="">全カテゴリ</option>`+CATS.map(c=>`<option ${c===cur?'selected':''}>${c}</option>`).join('');
-
-  const filter=sel.value;
-  const prods=S.PM.filter(p=>!filter||p.category===filter).sort((a,b)=>a.order-b.order);
-
-  let html=`<table><thead><tr>
-    <th style="text-align:left">商品名</th><th>カテゴリ</th><th>現在の値引額</th><th>変更後の値引額</th>
-  </tr></thead><tbody>`;
-  prods.forEach(p=>{
-    html+=`<tr>
-      <td style="text-align:left">${p.name}</td>
-      <td>${p.category}</td>
-      <td>${p.disc}円</td>
-      <td>
-        <input type="number" value="${p.disc}" step="1" style="width:80px"
-          onchange="setDisc('${p.id}',parseInt(toHalf(this.value))||0,this)">
-      </td>
-    </tr>`;
-  });
-  html+='</tbody></table>';
-  document.getElementById('disc-table').innerHTML=html;
-  renderDiscHistory();
-}
-
-function setDisc(pid,val,el){
-  el.style.borderColor='';el.title='';
-  const p=getP(pid);if(!p)return;
-  const old=p.disc;
-  p.disc=val;
-  if(!S.discHist)S.discHist=[];
-  S.discHist.unshift({pid,name:p.name,from:old,to:val,date:new Date().toLocaleDateString()});
-  if(S.discHist.length>3*S.PM.length)S.discHist=S.discHist.slice(0,3*S.PM.length);
-  saveS();renderDiscHistory();
-  // ②商品設定の値引額フィールドにも反映（既にレンダリング済みの場合のみ）
-  if(document.getElementById('product-cards')) renderProductCards();
-}
-
-function autoCalcDisc(){
-  const preview=S.PM.map(p=>({
-    id:p.id,name:p.name,current:p.disc,
-    suggested:Math.ceil(p.cost*0.25),
-    adopt:true
-  }));
-  let html=`<div style="border:1px solid var(--accent);border-radius:8px;padding:12px;background:var(--accent-lt)">
-    <b style="font-size:13px">自動計算プレビュー</b>
-    <table style="margin-top:8px"><thead><tr><th>商品名</th><th>現在</th><th>自動算出</th><th>採用</th></tr></thead><tbody>`;
-  preview.forEach(p=>{
-    html+=`<tr>
-      <td style="text-align:left">${p.name}</td>
-      <td>${p.current}円</td><td>${p.suggested}円</td>
-      <td><input type="checkbox" id="adc_${p.id}" checked></td>
-    </tr>`;
-  });
-  html+=`</tbody></table>
-    <button class="btn-primary mt-2" onclick="applyAutoDisc()">この値引額で設定する</button>
-  </div>`;
-  document.getElementById('disc-preview').innerHTML=html;
-  window._discPreview=preview;
-}
-
-function applyAutoDisc(){
-  if(!window._discPreview)return;
-  window._discPreview.forEach(item=>{
-    const cb=document.getElementById(`adc_${item.id}`);
-    if(cb&&cb.checked){
-      const p=getP(item.id);if(!p)return;
-      if(!S.discHist)S.discHist=[];
-      S.discHist.unshift({pid:p.id,name:p.name,from:p.disc,to:item.suggested,date:new Date().toLocaleDateString()});
-      p.disc=item.suggested;
-    }
-  });
-  saveS();document.getElementById('disc-preview').innerHTML='';renderDiscTab();
-}
-
-function renderDiscHistory(){
-  const hist=(S.discHist||[]).slice(0,3);
-  if(!hist.length){document.getElementById('disc-history').innerHTML='<p style="color:var(--gray);font-size:13px">履歴なし</p>';return;}
-  document.getElementById('disc-history').innerHTML=hist.map(h=>
-    `<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
-      <b>${h.name}</b>: ${h.from}円 → ${h.to}円 <span style="color:var(--gray)">(${h.date})</span>
-    </div>`
-  ).join('');
+function calcDiscForProduct(pid){
+  const p=S.PM.find(x=>x.id===pid);if(!p)return;
+  const suggested=Math.ceil(Number(p.cost||0)*0.25);
+  const old=p.disc||0;
+  if(suggested===old){
+    alert(`${p.name}\n現在の値引額(${old}円) = 自動算出(${suggested}円)`);
+    return;
+  }
+  if(!confirm(`${p.name}\n現在: ${old}円 → 自動算出: ${suggested}円\n（原価 ${p.cost}円 × 25% 切上）\n\n適用しますか？`)) return;
+  p.disc=suggested;
+  saveS();renderProductCards();
 }
 
 // ============================================================
