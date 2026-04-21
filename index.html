@@ -277,7 +277,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       </div>
       <div class="card">
         <div class="flex justify-between items-center mb-2">
-          <div class="section-title" style="margin:0">実績入力</div>
+          <div class="section-title" style="margin:0" id="jisseki-title">実績入力</div>
           <div class="flex gap-2">
             <button class="btn-secondary" onclick="resetJisseki()">リセット</button>
             <button class="btn-secondary" onclick="loadPrevJisseki()">前週引継ぎ</button>
@@ -1123,9 +1123,24 @@ function calcSummary(){
 // ============================================================
 function renderJissekiTab(){
   renderWeekSelector();
+  renderJissekiTitle();
   renderJissekiSummary();
   renderJissekiTable();
   renderCustGrid();
+}
+
+function renderJissekiTitle(){
+  const el=document.getElementById('jisseki-title');
+  if(!el)return;
+  // 計画週（activeWeek/weekStart）の前週＝実績対象期間
+  const ws=S.weekStart||weekKeyToDateStr(S.activeWeek);
+  const planStart=parseLocalDate(ws);
+  // 実績は計画週の1週間前の火曜〜月曜
+  const actualStart=new Date(planStart); actualStart.setDate(actualStart.getDate()-7);
+  const actualEnd=new Date(actualStart); actualEnd.setDate(actualEnd.getDate()+6);
+  const planLabel=`${planStart.getMonth()+1}/${planStart.getDate()}週`;
+  const range=`${actualStart.getMonth()+1}/${actualStart.getDate()}〜${actualEnd.getMonth()+1}/${actualEnd.getDate()}`;
+  el.innerHTML=`実績入力 <span style="font-size:12px;font-weight:400;color:#666">（${planLabel}の計画用 / ${range}の実績を入力）</span>`;
 }
 
 function renderJissekiSummary(){
