@@ -1390,7 +1390,11 @@ function toHalf(s){
   return String(s||'')
     .replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
     .replace(/[－ー]/g,'-')
-    .replace(/[．]/g,'.');
+    // 全角ピリオド／句点／読点／全角カンマ／半角カンマ → 半角ピリオド
+    // （数値入力で IME の「、」「。」を小数点として扱う／千位カンマを除去）
+    .replace(/[．。、，,]/g,'.')
+    // 連続した「.」を1つに集約（例: 、、 → .. → .）
+    .replace(/\.{2,}/g,'.');
 }
 function toHalfInt(s){return toHalf(s).replace(/[^0-9\-]/g,'');}
 function toHalfNum(s){return toHalf(s).replace(/[^0-9\-\.]/g,'');}
@@ -1412,12 +1416,21 @@ function initGlobalInputHandlers(){
   document.addEventListener('compositionend',function(e){
     const el=e.target;
     if(el.tagName!=='INPUT')return;
-    // 数値入力のみ変換対象。通常の text 入力（商品名など）は IME 確定結果を尊重してそのまま残す
+    // 数値入力: 既存の値 + IME確定分の両方を toHalf で正規化
     if(el.type==='number'){
+      // ブラウザがtype=number非該当文字を弾く前に、確定分を含む値を復元する
       const composed=e.data||'';
-      const half=toHalf(composed);
+      const raw=(el.value||'')+composed;
+      const half=toHalf(raw);
       const num=parseFloat(half);
-      if(!isNaN(num)){el.value=half;el.dispatchEvent(new Event('change',{bubbles:true}));}
+      if(!isNaN(num)){
+        el.value=half;
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      } else if(half==='.'||half===''){
+        // 「、、」のみなど、数値にならないケース：0 にフォールバック
+        el.value='0';
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }
     } else if(el.type==='text' && el.inputMode==='numeric'){
       const half=toHalf(el.value);
       if(half!==el.value){
