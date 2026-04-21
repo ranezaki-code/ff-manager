@@ -808,6 +808,42 @@ function gistSaveId(){
   gistSetStatus(v?'Gist ID保存':'Gist ID削除','#555');
   renderGistPanel();
 }
+function gistBuildShareUrl(){
+  const{token,gistId}=gistGetConfig();
+  if(!token||!gistId){alert('先にトークンとGist IDを設定してください');return;}
+  const base=location.origin+location.pathname;
+  return `${base}#sync=${encodeURIComponent(token)}:${encodeURIComponent(gistId)}`;
+}
+function gistShowShareUrl(){
+  const url=gistBuildShareUrl();
+  if(!url)return;
+  const ta=document.getElementById('gist-share-url');
+  if(ta){ta.value=url;ta.style.display='block';ta.select();}
+}
+async function gistCopyShareUrl(){
+  const url=gistBuildShareUrl();
+  if(!url)return;
+  try{
+    await navigator.clipboard.writeText(url);
+    gistSetStatus('共有URLをコピーしました','#047857');
+  }catch(e){
+    gistShowShareUrl();
+    gistSetStatus('コピー失敗。下のURLを手動でコピーしてください','#b91c1c');
+  }
+}
+// URLの #sync=token:gistId を読み取り、localStorageに保存 → URLからは削除
+function gistApplyHashIfAny(){
+  const m=(location.hash||'').match(/[#&]sync=([^:]+):([^&]+)/);
+  if(!m)return false;
+  const token=decodeURIComponent(m[1]);
+  const gistId=decodeURIComponent(m[2]);
+  if(!token||!gistId)return false;
+  localStorage.setItem('ffv6_gist_token',token);
+  localStorage.setItem('ffv6_gist_id',gistId);
+  // URLからハッシュを除去（履歴に残さない）
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+  return true;
+}
 function gistDisconnect(){
   if(!confirm('クラウド同期設定をこの端末から削除します（Gist本体は残ります）。よろしいですか？'))return;
   localStorage.removeItem('ffv6_gist_token');
@@ -843,8 +879,10 @@ function renderGistPanel(){
       ${!gistId?`<button class="btn-primary" onclick="gistCreate()" ${!token?'disabled':''}>📤 新規Gist作成（初回のみ）</button>`:''}
       <button class="btn-primary" onclick="gistPush(true)" ${!connected?'disabled':''}>⬆️ 今すぐアップロード</button>
       <button class="btn-secondary" onclick="gistPull(true)" ${!connected?'disabled':''}>⬇️ クラウドから取得</button>
+      ${connected?`<button class="btn-success" onclick="gistCopyShareUrl()" title="このリンクを開くだけで他端末が自動設定されます">🔗 共有リンクをコピー</button>`:''}
       ${connected?`<button class="btn-danger" onclick="gistDisconnect()">切断</button>`:''}
     </div>
+    <textarea id="gist-share-url" readonly style="display:none;width:100%;margin-top:8px;padding:6px;font-size:11px;font-family:monospace;background:#f8fafc;border:1px solid #e5e7eb;border-radius:4px;resize:none" rows="2" onclick="this.select()"></textarea>
     <div style="margin-top:10px;font-size:11px;color:#666;line-height:1.7">
       状態：<span id="gist-status">${connected?'接続中':'未設定'}</span><br>
       最終アップロード：${ts(lastPush)}　最終取得：${ts(lastPull)}
@@ -853,7 +891,11 @@ function renderGistPanel(){
       💡 <b>複数端末で同期する手順</b><br>
       ① メイン端末でトークンを保存 → 「新規Gist作成」<br>
       ② サブ端末で同じトークンと表示されたGist IDを保存 → 「クラウドから取得」<br>
+      　※ または メイン端末で「🔗 共有リンクをコピー」→ そのURLを他端末で開くだけでOK<br>
       ③ 以降、保存時に自動でクラウドにアップロードされます
+    </div>
+    <div style="margin-top:6px;padding:6px 10px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;font-size:11px;color:#991b1b;line-height:1.6">
+      ⚠️ <b>共有リンクの取扱い注意</b>：リンクを知っている人は誰でもデータを読み書きできます。信頼できる相手のみに直接渡してください（SNS・公開チャット禁止）。
     </div>`;
 }
 function loadS(){
@@ -1065,11 +1107,17 @@ function renderAll(){
 }
 
 window.addEventListener('DOMContentLoaded',async()=>{
+  // URLの #sync=token:gistId から自動設定（共有リンク経由）
+  const fromHash=gistApplyHashIfAny();
   // クラウド同期が設定済みなら、ローカル読込の前にGistから最新データを取得
   const gc=localStorage.getItem('ffv6_gist_token');
   const gi=localStorage.getItem('ffv6_gist_id');
   if(gc&&gi){
     try{await gistPull(false);}catch(e){console.warn('Gist pull failed:',e);}
+  }
+  if(fromHash){
+    // 共有リンク経由セットアップの成功通知
+    setTimeout(()=>{try{alert('共有リンクからクラウド同期を設定しました。\n最新データを取得しました。');}catch(e){}},400);
   }
   loadS();
   initGlobalInputHandlers();
