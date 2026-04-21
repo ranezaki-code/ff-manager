@@ -2486,7 +2486,10 @@ function renderProdDayContent(dayIdx){
   ${(()=>{
     const hasInvest=S.PM.some(p=>p.enabled&&(p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)));
     return hasInvest?'<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:6px 12px;font-size:11px;color:#92400e;margin-bottom:6px">📈 <b>黄色セル</b> = 投資/新商品追加分（⑤予算管理で設定）　<a onclick="showTab(4)" style="color:var(--main);cursor:pointer;text-decoration:underline">→ 予算管理で編集</a></div>':''
-  })()}`;
+  })()}
+  <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 12px;font-size:11px;color:#555;margin-bottom:8px;line-height:1.6">
+    💡 <b>セルの見方</b>：大きい数字＝<b>その時間帯に作成する個数</b>／☑＝完了チェック／<b>セルをマウスで重ねる</b>と基準作成数・値引時間・最低引出客数などの詳細が表示されます
+  </div>`;
 
   // Progress bars for each slot
   html+=`<div class="card">`;
@@ -2519,7 +2522,13 @@ function renderProdDayContent(dayIdx){
     html+=`<div class="section-title">${cat}</div>`;
     html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
     html+=`<thead><tr><th style="width:110px;text-align:left">商品名</th>`;
-    cfg.slots.forEach(h=>html+=`<th style="width:90px">${SLOT_LABELS[h]}</th>`);
+    cfg.slots.forEach(h=>{
+      const md=getMarkdownTime(cat,h);
+      html+=`<th style="width:90px;padding:4px 2px">
+        <div style="font-size:12px;font-weight:700">${SLOT_LABELS[h]}作成</div>
+        <div style="font-size:10px;color:#d97706;font-weight:400;margin-top:1px">値引 ${md}:00〜</div>
+      </th>`;
+    });
     html+=`</tr></thead><tbody>`;
 
     prods.forEach(p=>{
@@ -2541,18 +2550,19 @@ function renderProdDayContent(dayIdx){
         const slotCust=range?getSlotCust(dayIdx,range[0],range[1]):0;
         const baseCnt=roundCnt(baseJi*slotCust/wkTotal);
         const diff=cnt-baseCnt;
-        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" style="position:relative;padding:6px${extra>0?';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px':''}">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-            <span class="prod-count" style="${extra>0?'color:#d97706':''}"> ${isSkip?'-':totalCnt}</span>
-            <div>
-              <span class="badge badge-base">${baseCnt}</span>
-              ${diff>0?`<span class="badge badge-plus">+${diff}</span>`:diff<0?`<span class="badge badge-minus">${diff}</span>`:''}
-              ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700">📈+${extra}</span>`:''}
-            </div>
-            <span class="${wl>0&&sc>=wl?'withdraw-ok':'withdraw-ng'}">${wl>0&&sc>=wl?'✓':'⚠'} ${Math.round(wl)}</span>
-            <span class="markdown-time">${mdTime}:00値引</span>
+        // ツールチップで詳細情報（基準作成数・差分・最低引出客数・値引時間）を表示
+        const tip=`【${p.name} ${SLOT_LABELS[slotH]}】\n`+
+          `作成数：${isSkip?'なし':totalCnt}個${extra>0?`（通常${cnt}＋投資${extra}）`:''}\n`+
+          `基準作成数：${baseCnt}個（実績×客数比）\n`+
+          `基準との差：${diff>0?'+'+diff:diff}\n`+
+          `最低引出客数：${Math.round(wl)}人（実客${sc}人 / ${wl>0&&sc>=wl?'OK':'不足'}）\n`+
+          `値引開始：${mdTime}:00`;
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${extra>0?';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px':''}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1${extra>0?';color:#d97706':''}">${isSkip?'—':totalCnt}</span>
+            ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
             <input type="checkbox" ${checked?'checked':''} ${isSkip?'disabled':''}
-              onchange="setCheck('${chkKey}',this.checked)" style="margin-top:2px">
+              onchange="setCheck('${chkKey}',this.checked)" style="margin:0">
           </div>
         </td>`;
       });
