@@ -1135,9 +1135,10 @@ function renderJissekiTitle(){
   // 計画週（activeWeek/weekStart）の前週＝実績対象期間
   const ws=S.weekStart||weekKeyToDateStr(S.activeWeek);
   const planStart=parseLocalDate(ws);
-  // 実績は計画週の1週間前の火曜〜月曜
-  const actualStart=new Date(planStart); actualStart.setDate(actualStart.getDate()-7);
-  const actualEnd=new Date(actualStart); actualEnd.setDate(actualEnd.getDate()+6);
+  // 実績は計画週の直前の月曜〜日曜（本部実績サイクル）
+  // 計画週が火曜始まり → 実績は (計画開始 - 8日) 月曜 〜 (計画開始 - 2日) 日曜
+  const actualStart=new Date(planStart); actualStart.setDate(actualStart.getDate()-8);
+  const actualEnd=new Date(planStart); actualEnd.setDate(actualEnd.getDate()-2);
   const planLabel=`${planStart.getMonth()+1}/${planStart.getDate()}週`;
   const range=`${actualStart.getMonth()+1}/${actualStart.getDate()}〜${actualEnd.getMonth()+1}/${actualEnd.getDate()}`;
   el.innerHTML=`実績入力 <span style="font-size:12px;font-weight:400;color:#666">（${planLabel}の計画用 / ${range}の実績を入力）</span>`;
