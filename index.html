@@ -418,6 +418,10 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <div id="budget-manual"></div>
       </div>
       <div class="card">
+        <div class="section-title">☁️ クラウド同期（GitHub Gist）</div>
+        <div id="gist-sync-panel"></div>
+      </div>
+      <div class="card">
         <div class="section-title">データ管理</div>
         <div class="flex gap-2 flex-wrap">
           <button class="btn-primary" onclick="exportData()">エクスポート</button>
@@ -695,6 +699,162 @@ function saveS(){
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
   }));}catch(e){console.warn('save error',e)}
+  gistSyncDebouncedPush();
+}
+
+// ============================================================
+// GitHub Gist 同期
+// ============================================================
+const GIST_FILE='ff-data.json';
+let _gistPushTimer=null;
+let _gistSyncing=false;
+function gistGetConfig(){
+  return{
+    token:localStorage.getItem('ffv6_gist_token')||'',
+    gistId:localStorage.getItem('ffv6_gist_id')||'',
+    lastPush:localStorage.getItem('ffv6_gist_lastPush')||'',
+    lastPull:localStorage.getItem('ffv6_gist_lastPull')||''
+  };
+}
+function gistSetStatus(msg,color){
+  const el=document.getElementById('gist-status');
+  if(el)el.innerHTML=`<span style="color:${color||'#666'}">${msg}</span>`;
+}
+function gistBuildPayload(){
+  const stores={};
+  (storeList||[]).forEach(s=>{
+    const raw=localStorage.getItem('ffv6_store_'+s.id);
+    if(raw)stores[s.id]=JSON.parse(raw);
+  });
+  return{version:'ffv6',updatedAt:new Date().toISOString(),stores:storeList||[],currentStoreId:currentStoreId,storeData:stores};
+}
+async function gistApi(path,opts={}){
+  const{token}=gistGetConfig();
+  if(!token)throw new Error('トークン未設定');
+  const r=await fetch('https://api.github.com'+path,{
+    ...opts,
+    headers:{'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'Content-Type':'application/json',...(opts.headers||{})}
+  });
+  if(!r.ok){const t=await r.text();throw new Error(`${r.status}: ${t.slice(0,200)}`);}
+  return r.json();
+}
+async function gistCreate(){
+  const{token}=gistGetConfig();
+  if(!token){alert('GitHubトークンを先に入力してください');return;}
+  if(!confirm('新しいGistを作成し、現在のデータをクラウドに保存します。よろしいですか？'))return;
+  gistSetStatus('作成中…','#1d4ed8');
+  try{
+    const data=gistBuildPayload();
+    const body={description:'FF管理システム データ',public:false,files:{[GIST_FILE]:{content:JSON.stringify(data,null,2)}}};
+    const res=await gistApi('/gists',{method:'POST',body:JSON.stringify(body)});
+    localStorage.setItem('ffv6_gist_id',res.id);
+    localStorage.setItem('ffv6_gist_lastPush',new Date().toISOString());
+    gistSetStatus(`作成完了（Gist ID: ${res.id.slice(0,8)}…）`,'#047857');
+    renderGistPanel();
+    alert('Gist作成完了。\n別端末では同じトークンとGist ID ('+res.id+') を設定すれば同期できます。');
+  }catch(e){gistSetStatus('エラー: '+e.message,'#b91c1c');}
+}
+async function gistPush(manual){
+  const{token,gistId}=gistGetConfig();
+  if(!token||!gistId)return;
+  if(_gistSyncing)return;
+  _gistSyncing=true;
+  if(manual)gistSetStatus('送信中…','#1d4ed8');
+  try{
+    const data=gistBuildPayload();
+    await gistApi('/gists/'+gistId,{method:'PATCH',body:JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(data,null,2)}}})});
+    localStorage.setItem('ffv6_gist_lastPush',new Date().toISOString());
+    gistSetStatus('同期済み '+new Date().toLocaleTimeString('ja-JP'),'#047857');
+  }catch(e){gistSetStatus('送信エラー: '+e.message,'#b91c1c');}
+  finally{_gistSyncing=false;}
+}
+function gistSyncDebouncedPush(){
+  const{token,gistId}=gistGetConfig();
+  if(!token||!gistId)return;
+  if(_gistPushTimer)clearTimeout(_gistPushTimer);
+  _gistPushTimer=setTimeout(()=>gistPush(false),3000);
+}
+async function gistPull(manual){
+  const{token,gistId}=gistGetConfig();
+  if(!token||!gistId){if(manual)alert('トークンとGist IDを設定してください');return;}
+  if(manual&&!confirm('クラウドの最新データで上書きします。現在の端末の未保存データは失われます。よろしいですか？'))return;
+  gistSetStatus('取得中…','#1d4ed8');
+  try{
+    const res=await gistApi('/gists/'+gistId);
+    const f=res.files&&res.files[GIST_FILE];
+    if(!f)throw new Error('Gist内にff-data.jsonが見つかりません');
+    const obj=JSON.parse(f.content);
+    if(obj.version!=='ffv6')throw new Error('データ形式が不正');
+    if(obj.stores)localStorage.setItem('ffv6_stores',JSON.stringify(obj.stores));
+    if(obj.storeData)Object.entries(obj.storeData).forEach(([id,d])=>{
+      localStorage.setItem('ffv6_store_'+id,JSON.stringify(d));
+      localStorage.setItem('ffv6_setup_'+id,'1');
+    });
+    if(obj.currentStoreId)localStorage.setItem('ffv6_current',obj.currentStoreId);
+    localStorage.setItem('ffv6_gist_lastPull',new Date().toISOString());
+    gistSetStatus('取得完了 '+new Date().toLocaleTimeString('ja-JP'),'#047857');
+    if(manual){alert('取得完了。ページをリロードします。');location.reload();}
+  }catch(e){gistSetStatus('取得エラー: '+e.message,'#b91c1c');throw e;}
+}
+function gistSaveToken(){
+  const v=document.getElementById('gist-token-input').value.trim();
+  localStorage.setItem('ffv6_gist_token',v);
+  gistSetStatus(v?'トークン保存':'トークン削除','#555');
+  renderGistPanel();
+}
+function gistSaveId(){
+  const v=document.getElementById('gist-id-input').value.trim();
+  localStorage.setItem('ffv6_gist_id',v);
+  gistSetStatus(v?'Gist ID保存':'Gist ID削除','#555');
+  renderGistPanel();
+}
+function gistDisconnect(){
+  if(!confirm('クラウド同期設定をこの端末から削除します（Gist本体は残ります）。よろしいですか？'))return;
+  localStorage.removeItem('ffv6_gist_token');
+  localStorage.removeItem('ffv6_gist_id');
+  localStorage.removeItem('ffv6_gist_lastPush');
+  localStorage.removeItem('ffv6_gist_lastPull');
+  renderGistPanel();
+}
+function renderGistPanel(){
+  const el=document.getElementById('gist-sync-panel');
+  if(!el)return;
+  const{token,gistId,lastPush,lastPull}=gistGetConfig();
+  const ts=(s)=>s?new Date(s).toLocaleString('ja-JP'):'—';
+  const connected=token&&gistId;
+  el.innerHTML=`
+    <div style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.7">
+      複数端末で同じデータを使うためにGitHub Gistで同期します。
+      <a href="https://github.com/settings/tokens/new?scopes=gist&description=FF%E7%AE%A1%E7%90%86%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0" target="_blank" style="color:var(--main);text-decoration:underline">→ トークン発行ページ（gist権限のみ）</a>
+    </div>
+    <div style="display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:13px;align-items:center">
+      <label>トークン</label>
+      <div style="display:flex;gap:6px">
+        <input id="gist-token-input" type="password" value="${token}" placeholder="ghp_..." style="flex:1;padding:4px 8px" autocomplete="off">
+        <button class="btn-secondary" onclick="gistSaveToken()">保存</button>
+      </div>
+      <label>Gist ID</label>
+      <div style="display:flex;gap:6px">
+        <input id="gist-id-input" type="text" value="${gistId}" placeholder="（新規作成で自動設定）" style="flex:1;padding:4px 8px" autocomplete="off">
+        <button class="btn-secondary" onclick="gistSaveId()">保存</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      ${!gistId?`<button class="btn-primary" onclick="gistCreate()" ${!token?'disabled':''}>📤 新規Gist作成（初回のみ）</button>`:''}
+      <button class="btn-primary" onclick="gistPush(true)" ${!connected?'disabled':''}>⬆️ 今すぐアップロード</button>
+      <button class="btn-secondary" onclick="gistPull(true)" ${!connected?'disabled':''}>⬇️ クラウドから取得</button>
+      ${connected?`<button class="btn-danger" onclick="gistDisconnect()">切断</button>`:''}
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#666;line-height:1.7">
+      状態：<span id="gist-status">${connected?'接続中':'未設定'}</span><br>
+      最終アップロード：${ts(lastPush)}　最終取得：${ts(lastPull)}
+    </div>
+    <div style="margin-top:10px;padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;font-size:11px;color:#78350f;line-height:1.6">
+      💡 <b>複数端末で同期する手順</b><br>
+      ① メイン端末でトークンを保存 → 「新規Gist作成」<br>
+      ② サブ端末で同じトークンと表示されたGist IDを保存 → 「クラウドから取得」<br>
+      ③ 以降、保存時に自動でクラウドにアップロードされます
+    </div>`;
 }
 function loadS(){
   // ストアリストを読み込む
@@ -904,7 +1064,13 @@ function renderAll(){
   renderBudgetTab();
 }
 
-window.addEventListener('DOMContentLoaded',()=>{
+window.addEventListener('DOMContentLoaded',async()=>{
+  // クラウド同期が設定済みなら、ローカル読込の前にGistから最新データを取得
+  const gc=localStorage.getItem('ffv6_gist_token');
+  const gi=localStorage.getItem('ffv6_gist_id');
+  if(gc&&gi){
+    try{await gistPull(false);}catch(e){console.warn('Gist pull failed:',e);}
+  }
   loadS();
   initGlobalInputHandlers();
   if(!localStorage.getItem('ffv6_setup_'+currentStoreId)){
@@ -2613,6 +2779,7 @@ function renderBudgetTab(){
   renderBudgetPlan();
   renderBudgetDaily();
   renderBudgetManual();
+  renderGistPanel();
 }
 
 function renderBudgetTitles(){
