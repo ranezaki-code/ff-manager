@@ -402,15 +402,15 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <!-- Tab 4: 予算管理 -->
     <div class="tab-panel" id="tab4">
       <div class="card">
-        <div class="section-title">先週の実績サマリー</div>
+        <div class="section-title" id="budget-jisseki-title">先週の実績サマリー</div>
         <div class="overflow-auto"><div id="budget-jisseki"></div></div>
       </div>
       <div class="card">
-        <div class="section-title">来週の予算計画</div>
+        <div class="section-title" id="budget-plan-title">予算計画</div>
         <div id="budget-plan"></div>
       </div>
       <div class="card">
-        <div class="section-title">曜日別作成高</div>
+        <div class="section-title" id="budget-daily-title">曜日別サマリー</div>
         <div class="overflow-auto"><div id="budget-daily"></div></div>
       </div>
       <div class="card">
@@ -2598,10 +2598,27 @@ function checkCurrentSlot(){
 // TAB 4: 予算管理
 // ============================================================
 function renderBudgetTab(){
+  renderBudgetTitles();
   renderBudgetJisseki();
   renderBudgetPlan();
   renderBudgetDaily();
   renderBudgetManual();
+}
+
+function renderBudgetTitles(){
+  const ws=S.weekStart||weekKeyToDateStr(S.activeWeek);
+  const planStart=parseLocalDate(ws);
+  const planEnd=new Date(planStart); planEnd.setDate(planEnd.getDate()+6);
+  const planLabel=`${planStart.getMonth()+1}/${planStart.getDate()}週`;
+  const planRange=`${planStart.getMonth()+1}/${planStart.getDate()}〜${planEnd.getMonth()+1}/${planEnd.getDate()}`;
+  // 実績は計画週直前の月曜〜日曜
+  const actStart=new Date(planStart); actStart.setDate(actStart.getDate()-8);
+  const actEnd=new Date(planStart); actEnd.setDate(actEnd.getDate()-2);
+  const actRange=`${actStart.getMonth()+1}/${actStart.getDate()}〜${actEnd.getMonth()+1}/${actEnd.getDate()}`;
+  const setT=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
+  setT('budget-jisseki-title',`先週の実績サマリー <span style="font-size:12px;font-weight:400;color:#666">（${actRange}）</span>`);
+  setT('budget-plan-title',`${planLabel}の予算計画 <span style="font-size:12px;font-weight:400;color:#666">（${planRange}）</span>`);
+  setT('budget-daily-title',`曜日別サマリー <span style="font-size:12px;font-weight:400;color:#666">（${planRange}）</span>`);
 }
 
 function renderBudgetJisseki(){
@@ -3004,30 +3021,75 @@ function suggestAllNewCounts(){
 function renderBudgetDaily(){
   const el=document.getElementById('budget-daily');
   const dates=getWeekDates();
-  let html=`<table><thead><tr><th style="width:80px">カテゴリ</th>`;
-  DAYS.forEach((d,i)=>html+=`<th>${d}<br><span style="font-size:10px">${dates[i].getMonth()+1}/${dates[i].getDate()}</span></th>`);
-  html+=`<th>週計</th><th>日平均</th></tr></thead><tbody>`;
+  // 曜日別に 作成高 / 原価 / 廃棄額 / 売変額 / 売上高 / 利益高 を集計
+  const day={make:Array(7).fill(0),cost:Array(7).fill(0),waste:Array(7).fill(0),disc:Array(7).fill(0)};
+  S.PM.forEach(p=>{
+    if(!p.enabled||!S.catOn[p.category])return;
+    const cfg=S.catCfg[p.category];if(!cfg)return;
+    const ji=getJiAllWeeks(p.id);
+    const haiki_rate=ji.total?ji.haiki/ji.total:1.0;
+    const nebiki_rate=ji.total?ji.nebiki/ji.total:0;
+    DAYS.forEach((_,di)=>{
+      let cnt=0;
+      cfg.slots.forEach(h=>{cnt+=getProdCnt(p.id,di,h);});
+      day.make[di] +=cnt*p.shopPrice;
+      day.cost[di] +=cnt*p.cost;
+      day.waste[di]+=cnt*haiki_rate*p.shopPrice;
+      day.disc[di] +=cnt*nebiki_rate*p.disc;
+    });
+  });
+  const day_sales =day.make.map((m,i)=>m-day.waste[i]-day.disc[i]);
+  const day_profit=day_sales.map((s,i)=>s-day.cost[i]);
+
+  // カテゴリ別作成高（既存機能）
   const mainCats=['ホットFF','常温FF','中華まん'];
-  let totals=Array(7).fill(0),grandTotal=0;
+  const catDay={}; // mc → Array(7)
+  mainCats.forEach(mc=>{catDay[mc]=Array(7).fill(0);});
   mainCats.forEach(mc=>{
     const catKeys=CATS.filter(c=>c.startsWith(mc));
-    html+=`<tr><td style="text-align:left">${mc}</td>`;
-    let rowTotal=0;
-    DAYS.forEach((_,di)=>{
-      let d=0;
-      S.PM.filter(p=>p.enabled&&catKeys.includes(p.category)).forEach(p=>{
-        const cfg=S.catCfg[p.category];if(!cfg)return;
-        cfg.slots.forEach(h=>{d+=getProdCnt(p.id,di,h)*p.shopPrice;});
+    S.PM.filter(p=>p.enabled&&catKeys.includes(p.category)).forEach(p=>{
+      const cfg=S.catCfg[p.category];if(!cfg)return;
+      DAYS.forEach((_,di)=>{
+        cfg.slots.forEach(h=>{catDay[mc][di]+=getProdCnt(p.id,di,h)*p.shopPrice;});
       });
-      totals[di]+=d;rowTotal+=d;
-      html+=`<td>${fmt(d)}</td>`;
     });
-    grandTotal+=rowTotal;
-    html+=`<td style="font-weight:700">${fmt(rowTotal)}</td><td>${fmt(rowTotal/7)}</td></tr>`;
   });
-  html+=`<tr style="font-weight:700;background:var(--main-lt)"><td>合計</td>`;
-  totals.forEach(t=>html+=`<td>${fmt(t)}</td>`);
-  html+=`<td>${fmt(grandTotal)}</td><td>${fmt(grandTotal/7)}</td></tr>`;
+
+  const thDay=(d,i)=>`<th style="padding:4px 6px;text-align:center;min-width:64px">${d}<br><span style="font-size:10px;color:#888;font-weight:400">${dates[i].getMonth()+1}/${dates[i].getDate()}</span></th>`;
+  const sumA=a=>a.reduce((s,v)=>s+v,0);
+  const row=(label,arr,opts={})=>{
+    const total=sumA(arr);
+    const avg=total/7;
+    const style=opts.style||'';
+    const labelStyle=opts.labelStyle||'text-align:left;padding:4px 8px';
+    const color=opts.color||'';
+    return `<tr style="${style}"><td style="${labelStyle}">${label}</td>`+
+      arr.map(v=>`<td style="padding:4px 6px;text-align:right;${color}">${fmt(Math.round(v))}</td>`).join('')+
+      `<td style="padding:4px 8px;text-align:right;font-weight:700;${color}">${fmt(Math.round(total))}</td>`+
+      `<td style="padding:4px 8px;text-align:right;${color}">${fmt(Math.round(avg))}</td></tr>`;
+  };
+
+  let html=`<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:var(--main-lt)">
+      <th style="padding:4px 8px;text-align:left;min-width:110px">項目</th>
+      ${DAYS.map((d,i)=>thDay(d,i)).join('')}
+      <th style="padding:4px 8px;text-align:right;min-width:70px">週計</th>
+      <th style="padding:4px 8px;text-align:right;min-width:70px">日平均</th>
+    </tr></thead><tbody>`;
+
+  // サマリー系（金額）
+  html+=row('作成高（円）',day.make,{style:'border-top:2px solid #eee'});
+  html+=row('想定廃棄額（円）',day.waste,{color:'color:#b91c1c'});
+  html+=row('想定売変額（円）',day.disc,{color:'color:#d97706'});
+  html+=row('想定売上高（円）',day_sales,{style:'background:#f0fdf4',color:'color:#047857;font-weight:600'});
+  html+=row('想定利益高（円）',day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
+
+  // カテゴリ別作成高
+  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">📦 カテゴリ別 作成高（円）</td></tr>`;
+  mainCats.forEach(mc=>{
+    html+=row('　'+mc,catDay[mc]);
+  });
+
   html+='</tbody></table>';
   el.innerHTML=html;
 }
