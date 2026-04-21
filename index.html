@@ -1416,23 +1416,28 @@ function initGlobalInputHandlers(){
   document.addEventListener('compositionend',function(e){
     const el=e.target;
     if(el.tagName!=='INPUT')return;
-    // 数値入力: 既存の値 + IME確定分の両方を toHalf で正規化
+    // 数値入力: el.value を優先、空ならブラウザが拒否したとみなし e.data をフォールバック使用
     if(el.type==='number'){
-      // ブラウザがtype=number非該当文字を弾く前に、確定分を含む値を復元する
       const composed=e.data||'';
-      const raw=(el.value||'')+composed;
+      // IME確定後、el.value は既に確定分を含んでいる（ブラウザが拒否した場合のみ空）
+      const raw=el.value||composed;
       const half=toHalf(raw);
       const num=parseFloat(half);
       if(!isNaN(num)){
-        el.value=half;
-        el.dispatchEvent(new Event('change',{bubbles:true}));
-      } else if(half==='.'||half===''){
-        // 「、、」のみなど、数値にならないケース：0 にフォールバック
+        if(el.value!==half){
+          el.value=half;
+          el.dispatchEvent(new Event('change',{bubbles:true}));
+        }
+        // 既に半角の有効数値なら何もしない（change二重発火防止）
+      } else if(composed&&(half==='.'||half==='')){
+        // 「、、」等、数値記号のみで非数になったケース → 0 にフォールバック
         el.value='0';
         el.dispatchEvent(new Event('change',{bubbles:true}));
       }
-    } else if(el.type==='text' && el.inputMode==='numeric'){
-      const half=toHalf(el.value);
+    } else if(el.type==='text' && (el.inputMode==='numeric'||el.inputMode==='decimal')){
+      let half=toHalf(el.value);
+      // 「、、」等、記号のみ→非数になったら 0 にフォールバック
+      if(half==='.'||half==='-'||half==='-.'){ half='0'; }
       if(half!==el.value){
         el.value=half;
         el.dispatchEvent(new Event('input',{bubbles:true}));
@@ -1445,7 +1450,8 @@ function initGlobalInputHandlers(){
   document.addEventListener('input',function(e){
     if(e.isComposing)return;
     const el=e.target;
-    if(el.tagName!=='INPUT'||el.type!=='text'||el.inputMode!=='numeric')return;
+    if(el.tagName!=='INPUT'||el.type!=='text')return;
+    if(el.inputMode!=='numeric'&&el.inputMode!=='decimal')return;
     const half=toHalf(el.value);
     if(half!==el.value){
       const pos=el.selectionStart;
@@ -1712,32 +1718,32 @@ function renderProductCard(p){
           ${CATS.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}
         </select></div>
       <div><label>最低作成数</label>
-        <input type="number" value="${p.minCount||0}" min="0" onchange="setProdField('${p.id}','minCount',parseInt(toHalf(this.value))||0)"></div>
+        <input type="text" inputmode="numeric" value="${p.minCount||0}" onchange="setProdField('${p.id}','minCount',parseInt(toHalf(this.value))||0)"></div>
       <div><label>原価(円)</label>
-        <input type="number" value="${p.cost}" step="0.01" onchange="setProdField('${p.id}','cost',parseFloat(toHalf(this.value))||0)"></div>
+        <input type="text" inputmode="decimal" value="${p.cost}" onchange="setProdField('${p.id}','cost',parseFloat(toHalf(this.value))||0)"></div>
       <div><label>標準売価(円)</label>
-        <input type="number" value="${p.stdPrice}" onchange="setProdField('${p.id}','stdPrice',parseInt(toHalf(this.value))||0)"></div>
+        <input type="text" inputmode="numeric" value="${p.stdPrice}" onchange="setProdField('${p.id}','stdPrice',parseInt(toHalf(this.value))||0)"></div>
       <div><label>店頭売価(円)</label>
-        <input type="number" value="${p.shopPrice}" onchange="setProdField('${p.id}','shopPrice',parseInt(toHalf(this.value))||0)"></div>
+        <input type="text" inputmode="numeric" value="${p.shopPrice}" onchange="setProdField('${p.id}','shopPrice',parseInt(toHalf(this.value))||0)"></div>
       <div><label>値入率(%) <span style="font-size:10px;color:#999">売価基準</span>
         <button type="button" onclick="recalcMarkupFromCost('${p.id}')"
           style="margin-left:4px;padding:1px 6px;font-size:10px;border-radius:5px;border:1px solid var(--main);background:#fff;color:var(--main);cursor:pointer"
           title="(店頭売価-原価)/店頭売価×100 で再計算して上書き">自動</button></label>
-        <input type="number" value="${p.markupRate ?? calcMarkupRate(p)}" step="0.1" min="0" max="100"
+        <input type="text" inputmode="decimal" value="${p.markupRate ?? calcMarkupRate(p)}"
           onchange="setProdField('${p.id}','markupRate',parseFloat(toHalf(this.value))||0)"
           title="値入率は独立して保存されます。「自動」ボタンで原価・店頭売価から再計算できます"></div>
       <div><label>値引額(円)</label>
         <div style="display:flex;gap:4px">
-          <input type="number" value="${p.disc}" style="flex:1;min-width:0" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)">
+          <input type="text" inputmode="numeric" value="${p.disc}" style="flex:1;min-width:0" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)">
           <button type="button" onclick="calcDiscForProduct('${p.id}')"
             style="padding:4px 8px;font-size:11px;border-radius:6px;border:1px solid var(--main);background:#fff;color:var(--main);cursor:pointer;white-space:nowrap"
             title="原価×25%（切上）で自動算出">算出</button>
         </div>
       </div>
       <div><label>販売開始時</label>
-        <input type="number" value="${p.timeStart??7}" min="0" max="23" onchange="setProdField('${p.id}','timeStart',parseInt(toHalf(this.value))||0)"></div>
+        <input type="text" inputmode="numeric" value="${p.timeStart??7}" onchange="setProdField('${p.id}','timeStart',parseInt(toHalf(this.value))||0)"></div>
       <div><label>販売終了時</label>
-        <input type="number" value="${p.timeEnd??22}" min="1" max="24" onchange="setProdField('${p.id}','timeEnd',parseInt(this.value)||24)"></div>
+        <input type="text" inputmode="numeric" value="${p.timeEnd??22}" onchange="setProdField('${p.id}','timeEnd',parseInt(toHalf(this.value))||24)"></div>
       <!-- タグ（チェックボックス） -->
       <div style="grid-column:span 2">
         <label style="display:block;margin-bottom:4px">タグ</label>
@@ -1774,7 +1780,7 @@ function renderProductCard(p){
         </div>
         ${p.isNew?`<div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px">
           <span style="color:#666">データ収集期間:</span>
-          <input type="number" value="${p.newDays||0}" min="0" style="width:55px"
+          <input type="text" inputmode="numeric" value="${p.newDays||0}" style="width:55px"
             onchange="setProdField('${p.id}','newDays',parseInt(toHalf(this.value))||0)">
           <span style="color:#666">日</span>
         </div>`:''}
