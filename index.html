@@ -2769,9 +2769,9 @@ function renderBudgetPlan(){
     const haiki_rate_p =ji.total?ji.haiki/ji.total:1.0;
     const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0;
     if(!ji.total&&cnt_week>0) noDataProds.push(p.name);
-    // 想定廃棄額（売価ベース）= 作成数 × 廃棄率 × 売価
+    // 廃棄額（売価ベース）= 作成数 × 廃棄率 × 売価
     nextWasteAmt+=cnt_week*haiki_rate_p*p.shopPrice;
-    // 想定値引額 = 作成数 × 値引率 × 商品別値引額（p.disc）
+    // 値引額 = 作成数 × 値引率 × 商品別値引額（p.disc）
     nextDiscAmt +=cnt_week*nebiki_rate_p*p.disc;
     // 全体集計（適正販売率の表示用）
     sumTeika+=ji.teika; sumNebiki+=ji.nebiki; sumHaiki+=ji.haiki;
@@ -2779,10 +2779,12 @@ function renderBudgetPlan(){
   const sumAll=sumTeika+sumNebiki+sumHaiki;
   // 全体の適正販売率（表示用）
   const tekisei_rate=sumAll?sumTeika/sumAll:0;
-  // 次週売上高（正式）= 次週作成高 − 想定廃棄額 − 想定売変額
-  const nextSalesAmt =nextMake-nextWasteAmt-nextDiscAmt;
-  // 想定売変率 = 想定売変額 ÷ 次週売上高（正式）
-  const nextDiscRate =nextSalesAmt?nextDiscAmt/nextSalesAmt*100:0;
+  // 売変額 = 廃棄額 + 値引販売の値引額
+  const nextUrihenAmt=nextWasteAmt+nextDiscAmt;
+  // 次週売上高（正式）= 次週作成高 − 売変額
+  const nextSalesAmt =nextMake-nextUrihenAmt;
+  // 売変率 = 売変額 ÷ 次週売上高（正式）
+  const nextUrihenRate=nextSalesAmt?nextUrihenAmt/nextSalesAmt*100:0;
 
   // ── 投資予算 ──
   if(!S.budget.newProductCounts)S.budget.newProductCounts={};
@@ -2821,24 +2823,29 @@ function renderBudgetPlan(){
         <div style="font-size:10px;color:#999;margin-top:2px">作成計画表から算出</div>
       </div>
       <div class="summary-box">
-        <div class="label">想定廃棄額<span style="font-size:9px">（売価ベース）</span></div>
+        <div class="label">廃棄額<span style="font-size:9px">（売価ベース）</span></div>
         <div class="value">${fmt(nextWasteAmt)}</div><div class="unit">円</div>
         <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成数×廃棄率${haikuRate}%×売価`:'①実績に廃棄数を入力↑'}</div>
       </div>
       <div class="summary-box">
-        <div class="label">想定売変額</div>
+        <div class="label">値引額</div>
         <div class="value">${fmt(nextDiscAmt)}</div><div class="unit">円</div>
         <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?`作成数×値引率${nebikiRateDisp}%×値引額（商品別）`:'①実績に値引数を入力↑'}</div>
       </div>
       <div class="summary-box">
-        <div class="label">想定売変率</div>
-        <div class="value">${nextDiscRate.toFixed(1)}</div><div class="unit">%</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">想定売変額÷次週売上高</div>
+        <div class="label">売変額</div>
+        <div class="value">${fmt(nextUrihenAmt)}</div><div class="unit">円</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">廃棄額＋値引額</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">売変率</div>
+        <div class="value">${nextUrihenRate.toFixed(1)}</div><div class="unit">%</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売変額÷次週売上高</div>
       </div>
       <div class="summary-box">
         <div class="label">次週売上高（正式）</div>
         <div class="value">${fmt(nextSalesAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">作成高−廃棄額−売変額</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成高−売変額</div>
       </div>
       <div class="summary-box">
         <div class="label">投資予算（上限）</div>
@@ -2878,7 +2885,7 @@ function renderBudgetPlan(){
       <span style="color:#92400e">対象商品：${noDataProds.join('、')}</span><br>
       <span style="color:#78350f">→ これらの商品を作成計画から除外するか、①実績入力タブで実績を入力すると正確な計算になります。</span>
     </div>`:''}
-    ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>想定廃棄額・売変額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
+    ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>廃棄額・値引額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
     <div style="margin-top:16px">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">📦 新商品予算（正式）— 商品別入力</div>
       ${renderNewProductBudgetTable(newBudgetMax)}
@@ -3038,7 +3045,8 @@ function renderBudgetDaily(){
       day.disc[di] +=cnt*nebiki_rate*p.disc;
     });
   });
-  const day_sales =day.make.map((m,i)=>m-day.waste[i]-day.disc[i]);
+  const day_urihen=day.waste.map((w,i)=>w+day.disc[i]);
+  const day_sales =day.make.map((m,i)=>m-day_urihen[i]);
   const day_profit=day_sales.map((s,i)=>s-day.cost[i]);
 
   // カテゴリ別作成高（既存機能）
@@ -3079,10 +3087,11 @@ function renderBudgetDaily(){
 
   // サマリー系（金額）
   html+=row('作成高（円）',day.make,{style:'border-top:2px solid #eee'});
-  html+=row('想定廃棄額（円）',day.waste,{color:'color:#b91c1c'});
-  html+=row('想定売変額（円）',day.disc,{color:'color:#d97706'});
-  html+=row('想定売上高（円）',day_sales,{style:'background:#f0fdf4',color:'color:#047857;font-weight:600'});
-  html+=row('想定利益高（円）',day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
+  html+=row('廃棄額（円）',day.waste,{color:'color:#b91c1c'});
+  html+=row('値引額（円）',day.disc,{color:'color:#d97706'});
+  html+=row('売変額（円）',day_urihen,{color:'color:#7c2d12;font-weight:600'});
+  html+=row('売上高（円）',day_sales,{style:'background:#f0fdf4',color:'color:#047857;font-weight:600'});
+  html+=row('利益高（円）',day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
 
   // カテゴリ別作成高
   html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">📦 カテゴリ別 作成高（円）</td></tr>`;
