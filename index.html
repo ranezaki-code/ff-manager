@@ -1415,6 +1415,8 @@ function toHalf(s){
 function toHalfInt(s){return toHalf(s).replace(/[^0-9\-]/g,'');}
 function toHalfNum(s){return toHalf(s).replace(/[^0-9\-\.]/g,'');}
 function custInputHandler(el,di,h){
+  // IME変換中は触らない（compositionend で確定時に走る）
+  if(window.event&&window.event.isComposing)return;
   const half=toHalfInt(el.value);
   if(el.value!==half)el.value=half;
   setCust(di,h,parseInt(half)||0);
@@ -1501,6 +1503,8 @@ function initGlobalInputHandlers(){
   },true);
 }
 function custKeyNav(e,di,h){
+  // IME変換中（Enter=候補確定等）はナビゲーションしない → 隣マスへの値漏れ防止
+  if(e.isComposing||e.keyCode===229)return;
   let nd=di,nh=h;
   if(e.key==='ArrowRight'){nh=h+1;if(nh>23){nh=0;nd=(di+1)%7;}}
   else if(e.key==='ArrowLeft'){nh=h-1;if(nh<0){nh=23;nd=(di-1+7)%7;}}
