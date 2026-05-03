@@ -1185,6 +1185,34 @@ function getMarkdownTime(cat,slotH){
   // 値引きは廃棄の2時間前 → slotH + PREP_HOURS + cfg.ah - 2
   return slotH+PREP_HOURS+cfg.ah-2;
 }
+// 主カテゴリ取得（「ホットFF新商品」→「ホットFF」）
+function mainCatOf(cat){return cat.endsWith('新商品')?cat.slice(0,-3):cat;}
+// 値引きON/OFF判定（曜日別・カテゴリ別）。デフォルト=ON
+function isDiscountOn(cat,dayIdx){
+  const m=mainCatOf(cat);
+  const arr=S.discountSchedule?.[m];
+  if(!Array.isArray(arr))return true;
+  return arr[dayIdx]!==false;
+}
+function toggleDiscountDay(mainCat,di,on){
+  if(!S.discountSchedule)S.discountSchedule={};
+  if(!Array.isArray(S.discountSchedule[mainCat]))S.discountSchedule[mainCat]=[true,true,true,true,true,true,true];
+  S.discountSchedule[mainCat][di]=on;
+  saveS();
+  renderCatCfgArea();
+  // 作成表が表示中なら再描画
+  if(document.getElementById('tab3')?.classList.contains('active')&&typeof renderProdDayContent==='function'){
+    renderProdDayContent(currentProdDay);
+  }
+}
+function setDiscountAllDays(mainCat,on){
+  if(!S.discountSchedule)S.discountSchedule={};
+  S.discountSchedule[mainCat]=[on,on,on,on,on,on,on];
+  saveS();renderCatCfgArea();
+  if(document.getElementById('tab3')?.classList.contains('active')&&typeof renderProdDayContent==='function'){
+    renderProdDayContent(currentProdDay);
+  }
+}
 
 function roundCnt(v){
   const frac=v-Math.floor(v);
@@ -1802,6 +1830,28 @@ function renderCatCfgArea(){
   const el=document.getElementById('cat-cfg-area');
   el.innerHTML=CATS.map(c=>{
     const cfg=S.catCfg[c];
+    const isMain=!c.endsWith('新商品');
+    let discountUi='';
+    if(isMain){
+      const dayBoxes=DAYS.map((d,i)=>{
+        const on=isDiscountOn(c,i);
+        return `<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 6px;border-radius:5px;cursor:pointer;background:${on?'#fff3e0':'#f5f5f5'};border:1px solid ${on?'#f59e0b':'#ddd'};color:${on?'#d97706':'#999'};font-weight:${on?700:400}">
+          <input type="checkbox" ${on?'checked':''} onchange="toggleDiscountDay('${c}',${i},this.checked)" style="margin:0;cursor:pointer">${d}
+        </label>`;
+      }).join(' ');
+      discountUi=`<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:12px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+          <span style="color:#d97706;font-weight:600">💰 値引き 曜日別ON/OFF</span>
+          <span style="font-size:10px;color:#999">（OFFの曜日は④作成表に「値引なし」と表示）</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+          ${dayBoxes}
+          <button onclick="setDiscountAllDays('${c}',true)" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer;margin-left:6px">全ON</button>
+          <button onclick="setDiscountAllDays('${c}',false)" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer">全OFF</button>
+        </div>
+        <div style="font-size:10px;color:#888;margin-top:3px">※ ${c}新商品にも同じ設定が適用されます</div>
+      </div>`;
+    }
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;${S.catOn[c]?'':'opacity:.5'}">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <b style="font-size:13px">${c}</b>
@@ -1822,6 +1872,7 @@ function renderCatCfgArea(){
             ${SLOT_LABELS[h]}
           </label>`).join('')}
       </div>
+      ${discountUi}
       <div id="suggest_${c.replace(/\s/g,'_')}" style="display:none;margin-top:8px;background:var(--accent-lt);border-radius:6px;padding:8px;font-size:12px"></div>
     </div>`;
   }).join('');
@@ -2757,11 +2808,12 @@ function renderProdDayContent(dayIdx){
     html+=`<div class="section-title">${cat}</div>`;
     html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
     html+=`<thead><tr><th style="width:110px;text-align:left">商品名</th>`;
+    const discOn=isDiscountOn(cat,dayIdx);
     cfg.slots.forEach(h=>{
       const md=getMarkdownTime(cat,h);
       html+=`<th style="width:90px;padding:4px 2px">
         <div style="font-size:12px;font-weight:700">${SLOT_LABELS[h]}作成</div>
-        <div style="font-size:10px;color:#d97706;font-weight:400;margin-top:1px">値引 ${md}:00〜</div>
+        ${discOn?`<div style="font-size:10px;color:#d97706;font-weight:400;margin-top:1px">値引 ${md}:00〜</div>`:`<div style="font-size:10px;color:#9ca3af;font-weight:400;margin-top:1px">値引なし</div>`}
       </th>`;
     });
     html+=`</tr></thead><tbody>`;
@@ -2791,7 +2843,7 @@ function renderProdDayContent(dayIdx){
           `基準作成数：${baseCnt}個（実績×客数比）\n`+
           `基準との差：${diff>0?'+'+diff:diff}\n`+
           `最低引出客数：${Math.round(wl)}人（実客${sc}人 / ${wl>0&&sc>=wl?'OK':'不足'}）\n`+
-          `値引開始：${mdTime}:00`;
+          (discOn?`値引開始：${mdTime}:00`:`値引：なし（この曜日は値引OFF）`);
         html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${extra>0?';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px':''}">
           <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
             <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1${extra>0?';color:#d97706':''}">${isSkip?'—':totalCnt}</span>
