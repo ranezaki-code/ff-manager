@@ -562,8 +562,9 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 // ============================================================
 const CATS = ['ホットFF','ホットFF新商品','常温FF','常温FF新商品','中華まん','中華まん新商品'];
 const DAYS = ['火','水','木','金','土','日','月'];
-const ALL_SLOTS = [6,10,14,17];
-const SLOT_LABELS = {6:'6:00',10:'10:00',14:'14:00',17:'17:00'};
+// 作成スロット：3時/6時/10時/14時/17時/21時（販売開始は各時刻+1時間後＝陳列完了タイミング）
+const ALL_SLOTS = [3,6,10,14,17,21];
+const SLOT_LABELS = {3:'3:00',6:'6:00',10:'10:00',14:'14:00',17:'17:00',21:'21:00'};
 const PROD_TAGS = ['ワンハンド','揚げ物','複数個入'];
 const CAT_CLASS = {
   'ホットFF':'cat-hot','ホットFF新商品':'cat-hot-new',
@@ -1185,6 +1186,8 @@ function getMarkdownTime(cat,slotH){
   // 値引きは廃棄の2時間前 → slotH + PREP_HOURS + cfg.ah - 2
   return slotH+PREP_HOURS+cfg.ah-2;
 }
+// 24時超の時刻を「翌H:00」表記にする（21時作成スロット等の値引時間用）
+function fmtHour(h){if(h==null)return '';return h>=24?`翌${h-24}:00`:`${h}:00`;}
 // 主カテゴリ取得（「ホットFF新商品」→「ホットFF」）
 function mainCatOf(cat){return cat.endsWith('新商品')?cat.slice(0,-3):cat;}
 // 値引きON/OFF判定（曜日別・カテゴリ別）。デフォルト=ON
@@ -2813,7 +2816,7 @@ function renderProdDayContent(dayIdx){
       const md=getMarkdownTime(cat,h);
       html+=`<th style="width:90px;padding:4px 2px">
         <div style="font-size:12px;font-weight:700">${SLOT_LABELS[h]}作成</div>
-        ${discOn?`<div style="font-size:10px;color:#d97706;font-weight:400;margin-top:1px">値引 ${md}:00〜</div>`:`<div style="font-size:10px;color:#9ca3af;font-weight:400;margin-top:1px">値引なし</div>`}
+        ${discOn?`<div style="font-size:10px;color:#d97706;font-weight:400;margin-top:1px">値引 ${fmtHour(md)}〜</div>`:`<div style="font-size:10px;color:#9ca3af;font-weight:400;margin-top:1px">値引なし</div>`}
       </th>`;
     });
     html+=`</tr></thead><tbody>`;
@@ -2843,7 +2846,7 @@ function renderProdDayContent(dayIdx){
           `基準作成数：${baseCnt}個（実績×客数比）\n`+
           `基準との差：${diff>0?'+'+diff:diff}\n`+
           `最低引出客数：${Math.round(wl)}人（実客${sc}人 / ${wl>0&&sc>=wl?'OK':'不足'}）\n`+
-          (discOn?`値引開始：${mdTime}:00`:`値引：なし（この曜日は値引OFF）`);
+          (discOn?`値引開始：${fmtHour(mdTime)}`:`値引：なし（この曜日は値引OFF）`);
         html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${extra>0?';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px':''}">
           <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
             <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1${extra>0?';color:#d97706':''}">${isSkip?'—':totalCnt}</span>
