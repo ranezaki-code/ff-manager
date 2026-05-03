@@ -3077,7 +3077,7 @@ function renderBudgetPlan(){
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category];if(!cfg)return;
-    // 商品の週合計作成数
+    // 商品の週合計作成数（基本作成のみ。投資分は newBudgetFormal/investBudgetFormal で別計上）
     let cnt_week=0;
     DAYS.forEach((_,di)=>{
       cfg.slots.forEach(h=>{ cnt_week+=getProdCnt(p.id,di,h); });
@@ -3409,7 +3409,8 @@ function renderBudgetDaily(){
     const nebiki_rate=ji.total?ji.nebiki/ji.total:0;
     DAYS.forEach((_,di)=>{
       let cnt=0;
-      cfg.slots.forEach(h=>{cnt+=getProdCnt(p.id,di,h);});
+      // 投資/新商品の追加分（getInvestExtra）も合算して計画作成数とする
+      cfg.slots.forEach(h=>{cnt+=getProdCnt(p.id,di,h)+getInvestExtra(p.id,di,h);});
       day.make[di] +=cnt*p.shopPrice;
       day.cost[di] +=cnt*p.cost;
       day.waste[di]+=cnt*haiki_rate*p.shopPrice;
@@ -3443,7 +3444,8 @@ function renderBudgetDaily(){
       const cfg=S.catCfg[p.category];if(!cfg||!S.catOn[p.category])return;
       DAYS.forEach((_,di)=>{
         cfg.slots.forEach(h=>{
-          const c=getProdCnt(p.id,di,h);
+          // 投資/新商品の追加分も合算（作成表のセル表示と一致させる）
+          const c=getProdCnt(p.id,di,h)+getInvestExtra(p.id,di,h);
           catData[g.key].amt[di]+=c*p.shopPrice;
           catData[g.key].cnt[di]+=c;
         });
@@ -3482,7 +3484,7 @@ function renderBudgetDaily(){
   html+=row('利益高（円）',day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
 
   // カテゴリ別 作成高（円）— 曜日別サマリーの最後
-  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">📦 カテゴリ別 作成高（円）</td></tr>`;
+  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">📦 カテゴリ別 作成高（円）<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">※ 投資/新商品追加分を含む</span></td></tr>`;
   catGroups.forEach(g=>{
     const indent=g.sub?'　　└ ':'　';
     const styleA=g.bold?'background:#fafbff;font-weight:600':'';
@@ -3495,7 +3497,7 @@ function renderBudgetDaily(){
   const splitBtnLabel=splitMode?'🔀 合算表示に切替':'🔀 分けて表示に切替';
   html+=`<div style="margin-top:18px;padding-top:8px;border-top:2px dashed #d1d5db">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div style="font-size:13px;font-weight:700;color:var(--main)">📊 カテゴリ別 作成数（個）</div>
+      <div style="font-size:13px;font-weight:700;color:var(--main)">📊 カテゴリ別 作成数（個）<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">※ 投資/新商品追加分を含む</span></div>
       <button onclick="toggleHotFFSplit()" style="padding:3px 10px;font-size:11px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer">${splitBtnLabel}</button>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:12px">
