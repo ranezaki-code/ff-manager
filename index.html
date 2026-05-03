@@ -3070,20 +3070,26 @@ function renderBudgetPlan(){
   const el=document.getElementById('budget-plan');
 
   // ── 作成計画から商品別に集計（同一ループで廃棄・値引も計算）──
+  // 作成数 = 基本作成 + 投資/新商品の追加作成（実際に作って売る分すべて）
   // 廃棄率・値引率は商品ごとの実績から。値引額は商品ごとのp.discを使用。
   let nextMake=0, nextTotalCost=0, nextWasteAmt=0, nextDiscAmt=0;
+  let nextBaseCost=0; // 基本作成のみの原価合計（投資予算上限の計算用）
   let sumTeika=0, sumNebiki=0, sumHaiki=0; // 適正販売率表示用
   const noDataProds=[]; // 実績データなし商品リスト（警告表示用）
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category];if(!cfg)return;
-    // 商品の週合計作成数（基本作成のみ。投資分は newBudgetFormal/investBudgetFormal で別計上）
-    let cnt_week=0;
+    let baseCnt=0, extraCnt=0;
     DAYS.forEach((_,di)=>{
-      cfg.slots.forEach(h=>{ cnt_week+=getProdCnt(p.id,di,h); });
+      cfg.slots.forEach(h=>{
+        baseCnt +=getProdCnt(p.id,di,h);
+        extraCnt+=getInvestExtra(p.id,di,h);
+      });
     });
+    const cnt_week=baseCnt+extraCnt;
     nextMake     +=cnt_week*p.shopPrice;
     nextTotalCost+=cnt_week*p.cost;
+    nextBaseCost +=baseCnt *p.cost;
     // 商品別の実績レート（S.ji + 他週）
     const ji=getJiAllWeeks(p.id);
     // ※ ji.total=0（実績未入力）の場合は廃棄率100%・値引率0%を使用する。
@@ -3092,9 +3098,9 @@ function renderBudgetPlan(){
     const haiki_rate_p =ji.total?ji.haiki/ji.total:1.0;
     const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0;
     if(!ji.total&&cnt_week>0) noDataProds.push(p.name);
-    // 廃棄額（売価ベース）= 作成数 × 廃棄率 × 売価
+    // 廃棄額（売価ベース）= 作成数（投資込み）× 廃棄率 × 売価
     nextWasteAmt+=cnt_week*haiki_rate_p*p.shopPrice;
-    // 値引額 = 作成数 × 値引率 × 商品別値引額（p.disc）
+    // 値引額 = 作成数（投資込み）× 値引率 × 商品別値引額（p.disc）
     nextDiscAmt +=cnt_week*nebiki_rate_p*p.disc;
     // 全体集計（適正販売率の表示用）
     sumTeika+=ji.teika; sumNebiki+=ji.nebiki; sumHaiki+=ji.haiki;
@@ -3112,8 +3118,8 @@ function renderBudgetPlan(){
   // ── 投資予算 ──
   if(!S.budget.newProductCounts)S.budget.newProductCounts={};
   if(!S.budget.investCounts)S.budget.investCounts={};
-  // 上限 = 売上高 − 原価（全投資ゼロ時の利益高＝投資できる上限）
-  const newBudgetMax=Math.max(0,nextSalesAmt-nextTotalCost);
+  // 投資できる上限 = 売上高 − 基本作成原価（投資ゼロ時の利益高 ＝ 投資にかけられる枠）
+  const newBudgetMax=Math.max(0,nextSalesAmt-nextBaseCost);
   // 新商品予算（正式）= 1日あたり個数 × 7日 × 原価 の合計
   const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
     .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*7*p.cost,0);
@@ -3127,8 +3133,10 @@ function renderBudgetPlan(){
   const investBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.isInvest)
     .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
 
-  // 次週利益高 = 売上高 − 原価 − 新商品予算（正式）− 定番投資予算（正式）
-  const nextProfitAmt=nextSalesAmt-nextTotalCost-newBudgetFormal-investBudgetFormal;
+  // 次週利益高 = 売上高 − 原価（基本＋投資の合計原価）
+  // ※ nextTotalCost には既に投資原価が含まれている（newBudgetFormal/investBudgetFormal 相当）ため
+  //   それらを別途引く必要はない（二重計上防止）
+  const nextProfitAmt=nextSalesAmt-nextTotalCost;
   // 次週利益率 = 次週利益高 ÷ 次週売上高（正式）
   const nextProfitRate=nextSalesAmt?nextProfitAmt/nextSalesAmt*100:0;
 
@@ -3143,7 +3151,7 @@ function renderBudgetPlan(){
       <div class="summary-box">
         <div class="label">次週作成高（正式）</div>
         <div class="value">${fmt(nextMake)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">作成計画表から算出</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">作成計画＋投資/新商品の追加分</div>
       </div>
       <div class="summary-box">
         <div class="label">廃棄額<span style="font-size:9px">（売価ベース）</span></div>
@@ -3173,7 +3181,7 @@ function renderBudgetPlan(){
       <div class="summary-box">
         <div class="label">投資予算（上限）</div>
         <div class="value" style="color:${maxColor}">${fmt(newBudgetMax)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">売上高−原価（赤字にならない上限）</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売上高−基本作成原価（投資にかけられる枠）</div>
       </div>
       <div class="summary-box" style="border:2px solid var(--main)">
         <div class="label">新商品予算（正式）</div>
@@ -3190,7 +3198,7 @@ function renderBudgetPlan(){
       <div class="summary-box">
         <div class="label">次週利益高</div>
         <div class="value" style="color:${pColor}">${fmt(nextProfitAmt)}</div><div class="unit">円</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">売上高−原価−新商品予算−定番投資予算</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">売上高−原価（投資込み）</div>
       </div>
       <div class="summary-box">
         <div class="label">次週利益率</div>
