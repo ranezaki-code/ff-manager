@@ -3343,16 +3343,33 @@ function renderBudgetDaily(){
   const day_sales =day.make.map((m,i)=>m-day_urihen[i]);
   const day_profit=day_sales.map((s,i)=>s-day.cost[i]);
 
-  // カテゴリ別作成高（既存機能）
+  // カテゴリ別 作成高 & 作成数
+  // ホットFFは「からあげクン系」と「その他」で分割（合算モードも切替可）
   const mainCats=['ホットFF','常温FF','中華まん'];
-  const catDay={}; // mc → Array(7)
-  mainCats.forEach(mc=>{catDay[mc]=Array(7).fill(0);});
+  const splitMode=S.budget?.hotFFSplit!==false; // デフォルト=分割表示
+  const isKaraage=p=>(p.name||'').includes('からあげクン');
+  const catGroups=[]; // {key,label,filter,sub:bool}
   mainCats.forEach(mc=>{
     const catKeys=CATS.filter(c=>c.startsWith(mc));
-    S.PM.filter(p=>p.enabled&&catKeys.includes(p.category)).forEach(p=>{
-      const cfg=S.catCfg[p.category];if(!cfg)return;
+    if(mc==='ホットFF'&&splitMode){
+      catGroups.push({key:'ホットFF_kr',label:'ホットFF（からあげクン系）',filter:p=>catKeys.includes(p.category)&&isKaraage(p),sub:true});
+      catGroups.push({key:'ホットFF_other',label:'ホットFF（その他）',filter:p=>catKeys.includes(p.category)&&!isKaraage(p),sub:true});
+      catGroups.push({key:'ホットFF_sum',label:'ホットFF（合計）',filter:p=>catKeys.includes(p.category),sub:false,bold:true});
+    } else {
+      catGroups.push({key:mc,label:mc,filter:p=>catKeys.includes(p.category)});
+    }
+  });
+  const catData={}; // key → {amt:Array(7), cnt:Array(7)}
+  catGroups.forEach(g=>{catData[g.key]={amt:Array(7).fill(0),cnt:Array(7).fill(0)};});
+  catGroups.forEach(g=>{
+    S.PM.filter(p=>p.enabled&&g.filter(p)).forEach(p=>{
+      const cfg=S.catCfg[p.category];if(!cfg||!S.catOn[p.category])return;
       DAYS.forEach((_,di)=>{
-        cfg.slots.forEach(h=>{catDay[mc][di]+=getProdCnt(p.id,di,h)*p.shopPrice;});
+        cfg.slots.forEach(h=>{
+          const c=getProdCnt(p.id,di,h);
+          catData[g.key].amt[di]+=c*p.shopPrice;
+          catData[g.key].cnt[di]+=c;
+        });
       });
     });
   });
@@ -3387,14 +3404,27 @@ function renderBudgetDaily(){
   html+=row('売上高（円）',day_sales,{style:'background:#f0fdf4',color:'color:#047857;font-weight:600'});
   html+=row('利益高（円）',day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
 
-  // カテゴリ別作成高
-  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">📦 カテゴリ別 作成高（円）</td></tr>`;
-  mainCats.forEach(mc=>{
-    html+=row('　'+mc,catDay[mc]);
+  // カテゴリ別 作成高 & 作成数
+  const splitBtnLabel=splitMode?'🔀 合算表示に切替':'🔀 分けて表示に切替';
+  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">
+    📦 カテゴリ別（作成数 / 作成高）
+    <button onclick="toggleHotFFSplit()" style="margin-left:8px;padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer">${splitBtnLabel}</button>
+  </td></tr>`;
+  catGroups.forEach(g=>{
+    const indent=g.sub?'　　└ ':'　';
+    const styleA=g.bold?'background:#fafbff;font-weight:600':'';
+    html+=row(indent+g.label+'（個）',catData[g.key].cnt,{style:styleA,color:'color:#475569'});
+    html+=row(indent+g.label+'（円）',catData[g.key].amt,{style:styleA});
   });
 
   html+='</tbody></table>';
   el.innerHTML=html;
+}
+
+function toggleHotFFSplit(){
+  if(!S.budget)S.budget={};
+  S.budget.hotFFSplit=S.budget.hotFFSplit===false?true:false;
+  saveS();renderBudgetDaily();
 }
 
 function renderBudgetManual(){
