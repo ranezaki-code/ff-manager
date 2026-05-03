@@ -632,6 +632,7 @@ let S = {
   ext:DEF_EXT.map(e=>({...e})),
   rules:[],
   checks:{},
+  orderChecks:{},
   budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{},investDays:{}},
   discHist:[],
   施策:[],   // [{id,name,days:'all'|'weekday'|'weekend'|曜日,impact:0}]
@@ -684,6 +685,7 @@ function syncActiveWeek(){
     ji:JSON.parse(JSON.stringify(S.ji||{})),
     cust:(S.cust||[]).map(r=>[...r]),
     checks:{...(S.checks||{})},
+    orderChecks:{...(S.orderChecks||{})},
     weekStart:S.weekStart
   };
 }
@@ -694,7 +696,7 @@ function saveS(){
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-    rules:S.rules,checks:S.checks,budget:S.budget,discHist:S.discHist,
+    rules:S.rules,checks:S.checks,orderChecks:S.orderChecks,budget:S.budget,discHist:S.discHist,
     施策:S.施策,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
@@ -997,6 +999,11 @@ function loadS(){
   if(!S.budget.newProductCounts)S.budget.newProductCounts={};
   if(!S.budget.investCounts)S.budget.investCounts={};
   if(!S.budget.investDays)S.budget.investDays={};
+  if(!S.orderChecks)S.orderChecks={};
+  // 現在の週から orderChecks を復元
+  if(S.activeWeek&&S.weeks[S.activeWeek]?.orderChecks){
+    S.orderChecks={...S.weeks[S.activeWeek].orderChecks};
+  }
   // isInvest フラグがない既存商品にデフォルト false を付与
   S.PM.forEach(p=>{if(p.isInvest===undefined)p.isInvest=false;});
   if(!S.施策)S.施策=[];
@@ -1504,6 +1511,7 @@ function switchWeek(key){
   S.ji=JSON.parse(JSON.stringify(w.ji||{}));
   S.cust=(w.cust||[]).map(r=>[...r]);
   S.checks={...(w.checks||{})};
+  S.orderChecks={...(w.orderChecks||{})};
   S.weekStart=w.weekStart||weekKeyToDateStr(key);
   saveS();
   renderWeekSelector();
@@ -1520,6 +1528,7 @@ function addWeek(dateStr){
   S.ji=JSON.parse(JSON.stringify(S.weeks[key].ji));
   S.cust=S.weeks[key].cust.map(r=>[...r]);
   S.checks={...S.weeks[key].checks};
+  S.orderChecks={...(S.weeks[key].orderChecks||{})};
   S.weekStart=dateStr;
   saveS();
   renderWeekSelector();
@@ -3426,10 +3435,27 @@ function renderOrderTable(){
         <div style="font-size:16px;font-weight:700;color:var(--main)">📋 発注スケジュール</div>
         <div style="font-size:12px;color:#666;margin-top:2px">${dateRange}</div>
       </div>
-      <button onclick="window.print()" style="padding:6px 12px;font-size:12px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">🖨 印刷</button>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        ${(()=>{
+          const{total,done}=getOrderCheckProgress();
+          const pct=total?Math.round(done/total*100):0;
+          const color=pct===100?'#047857':pct>=50?'#d97706':'#666';
+          return total?`<div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:4px 10px">
+            <span style="font-size:11px;color:#666">発注済み</span>
+            <span style="font-size:14px;font-weight:700;color:${color}">${done}/${total}</span>
+            <span style="font-size:11px;color:${color}">(${pct}%)</span>
+            <div style="width:60px;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-left:2px">
+              <div style="width:${pct}%;height:100%;background:${color};transition:width .2s"></div>
+            </div>
+          </div>`:'';
+        })()}
+        <button onclick="resetOrderChecks()" style="padding:6px 10px;font-size:11px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">☑ チェックリセット</button>
+        <button onclick="window.print()" style="padding:6px 12px;font-size:12px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">🖨 印刷</button>
+      </div>
     </div>
+    <div style="font-size:11px;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">☑ 発注したらチェック → 完了セルは緑色＋数字に取消線が入ります</div>
     ${S.PM.some(p=>p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0))?
-      '<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">📈 黄色 = 投資/新商品追加分を含む</div>':''}
+      '<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">📈 黄色 = 投資/新商品追加分を含む</div>':''}
   </div>`;
 
   // ── 発注スケジュール（発注日ベース） ──
@@ -3607,6 +3633,43 @@ const ORDER_COL_COVERS = {
   5:     [6],    // 日     → 月
 };
 
+function toggleOrderCheck(key,val){
+  if(!S.orderChecks)S.orderChecks={};
+  if(val)S.orderChecks[key]=true;
+  else delete S.orderChecks[key];
+  saveS();
+  // 該当行のみ再描画…ではなく軽くするためテーブル全体を再描画
+  renderOrderTable();
+}
+function resetOrderChecks(){
+  if(!confirm('発注チェックを全てリセットしますか？'))return;
+  S.orderChecks={};
+  saveS();renderOrderTable();
+}
+function getOrderCheckProgress(){
+  // 数量>0で発注対象（noOrder以外）のセルをカウント
+  let total=0,done=0;
+  const activeCats=CATS.filter(c=>S.catOn[c]&&S.catCfg[c]?.slots.length);
+  activeCats.forEach(cat=>{
+    const cfg=S.catCfg[cat];
+    const prods=S.PM.filter(p=>p.enabled&&p.category===cat);
+    prods.forEach(p=>{
+      ORDER_COLS.forEach(col=>{
+        if(col.noOrder)return;
+        const covers=ORDER_COL_COVERS[col.id];if(!covers)return;
+        const qty=covers.reduce((sum,di)=>{
+          return sum+cfg.slots.reduce((s,h)=>s+getProdCnt(p.id,di,h)+getInvestExtra(p.id,di,h),0);
+        },0);
+        if(qty>0){
+          total++;
+          if((S.orderChecks||{})[`${p.id}_${col.id}`])done++;
+        }
+      });
+    });
+  });
+  return{total,done};
+}
+
 function buildOrderScheduleHTML(dates, activeCats){
   // 前週月の日付計算（週開始火曜の前日）
   const preMonDate = new Date(dates[0]);
@@ -3701,8 +3764,14 @@ function buildOrderScheduleHTML(dates, activeCats){
           let bg='', color=isZero?'#ddd':'var(--main)';
           if(col.isPreWeek){ bg='background:#fff8f0'; if(!isZero) color='#e65100'; }
           else if(col.isFuture){ bg='background:#e8f4fd'; if(!isZero) color='#1565c0'; }
-          return`<td style="text-align:center;padding:6px 4px;${bg}">
-            <span style="font-size:20px;font-weight:700;color:${color}">${isZero?'—':qty}</span>
+          // 発注チェック（数量>0のセルのみ表示）
+          const ckKey=`${p.id}_${col.id}`;
+          const checked=!!(S.orderChecks||{})[ckKey];
+          const checkHtml=isZero?'':`<div style="margin-top:2px;line-height:1"><input type="checkbox" ${checked?'checked':''} onclick="toggleOrderCheck('${ckKey}',this.checked)" style="margin:0;cursor:pointer;width:16px;height:16px"></div>`;
+          const numStyle=checked?'opacity:.4;text-decoration:line-through':'';
+          return`<td style="text-align:center;padding:6px 4px;${bg}${checked&&!isZero?';background:#ecfdf5':''}">
+            <span style="font-size:20px;font-weight:700;color:${color};${numStyle}">${isZero?'—':qty}</span>
+            ${checkHtml}
           </td>`;
         }).join('')}
         <td style="text-align:center;padding:6px 4px;background:#f0f4ff">
