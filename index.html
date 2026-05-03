@@ -562,9 +562,11 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 // ============================================================
 const CATS = ['ホットFF','ホットFF新商品','常温FF','常温FF新商品','中華まん','中華まん新商品'];
 const DAYS = ['火','水','木','金','土','日','月'];
-// 作成スロット：3時/6時/10時/14時/17時/21時（販売開始は各時刻+1時間後＝陳列完了タイミング）
-const ALL_SLOTS = [3,6,10,14,17,21];
-const SLOT_LABELS = {3:'3:00',6:'6:00',10:'10:00',14:'14:00',17:'17:00',21:'21:00'};
+// 作成スロット：0〜23時の全24時間から選択可能（販売開始は各時刻+1時間後＝陳列完了タイミング）
+const ALL_SLOTS = Array.from({length:24},(_,h)=>h);
+const SLOT_LABELS = Object.fromEntries(ALL_SLOTS.map(h=>[h,`${h}:00`]));
+// 算出時の最大カバー時間（カテゴリ別。次スロットが近ければそれが優先される）
+const CALC_MAX_HOURS = {'ホットFF':4,'常温FF':8,'中華まん':8};
 const PROD_TAGS = ['ワンハンド','揚げ物','複数個入'];
 const CAT_CLASS = {
   'ホットFF':'cat-hot','ホットFF新商品':'cat-hot-new',
@@ -1161,19 +1163,36 @@ function getWeekTotal(){
   return S.cust.reduce((s,r)=>s+r.reduce((a,b)=>a+b,0),0);
 }
 
+// 客数集計：he>24なら翌日の客数（日月火…の循環）にラップして集計
 function getSlotCust(dayIdx,hs,he){
-  const row=S.cust[dayIdx]||[];
   let sum=0;
-  for(let h=hs;h<he&&h<24;h++) sum+=row[h]||0;
+  for(let h=hs;h<he;h++){
+    if(h<24){
+      sum+=(S.cust[dayIdx]||[])[h]||0;
+    } else {
+      const nd=(dayIdx+1)%7;
+      sum+=(S.cust[nd]||[])[h-24]||0;
+    }
+  }
   return sum;
 }
 
 function getCatSlotRange(cat,slotH){
   const cfg=S.catCfg[cat];if(!cfg)return null;
   const idx=cfg.slots.indexOf(slotH);if(idx<0)return null;
-  const nextSlot=idx+1<cfg.slots.length?cfg.slots[idx+1]:null;
-  const discard=slotH+cfg.ah;
-  const end=nextSlot?Math.min(nextSlot,discard):Math.min(discard,24);
+  // 次スロット（最後のスロットなら循環して先頭+24）
+  let nextSlot;
+  if(idx+1<cfg.slots.length){
+    nextSlot=cfg.slots[idx+1];
+  } else if(cfg.slots.length>0){
+    nextSlot=cfg.slots[0]+24;  // 巡回（翌日の最初のスロット）
+  } else {
+    nextSlot=slotH+24;
+  }
+  // カテゴリ別の最大カバー時間でキャップ（ホット=4h, 常温/中華まん=8h）
+  const main=mainCatOf(cat);
+  const calcMax=CALC_MAX_HOURS[main]||4;
+  const end=Math.min(nextSlot,slotH+calcMax);
   return [slotH,end];
 }
 
@@ -1866,14 +1885,17 @@ function renderCatCfgArea(){
           onchange="setCatCfg('${c}','ah',parseInt(this.value)||6)">時間
         <span style="color:var(--gray)">値引き目安: ${cfg.slots.map(h=>`${getMarkdownTime(c,h)}:00`).join('/')}</span>
       </div>
-      <div style="margin-top:6px;font-size:12px;display:flex;flex-wrap:wrap;gap:12px">
-        作成時間:
-        ${ALL_SLOTS.map(h=>`
-          <label>
-            <input type="checkbox" ${cfg.slots.includes(h)?'checked':''} ${!S.catOn[c]?'disabled':''}
-              onchange="toggleCatSlot('${c}',${h},this.checked)">
-            ${SLOT_LABELS[h]}
-          </label>`).join('')}
+      <div style="margin-top:6px;font-size:12px">
+        <div style="margin-bottom:3px">作成時間（最大カバー時間：${CALC_MAX_HOURS[mainCatOf(c)]||4}h）：</div>
+        <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px 4px">
+        ${ALL_SLOTS.map(h=>{
+          const on=cfg.slots.includes(h);
+          return `<label style="display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:2px 3px;border-radius:3px;cursor:${S.catOn[c]?'pointer':'not-allowed'};background:${on?'#dbeafe':'#f5f5f5'};border:1px solid ${on?'var(--main)':'#e5e7eb'};color:${on?'var(--main)':'#888'};font-weight:${on?700:400};white-space:nowrap;justify-content:center">
+            <input type="checkbox" ${on?'checked':''} ${!S.catOn[c]?'disabled':''}
+              onchange="toggleCatSlot('${c}',${h},this.checked)" style="margin:0;cursor:inherit;width:11px;height:11px">${h}
+          </label>`;
+        }).join('')}
+        </div>
       </div>
       ${discountUi}
       <div id="suggest_${c.replace(/\s/g,'_')}" style="display:none;margin-top:8px;background:var(--accent-lt);border-radius:6px;padding:8px;font-size:12px"></div>
