@@ -3404,20 +3404,37 @@ function renderBudgetDaily(){
   html+=row('売上高（円）',day_sales,{style:'background:#f0fdf4',color:'color:#047857;font-weight:600'});
   html+=row('利益高（円）',day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
 
-  // カテゴリ別 作成高 & 作成数
-  const splitBtnLabel=splitMode?'🔀 合算表示に切替':'🔀 分けて表示に切替';
-  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">
-    📦 カテゴリ別（作成数 / 作成高）
-    <button onclick="toggleHotFFSplit()" style="margin-left:8px;padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer">${splitBtnLabel}</button>
-  </td></tr>`;
+  // カテゴリ別 作成高（円）— 曜日別サマリーの最後
+  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">📦 カテゴリ別 作成高（円）</td></tr>`;
   catGroups.forEach(g=>{
     const indent=g.sub?'　　└ ':'　';
     const styleA=g.bold?'background:#fafbff;font-weight:600':'';
-    html+=row(indent+g.label+'（個）',catData[g.key].cnt,{style:styleA,color:'color:#475569'});
-    html+=row(indent+g.label+'（円）',catData[g.key].amt,{style:styleA});
+    html+=row(indent+g.label,catData[g.key].amt,{style:styleA});
   });
 
   html+='</tbody></table>';
+
+  // ── 別枠：カテゴリ別 作成数（個）──
+  const splitBtnLabel=splitMode?'🔀 合算表示に切替':'🔀 分けて表示に切替';
+  html+=`<div style="margin-top:18px;padding-top:8px;border-top:2px dashed #d1d5db">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:700;color:var(--main)">📊 カテゴリ別 作成数（個）</div>
+      <button onclick="toggleHotFFSplit()" style="padding:3px 10px;font-size:11px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer">${splitBtnLabel}</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--main-lt)">
+        <th style="padding:4px 8px;text-align:left;min-width:160px">カテゴリ</th>
+        ${DAYS.map((d,i)=>thDay(d,i)).join('')}
+        <th style="padding:4px 8px;text-align:right;min-width:70px">週計</th>
+        <th style="padding:4px 8px;text-align:right;min-width:70px">日平均</th>
+      </tr></thead><tbody>`;
+  catGroups.forEach(g=>{
+    const indent=g.sub?'　└ ':'';
+    const styleA=g.bold?'background:#fafbff;font-weight:700':'';
+    html+=row(indent+g.label,catData[g.key].cnt,{style:styleA,color:g.bold?'color:#1e3a8a':'color:#475569'});
+  });
+  html+='</tbody></table></div>';
+
   el.innerHTML=html;
 }
 
