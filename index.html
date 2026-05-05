@@ -289,7 +289,10 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <div class="card">
         <div class="flex justify-between items-center mb-2">
           <div class="section-title" style="margin:0">曜日別・時間帯別客数</div>
-          <button class="btn-secondary" onclick="resetCustZero()">全て0にリセット</button>
+          <div class="flex gap-2">
+            <button class="btn-secondary" onclick="loadPrevCust()">前週引継ぎ</button>
+            <button class="btn-secondary" onclick="resetCustZero()">全て0にリセット</button>
+          </div>
         </div>
         <div class="overflow-auto"><div id="cust-grid"></div></div>
       </div>
@@ -1860,6 +1863,44 @@ function setCust(di,h,val){
 function resetCustZero(){
   if(!confirm('全ての客数を0にリセットしますか？'))return;
   S.cust=Array.from({length:7},()=>new Array(24).fill(0));saveS();renderCustGrid();
+}
+
+function loadPrevCust(){
+  // S.weeks から「現在の週より前で最も近い週」の cust を引継ぐ
+  syncActiveWeek();
+  const curStart=S.weekStart?parseLocalDate(S.weekStart):null;
+  if(!curStart){alert('現在の週情報が取得できません');return;}
+  const isNonEmpty=arr=>Array.isArray(arr)&&arr.some(row=>Array.isArray(row)&&row.some(v=>v));
+  const candidates=Object.entries(S.weeks||{})
+    .map(([key,w])=>{
+      const ws=w?.weekStart||weekKeyToDateStr(key);
+      return{key,date:parseLocalDate(ws),cust:w.cust};
+    })
+    .filter(x=>x.date<curStart&&isNonEmpty(x.cust))
+    .sort((a,b)=>b.date-a.date);
+  if(!candidates.length){
+    alert('前週の客数データが見つかりません。\n（過去の週に客数が入力されているか確認してください）');
+    return;
+  }
+  const prev=candidates[0];
+  const dateStr=`${prev.date.getMonth()+1}/${prev.date.getDate()}週`;
+  if(isNonEmpty(S.cust)){
+    if(!confirm(`現在の客数データを上書きします。\n${dateStr}（${prev.key}）の客数を引継ぎますか？`))return;
+  }
+  S.cust=prev.cust.map(r=>[...r]);
+  saveS();renderCustGrid();
+  // 軽い完了通知
+  setTimeout(()=>{try{
+    const total=S.cust.reduce((s,r)=>s+r.reduce((a,b)=>a+b,0),0);
+    const grid=document.getElementById('cust-grid');
+    if(grid){
+      const note=document.createElement('div');
+      note.style.cssText='font-size:11px;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:6px 10px;margin-bottom:6px';
+      note.innerHTML=`✅ ${dateStr} の客数（週合計 ${total} 人）を引継ぎました`;
+      grid.parentNode.insertBefore(note,grid);
+      setTimeout(()=>note.remove(),4000);
+    }
+  }catch(e){}},50);
 }
 
 // ============================================================
