@@ -1643,8 +1643,49 @@ function resetJisseki(){
   S.ji={};saveS();renderJissekiTab();
 }
 function loadPrevJisseki(){
-  if(!Object.keys(S.prevJi||{}).length){alert('前週データがありません');return;}
-  S.ji=JSON.parse(JSON.stringify(S.prevJi));saveS();renderJissekiTab();
+  // S.weeks から「現在の週より前で最も近い週」の ji を引継ぐ
+  syncActiveWeek();
+  const curStart=S.weekStart?parseLocalDate(S.weekStart):null;
+  if(!curStart){alert('現在の週情報が取得できません');return;}
+  // 前週候補：weekStart < 現在の週 のもの
+  const candidates=Object.entries(S.weeks||{})
+    .map(([key,w])=>{
+      const ws=w?.weekStart||weekKeyToDateStr(key);
+      return{key,date:parseLocalDate(ws),ji:w.ji||{}};
+    })
+    .filter(x=>x.date<curStart&&Object.keys(x.ji).length>0)
+    .sort((a,b)=>b.date-a.date);
+  // 旧データ後方互換：S.prevJi にだけ残っている場合
+  if(!candidates.length){
+    if(Object.keys(S.prevJi||{}).length){
+      if(!confirm('過去の週データが見つかりません。\nレガシーの前週データを引継ぎますか？'))return;
+      S.ji=JSON.parse(JSON.stringify(S.prevJi));
+      saveS();renderJissekiTab();
+      alert('レガシーの前週データを引継ぎました');
+      return;
+    }
+    alert('前週のデータが見つかりません。\n（過去の週フォルダに実績が入力されているか確認してください）');
+    return;
+  }
+  const prev=candidates[0];
+  const dateStr=`${prev.date.getMonth()+1}/${prev.date.getDate()}週`;
+  if(Object.keys(S.ji||{}).length>0){
+    if(!confirm(`現在の実績データを上書きします。\n${dateStr}（${prev.key}）の実績を引継ぎますか？`))return;
+  }
+  S.ji=JSON.parse(JSON.stringify(prev.ji));
+  saveS();renderJissekiTab();
+  // 確認用に簡易メッセージ
+  setTimeout(()=>{try{
+    const cnt=Object.keys(S.ji).length;
+    const msg=document.getElementById('jisseki-summary');
+    if(msg){
+      const note=document.createElement('div');
+      note.style.cssText='grid-column:1/-1;font-size:11px;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:6px 10px;margin-top:6px';
+      note.innerHTML=`✅ ${dateStr} の実績（${cnt}商品）を引継ぎました`;
+      msg.appendChild(note);
+      setTimeout(()=>note.remove(),4000);
+    }
+  }catch(e){}},50);
 }
 function loadSampleJisseki(){
   S.ji=JSON.parse(JSON.stringify(DEF_JISSEKI));saveS();renderJissekiTab();
