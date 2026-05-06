@@ -639,6 +639,7 @@ let S = {
   rules:[],
   checks:{},
   orderChecks:{},
+  discountSchedule:{},
   budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{},investDays:{}},
   discHist:[],
   施策:[],   // [{id,name,days:'all'|'weekday'|'weekend'|曜日,impact:0}]
@@ -702,7 +703,7 @@ function saveS(){
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-    rules:S.rules,checks:S.checks,orderChecks:S.orderChecks,budget:S.budget,discHist:S.discHist,
+    rules:S.rules,checks:S.checks,orderChecks:S.orderChecks,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
     施策:S.施策,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
@@ -1006,6 +1007,7 @@ function loadS(){
   if(!S.budget.investCounts)S.budget.investCounts={};
   if(!S.budget.investDays)S.budget.investDays={};
   if(!S.orderChecks)S.orderChecks={};
+  if(!S.discountSchedule)S.discountSchedule={};
   // 現在の週から orderChecks を復元
   if(S.activeWeek&&S.weeks[S.activeWeek]?.orderChecks){
     S.orderChecks={...S.weeks[S.activeWeek].orderChecks};
