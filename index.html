@@ -708,6 +708,8 @@ function saveS(){
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
   }));}catch(e){console.warn('save error',e)}
+  // ローカル変更時刻を記録（リロード時の比較に使用）
+  localStorage.setItem('ffv6_local_modified',Date.now().toString());
   gistSyncDebouncedPush();
 }
 
@@ -771,8 +773,11 @@ async function gistPush(manual){
   if(manual)gistSetStatus('送信中…','#1d4ed8');
   try{
     const data=gistBuildPayload();
-    await gistApi('/gists/'+gistId,{method:'PATCH',body:JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(data,null,2)}}})});
+    const r=await gistApi('/gists/'+gistId,{method:'PATCH',body:JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(data,null,2)}}})});
     localStorage.setItem('ffv6_gist_lastPush',new Date().toISOString());
+    // 同期成功 → ローカル変更フラグをクリア
+    localStorage.setItem('ffv6_local_modified','0');
+    if(r&&r.updated_at)localStorage.setItem('ffv6_gist_synced_at',r.updated_at);
     gistSetStatus('同期済み '+new Date().toLocaleTimeString('ja-JP'),'#047857');
   }catch(e){gistSetStatus('送信エラー: '+e.message,'#b91c1c');}
   finally{_gistSyncing=false;}
@@ -783,13 +788,13 @@ function gistSyncDebouncedPush(){
   if(_gistPushTimer)clearTimeout(_gistPushTimer);
   _gistPushTimer=setTimeout(()=>gistPush(false),3000);
 }
-async function gistPull(manual){
+async function gistPull(manual,prefetched){
   const{token,gistId}=gistGetConfig();
   if(!token||!gistId){if(manual)alert('トークンとGist IDを設定してください');return;}
   if(manual&&!confirm('クラウドの最新データで上書きします。現在の端末の未保存データは失われます。よろしいですか？'))return;
   gistSetStatus('取得中…','#1d4ed8');
   try{
-    const res=await gistApi('/gists/'+gistId);
+    const res=prefetched||await gistApi('/gists/'+gistId);
     const f=res.files&&res.files[GIST_FILE];
     if(!f)throw new Error('Gist内にff-data.jsonが見つかりません');
     const obj=JSON.parse(f.content);
@@ -801,6 +806,9 @@ async function gistPull(manual){
     });
     if(obj.currentStoreId)localStorage.setItem('ffv6_current',obj.currentStoreId);
     localStorage.setItem('ffv6_gist_lastPull',new Date().toISOString());
+    // 取得後はローカル＝クラウド一致状態
+    localStorage.setItem('ffv6_local_modified','0');
+    if(res.updated_at)localStorage.setItem('ffv6_gist_synced_at',res.updated_at);
     gistSetStatus('取得完了 '+new Date().toLocaleTimeString('ja-JP'),'#047857');
     if(manual){alert('取得完了。ページをリロードします。');location.reload();}
   }catch(e){gistSetStatus('取得エラー: '+e.message,'#b91c1c');throw e;}
@@ -1129,7 +1137,24 @@ window.addEventListener('DOMContentLoaded',async()=>{
   const gc=localStorage.getItem('ffv6_gist_token');
   const gi=localStorage.getItem('ffv6_gist_id');
   if(gc&&gi){
-    try{await gistPull(false);}catch(e){console.warn('Gist pull failed:',e);}
+    // タイムスタンプ比較でローカル/クラウドのどちらが新しいか判定
+    // - localMod > 0 かつ Gistのupdated_atより新しい → ローカルが未送信の最新変更を持つ → push
+    // - それ以外 → クラウドが新しい or 同期済み → pull
+    try{
+      const meta=await gistApi('/gists/'+gi);
+      const localMod=parseInt(localStorage.getItem('ffv6_local_modified')||'0',10);
+      const gistMs=meta&&meta.updated_at?new Date(meta.updated_at).getTime():0;
+      if(localMod>0&&localMod>gistMs+2000){
+        // ローカルが新しい（2秒の許容差）→ 未送信の変更があるので先にpush
+        try{await gistPush(false);}catch(e){console.warn('Gist push pending failed:',e);}
+      } else {
+        // クラウドが新しい or 同期済み → pull
+        try{await gistPull(false,meta);}catch(e){console.warn('Gist pull failed:',e);}
+      }
+    }catch(e){
+      console.warn('Gist meta fetch failed:',e);
+      // 取得失敗時はローカルのデータをそのまま使う（上書きしない）
+    }
   }
   if(fromHash){
     // 共有リンク経由セットアップの成功通知
