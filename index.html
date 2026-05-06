@@ -773,7 +773,6 @@ async function gistPush(manual){
     const data=gistBuildPayload();
     await gistApi('/gists/'+gistId,{method:'PATCH',body:JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(data,null,2)}}})});
     localStorage.setItem('ffv6_gist_lastPush',new Date().toISOString());
-    localStorage.removeItem('ffv6_gist_pending'); // 送信成功 → 未送信フラグをクリア
     gistSetStatus('同期済み '+new Date().toLocaleTimeString('ja-JP'),'#047857');
   }catch(e){gistSetStatus('送信エラー: '+e.message,'#b91c1c');}
   finally{_gistSyncing=false;}
@@ -781,8 +780,6 @@ async function gistPush(manual){
 function gistSyncDebouncedPush(){
   const{token,gistId}=gistGetConfig();
   if(!token||!gistId)return;
-  // ローカル変更が未送信であることをマーク（リロード時の上書き防止用）
-  localStorage.setItem('ffv6_gist_pending','1');
   if(_gistPushTimer)clearTimeout(_gistPushTimer);
   _gistPushTimer=setTimeout(()=>gistPush(false),3000);
 }
@@ -1132,10 +1129,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
   const gc=localStorage.getItem('ffv6_gist_token');
   const gi=localStorage.getItem('ffv6_gist_id');
   if(gc&&gi){
-    // 未送信のローカル変更がある場合、先にGistへ送信してからpullする（上書き防止）
-    if(localStorage.getItem('ffv6_gist_pending')==='1'){
-      try{await gistPush(false);}catch(e){console.warn('Gist push pending failed:',e);}
-    }
     try{await gistPull(false);}catch(e){console.warn('Gist pull failed:',e);}
   }
   if(fromHash){
