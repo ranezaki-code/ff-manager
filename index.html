@@ -697,6 +697,13 @@ const I18N = {
     'product.stdPrice':'標準売価(円)',
     'product.shopPrice':'店頭売価(円)',
     'product.markupRate':'値入率(%)',
+    'product.markupBase':'売価基準',
+    'product.autoBtn':'自動','product.calcBtn':'算出',
+    'product.autoCalcTip':'(店頭売価-原価)/店頭売価×100 で再計算して上書き',
+    'product.markupTip':'値入率は独立して保存されます。「自動」ボタンで原価・店頭売価から再計算できます',
+    'product.discCalcTip':'原価×25%（切上）で自動算出',
+    'product.name':'商品名','product.namePlaceholder':'商品名を入力',
+    'product.category':'カテゴリ',
     'product.discountAmt':'値引額(円)',
     'product.minCount':'最低作成数',
     'product.timeStart':'販売開始時',
@@ -902,6 +909,13 @@ const I18N = {
     'product.stdPrice':'Standard price',
     'product.shopPrice':'Selling price',
     'product.markupRate':'Markup %',
+    'product.markupBase':'price-based',
+    'product.autoBtn':'Auto','product.calcBtn':'Calc',
+    'product.autoCalcTip':'Recalc from (Selling-Cost)/Selling×100',
+    'product.markupTip':'Markup is stored independently. "Auto" recalculates from cost/price.',
+    'product.discCalcTip':'Auto: Cost × 25% (rounded up)',
+    'product.name':'Product name','product.namePlaceholder':'Enter product name',
+    'product.category':'Category',
     'product.discountAmt':'Discount amt',
     'product.minCount':'Min make count',
     'product.timeStart':'Sale start hour',
@@ -1077,6 +1091,13 @@ const I18N = {
     'product.expandAll':'सबै खोल्नुहोस्','product.collapseAll':'सबै बन्द गर्नुहोस्',
     'product.cost':'लागत (JPY)','product.stdPrice':'मानक मूल्य','product.shopPrice':'बिक्री मूल्य',
     'product.markupRate':'मार्कअप %','product.discountAmt':'छुट रकम','product.minCount':'न्यूनतम संख्या',
+    'product.markupBase':'मूल्य आधार',
+    'product.autoBtn':'स्वचालित','product.calcBtn':'गणना',
+    'product.autoCalcTip':'(बिक्री-लागत)/बिक्री×100 बाट पुन: गणना',
+    'product.markupTip':'मार्कअप छुट्टै सुरक्षित। "स्वचालित" बटनले लागत/मूल्यबाट पुन: गणना।',
+    'product.discCalcTip':'स्वचालित: लागत × 25% (माथिमा गोल)',
+    'product.name':'उत्पादनको नाम','product.namePlaceholder':'उत्पादनको नाम राख्नुहोस्',
+    'product.category':'श्रेणी',
     'product.timeStart':'बिक्री सुरु घण्टा','product.timeEnd':'बिक्री अन्त्य घण्टा',
     'product.tags':'ट्यागहरू','product.type':'उत्पादन प्रकार',
     'product.typeStd':'📦 मानक','product.typeNew':'🆕 नयाँ','product.typeInvest':'📈 लगानी',
@@ -2779,42 +2800,42 @@ function renderProductCard(p){
     </div>
     ${expanded?`
     <div style="padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
-      <div style="grid-column:span 2"><label>商品名</label>
-        <input type="text" value="${p.name||''}" placeholder="商品名を入力" onchange="setProdField('${p.id}','name',this.value)"></div>
-      <div><label>カテゴリ</label>
+      <div style="grid-column:span 2"><label>${t('product.name')}</label>
+        <input type="text" value="${p.name||''}" placeholder="${t('product.namePlaceholder')}" onchange="setProdField('${p.id}','name',this.value)"></div>
+      <div><label>${t('product.category')}</label>
         <select onchange="setProdField('${p.id}','category',this.value)">
-          ${CATS.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}
+          ${CATS.map(c=>`<option ${p.category===c?'selected':''} value="${c}">${tCat(c)}</option>`).join('')}
         </select></div>
-      <div><label>最低作成数</label>
+      <div><label>${t('product.minCount')}</label>
         <input type="text" inputmode="numeric" value="${p.minCount||0}" onchange="setProdField('${p.id}','minCount',parseInt(toHalf(this.value))||0)"></div>
-      <div><label>原価(円)</label>
+      <div><label>${t('product.cost')}</label>
         <input type="text" inputmode="decimal" value="${p.cost}" onchange="setProdField('${p.id}','cost',parseFloat(toHalf(this.value))||0)"></div>
-      <div><label>標準売価(円)</label>
+      <div><label>${t('product.stdPrice')}</label>
         <input type="text" inputmode="numeric" value="${p.stdPrice}" onchange="setProdField('${p.id}','stdPrice',parseInt(toHalf(this.value))||0)"></div>
-      <div><label>店頭売価(円)</label>
+      <div><label>${t('product.shopPrice')}</label>
         <input type="text" inputmode="numeric" value="${p.shopPrice}" onchange="setProdField('${p.id}','shopPrice',parseInt(toHalf(this.value))||0)"></div>
-      <div><label>値入率(%) <span style="font-size:10px;color:#999">売価基準</span>
+      <div><label>${t('product.markupRate')} <span style="font-size:10px;color:#999">${t('product.markupBase')}</span>
         <button type="button" onclick="recalcMarkupFromCost('${p.id}')"
           style="margin-left:4px;padding:1px 6px;font-size:10px;border-radius:5px;border:1px solid var(--main);background:#fff;color:var(--main);cursor:pointer"
-          title="(店頭売価-原価)/店頭売価×100 で再計算して上書き">自動</button></label>
+          title="${t('product.autoCalcTip')}">${t('product.autoBtn')}</button></label>
         <input type="text" inputmode="decimal" value="${p.markupRate ?? calcMarkupRate(p)}"
           onchange="setProdField('${p.id}','markupRate',parseFloat(toHalf(this.value))||0)"
-          title="値入率は独立して保存されます。「自動」ボタンで原価・店頭売価から再計算できます"></div>
-      <div><label>値引額(円)</label>
+          title="${t('product.markupTip')}"></div>
+      <div><label>${t('product.discountAmt')}</label>
         <div style="display:flex;gap:4px">
           <input type="text" inputmode="numeric" value="${p.disc}" style="flex:1;min-width:0" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)">
           <button type="button" onclick="calcDiscForProduct('${p.id}')"
             style="padding:4px 8px;font-size:11px;border-radius:6px;border:1px solid var(--main);background:#fff;color:var(--main);cursor:pointer;white-space:nowrap"
-            title="原価×25%（切上）で自動算出">算出</button>
+            title="${t('product.discCalcTip')}">${t('product.calcBtn')}</button>
         </div>
       </div>
-      <div><label>販売開始時</label>
+      <div><label>${t('product.timeStart')}</label>
         <input type="text" inputmode="numeric" value="${p.timeStart??7}" onchange="setProdField('${p.id}','timeStart',parseInt(toHalf(this.value))||0)"></div>
-      <div><label>販売終了時</label>
+      <div><label>${t('product.timeEnd')}</label>
         <input type="text" inputmode="numeric" value="${p.timeEnd??22}" onchange="setProdField('${p.id}','timeEnd',parseInt(toHalf(this.value))||24)"></div>
       <!-- タグ（チェックボックス） -->
       <div style="grid-column:span 2">
-        <label style="display:block;margin-bottom:4px">タグ</label>
+        <label style="display:block;margin-bottom:4px">${t('product.tags')}</label>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           ${PROD_TAGS.map(tag=>`
             <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
@@ -2825,25 +2846,25 @@ function renderProductCard(p){
       </div>
       <!-- 種別チェック -->
       <div style="grid-column:span 2;background:#fafafa;border-radius:6px;padding:8px 10px;border:1px solid #eee">
-        <div style="font-size:11px;color:#999;margin-bottom:6px;font-weight:600">商品種別</div>
+        <div style="font-size:11px;color:#999;margin-bottom:6px;font-weight:600">${t('product.type')}</div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
             <input type="radio" name="type_${p.id}" value="standard"
               ${!p.isNew&&!p.isInvest?'checked':''}
               onchange="setProdType('${p.id}','standard')">
-            <span style="font-size:12px;color:#555">📦 定番商品</span>
+            <span style="font-size:12px;color:#555">${t('product.typeStd')}</span>
           </label>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
             <input type="radio" name="type_${p.id}" value="new"
               ${p.isNew?'checked':''}
               onchange="setProdType('${p.id}','new')">
-            <span style="font-size:12px;color:#1565c0;font-weight:600">🆕 新商品</span>
+            <span style="font-size:12px;color:#1565c0;font-weight:600">${t('product.typeNew')}</span>
           </label>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
             <input type="radio" name="type_${p.id}" value="invest"
               ${p.isInvest?'checked':''}
               onchange="setProdType('${p.id}','invest')">
-            <span style="font-size:12px;color:#e65100;font-weight:600">📈 投資対象</span>
+            <span style="font-size:12px;color:#e65100;font-weight:600">${t('product.typeInvest')}</span>
           </label>
         </div>
         ${p.isNew?`<div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px">
