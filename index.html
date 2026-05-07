@@ -2242,13 +2242,13 @@ function renderProductCard(p){
       </div>
       <!-- 作成方法（オペレーション設定） -->
       <div style="grid-column:span 2;background:#fff7ed;border-radius:6px;padding:8px 10px;border:1px solid #fed7aa">
-        <div style="font-size:11px;color:#9a3412;margin-bottom:6px;font-weight:600">⚙️ 作成方法（効率化用）</div>
+        <div style="font-size:11px;color:#9a3412;margin-bottom:6px;font-weight:600">作成方法（効率化用）</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;align-items:center;margin-bottom:6px">
           ${[
             ['none','設定なし','#9ca3af'],
-            ['microwave','🔥 レンジのみ','#7c3aed'],
-            ['fryer','🍳 フライヤーのみ','#ea580c'],
-            ['microwave_fryer','🔥→🍳 レンジ→フライヤー','#dc2626']
+            ['microwave','レンジのみ','#7c3aed'],
+            ['fryer','フライヤーのみ','#ea580c'],
+            ['microwave_fryer','レンジ→フライヤー','#dc2626']
           ].map(([v,label,col])=>`
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
               <input type="radio" name="prep_${p.id}" value="${v}" ${(p.prepMethod||'none')===v?'checked':''}
@@ -2985,9 +2985,10 @@ function compareEfficient(a,b){
 function prepBadge(p){
   const m=p.prepMethod;
   if(!m||m==='none')return '';
-  if(m==='microwave_fryer')return `<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:4px" title="レンジ→フライヤー">🔥→🍳</span>`;
-  if(m==='fryer')return `<span style="font-size:9px;background:#ffedd5;color:#9a3412;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:4px" title="フライヤー">🍳</span>`;
-  if(m==='microwave')return `<span style="font-size:9px;background:#ede9fe;color:#5b21b6;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:4px" title="レンジ">🔥</span>`;
+  const base='font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;margin-left:4px;white-space:nowrap';
+  if(m==='microwave_fryer')return `<span style="${base};background:#fee2e2;color:#991b1b">レンジ→フライヤー</span>`;
+  if(m==='fryer')return `<span style="${base};background:#ffedd5;color:#9a3412">フライヤー</span>`;
+  if(m==='microwave')return `<span style="${base};background:#ede9fe;color:#5b21b6">レンジ</span>`;
   return '';
 }
 function setProdSortMode(mode){
@@ -3028,7 +3029,7 @@ function renderProdDayContent(dayIdx){
   <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
     <span style="font-size:11px;color:#666">並び順：</span>
     <button onclick="setProdSortMode('default')" class="${(_prodSortMode||'default')==='default'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">通常順</button>
-    <button onclick="setProdSortMode('efficient')" class="${_prodSortMode==='efficient'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">⚙️ 作成効率順</button>
+    <button onclick="setProdSortMode('efficient')" class="${_prodSortMode==='efficient'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">作成効率順</button>
     ${_prodSortMode==='efficient'?`<span style="font-size:10px;color:#9a3412">②商品設定で「作成方法」を入れた商品が最適順に並びます</span>`:''}
   </div>`;
 
@@ -3070,11 +3071,14 @@ function renderProdDayContent(dayIdx){
       const hasFry=prods.some(p=>p.prepMethod==='fryer');
       const hasMw=prods.some(p=>p.prepMethod==='microwave');
       const tips=[];
-      if(hasSeq)tips.push('🔥→🍳 をレンジに投入し、温めている間に🍳をフライヤーへ');
-      if(hasFry&&hasSeq)tips.push('🍳 とレンジ中の商品は並行作業可');
-      if(hasMw)tips.push('🔥 だけの商品は最後・隙間時間でOK');
+      if(hasSeq)tips.push('「レンジ→フライヤー」の商品をまずレンジに入れる（温め中に他作業）');
+      if(hasFry&&hasSeq)tips.push('「フライヤー」の商品はレンジ稼働中に同時投入');
+      if(hasMw)tips.push('「レンジのみ」の商品は最後・隙間時間でOK');
       if(tips.length){
-        effHint=`<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:6px 10px;font-size:11px;color:#9a3412;margin:0 0 8px 0;line-height:1.6">💡 ${tips.join(' ／ ')}</div>`;
+        effHint=`<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:8px 12px;font-size:12px;color:#9a3412;margin:0 0 8px 0;line-height:1.7">
+          <div style="font-weight:700;margin-bottom:2px">作成順のコツ</div>
+          <ol style="margin:0;padding-left:18px">${tips.map(t=>`<li>${t}</li>`).join('')}</ol>
+        </div>`;
       }
     }
     html+=`<div class="section-title">${cat}</div>${effHint}`;
