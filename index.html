@@ -780,6 +780,20 @@ const I18N = {
     'budget.nextProfitRate':'次週利益率',
     'budget.nextProfitRateFormula':'利益高÷売上高（正式）',
     'common.week':'週',
+    'common.total':'合計',
+    'budget.colCategory':'カテゴリ','budget.colItem':'項目',
+    'budget.colMakeAmt':'作成高',
+    'budget.colWeek':'週計','budget.colAvg':'日平均',
+    'budget.rowMake':'作成高（円）','budget.rowWaste':'廃棄額（円）',
+    'budget.rowDisc':'値引額（円）','budget.rowUrihen':'売変額（円）',
+    'budget.rowSales':'売上高（円）','budget.rowProfit':'利益高（円）',
+    'budget.catMakeAmt':'📦 カテゴリ別 作成高（円）','budget.catMakeCnt':'📊 カテゴリ別 作成数（個）',
+    'budget.includeInvest':'※ 投資/新商品追加分を含む',
+    'budget.toggleSum':'🔀 合算表示に切替','budget.toggleSplit':'🔀 分けて表示に切替',
+    'budget.karaageGroup':'（からあげクン系）','budget.othersGroup':'（その他）','budget.totalGroup':'（合計）',
+    'budget.salesRateSection':'📊 カテゴリ別 販売率・適正販売率',
+    'budget.targetSr':'目標：適正販売率 {0}%以上',
+    'budget.salesRateExplain':'販売率＝定価+値引販売÷作成数　／　適正販売率＝定価販売のみ÷作成数（値引きなしで売れた割合）',
     'budget.daily':'曜日別サマリー',
     'budget.dataManage':'データ管理',
     'budget.cloudSync':'☁️ クラウド同期（GitHub Gist）',
@@ -967,6 +981,20 @@ const I18N = {
     'budget.nextProfitRate':'Next week profit %',
     'budget.nextProfitRateFormula':'Profit ÷ next sales',
     'common.week':'wk',
+    'common.total':'Total',
+    'budget.colCategory':'Category','budget.colItem':'Item',
+    'budget.colMakeAmt':'Production',
+    'budget.colWeek':'Week','budget.colAvg':'Avg/day',
+    'budget.rowMake':'Production (JPY)','budget.rowWaste':'Waste (JPY)',
+    'budget.rowDisc':'Discount (JPY)','budget.rowUrihen':'Markdown (JPY)',
+    'budget.rowSales':'Sales (JPY)','budget.rowProfit':'Profit (JPY)',
+    'budget.catMakeAmt':'📦 Production by category (JPY)','budget.catMakeCnt':'📊 Production by category (pcs)',
+    'budget.includeInvest':'※ Includes investment/new product additions',
+    'budget.toggleSum':'🔀 Show combined','budget.toggleSplit':'🔀 Show split',
+    'budget.karaageGroup':' (Karaage)','budget.othersGroup':' (Others)','budget.totalGroup':' (Total)',
+    'budget.salesRateSection':'📊 Category sell-thru / proper sell-thru',
+    'budget.targetSr':'Target: Proper sell-thru ≥ {0}%',
+    'budget.salesRateExplain':'Sell-thru = (Full+Disc) ÷ Made / Proper sell-thru = Full only ÷ Made',
     'budget.daily':'Daily summary',
     'budget.dataManage':'Data',
     'budget.cloudSync':'☁️ Cloud Sync (GitHub Gist)',
@@ -1116,6 +1144,20 @@ const I18N = {
     'budget.nextProfitRate':'अर्को हप्ता मुनाफा %',
     'budget.nextProfitRateFormula':'मुनाफा ÷ अर्को बिक्री',
     'common.week':'हप्ता',
+    'common.total':'जम्मा',
+    'budget.colCategory':'श्रेणी','budget.colItem':'वस्तु',
+    'budget.colMakeAmt':'उत्पादन',
+    'budget.colWeek':'हप्ता','budget.colAvg':'औसत/दिन',
+    'budget.rowMake':'उत्पादन (JPY)','budget.rowWaste':'खेर (JPY)',
+    'budget.rowDisc':'डिस्काउन्ट (JPY)','budget.rowUrihen':'मार्कडाउन (JPY)',
+    'budget.rowSales':'बिक्री (JPY)','budget.rowProfit':'मुनाफा (JPY)',
+    'budget.catMakeAmt':'📦 श्रेणी अनुसार उत्पादन (JPY)','budget.catMakeCnt':'📊 श्रेणी अनुसार उत्पादन (वटा)',
+    'budget.includeInvest':'※ लगानी/नयाँ उत्पादन समावेश',
+    'budget.toggleSum':'🔀 जोडेर देखाउनुहोस्','budget.toggleSplit':'🔀 छुट्याएर देखाउनुहोस्',
+    'budget.karaageGroup':' (कराआगे)','budget.othersGroup':' (अरू)','budget.totalGroup':' (जम्मा)',
+    'budget.salesRateSection':'📊 श्रेणी अनुसार बिक्री/उपयुक्त दर',
+    'budget.targetSr':'लक्ष्य: उपयुक्त बिक्री ≥ {0}%',
+    'budget.salesRateExplain':'बिक्री = (पूर्ण+छुट) ÷ उत्पादन / उपयुक्त = पूर्ण मात्र ÷ उत्पादन',
     'budget.daily':'दैनिक सारांश','budget.dataManage':'डाटा',
     'budget.cloudSync':'☁️ क्लाउड सिङ्क (GitHub Gist)',
     'budget.resetStore':'स्टोर सेटिङ रिसेट',
@@ -4230,11 +4272,11 @@ function renderBudgetJisseki(){
 
   // ── 金額サマリーテーブル ──────────────────────────
   let html=`<table><thead><tr>
-    <th style="text-align:left">カテゴリ</th><th>作成高</th><th>販売高</th><th>廃棄高</th><th>値引高</th><th>利益高</th><th>利益率</th>
+    <th style="text-align:left">${t('budget.colCategory')}</th><th>${t('budget.colMakeAmt')}</th><th>${t('jisseki.salesTotal')}</th><th>${t('jisseki.wasteTotal')}</th><th>${t('jisseki.discountTotal')}</th><th>${t('jisseki.profitTotal')}</th><th>${t('jisseki.profitRate')}</th>
   </tr></thead><tbody>`;
   rows.forEach(r=>{
     html+=`<tr>
-      <td style="text-align:left;font-weight:600">${r.mc}</td>
+      <td style="text-align:left;font-weight:600">${tCat(r.mc)}</td>
       <td>${fmt(r.makeAmt)}</td><td>${fmt(r.salesAmt)}</td><td>${fmt(r.wasteAmt)}</td><td>${fmt(r.discAmt)}</td>
       <td>${fmt(r.profit)}</td>
       <td class="${r.profitRate<50?'text-red':r.profitRate<55?'text-orange':'text-green'}">${r.profitRate.toFixed(1)}%</td>
@@ -4243,7 +4285,7 @@ function renderBudgetJisseki(){
   const tot=rows.reduce((a,r)=>({salesAmt:a.salesAmt+r.salesAmt,wasteAmt:a.wasteAmt+r.wasteAmt,discAmt:a.discAmt+r.discAmt,profit:a.profit+r.profit,makeAmt:a.makeAmt+r.makeAmt,makeCnt:a.makeCnt+r.makeCnt,soldCnt:a.soldCnt+r.soldCnt,teikaCnt:a.teikaCnt+r.teikaCnt,nebikiCnt:a.nebikiCnt+r.nebikiCnt,haikiCnt:a.haikiCnt+r.haikiCnt}),{salesAmt:0,wasteAmt:0,discAmt:0,profit:0,makeAmt:0,makeCnt:0,soldCnt:0,teikaCnt:0,nebikiCnt:0,haikiCnt:0});
   const tPR=tot.salesAmt?tot.profit/tot.salesAmt*100:0;
   html+=`<tr style="font-weight:700;background:var(--main-lt)">
-    <td style="text-align:left">合計</td><td>${fmt(tot.makeAmt)}</td><td>${fmt(tot.salesAmt)}</td><td>${fmt(tot.wasteAmt)}</td><td>${fmt(tot.discAmt)}</td>
+    <td style="text-align:left">${t('common.total')}</td><td>${fmt(tot.makeAmt)}</td><td>${fmt(tot.salesAmt)}</td><td>${fmt(tot.wasteAmt)}</td><td>${fmt(tot.discAmt)}</td>
     <td>${fmt(tot.profit)}</td><td class="${tPR<50?'text-red':tPR<55?'text-orange':'text-green'}">${tPR.toFixed(1)}%</td>
   </tr>`;
   html+='</tbody></table>';
@@ -4251,11 +4293,11 @@ function renderBudgetJisseki(){
   // ── 販売率・適正販売率セクション ──────────────────────────
   html+=`<div style="margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:var(--main);margin-bottom:4px;display:flex;align-items:center;gap:8px">
-      📊 カテゴリ別 販売率・適正販売率
-      <span style="font-size:11px;font-weight:400;color:#888">目標：適正販売率 ${TARGET_SR}%以上</span>
+      ${t('budget.salesRateSection')}
+      <span style="font-size:11px;font-weight:400;color:#888">${t('budget.targetSr').replace('{0}',TARGET_SR)}</span>
     </div>
     <div style="font-size:11px;color:#888;margin-bottom:10px">
-      販売率＝定価+値引販売÷作成数　／　適正販売率＝定価販売のみ÷作成数（値引きなしで売れた割合）
+      ${t('budget.salesRateExplain')}
     </div>`;
 
   [...rows,{mc:'合計',...tot,
@@ -4700,11 +4742,11 @@ function renderBudgetDaily(){
   mainCats.forEach(mc=>{
     const catKeys=CATS.filter(c=>c.startsWith(mc));
     if(mc==='ホットFF'&&splitMode){
-      catGroups.push({key:'ホットFF_kr',label:'ホットFF（からあげクン系）',filter:p=>catKeys.includes(p.category)&&isKaraage(p),sub:true});
-      catGroups.push({key:'ホットFF_other',label:'ホットFF（その他）',filter:p=>catKeys.includes(p.category)&&!isKaraage(p),sub:true});
-      catGroups.push({key:'ホットFF_sum',label:'ホットFF（合計）',filter:p=>catKeys.includes(p.category),sub:false,bold:true});
+      catGroups.push({key:'ホットFF_kr',label:tCat(mc)+t('budget.karaageGroup'),filter:p=>catKeys.includes(p.category)&&isKaraage(p),sub:true});
+      catGroups.push({key:'ホットFF_other',label:tCat(mc)+t('budget.othersGroup'),filter:p=>catKeys.includes(p.category)&&!isKaraage(p),sub:true});
+      catGroups.push({key:'ホットFF_sum',label:tCat(mc)+t('budget.totalGroup'),filter:p=>catKeys.includes(p.category),sub:false,bold:true});
     } else {
-      catGroups.push({key:mc,label:mc,filter:p=>catKeys.includes(p.category)});
+      catGroups.push({key:mc,label:tCat(mc),filter:p=>catKeys.includes(p.category)});
     }
   });
   const catData={}; // key → {amt:Array(7), cnt:Array(7)}
@@ -4739,22 +4781,22 @@ function renderBudgetDaily(){
 
   let html=`<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead><tr style="background:var(--main-lt)">
-      <th style="padding:4px 8px;text-align:left;min-width:110px">項目</th>
-      ${DAYS.map((d,i)=>thDay(d,i)).join('')}
-      <th style="padding:4px 8px;text-align:right;min-width:70px">週計</th>
-      <th style="padding:4px 8px;text-align:right;min-width:70px">日平均</th>
+      <th style="padding:4px 8px;text-align:left;min-width:110px">${t('budget.colItem')}</th>
+      ${DAYS.map((d,i)=>thDay(t('day.'+i),i)).join('')}
+      <th style="padding:4px 8px;text-align:right;min-width:70px">${t('budget.colWeek')}</th>
+      <th style="padding:4px 8px;text-align:right;min-width:70px">${t('budget.colAvg')}</th>
     </tr></thead><tbody>`;
 
   // サマリー系（金額）
-  html+=row('作成高（円）',day.make,{style:'border-top:2px solid #eee'});
-  html+=row('廃棄額（円）',day.waste,{color:'color:#b91c1c'});
-  html+=row('値引額（円）',day.disc,{color:'color:#d97706'});
-  html+=row('売変額（円）',day_urihen,{color:'color:#7c2d12;font-weight:600'});
-  html+=row('売上高（円）',day_sales,{style:'background:#f0fdf4',color:'color:#047857;font-weight:600'});
-  html+=row('利益高（円）',day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
+  html+=row(t('budget.rowMake'),day.make,{style:'border-top:2px solid #eee'});
+  html+=row(t('budget.rowWaste'),day.waste,{color:'color:#b91c1c'});
+  html+=row(t('budget.rowDisc'),day.disc,{color:'color:#d97706'});
+  html+=row(t('budget.rowUrihen'),day_urihen,{color:'color:#7c2d12;font-weight:600'});
+  html+=row(t('budget.rowSales'),day_sales,{style:'background:#f0fdf4',color:'color:#047857;font-weight:600'});
+  html+=row(t('budget.rowProfit'),day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
 
   // カテゴリ別 作成高（円）— 曜日別サマリーの最後
-  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">📦 カテゴリ別 作成高（円）<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">※ 投資/新商品追加分を含む</span></td></tr>`;
+  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">${t('budget.catMakeAmt')}<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">${t('budget.includeInvest')}</span></td></tr>`;
   catGroups.forEach(g=>{
     const indent=g.sub?'　　└ ':'　';
     const styleA=g.bold?'background:#fafbff;font-weight:600':'';
@@ -4764,18 +4806,18 @@ function renderBudgetDaily(){
   html+='</tbody></table>';
 
   // ── 別枠：カテゴリ別 作成数（個）──
-  const splitBtnLabel=splitMode?'🔀 合算表示に切替':'🔀 分けて表示に切替';
+  const splitBtnLabel=splitMode?t('budget.toggleSum'):t('budget.toggleSplit');
   html+=`<div style="margin-top:18px;padding-top:8px;border-top:2px dashed #d1d5db">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div style="font-size:13px;font-weight:700;color:var(--main)">📊 カテゴリ別 作成数（個）<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">※ 投資/新商品追加分を含む</span></div>
+      <div style="font-size:13px;font-weight:700;color:var(--main)">${t('budget.catMakeCnt')}<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">${t('budget.includeInvest')}</span></div>
       <button onclick="toggleHotFFSplit()" style="padding:3px 10px;font-size:11px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer">${splitBtnLabel}</button>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="background:var(--main-lt)">
-        <th style="padding:4px 8px;text-align:left;min-width:160px">カテゴリ</th>
-        ${DAYS.map((d,i)=>thDay(d,i)).join('')}
-        <th style="padding:4px 8px;text-align:right;min-width:70px">週計</th>
-        <th style="padding:4px 8px;text-align:right;min-width:70px">日平均</th>
+        <th style="padding:4px 8px;text-align:left;min-width:160px">${t('budget.colCategory')}</th>
+        ${DAYS.map((d,i)=>thDay(t('day.'+i),i)).join('')}
+        <th style="padding:4px 8px;text-align:right;min-width:70px">${t('budget.colWeek')}</th>
+        <th style="padding:4px 8px;text-align:right;min-width:70px">${t('budget.colAvg')}</th>
       </tr></thead><tbody>`;
   catGroups.forEach(g=>{
     const indent=g.sub?'　└ ':'';
