@@ -782,6 +782,16 @@ const I18N = {
     'sold.timeRedo':'時刻を直す',
     'sold.recommendation':'追加作成の推奨',
     'sold.calcDetails':'計算根拠を見る',
+    'sold.eventCount':'{0}回目の完売（{1}）',
+    'sold.prevBatch':'直前バッチ',
+    'sold.custDuring':'販売中の客数',
+    'sold.obsRate':'観測購買率',
+    'sold.safeRate':'信頼できる購買率',
+    'sold.dampedNote':'サンプル少で安全側に',
+    'sold.custAfter':'残り客数（{0}〜{1}）',
+    'sold.expectedD':'期待需要 D',
+    'sold.fractile':'利益率',
+    'sold.soldAt':'完売時刻 {0}',
     // Cloud sync
     'gist.token':'トークン',
     'gist.gistId':'Gist ID',
@@ -933,6 +943,16 @@ const I18N = {
     'sold.timeRedo':'Re-enter',
     'sold.recommendation':'Recommended additional',
     'sold.calcDetails':'Show calculation',
+    'sold.eventCount':'Sold-out #{0} ({1})',
+    'sold.prevBatch':'Previous batch',
+    'sold.custDuring':'Customers during sale',
+    'sold.obsRate':'Observed buy rate',
+    'sold.safeRate':'Confident buy rate',
+    'sold.dampedNote':'Small sample → safer estimate',
+    'sold.custAfter':'Remaining customers ({0}〜{1})',
+    'sold.expectedD':'Expected demand D',
+    'sold.fractile':'Profit %',
+    'sold.soldAt':'Sold out at {0}',
     'gist.token':'Token','gist.gistId':'Gist ID',
     'gist.uploadNow':'⬆️ Upload now','gist.downloadFromCloud':'⬇️ Pull from cloud',
     'gist.copyShareLink':'🔗 Copy share link','gist.disconnect':'Disconnect',
@@ -1044,6 +1064,16 @@ const I18N = {
     'sold.timeInputLabel':'बिक्री समाप्त समय राख्नुहोस्',
     'sold.timeConfirm':'समय पुष्टि','sold.timeRedo':'समय फेरि',
     'sold.recommendation':'थप बनाउने सिफारिस','sold.calcDetails':'गणना देखाउनुहोस्',
+    'sold.eventCount':'समाप्ति #{0} ({1})',
+    'sold.prevBatch':'अघिल्लो ब्याच',
+    'sold.custDuring':'बिक्रीको समयमा ग्राहक',
+    'sold.obsRate':'अवलोकित किनेको दर',
+    'sold.safeRate':'विश्वसनीय किनेको दर',
+    'sold.dampedNote':'सानो नमुना → सुरक्षित अनुमान',
+    'sold.custAfter':'बाँकी ग्राहक ({0}〜{1})',
+    'sold.expectedD':'अपेक्षित माग D',
+    'sold.fractile':'मुनाफा %',
+    'sold.soldAt':'समाप्त समय {0}',
     'gist.token':'टोकन','gist.gistId':'Gist ID',
     'gist.uploadNow':'⬆️ अहिले अपलोड','gist.downloadFromCloud':'⬇️ क्लाउडबाट तान्नुहोस्',
     'gist.copyShareLink':'🔗 लिङ्क प्रतिलिपि','gist.disconnect':'विच्छेद',
@@ -3997,38 +4027,37 @@ function confirmSoldOutTime(){
   if(r.error){
     ph2.style.display='block';
     ph2.innerHTML=`<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px;color:#991b1b;font-size:13px">⚠️ ${r.error}</div>
-      <button onclick="resetSoldOutPhase()" class="btn-secondary" style="width:100%;margin-top:10px;padding:10px">時刻を入れ直す</button>`;
+      <button onclick="resetSoldOutPhase()" class="btn-secondary" style="width:100%;margin-top:10px;padding:10px">${t('sold.timeRedo')}</button>`;
     return;
   }
   _soldOutCtx.soldAt=soldAt;
   _soldOutCtx.suggest=r.suggest;
-  // Phase1 を隠す → Phase2 を表示
   document.getElementById('soldOutPhase1').style.display='none';
   ph2.style.display='block';
   const damped=r.safeRate<r.observedRate*0.95;
   const detailHtml=`
-    <div>${r.eventCount}回目の完売（${r.batchLabel}）</div>
-    <div>直前バッチ：<b>${r.soldCount}個</b>（${fmtHour(r.sellingStart)}〜${fmtHour(r.soldAt)}）</div>
-    <div>販売中の客数：${r.custDuring.toFixed(1)}人</div>
-    <div>観測購買率：${(r.observedRate*100).toFixed(1)}%</div>
-    <div>${damped?'⚠️ ':''}信頼できる購買率：<b>${(r.safeRate*100).toFixed(1)}%</b>${damped?'<span style="font-size:10px;color:#92400e"> ← サンプル少で安全側に</span>':''}</div>
-    <div>残り客数（${fmtHour(r.soldAt)}〜${fmtHour(r.slotEnd)}）：${r.custAfter.toFixed(1)}人</div>
-    <div>期待需要 D：${r.D.toFixed(2)}個</div>
-    <div>利益率：${(r.fractile*100).toFixed(1)}%</div>
+    <div>${t('sold.eventCount').replace('{0}',r.eventCount).replace('{1}',r.batchLabel)}</div>
+    <div>${t('sold.prevBatch')}：<b>${r.soldCount}${t('common.piece')}</b>（${fmtHour(r.sellingStart)}〜${fmtHour(r.soldAt)}）</div>
+    <div>${t('sold.custDuring')}：${r.custDuring.toFixed(1)}${t('common.person')}</div>
+    <div>${t('sold.obsRate')}：${(r.observedRate*100).toFixed(1)}%</div>
+    <div>${damped?'⚠️ ':''}${t('sold.safeRate')}：<b>${(r.safeRate*100).toFixed(1)}%</b>${damped?`<span style="font-size:10px;color:#92400e"> ← ${t('sold.dampedNote')}</span>`:''}</div>
+    <div>${t('sold.custAfter').replace('{0}',fmtHour(r.soldAt)).replace('{1}',fmtHour(r.slotEnd))}：${r.custAfter.toFixed(1)}${t('common.person')}</div>
+    <div>${t('sold.expectedD')}：${r.D.toFixed(2)}${t('common.piece')}</div>
+    <div>${t('sold.fractile')}：${(r.fractile*100).toFixed(1)}%</div>
   `;
   ph2.innerHTML=`
     <div style="text-align:center;padding:20px 0;background:#f0f9ff;border-radius:10px;margin-bottom:14px">
-      <div style="font-size:11px;color:#0369a1;letter-spacing:.05em">追加作成の推奨</div>
-      <div style="font-size:48px;font-weight:800;color:#0c4a6e;line-height:1.1;margin-top:4px">${r.suggest}<span style="font-size:18px;font-weight:600;margin-left:4px;color:#0369a1">個</span></div>
-      <div style="font-size:11px;color:#888;margin-top:6px">完売時刻 ${fmtHour(r.soldAt)}</div>
+      <div style="font-size:11px;color:#0369a1;letter-spacing:.05em">${t('sold.recommendation')}</div>
+      <div style="font-size:48px;font-weight:800;color:#0c4a6e;line-height:1.1;margin-top:4px">${r.suggest}<span style="font-size:18px;font-weight:600;margin-left:4px;color:#0369a1">${t('common.piece')}</span></div>
+      <div style="font-size:11px;color:#888;margin-top:6px">${t('sold.soldAt').replace('{0}',fmtHour(r.soldAt))}</div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:6px">
-      <button onclick="resetSoldOutPhase()" class="btn-secondary" style="flex:1;padding:10px;font-size:13px">時刻を直す</button>
-      <button onclick="acceptSoldOut()" class="btn-primary" style="flex:2;padding:10px;font-size:14px;font-weight:700">採用する</button>
+      <button onclick="resetSoldOutPhase()" class="btn-secondary" style="flex:1;padding:10px;font-size:13px">${t('sold.timeRedo')}</button>
+      <button onclick="acceptSoldOut()" class="btn-primary" style="flex:2;padding:10px;font-size:14px;font-weight:700">${t('common.adopt')}</button>
     </div>
     <details style="margin-top:8px">
       <summary style="cursor:pointer;font-size:11px;color:#6b7280;padding:6px 8px;list-style:none;display:flex;align-items:center;gap:4px">
-        <span style="font-size:14px">❓</span><span>計算根拠を見る</span>
+        <span style="font-size:14px">❓</span><span>${t('sold.calcDetails')}</span>
       </summary>
       <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:10px;margin-top:6px;font-size:11px;line-height:1.8;color:#475569">
         ${detailHtml}
