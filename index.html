@@ -3110,10 +3110,16 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,soldAt){
   const p=getP(pid);if(!p)return{error:'商品が見つかりません'};
   const range=getCatSlotRange(p.category,slotH);
   if(!range)return{error:'スロット範囲が取得できません'};
-  const slotEnd=range[1];
+  // このバッチの販売終了時刻 = 次バッチの陳列開始（= 次作成 + PREP_HOURS）
+  // ※ 最終スロットは getCatSlotRange の循環で先頭+24 をnextに設定済
+  // 計算ウィンドウは「販売中」を対象としたいので、creation_end に PREP_HOURS を足す
+  const main=mainCatOf(p.category);
+  const calcMax=CALC_MAX_HOURS[main]||4;
   const displayStart=slotH+PREP_HOURS;
+  // 販売終了 = 次バッチが陳列されるまで（≦ 販売開始 + 最大カバー時間）
+  const slotEnd=Math.min(range[1]+PREP_HOURS,displayStart+calcMax);
   if(soldAt<displayStart)return{error:`完売時刻は陳列開始（${fmtHour(displayStart)}）以降を入れてください`};
-  if(soldAt>slotEnd)return{error:`完売時刻はスロット終了（${fmtHour(slotEnd)}）以前を入れてください`};
+  if(soldAt>slotEnd)return{error:`完売時刻は次バッチの陳列開始（${fmtHour(slotEnd)}）以前を入れてください`};
   const events=getSoldOutEvents(pid,dayIdx,slotH);
   let sellingStart, soldCount, batchLabel;
   if(events.length===0){
