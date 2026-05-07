@@ -251,19 +251,26 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 <!-- Main App -->
 <div id="app" style="display:none">
   <div id="header">
-    <h1>FF管理システム</h1>
-    <button onclick="openStoreManager()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px">
-      <span id="header-store"></span>
-      <span style="font-size:10px;opacity:.8">▼</span>
-    </button>
+    <h1 data-i18n="app.title">FF管理システム</h1>
+    <div style="display:flex;gap:6px;align-items:center">
+      <select id="lang-select" onchange="setLang(this.value)" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:16px;padding:4px 8px;font-size:12px;cursor:pointer">
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="ne">🇳🇵 नेपाली</option>
+      </select>
+      <button onclick="openStoreManager()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px">
+        <span id="header-store"></span>
+        <span style="font-size:10px;opacity:.8">▼</span>
+      </button>
+    </div>
   </div>
   <div id="tabs">
-    <button class="tab-btn active" onclick="showTab(0)">①実績入力</button>
-    <button class="tab-btn" onclick="showTab(1)">②商品設定</button>
-    <button class="tab-btn" onclick="showTab(2)">③外部ファクト</button>
-    <button class="tab-btn" onclick="showTab(3)">④作成表</button>
-    <button class="tab-btn" onclick="showTab(4)">⑤予算管理</button>
-    <button class="tab-btn" onclick="showTab(5)">⑥発注管理表</button>
+    <button class="tab-btn active" onclick="showTab(0)" data-i18n="tab.jisseki">①実績入力</button>
+    <button class="tab-btn" onclick="showTab(1)" data-i18n="tab.product">②商品設定</button>
+    <button class="tab-btn" onclick="showTab(2)" data-i18n="tab.ext">③外部ファクト</button>
+    <button class="tab-btn" onclick="showTab(3)" data-i18n="tab.make">④作成表</button>
+    <button class="tab-btn" onclick="showTab(4)" data-i18n="tab.budget">⑤予算管理</button>
+    <button class="tab-btn" onclick="showTab(5)" data-i18n="tab.order">⑥発注管理表</button>
   </div>
   <div id="content">
     <!-- Tab 0: 実績入力 -->
@@ -272,26 +279,26 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <div id="week-selector"></div>
       </div>
       <div class="card">
-        <div class="section-title">週合計サマリー</div>
+        <div class="section-title" data-i18n="jisseki.weekSummary">週合計サマリー</div>
         <div class="summary-grid" id="jisseki-summary"></div>
       </div>
       <div class="card">
         <div class="flex justify-between items-center mb-2">
           <div class="section-title" style="margin:0" id="jisseki-title">実績入力</div>
           <div class="flex gap-2">
-            <button class="btn-secondary" onclick="resetJisseki()">リセット</button>
-            <button class="btn-secondary" onclick="loadPrevJisseki()">前週引継ぎ</button>
-            <button class="btn-success" onclick="loadSampleJisseki()">サンプル読込</button>
+            <button class="btn-secondary" onclick="resetJisseki()" data-i18n="common.reset">リセット</button>
+            <button class="btn-secondary" onclick="loadPrevJisseki()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
+            <button class="btn-success" onclick="loadSampleJisseki()" data-i18n="jisseki.loadSample">サンプル読込</button>
           </div>
         </div>
         <div class="overflow-auto"><div id="jisseki-table"></div></div>
       </div>
       <div class="card">
         <div class="flex justify-between items-center mb-2">
-          <div class="section-title" style="margin:0">曜日別・時間帯別客数</div>
+          <div class="section-title" style="margin:0" data-i18n="jisseki.custInput">曜日別・時間帯別客数</div>
           <div class="flex gap-2">
-            <button class="btn-secondary" onclick="loadPrevCust()">前週引継ぎ</button>
-            <button class="btn-secondary" onclick="resetCustZero()">全て0にリセット</button>
+            <button class="btn-secondary" onclick="loadPrevCust()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
+            <button class="btn-secondary" onclick="resetCustZero()" data-i18n="jisseki.custResetAll">全て0にリセット</button>
           </div>
         </div>
         <div class="overflow-auto"><div id="cust-grid"></div></div>
@@ -617,6 +624,355 @@ const DEF_EXT = [
   {weather:'晴れ',temp:20,event:'',correction:20},
   {weather:'晴れ',temp:21,event:'',correction:15},
 ];
+
+// ============================================================
+// I18N
+// ============================================================
+let LANG = localStorage.getItem('ffv6_lang') || 'ja';
+const I18N = {
+  ja: {
+    // App
+    'app.title':'FF管理システム',
+    'app.lang':'言語',
+    // Tabs
+    'tab.jisseki':'①実績入力',
+    'tab.product':'②商品設定',
+    'tab.ext':'③外部ファクト',
+    'tab.make':'④作成表',
+    'tab.budget':'⑤予算管理',
+    'tab.order':'⑥発注管理表',
+    // Common
+    'common.save':'保存',
+    'common.cancel':'キャンセル',
+    'common.close':'閉じる',
+    'common.add':'追加する',
+    'common.reset':'リセット',
+    'common.delete':'削除',
+    'common.adopt':'採用する',
+    'common.recalc':'再計算',
+    'common.print':'🖨 印刷',
+    'common.export':'エクスポート',
+    'common.import':'インポート',
+    'common.minute':'分',
+    'common.second':'秒',
+    'common.day':'日',
+    'common.hour':'時間',
+    'common.person':'人',
+    'common.piece':'個',
+    'common.yen':'円',
+    'common.percent':'%',
+    'common.required':'必須',
+    'common.optional':'任意',
+    // Tab 0 - Jisseki
+    'jisseki.weekSummary':'週合計サマリー',
+    'jisseki.input':'実績入力',
+    'jisseki.inputHint':'(◯週の計画用 / ◯〜◯の実績を入力)',
+    'jisseki.prevWeek':'前週引継ぎ',
+    'jisseki.loadSample':'サンプル読込',
+    'jisseki.custInput':'曜日別・時間帯別客数',
+    'jisseki.custResetAll':'全て0にリセット',
+    'jisseki.salesTotal':'販売高',
+    'jisseki.wasteTotal':'廃棄高',
+    'jisseki.discountTotal':'値引高',
+    'jisseki.profitTotal':'利益高',
+    'jisseki.profitRate':'利益率',
+    'jisseki.sellRate':'販売率',
+    'jisseki.productName':'商品名',
+    'jisseki.teikaSales':'定価販売',
+    'jisseki.discountSales':'値引販売',
+    'jisseki.wasteCount':'廃棄数',
+    // Tab 1 - Product Settings
+    'product.catToggle':'カテゴリ別ON/OFF',
+    'product.catTimeCfg':'カテゴリ別作成時間設定',
+    'product.list':'商品マスタ',
+    'product.add':'＋ 商品追加',
+    'product.expandAll':'全展開',
+    'product.collapseAll':'全閉じる',
+    'product.cost':'原価(円)',
+    'product.stdPrice':'標準売価(円)',
+    'product.shopPrice':'店頭売価(円)',
+    'product.markupRate':'値入率(%)',
+    'product.discountAmt':'値引額(円)',
+    'product.minCount':'最低作成数',
+    'product.timeStart':'販売開始時',
+    'product.timeEnd':'販売終了時',
+    'product.tags':'タグ',
+    'product.type':'商品種別',
+    'product.typeStd':'📦 定番商品',
+    'product.typeNew':'🆕 新商品',
+    'product.typeInvest':'📈 投資対象',
+    'product.prepMethod':'作成方法（効率化用）',
+    'product.prepNone':'設定なし',
+    'product.prepMicrowave':'レンジのみ',
+    'product.prepFryer':'フライヤーのみ',
+    'product.prepBoth':'レンジ→フライヤー',
+    'product.microwaveTime':'レンジ時間',
+    'product.fryerTime':'フライヤー時間',
+    'product.fryerCap':'フライヤー容量（個/回）',
+    'product.fryerStackable':'2段調理可（他商品と同時OK）',
+    // Tab 3 - Make Table
+    'make.sortOrder':'並び順：',
+    'make.sortDefault':'通常順',
+    'make.sortEfficient':'作成効率順',
+    'make.efficientHint':'①からの番号順に作成（カテゴリ横断・新商品優先）',
+    'make.cellHint':'💡 セルの見方：大きい数字＝その時間帯に作成する個数／☑＝完了チェック',
+    'make.slotProgress':'スロット別進捗',
+    'make.scheduleTitle':'作成手順（電子レンジ1台想定）',
+    'make.scheduleSub':'番号順に作業すれば最短。商品によって「第1陣・第2陣…」と分かれます（フライヤー容量で分割）。',
+    'make.scheduleSlot':'作成スロット ─ 作成手順',
+    'make.scheduleParallel':'└ 前バッチのフライヤー中に2段で並行投入可',
+    'make.batchOf':'第',
+    'make.batch':'陣',
+    'make.tipsTitle':'作成順のコツ（電子レンジ1台想定）',
+    'make.rules':'作成ルール7か条（毎週確認）',
+    'make.completed':'✓ 完了',
+    // Tab 4 - Budget
+    'budget.lastWeekSummary':'先週の実績サマリー',
+    'budget.planTitle':'予算計画',
+    'budget.daily':'曜日別サマリー',
+    'budget.dataManage':'データ管理',
+    'budget.cloudSync':'☁️ クラウド同期（GitHub Gist）',
+    'budget.resetStore':'店舗設定をリセット',
+    // Tab 5 - Order
+    'order.scheduleTitle':'📋 発注スケジュール',
+    'order.checkProgress':'発注済み',
+    'order.resetChecks':'☑ チェックリセット',
+    // Sold-out modal
+    'sold.title':'🔔 完売 → 追加作成提案',
+    'sold.timeInputLabel':'完売した時刻を入力',
+    'sold.timeConfirm':'時刻を確定',
+    'sold.timeRedo':'時刻を直す',
+    'sold.recommendation':'追加作成の推奨',
+    'sold.calcDetails':'計算根拠を見る',
+    // Cloud sync
+    'gist.token':'トークン',
+    'gist.gistId':'Gist ID',
+    'gist.uploadNow':'⬆️ 今すぐアップロード',
+    'gist.downloadFromCloud':'⬇️ クラウドから取得',
+    'gist.copyShareLink':'🔗 共有リンクをコピー',
+    'gist.disconnect':'切断',
+    'gist.createGist':'📤 新規Gist作成（初回のみ）',
+    'gist.status':'状態',
+    'gist.lastUpload':'最終アップロード',
+    'gist.lastDownload':'最終取得',
+    // Days of week
+    'day.0':'日','day.1':'月','day.2':'火','day.3':'水','day.4':'木','day.5':'金','day.6':'土',
+    // Categories (display labels — internal keys remain Japanese)
+    'cat.hotff':'ホットFF',
+    'cat.hotffNew':'ホットFF新商品',
+    'cat.coldff':'常温FF',
+    'cat.coldffNew':'常温FF新商品',
+    'cat.man':'中華まん',
+    'cat.manNew':'中華まん新商品',
+    // Yes/No
+    'yes':'はい',
+    'no':'いいえ',
+  },
+  en: {
+    'app.title':'FF Management',
+    'app.lang':'Language',
+    'tab.jisseki':'① Sales',
+    'tab.product':'② Products',
+    'tab.ext':'③ Factors',
+    'tab.make':'④ Production',
+    'tab.budget':'⑤ Budget',
+    'tab.order':'⑥ Orders',
+    'common.save':'Save','common.cancel':'Cancel','common.close':'Close',
+    'common.add':'Add','common.reset':'Reset','common.delete':'Delete',
+    'common.adopt':'Apply','common.recalc':'Recalculate','common.print':'🖨 Print',
+    'common.export':'Export','common.import':'Import',
+    'common.minute':'min','common.second':'sec','common.day':'day',
+    'common.hour':'h','common.person':'people','common.piece':'pcs',
+    'common.yen':'JPY','common.percent':'%',
+    'common.required':'Required','common.optional':'Optional',
+    'jisseki.weekSummary':'Weekly Summary',
+    'jisseki.input':'Sales Input',
+    'jisseki.inputHint':'(For ◯ week\'s plan / Enter actuals for ◯〜◯)',
+    'jisseki.prevWeek':'Copy from prev week',
+    'jisseki.loadSample':'Load sample',
+    'jisseki.custInput':'Customer count by day & hour',
+    'jisseki.custResetAll':'Reset all to 0',
+    'jisseki.salesTotal':'Sales',
+    'jisseki.wasteTotal':'Waste',
+    'jisseki.discountTotal':'Discount',
+    'jisseki.profitTotal':'Profit',
+    'jisseki.profitRate':'Profit %',
+    'jisseki.sellRate':'Sell-through',
+    'jisseki.productName':'Product',
+    'jisseki.teikaSales':'Full price sold',
+    'jisseki.discountSales':'Discounted',
+    'jisseki.wasteCount':'Wasted',
+    'product.catToggle':'Category On/Off',
+    'product.catTimeCfg':'Category Make Time',
+    'product.list':'Product List',
+    'product.add':'+ Add Product',
+    'product.expandAll':'Expand all',
+    'product.collapseAll':'Collapse all',
+    'product.cost':'Cost (JPY)',
+    'product.stdPrice':'Standard price',
+    'product.shopPrice':'Selling price',
+    'product.markupRate':'Markup %',
+    'product.discountAmt':'Discount amt',
+    'product.minCount':'Min make count',
+    'product.timeStart':'Sale start hour',
+    'product.timeEnd':'Sale end hour',
+    'product.tags':'Tags',
+    'product.type':'Product Type',
+    'product.typeStd':'📦 Standard','product.typeNew':'🆕 New','product.typeInvest':'📈 Invested',
+    'product.prepMethod':'Prep Method (for efficiency)',
+    'product.prepNone':'Not set',
+    'product.prepMicrowave':'Microwave only',
+    'product.prepFryer':'Fryer only',
+    'product.prepBoth':'Microwave → Fryer',
+    'product.microwaveTime':'Microwave time',
+    'product.fryerTime':'Fryer time',
+    'product.fryerCap':'Fryer capacity (pcs/cycle)',
+    'product.fryerStackable':'Can be stacked (parallel with others)',
+    'make.sortOrder':'Sort: ',
+    'make.sortDefault':'Default',
+    'make.sortEfficient':'Efficient order',
+    'make.efficientHint':'Make in ①②③ order (across categories, new products first)',
+    'make.cellHint':'💡 Cell guide: big number = pieces to make / ☑ = done',
+    'make.slotProgress':'Slot progress',
+    'make.scheduleTitle':'Production order (single microwave)',
+    'make.scheduleSub':'Just follow the numbered order. Items split by fryer capacity.',
+    'make.scheduleSlot':'Slot ─ Production order',
+    'make.scheduleParallel':'└ Can be stacked in fryer with previous batch',
+    'make.batchOf':'Batch ',
+    'make.batch':'',
+    'make.tipsTitle':'Tips (single microwave)',
+    'make.rules':'Production rules (review weekly)',
+    'make.completed':'✓ Done',
+    'budget.lastWeekSummary':'Last week summary',
+    'budget.planTitle':'Budget plan',
+    'budget.daily':'Daily summary',
+    'budget.dataManage':'Data',
+    'budget.cloudSync':'☁️ Cloud Sync (GitHub Gist)',
+    'budget.resetStore':'Reset store settings',
+    'order.scheduleTitle':'📋 Order schedule',
+    'order.checkProgress':'Ordered',
+    'order.resetChecks':'☑ Reset checks',
+    'sold.title':'🔔 Sold out → Suggest additional',
+    'sold.timeInputLabel':'Enter sold-out time',
+    'sold.timeConfirm':'Confirm time',
+    'sold.timeRedo':'Re-enter',
+    'sold.recommendation':'Recommended additional',
+    'sold.calcDetails':'Show calculation',
+    'gist.token':'Token','gist.gistId':'Gist ID',
+    'gist.uploadNow':'⬆️ Upload now','gist.downloadFromCloud':'⬇️ Pull from cloud',
+    'gist.copyShareLink':'🔗 Copy share link','gist.disconnect':'Disconnect',
+    'gist.createGist':'📤 Create new Gist (first time only)',
+    'gist.status':'Status','gist.lastUpload':'Last upload','gist.lastDownload':'Last pull',
+    'day.0':'Sun','day.1':'Mon','day.2':'Tue','day.3':'Wed','day.4':'Thu','day.5':'Fri','day.6':'Sat',
+    'cat.hotff':'Hot FF','cat.hotffNew':'Hot FF New',
+    'cat.coldff':'Cold FF','cat.coldffNew':'Cold FF New',
+    'cat.man':'Steamed bun','cat.manNew':'Steamed bun New',
+    'yes':'Yes','no':'No',
+  },
+  ne: {
+    'app.title':'FF व्यवस्थापन',
+    'app.lang':'भाषा',
+    'tab.jisseki':'१ बिक्री',
+    'tab.product':'२ उत्पादन',
+    'tab.ext':'३ बाह्य कारक',
+    'tab.make':'४ उत्पादन तालिका',
+    'tab.budget':'५ बजेट',
+    'tab.order':'६ अर्डर',
+    'common.save':'सुरक्षित','common.cancel':'रद्द','common.close':'बन्द',
+    'common.add':'थप्नुहोस्','common.reset':'रिसेट','common.delete':'मेटाउनुहोस्',
+    'common.adopt':'लागू','common.recalc':'पुन: गणना','common.print':'🖨 प्रिन्ट',
+    'common.export':'निर्यात','common.import':'आयात',
+    'common.minute':'मिनेट','common.second':'सेकेन्ड','common.day':'दिन',
+    'common.hour':'घण्टा','common.person':'जना','common.piece':'वटा',
+    'common.yen':'JPY','common.percent':'%',
+    'common.required':'आवश्यक','common.optional':'वैकल्पिक',
+    'jisseki.weekSummary':'साप्ताहिक सारांश',
+    'jisseki.input':'बिक्री प्रविष्टि',
+    'jisseki.inputHint':'(◯ हप्ताको योजनाको लागि / ◯〜◯ को बिक्री प्रविष्ट गर्नुहोस्)',
+    'jisseki.prevWeek':'अघिल्लो हप्ताबाट सार्नुहोस्',
+    'jisseki.loadSample':'नमुना लोड',
+    'jisseki.custInput':'दिन र घण्टा अनुसार ग्राहक संख्या',
+    'jisseki.custResetAll':'सबै 0 गर्नुहोस्',
+    'jisseki.salesTotal':'बिक्री','jisseki.wasteTotal':'खेर','jisseki.discountTotal':'डिस्काउन्ट',
+    'jisseki.profitTotal':'मुनाफा','jisseki.profitRate':'मुनाफा %','jisseki.sellRate':'बिक्री %',
+    'jisseki.productName':'उत्पादन','jisseki.teikaSales':'पूर्ण मूल्यमा बिक्री',
+    'jisseki.discountSales':'छुटमा बिक्री','jisseki.wasteCount':'खेर',
+    'product.catToggle':'श्रेणी On/Off','product.catTimeCfg':'श्रेणीको उत्पादन समय',
+    'product.list':'उत्पादन सूची','product.add':'+ उत्पादन थप्नुहोस्',
+    'product.expandAll':'सबै खोल्नुहोस्','product.collapseAll':'सबै बन्द गर्नुहोस्',
+    'product.cost':'लागत (JPY)','product.stdPrice':'मानक मूल्य','product.shopPrice':'बिक्री मूल्य',
+    'product.markupRate':'मार्कअप %','product.discountAmt':'छुट रकम','product.minCount':'न्यूनतम संख्या',
+    'product.timeStart':'बिक्री सुरु घण्टा','product.timeEnd':'बिक्री अन्त्य घण्टा',
+    'product.tags':'ट्यागहरू','product.type':'उत्पादन प्रकार',
+    'product.typeStd':'📦 मानक','product.typeNew':'🆕 नयाँ','product.typeInvest':'📈 लगानी',
+    'product.prepMethod':'तयारी विधि (कुशलता)','product.prepNone':'सेट छैन',
+    'product.prepMicrowave':'माइक्रोवेभ मात्र','product.prepFryer':'फ्राइयर मात्र',
+    'product.prepBoth':'माइक्रोवेभ → फ्राइयर','product.microwaveTime':'माइक्रोवेभ समय',
+    'product.fryerTime':'फ्राइयर समय','product.fryerCap':'फ्राइयर क्षमता (वटा/चक्र)',
+    'product.fryerStackable':'स्ट्याकेबल (अरूसँग समानान्तर)',
+    'make.sortOrder':'क्रम: ','make.sortDefault':'सामान्य','make.sortEfficient':'दक्ष क्रम',
+    'make.efficientHint':'१२३ क्रममा बनाउनुहोस् (श्रेणी पार, नयाँ पहिले)',
+    'make.cellHint':'💡 सेल: ठूलो नम्बर = बनाउने संख्या / ☑ = सम्पन्न',
+    'make.slotProgress':'स्लट प्रगति',
+    'make.scheduleTitle':'उत्पादन क्रम (एउटा माइक्रोवेभ मात्र)',
+    'make.scheduleSub':'नम्बर क्रममा गर्नुहोस्। उत्पादनलाई फ्राइयर क्षमता अनुसार बाँडिएको छ।',
+    'make.scheduleSlot':'स्लट ─ उत्पादन क्रम',
+    'make.scheduleParallel':'└ अघिल्लो ब्याचसँग फ्राइयरमा स्ट्याक गर्न सकिन्छ',
+    'make.batchOf':'ब्याच ','make.batch':'',
+    'make.tipsTitle':'सुझाव (एउटा माइक्रोवेभ)',
+    'make.rules':'उत्पादन नियम (हप्ताको समीक्षा)',
+    'make.completed':'✓ सम्पन्न',
+    'budget.lastWeekSummary':'गत हप्ताको सारांश','budget.planTitle':'बजेट योजना',
+    'budget.daily':'दैनिक सारांश','budget.dataManage':'डाटा',
+    'budget.cloudSync':'☁️ क्लाउड सिङ्क (GitHub Gist)',
+    'budget.resetStore':'स्टोर सेटिङ रिसेट',
+    'order.scheduleTitle':'📋 अर्डर तालिका','order.checkProgress':'अर्डर गरिएको',
+    'order.resetChecks':'☑ चेकबक्स रिसेट',
+    'sold.title':'🔔 बिक्री समाप्त → थप उत्पादन सुझाव',
+    'sold.timeInputLabel':'बिक्री समाप्त समय राख्नुहोस्',
+    'sold.timeConfirm':'समय पुष्टि','sold.timeRedo':'समय फेरि',
+    'sold.recommendation':'थप बनाउने सिफारिस','sold.calcDetails':'गणना देखाउनुहोस्',
+    'gist.token':'टोकन','gist.gistId':'Gist ID',
+    'gist.uploadNow':'⬆️ अहिले अपलोड','gist.downloadFromCloud':'⬇️ क्लाउडबाट तान्नुहोस्',
+    'gist.copyShareLink':'🔗 लिङ्क प्रतिलिपि','gist.disconnect':'विच्छेद',
+    'gist.createGist':'📤 नयाँ Gist बनाउनुहोस् (पहिलो पटक मात्र)',
+    'gist.status':'स्थिति','gist.lastUpload':'अन्तिम अपलोड','gist.lastDownload':'अन्तिम तान',
+    'day.0':'आइत','day.1':'सोम','day.2':'मंगल','day.3':'बुध','day.4':'बिहि','day.5':'शुक्र','day.6':'शनि',
+    'cat.hotff':'तातो FF','cat.hotffNew':'तातो FF नयाँ',
+    'cat.coldff':'चिसो FF','cat.coldffNew':'चिसो FF नयाँ',
+    'cat.man':'स्टीम बन','cat.manNew':'स्टीम बन नयाँ',
+    'yes':'हो','no':'होइन',
+  }
+};
+function t(key){
+  const v=I18N[LANG]&&I18N[LANG][key];
+  if(v!=null)return v;
+  return I18N.ja&&I18N.ja[key]||key;
+}
+function applyI18nStatic(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n');
+    el.textContent=t(k);
+  });
+  // タイトルとlang属性
+  document.title=t('app.title');
+  document.documentElement.lang=LANG;
+}
+function setLang(lang){
+  if(!I18N[lang])return;
+  LANG=lang;
+  localStorage.setItem('ffv6_lang',lang);
+  applyI18nStatic();
+  // 動的UI再描画（簡単のためリロード）
+  if(document.getElementById('app')&&document.getElementById('app').style.display!=='none'){
+    location.reload();
+  }
+}
+// カテゴリ名の表示用：内部キーは日本語のままだが、表示時に翻訳
+function tCat(cat){
+  const map={'ホットFF':'cat.hotff','ホットFF新商品':'cat.hotffNew','常温FF':'cat.coldff','常温FF新商品':'cat.coldffNew','中華まん':'cat.man','中華まん新商品':'cat.manNew'};
+  return map[cat]?t(map[cat]):cat;
+}
 
 // ============================================================
 // STATE
@@ -1126,6 +1482,10 @@ function showApp(){
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('header-store').textContent=S.storeName;
+  // 言語スイッチャーの初期値
+  const ls=document.getElementById('lang-select');
+  if(ls)ls.value=LANG;
+  applyI18nStatic();
   renderAll();
 }
 
