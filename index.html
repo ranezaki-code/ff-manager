@@ -652,6 +652,7 @@ let S = {
 };
 
 let currentTab=0, currentExtDay=0, currentProdDay=0, setupStep=0;
+let _prodSortMode='default'; // 'default' | 'efficient'
 let deleteConfirmKey=null, deleteConfirmTimer=null;
 let currentStoreId=null;
 let storeList=[]; // [{id, name}]
@@ -2239,12 +2240,53 @@ function renderProductCard(p){
           <span style="color:#666">日</span>
         </div>`:''}
       </div>
+      <!-- 作成方法（オペレーション設定） -->
+      <div style="grid-column:span 2;background:#fff7ed;border-radius:6px;padding:8px 10px;border:1px solid #fed7aa">
+        <div style="font-size:11px;color:#9a3412;margin-bottom:6px;font-weight:600">⚙️ 作成方法（効率化用）</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;align-items:center;margin-bottom:6px">
+          ${[
+            ['none','設定なし','#9ca3af'],
+            ['microwave','🔥 レンジのみ','#7c3aed'],
+            ['fryer','🍳 フライヤーのみ','#ea580c'],
+            ['microwave_fryer','🔥→🍳 レンジ→フライヤー','#dc2626']
+          ].map(([v,label,col])=>`
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="radio" name="prep_${p.id}" value="${v}" ${(p.prepMethod||'none')===v?'checked':''}
+                onchange="setProdField('${p.id}','prepMethod','${v}')">
+              <span style="font-size:11px;color:${col};font-weight:${(p.prepMethod||'none')===v?700:400}">${label}</span>
+            </label>`).join('')}
+        </div>
+        ${(p.prepMethod&&p.prepMethod!=='none')?`
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:11px;color:#555;margin-top:4px">
+          ${(p.prepMethod==='microwave'||p.prepMethod==='microwave_fryer')?`
+          <div><label style="font-size:10px;color:#888">レンジ時間（分）</label>
+            <input type="text" inputmode="decimal" value="${p.microwaveMin??1}" style="width:100%"
+              onchange="setProdField('${p.id}','microwaveMin',parseFloat(toHalf(this.value))||0)">
+          </div>`:'<div></div>'}
+          ${(p.prepMethod==='fryer'||p.prepMethod==='microwave_fryer')?`
+          <div><label style="font-size:10px;color:#888">フライヤー時間（分）</label>
+            <input type="text" inputmode="decimal" value="${p.fryerMin??5}" style="width:100%"
+              onchange="setProdField('${p.id}','fryerMin',parseFloat(toHalf(this.value))||0)">
+          </div>
+          <div><label style="font-size:10px;color:#888">フライヤー容量（個/回）</label>
+            <input type="text" inputmode="numeric" value="${p.fryerCap??6}" style="width:100%"
+              onchange="setProdField('${p.id}','fryerCap',parseInt(toHalf(this.value))||1)">
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
+              <input type="checkbox" ${p.fryerStackable!==false?'checked':''}
+                onchange="setProdField('${p.id}','fryerStackable',this.checked)">
+              <span>2段調理可（他商品と同時OK）</span>
+            </label>
+          </div>`:'<div></div><div></div><div></div>'}
+        </div>`:''}
+      </div>
     </div>`:''}
   </div>`;
 }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
-const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','timeStart','timeEnd','newDays']);
+const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap']);
 
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
@@ -2894,6 +2936,39 @@ function renderProdDayTabs(){
 
 function selectProdDay(i){currentProdDay=i;renderProdDayTabs();renderProdDayContent(i);}
 
+// 作成効率順の優先度計算（小さいほど先）
+function prepPriority(p){
+  const m=p.prepMethod||'none';
+  const fryerMin=p.fryerMin||0;
+  const microwaveMin=p.microwaveMin||0;
+  let group;
+  if(m==='microwave_fryer')group=1;     // 順次：レンジ→フライヤー（先にレンジで温め開始）
+  else if(m==='fryer')group=2;          // フライヤーのみ（並行投入）
+  else if(m==='microwave')group=3;      // レンジのみ（最後・隙間）
+  else group=4;                          // 設定なし
+  // 同グループ内：処理時間長い方を先に（ボトルネック優先）
+  const time=m==='microwave_fryer'?(microwaveMin+fryerMin):m==='fryer'?fryerMin:microwaveMin;
+  return{group,time};
+}
+function compareEfficient(a,b){
+  const pa=prepPriority(a),pb=prepPriority(b);
+  if(pa.group!==pb.group)return pa.group-pb.group;
+  if(pb.time!==pa.time)return pb.time-pa.time;
+  return (a.order??0)-(b.order??0);
+}
+function prepBadge(p){
+  const m=p.prepMethod;
+  if(!m||m==='none')return '';
+  if(m==='microwave_fryer')return `<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:4px" title="レンジ→フライヤー">🔥→🍳</span>`;
+  if(m==='fryer')return `<span style="font-size:9px;background:#ffedd5;color:#9a3412;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:4px" title="フライヤー">🍳</span>`;
+  if(m==='microwave')return `<span style="font-size:9px;background:#ede9fe;color:#5b21b6;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:4px" title="レンジ">🔥</span>`;
+  return '';
+}
+function setProdSortMode(mode){
+  _prodSortMode=mode;
+  renderProdDayContent(currentProdDay);
+}
+
 function renderProdDayContent(dayIdx){
   const el=document.getElementById('prod-day-content');
   const e=S.ext[dayIdx]||{weather:'晴れ',temp:20,event:'',correction:0};
@@ -2923,6 +2998,12 @@ function renderProdDayContent(dayIdx){
   })()}
   <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 12px;font-size:11px;color:#555;margin-bottom:8px;line-height:1.6">
     💡 <b>セルの見方</b>：大きい数字＝<b>その時間帯に作成する個数</b>／☑＝完了チェック／<b>セルをマウスで重ねる</b>と基準作成数・値引時間・最低引出客数などの詳細が表示されます
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+    <span style="font-size:11px;color:#666">並び順：</span>
+    <button onclick="setProdSortMode('default')" class="${(_prodSortMode||'default')==='default'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">通常順</button>
+    <button onclick="setProdSortMode('efficient')" class="${_prodSortMode==='efficient'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">⚙️ 作成効率順</button>
+    ${_prodSortMode==='efficient'?`<span style="font-size:10px;color:#9a3412">②商品設定で「作成方法」を入れた商品が最適順に並びます</span>`:''}
   </div>`;
 
   // Progress bars for each slot
@@ -2949,11 +3030,28 @@ function renderProdDayContent(dayIdx){
   CATS.forEach(cat=>{
     if(!S.catOn[cat])return;
     const cfg=S.catCfg[cat];if(!cfg||!cfg.slots.length)return;
-    const prods=S.PM.filter(p=>p.enabled&&p.category===cat).sort((a,b)=>a.order-b.order);
+    const prods0=S.PM.filter(p=>p.enabled&&p.category===cat);
+    const prods=_prodSortMode==='efficient'
+      ?[...prods0].sort(compareEfficient)
+      :[...prods0].sort((a,b)=>(a.order??0)-(b.order??0));
     if(!prods.length)return;
 
     html+=`<div class="card">`;
-    html+=`<div class="section-title">${cat}</div>`;
+    // 効率順ヒント（カテゴリ単位で1回だけ表示）
+    let effHint='';
+    if(_prodSortMode==='efficient'){
+      const hasSeq=prods.some(p=>p.prepMethod==='microwave_fryer');
+      const hasFry=prods.some(p=>p.prepMethod==='fryer');
+      const hasMw=prods.some(p=>p.prepMethod==='microwave');
+      const tips=[];
+      if(hasSeq)tips.push('🔥→🍳 をレンジに投入し、温めている間に🍳をフライヤーへ');
+      if(hasFry&&hasSeq)tips.push('🍳 とレンジ中の商品は並行作業可');
+      if(hasMw)tips.push('🔥 だけの商品は最後・隙間時間でOK');
+      if(tips.length){
+        effHint=`<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:6px 10px;font-size:11px;color:#9a3412;margin:0 0 8px 0;line-height:1.6">💡 ${tips.join(' ／ ')}</div>`;
+      }
+    }
+    html+=`<div class="section-title">${cat}</div>${effHint}`;
     html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
     html+=`<thead><tr><th style="width:110px;text-align:left">商品名</th>`;
     const discOn=isDiscountOn(cat,dayIdx);
@@ -2966,9 +3064,11 @@ function renderProdDayContent(dayIdx){
     });
     html+=`</tr></thead><tbody>`;
 
-    prods.forEach(p=>{
+    const _circled=(i)=>{const a=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];return a[i]||`(${i+1})`;};
+    prods.forEach((p,pi)=>{
       const hasExtra=p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0);
-      html+=`<tr><td style="text-align:left;font-size:12px">${p.name}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
+      const orderBadge=_prodSortMode==='efficient'&&p.prepMethod&&p.prepMethod!=='none'?`<span style="font-size:11px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(pi)}</span>`:'';
+      html+=`<tr><td style="text-align:left;font-size:12px">${orderBadge}${p.name}${prepBadge(p)}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
       cfg.slots.forEach(slotH=>{
         const cnt=getProdCnt(p.id,dayIdx,slotH);
         const extra=getInvestExtra(p.id,dayIdx,slotH);
