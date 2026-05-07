@@ -3165,13 +3165,13 @@ function openSoldOutModal(pid,dayIdx,slotH){
   if(!m){
     m=document.createElement('div');
     m.id='soldOutModal';
-    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+    m.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;box-sizing:border-box;overflow-y:auto;margin:0';
     document.body.appendChild(m);
     m.addEventListener('click',e=>{if(e.target===m)closeSoldOutModal();});
   }
   const hh=String(Math.floor(def%24)).padStart(2,'0');
   const mm=String(Math.round((def%1)*60)).padStart(2,'0');
-  m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:22px;width:100%;max-width:380px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.35)">
+  m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:22px;width:100%;max-width:380px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box;margin:auto">
     <div style="font-weight:700;font-size:16px;margin-bottom:4px;color:var(--main)">🔔 完売 → 追加作成提案</div>
     <div style="font-size:12px;color:#888;margin-bottom:18px">${p.name}</div>
     <div id="soldOutPhase1">
