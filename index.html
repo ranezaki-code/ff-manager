@@ -667,6 +667,11 @@ const I18N = {
     'jisseki.weekSummary':'週合計サマリー',
     'jisseki.input':'実績入力',
     'jisseki.inputHint':'(◯週の計画用 / ◯〜◯の実績を入力)',
+    'jisseki.inputHintTpl':'（{0}週の計画用 / {1}の実績を入力）',
+    'metric.buyRate':'購入率',
+    'metric.urihen':'売変率',
+    'metric.salesAmt':'販売高','metric.wasteAmt':'廃棄高','metric.discAmt':'値引高',
+    'metric.profit':'利益高','metric.profitRate':'利益率','metric.sellRate':'販売率',
     'jisseki.prevWeek':'前週引継ぎ',
     'jisseki.loadSample':'サンプル読込',
     'jisseki.custInput':'曜日別・時間帯別客数',
@@ -788,6 +793,10 @@ const I18N = {
     'jisseki.weekSummary':'Weekly Summary',
     'jisseki.input':'Sales Input',
     'jisseki.inputHint':'(For ◯ week\'s plan / Enter actuals for ◯〜◯)',
+    'jisseki.inputHintTpl':'(For week of {0} / Enter actuals from {1})',
+    'metric.buyRate':'Buy rate','metric.urihen':'Markdown rate',
+    'metric.salesAmt':'Sales','metric.wasteAmt':'Waste','metric.discAmt':'Discount',
+    'metric.profit':'Profit','metric.profitRate':'Profit %','metric.sellRate':'Sell-thru',
     'jisseki.prevWeek':'Copy from prev week',
     'jisseki.loadSample':'Load sample',
     'jisseki.custInput':'Customer count by day & hour',
@@ -889,6 +898,10 @@ const I18N = {
     'jisseki.weekSummary':'साप्ताहिक सारांश',
     'jisseki.input':'बिक्री प्रविष्टि',
     'jisseki.inputHint':'(◯ हप्ताको योजनाको लागि / ◯〜◯ को बिक्री प्रविष्ट गर्नुहोस्)',
+    'jisseki.inputHintTpl':'({0} हप्ताको योजनाको लागि / {1} को बिक्री प्रविष्ट)',
+    'metric.buyRate':'किनेको दर','metric.urihen':'मार्कडाउन दर',
+    'metric.salesAmt':'बिक्री','metric.wasteAmt':'खेर','metric.discAmt':'डिस्काउन्ट',
+    'metric.profit':'मुनाफा','metric.profitRate':'मुनाफा %','metric.sellRate':'बिक्री %',
     'jisseki.prevWeek':'अघिल्लो हप्ताबाट सार्नुहोस्',
     'jisseki.loadSample':'नमुना लोड',
     'jisseki.custInput':'दिन र घण्टा अनुसार ग्राहक संख्या',
@@ -1818,28 +1831,27 @@ function renderJissekiTab(){
 function renderJissekiTitle(){
   const el=document.getElementById('jisseki-title');
   if(!el)return;
-  // 計画週（activeWeek/weekStart）の前週＝実績対象期間
   const ws=S.weekStart||weekKeyToDateStr(S.activeWeek);
   const planStart=parseLocalDate(ws);
-  // 実績は計画週の直前の月曜〜日曜（本部実績サイクル）
-  // 計画週が火曜始まり → 実績は (計画開始 - 8日) 月曜 〜 (計画開始 - 2日) 日曜
   const actualStart=new Date(planStart); actualStart.setDate(actualStart.getDate()-8);
   const actualEnd=new Date(planStart); actualEnd.setDate(actualEnd.getDate()-2);
-  const planLabel=`${planStart.getMonth()+1}/${planStart.getDate()}週`;
+  const planLabel=`${planStart.getMonth()+1}/${planStart.getDate()}`;
   const range=`${actualStart.getMonth()+1}/${actualStart.getDate()}〜${actualEnd.getMonth()+1}/${actualEnd.getDate()}`;
-  el.innerHTML=`実績入力 <span style="font-size:12px;font-weight:400;color:#666">（${planLabel}の計画用 / ${range}の実績を入力）</span>`;
+  // 「実績入力（◯週の計画用 / ◯〜◯の実績を入力）」 →i18nテンプレ
+  const tpl=t('jisseki.inputHintTpl').replace('{0}',planLabel).replace('{1}',range);
+  el.innerHTML=`${t('jisseki.input')} <span style="font-size:12px;font-weight:400;color:#666">${tpl}</span>`;
 }
 
 function renderJissekiSummary(){
   const{totalSales,totalWaste,totalDisc,totalProfit,profitRate,sellRate}=calcSummary();
   const isWarn=profitRate<50;
   document.getElementById('jisseki-summary').innerHTML=`
-    <div class="summary-box"><div class="label">販売高</div><div class="value">${fmt(totalSales)}</div><div class="unit">円</div></div>
-    <div class="summary-box"><div class="label">廃棄高</div><div class="value">${fmt(totalWaste)}</div><div class="unit">円</div></div>
-    <div class="summary-box"><div class="label">値引高</div><div class="value">${fmt(totalDisc)}</div><div class="unit">円</div></div>
-    <div class="summary-box"><div class="label">利益高</div><div class="value">${fmt(totalProfit)}</div><div class="unit">円</div></div>
-    <div class="summary-box ${isWarn?'warn':''}"><div class="label">利益率</div><div class="value">${profitRate.toFixed(1)}</div><div class="unit">%</div></div>
-    <div class="summary-box ${sellRate>0&&sellRate<90?'warn':sellRate>0&&sellRate<96?'summary-box ':''}"><div class="label">販売率</div><div class="value" style="color:${sellRate>=96?'var(--green)':sellRate>=90?'var(--orange)':sellRate>0?'var(--red)':'inherit'}">${sellRate.toFixed(1)}</div><div class="unit">%</div></div>
+    <div class="summary-box"><div class="label">${t('jisseki.salesTotal')}</div><div class="value">${fmt(totalSales)}</div><div class="unit">${t('common.yen')}</div></div>
+    <div class="summary-box"><div class="label">${t('jisseki.wasteTotal')}</div><div class="value">${fmt(totalWaste)}</div><div class="unit">${t('common.yen')}</div></div>
+    <div class="summary-box"><div class="label">${t('jisseki.discountTotal')}</div><div class="value">${fmt(totalDisc)}</div><div class="unit">${t('common.yen')}</div></div>
+    <div class="summary-box"><div class="label">${t('jisseki.profitTotal')}</div><div class="value">${fmt(totalProfit)}</div><div class="unit">${t('common.yen')}</div></div>
+    <div class="summary-box ${isWarn?'warn':''}"><div class="label">${t('jisseki.profitRate')}</div><div class="value">${profitRate.toFixed(1)}</div><div class="unit">%</div></div>
+    <div class="summary-box ${sellRate>0&&sellRate<90?'warn':sellRate>0&&sellRate<96?'summary-box ':''}"><div class="label">${t('jisseki.sellRate')}</div><div class="value" style="color:${sellRate>=96?'var(--green)':sellRate>=90?'var(--orange)':sellRate>0?'var(--red)':'inherit'}">${sellRate.toFixed(1)}</div><div class="unit">%</div></div>
   `;
 }
 
@@ -1849,18 +1861,16 @@ function renderJissekiTable(){
   CATS.forEach(c=>{catProds[c]=S.PM.filter(p=>p.category===c&&p.enabled).sort((a,b)=>a.order-b.order);});
 
   let html=`<table><thead><tr>
-    <th style="width:140px;text-align:left">商品名</th>
-    <th style="width:60px">定価販売</th>
-    <th style="width:60px">値引販売</th>
-    <th style="width:50px">廃棄数</th>
+    <th style="width:140px;text-align:left">${t('jisseki.productName')}</th>
+    <th style="width:60px">${t('jisseki.teikaSales')}</th>
+    <th style="width:60px">${t('jisseki.discountSales')}</th>
+    <th style="width:50px">${t('jisseki.wasteCount')}</th>
   </tr></thead><tbody>`;
 
   CATS.forEach(cat=>{
     const prods=catProds[cat];
     if(!prods.length||!S.catOn[cat])return;
-    // Category row
-    html+=`<tr><td colspan="4" style="background:var(--main-lt);font-weight:700;text-align:left;padding:6px 8px">${cat}</td></tr>`;
-    // Product rows
+    html+=`<tr><td colspan="4" style="background:var(--main-lt);font-weight:700;text-align:left;padding:6px 8px">${tCat(cat)}</td></tr>`;
     prods.forEach(p=>{
       const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
       const m=calcJissekiMetrics(p.id);
@@ -1877,14 +1887,14 @@ function renderJissekiTable(){
       <tr class="${CAT_CLASS[cat]||''}">
         <td colspan="4" style="padding:4px 8px">
           <div class="chips">
-            <span class="chip">購入率: ${m?m.buyRate.toFixed(2):'0.00'}%</span>
-            <span class="chip">販売高: ${m?fmt(m.salesAmt):0}円</span>
-            <span class="chip">廃棄高: ${m?fmt(m.wasteAmt):0}円</span>
-            <span class="chip">値引高: ${m?fmt(m.discAmt):0}円</span>
-            <span class="chip">売変率: ${m?m.sellChangeRate.toFixed(1):'0.0'}%</span>
-            <span class="chip">利益高: ${m?fmt(m.profit):0}円</span>
-            <span class="${m&&m.profitRate<50?'chip warn':'chip'}">利益率: ${m?m.profitRate.toFixed(1):'0.0'}%</span>
-            <span class="${m&&m.sellRate<90?'chip warn':m&&m.sellRate<96?'chip':'chip'}" style="${m?`color:${m.sellRate>=96?'var(--green)':m.sellRate>=90?'var(--orange)':'var(--red)'}`:''}">${m&&m.makeCnt>0?`販売率: ${m.sellRate.toFixed(1)}%`:'販売率: -'}</span>
+            <span class="chip">${t('metric.buyRate')}: ${m?m.buyRate.toFixed(2):'0.00'}%</span>
+            <span class="chip">${t('jisseki.salesTotal')}: ${m?fmt(m.salesAmt):0}${t('common.yen')}</span>
+            <span class="chip">${t('jisseki.wasteTotal')}: ${m?fmt(m.wasteAmt):0}${t('common.yen')}</span>
+            <span class="chip">${t('jisseki.discountTotal')}: ${m?fmt(m.discAmt):0}${t('common.yen')}</span>
+            <span class="chip">${t('metric.urihen')}: ${m?m.sellChangeRate.toFixed(1):'0.0'}%</span>
+            <span class="chip">${t('jisseki.profitTotal')}: ${m?fmt(m.profit):0}${t('common.yen')}</span>
+            <span class="${m&&m.profitRate<50?'chip warn':'chip'}">${t('jisseki.profitRate')}: ${m?m.profitRate.toFixed(1):'0.0'}%</span>
+            <span class="${m&&m.sellRate<90?'chip warn':m&&m.sellRate<96?'chip':'chip'}" style="${m?`color:${m.sellRate>=96?'var(--green)':m.sellRate>=90?'var(--orange)':'var(--red)'}`:''}">${m&&m.makeCnt>0?`${t('jisseki.sellRate')}: ${m.sellRate.toFixed(1)}%`:`${t('jisseki.sellRate')}: -`}</span>
           </div>
         </td>
       </tr>`;
