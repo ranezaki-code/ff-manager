@@ -3157,11 +3157,15 @@ function renderProdDayContent(dayIdx){
   <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 12px;font-size:11px;color:#555;margin-bottom:8px;line-height:1.6">
     💡 <b>セルの見方</b>：大きい数字＝<b>その時間帯に作成する個数</b>／☑＝完了チェック／<b>セルをマウスで重ねる</b>と基準作成数・値引時間・最低引出客数などの詳細が表示されます
   </div>
-  <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
-    <span style="font-size:11px;color:#666">並び順：</span>
-    <button onclick="setProdSortMode('default')" class="${(_prodSortMode||'default')==='default'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">通常順</button>
-    <button onclick="setProdSortMode('efficient')" class="${_prodSortMode==='efficient'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">作成効率順</button>
-    ${_prodSortMode==='efficient'?`<span style="font-size:10px;color:#9a3412">①からの番号順に作成（カテゴリ横断・新商品優先）</span>`:''}
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+    <span style="font-size:12px;color:#555;font-weight:600">並び順：</span>
+    <div style="display:inline-flex;background:#f3f4f6;padding:3px;border-radius:8px;gap:2px">
+      <button onclick="setProdSortMode('default')"
+        style="padding:8px 20px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${(_prodSortMode||'default')==='default'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">通常順</button>
+      <button onclick="setProdSortMode('efficient')"
+        style="padding:8px 20px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${_prodSortMode==='efficient'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">作成効率順</button>
+    </div>
+    ${_prodSortMode==='efficient'?`<span style="font-size:11px;color:#9a3412">①からの番号順に作成（カテゴリ横断・新商品優先）</span>`:''}
   </div>`;
 
   // 効率順モード時：スロット別作成手順カード
@@ -3318,7 +3322,41 @@ function renderProdDayContent(dayIdx){
 }
 
 function setCheck(key,val){
-  S.checks[key]=val;saveS();renderProdDayContent(currentProdDay);
+  if(val)S.checks[key]=true;else delete S.checks[key];
+  // セル↔バッチの連動
+  const batchMatch=key.match(/^(\d+)_(\d+)_(.+)_b(\d+)$/);
+  if(batchMatch){
+    // バッチキー：このバッチのcellKeyを再評価
+    const dayIdx=parseInt(batchMatch[1]);
+    const slotH=parseInt(batchMatch[2]);
+    const pid=batchMatch[3];
+    const cellKey=`${dayIdx}_${slotH}_${pid}`;
+    try{
+      const batches=buildSlotBatches(dayIdx,slotH).filter(b=>b.p.id===pid);
+      if(batches.length>0){
+        const allDone=batches.every(b=>!!S.checks[`${dayIdx}_${slotH}_${pid}_b${b.batchIdx}`]);
+        if(allDone)S.checks[cellKey]=true;
+        else delete S.checks[cellKey];
+      }
+    }catch(e){}
+  } else {
+    // セルキー（バッチ接尾辞なし）
+    const m=key.match(/^(\d+)_(\d+)_(.+)$/);
+    if(m){
+      const dayIdx=parseInt(m[1]);
+      const slotH=parseInt(m[2]);
+      const pid=m[3];
+      try{
+        const batches=buildSlotBatches(dayIdx,slotH).filter(b=>b.p.id===pid);
+        batches.forEach(b=>{
+          const bk=`${dayIdx}_${slotH}_${pid}_b${b.batchIdx}`;
+          if(val)S.checks[bk]=true;else delete S.checks[bk];
+        });
+      }catch(e){}
+    }
+  }
+  saveS();
+  renderProdDayContent(currentProdDay);
 }
 
 function resetChecks(){
