@@ -3065,6 +3065,47 @@ function getCustHoursRange(dayIdx,hs,he){
   }
   return total;
 }
+// Wilson 95%信頼区間の下限（観測 x 件 / n 試行）
+function wilsonLower95(x,n){
+  if(n<=0)return 0;
+  const z=1.96;
+  const p=x/n;
+  const inner=Math.max(0, p*(1-p)/n + z*z/(4*n*n));
+  const denom=1+z*z/n;
+  const center=p+z*z/(2*n);
+  const margin=z*Math.sqrt(inner);
+  return Math.max(0,(center-margin)/denom);
+}
+// 標準正規分布の逆累積関数（Beasley-Springer 近似）
+function invStdNormal(p){
+  if(p<=0)return -Infinity;
+  if(p>=1)return Infinity;
+  if(p<0.5)return -invStdNormal(1-p);
+  const t=Math.sqrt(-2*Math.log(1-p));
+  return t-((0.010328*t+0.802853)*t+2.515517)/(((0.001308*t+0.189269)*t+1.432788)*t+1.0);
+}
+// ポアソン分布 Poisson(λ) の fractile 分位点
+function newsvendorPoisson(lam,fract){
+  if(lam<=0)return 0;
+  if(fract<=0)return 0;
+  if(fract>=1)return Math.ceil(lam*3);
+  if(lam>50){
+    // λが大きい時は正規近似
+    const z=invStdNormal(fract);
+    return Math.max(0,Math.round(lam+z*Math.sqrt(lam)));
+  }
+  // 小さい λ は CDF を直接計算
+  let term=Math.exp(-lam);
+  let cdf=term;
+  if(cdf>=fract)return 0;
+  for(let s=1;s<2000;s++){
+    term*=lam/s;
+    cdf+=term;
+    if(cdf>=fract)return s;
+  }
+  return 2000;
+}
+
 function calcSoldOutSuggestion(pid,dayIdx,slotH,soldAt){
   const p=getP(pid);if(!p)return{error:'商品が見つかりません'};
   const range=getCatSlotRange(p.category,slotH);
@@ -3090,12 +3131,18 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,soldAt){
   const custDuring=getCustHoursRange(dayIdx,sellingStart,soldAt);
   const custAfter=getCustHoursRange(dayIdx,soldAt,slotEnd);
   if(custDuring<=0)return{error:'販売中の客数が0です（客数データを確認してください）'};
-  const rate=soldCount/custDuring;
-  const D=rate*custAfter;
-  const margin=p.shopPrice>0?(p.shopPrice-p.cost)/p.shopPrice:0;
-  const suggest=Math.max(0,Math.ceil(D*(1+margin)));
+  // 観測購買率
+  const observedRate=soldCount/custDuring;
+  // Wilson 95%下限で「信頼できる購買率」に丸める（短時間観測の暴走を抑制）
+  const safeRate=wilsonLower95(soldCount,custDuring);
+  // 期待需要（残り客数より多くは売れない物理上限）
+  const D=Math.min(safeRate*custAfter,custAfter);
+  // 利益率（Newsvendor 分位点）
+  const fractile=p.shopPrice>0?(p.shopPrice-p.cost)/p.shopPrice:0.5;
+  // 利益最大化の最適在庫
+  const suggest=newsvendorPoisson(D,fractile);
   return{
-    suggest, rate, custDuring, custAfter, D, margin,
+    suggest, observedRate, safeRate, custDuring, custAfter, D, fractile,
     sellingStart, soldAt, slotEnd, displayStart,
     soldCount, batchLabel, eventCount:events.length+1,
     p
@@ -3157,14 +3204,18 @@ function recalcSoldOut(){
   if(btn)btn.disabled=false;
   _soldOutCtx.soldAt=soldAt;
   _soldOutCtx.suggest=r.suggest;
+  const obsPct=(r.observedRate*100).toFixed(1);
+  const safePct=(r.safeRate*100).toFixed(1);
+  const damped=r.safeRate<r.observedRate*0.95;
   el.innerHTML=`<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px;line-height:1.7">
     <div style="font-size:11px;color:#0369a1;font-weight:600">${r.eventCount}回目の完売（${r.batchLabel}）</div>
     <div>直前バッチ：<b>${r.soldCount}個</b>（${fmtHour(r.sellingStart)}〜${fmtHour(r.soldAt)}）</div>
     <div>販売中の客数：${r.custDuring.toFixed(1)}人</div>
-    <div>購買率：<b>${(r.rate*100).toFixed(1)}%</b>（1人あたり${r.rate.toFixed(3)}個）</div>
+    <div>観測購買率：${obsPct}%</div>
+    <div>${damped?'⚠️ ':''}信頼できる購買率（Wilson 95%下限）：<b>${safePct}%</b>${damped?`<span style="font-size:10px;color:#92400e"> ← サンプル少のため安全側</span>`:''}</div>
     <div>残り時間（${fmtHour(r.soldAt)}〜${fmtHour(r.slotEnd)}）の客数：${r.custAfter.toFixed(1)}人</div>
-    <div>期待需要：${r.D.toFixed(2)}個</div>
-    <div>マージン補正（+${(r.margin*100).toFixed(0)}%）：${(r.D*(1+r.margin)).toFixed(2)}個</div>
+    <div>期待需要 D：<b>${r.D.toFixed(2)}個</b>（${safePct}% × ${r.custAfter.toFixed(1)}人）</div>
+    <div>利益率：${(r.fractile*100).toFixed(1)}%（Newsvendor分位点）</div>
     <div style="margin-top:8px;padding-top:6px;border-top:1px solid #bae6fd;font-size:18px;color:#0c4a6e">
       ✨ 推奨：<b>${r.suggest}個</b>
     </div>
