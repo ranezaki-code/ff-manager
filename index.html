@@ -3011,6 +3011,72 @@ function buildGlobalOrderMap(){
   all.forEach((p,i)=>m.set(p.id,i));
   return m;
 }
+
+// スロット内のバッチ列を返す（容量で分割・優先度順）
+function buildSlotBatches(dayIdx,slotH){
+  const items=[];
+  S.PM.forEach(p=>{
+    if(!p.enabled||!S.catOn[p.category])return;
+    const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.includes(slotH))return;
+    const baseQty=getProdCnt(p.id,dayIdx,slotH);
+    const extra=getInvestExtra(p.id,dayIdx,slotH);
+    const soSum=getSoldOutTotal(p.id,dayIdx,slotH);
+    const totalQty=baseQty+extra+soSum;
+    if(totalQty<=0)return;
+    const m=p.prepMethod||'none';
+    const usesFryer=(m==='fryer'||m==='microwave_fryer');
+    const cap=usesFryer?Math.max(1,p.fryerCap||totalQty):totalQty;
+    const numBatches=Math.ceil(totalQty/cap);
+    for(let i=0;i<numBatches;i++){
+      const batchQty=Math.min(cap,totalQty-i*cap);
+      items.push({p,qty:batchQty,batchIdx:i+1,totalBatches:numBatches});
+    }
+  });
+  // 優先度順（compareEfficient）→ 同商品はバッチ順
+  return items.sort((a,b)=>{
+    const ord=compareEfficient(a.p,b.p);
+    if(ord!==0)return ord;
+    return a.batchIdx-b.batchIdx;
+  });
+}
+
+// スロット作成手順 HTML
+function renderSlotSchedule(dayIdx,slotH){
+  const batches=buildSlotBatches(dayIdx,slotH);
+  if(!batches.length)return '';
+  const _circled=(i)=>{const a=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];return a[i]||`(${i+1})`;};
+  const lines=batches.map((b,idx)=>{
+    const{p,qty,batchIdx,totalBatches}=b;
+    const m=p.prepMethod||'none';
+    const noMethod=!p.prepMethod||p.prepMethod==='none';
+    // 並行ヒント：前のバッチがフライヤー中で、自分がフライヤーで、両方とも 2段OK の場合
+    let hint='';
+    if(idx>0){
+      const prev=batches[idx-1].p;
+      const prevPM=prev.prepMethod;
+      const curUsesFr=(m==='fryer'||m==='microwave_fryer');
+      const prevUsesFr=(prevPM==='fryer'||prevPM==='microwave_fryer');
+      if(curUsesFr&&prevUsesFr&&prev.fryerStackable!==false&&p.fryerStackable!==false){
+        hint=`<div style="font-size:10px;color:#0369a1;margin-left:24px;margin-top:1px">└ 前バッチのフライヤー中に2段で並行投入可</div>`;
+      }
+    }
+    const batchLabel=totalBatches>1?`<span style="font-size:10px;color:#9333ea;font-weight:600;margin-left:4px">第${batchIdx}陣/${totalBatches}</span>`:'';
+    const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'';
+    const methodBadge=noMethod?`<span style="font-size:9px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:6px;margin-left:4px">未設定</span>`:prepBadge(p);
+    return `<div style="display:flex;flex-direction:column;padding:6px 0;border-bottom:1px dashed #f3f4f6">
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <span style="font-size:14px;font-weight:700;color:#1d4ed8;min-width:24px">${_circled(idx)}</span>
+        <span style="font-weight:600">${p.name}</span>${batchLabel}${newBadge}${methodBadge}
+        <span style="margin-left:auto;font-size:13px;font-weight:700;color:#0c4a6e">${qty}個</span>
+      </div>
+      ${hint}
+    </div>`;
+  }).join('');
+  return `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;margin-bottom:8px">
+    <div style="font-size:13px;font-weight:700;color:var(--main);margin-bottom:6px">${SLOT_LABELS[slotH]}作成スロット ─ 作成手順</div>
+    ${lines}
+  </div>`;
+}
 function prepBadge(p){
   const m=p.prepMethod;
   if(!m||m==='none')return '';
@@ -3061,6 +3127,24 @@ function renderProdDayContent(dayIdx){
     <button onclick="setProdSortMode('efficient')" class="${_prodSortMode==='efficient'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">作成効率順</button>
     ${_prodSortMode==='efficient'?`<span style="font-size:10px;color:#9a3412">①からの番号順に作成（カテゴリ横断・新商品優先）</span>`:''}
   </div>`;
+
+  // 効率順モード時：スロット別作成手順カード
+  if(_prodSortMode==='efficient'){
+    const slotCards=ALL_SLOTS.map(slotH=>{
+      const someActive=S.PM.some(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]?.slots.includes(slotH));
+      if(!someActive)return '';
+      return renderSlotSchedule(dayIdx,slotH);
+    }).filter(Boolean).join('');
+    if(slotCards){
+      html+=`<div class="card" style="background:#fff7ed">
+        <div class="section-title" style="color:#9a3412">作成手順（電子レンジ1台想定）</div>
+        <div style="font-size:11px;color:#9a3412;margin-bottom:8px;line-height:1.6">
+          番号順に作業すれば最短。商品によって「第1陣・第2陣…」と分かれます（フライヤー容量で分割）。
+        </div>
+        ${slotCards}
+      </div>`;
+    }
+  }
 
   // Progress bars for each slot
   html+=`<div class="card">`;
