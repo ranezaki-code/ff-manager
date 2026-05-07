@@ -3045,11 +3045,23 @@ function renderSlotSchedule(dayIdx,slotH){
   const batches=buildSlotBatches(dayIdx,slotH);
   if(!batches.length)return '';
   const _circled=(i)=>{const a=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];return a[i]||`(${i+1})`;};
+  // 進捗カウント
+  let doneCount=0;
+  batches.forEach(b=>{
+    const k=`${dayIdx}_${slotH}_${b.p.id}_b${b.batchIdx}`;
+    if(S.checks[k])doneCount++;
+  });
+  const total=batches.length;
+  const pct=total?Math.round(doneCount/total*100):0;
+  const allDone=doneCount===total;
+
   const lines=batches.map((b,idx)=>{
     const{p,qty,batchIdx,totalBatches}=b;
     const m=p.prepMethod||'none';
     const noMethod=!p.prepMethod||p.prepMethod==='none';
-    // 並行ヒント：前のバッチがフライヤー中で、自分がフライヤーで、両方とも 2段OK の場合
+    const ckKey=`${dayIdx}_${slotH}_${p.id}_b${batchIdx}`;
+    const checked=!!S.checks[ckKey];
+    // 並行ヒント
     let hint='';
     if(idx>0){
       const prev=batches[idx-1].p;
@@ -3057,25 +3069,49 @@ function renderSlotSchedule(dayIdx,slotH){
       const curUsesFr=(m==='fryer'||m==='microwave_fryer');
       const prevUsesFr=(prevPM==='fryer'||prevPM==='microwave_fryer');
       if(curUsesFr&&prevUsesFr&&prev.fryerStackable!==false&&p.fryerStackable!==false){
-        hint=`<div style="font-size:10px;color:#0369a1;margin-left:24px;margin-top:1px">└ 前バッチのフライヤー中に2段で並行投入可</div>`;
+        hint=`<div style="font-size:10px;color:#0369a1;margin-left:48px;margin-top:1px">└ 前バッチのフライヤー中に2段で並行投入可</div>`;
       }
     }
     const batchLabel=totalBatches>1?`<span style="font-size:10px;color:#9333ea;font-weight:600;margin-left:4px">第${batchIdx}陣/${totalBatches}</span>`:'';
     const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'';
     const methodBadge=noMethod?`<span style="font-size:9px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:6px;margin-left:4px">未設定</span>`:prepBadge(p);
-    return `<div style="display:flex;flex-direction:column;padding:6px 0;border-bottom:1px dashed #f3f4f6">
+    const rowOpacity=checked?'opacity:.45':'';
+    const textDecor=checked?'text-decoration:line-through':'';
+    return `<div style="display:flex;flex-direction:column;padding:6px 0;border-bottom:1px dashed #f3f4f6;${rowOpacity};${checked?'background:#ecfdf5':''}">
       <div style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <input type="checkbox" ${checked?'checked':''}
+          onchange="setCheck('${ckKey}',this.checked)"
+          style="width:18px;height:18px;cursor:pointer;flex-shrink:0">
         <span style="font-size:14px;font-weight:700;color:#1d4ed8;min-width:24px">${_circled(idx)}</span>
-        <span style="font-weight:600">${p.name}</span>${batchLabel}${newBadge}${methodBadge}
-        <span style="margin-left:auto;font-size:13px;font-weight:700;color:#0c4a6e">${qty}個</span>
+        <span style="font-weight:600;${textDecor}">${p.name}</span>${batchLabel}${newBadge}${methodBadge}
+        <span style="margin-left:auto;font-size:13px;font-weight:700;color:#0c4a6e;${textDecor}">${qty}個</span>
       </div>
       ${hint}
     </div>`;
   }).join('');
+  const progColor=allDone?'#047857':pct>=50?'#0369a1':'#666';
   return `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;margin-bottom:8px">
-    <div style="font-size:13px;font-weight:700;color:var(--main);margin-bottom:6px">${SLOT_LABELS[slotH]}作成スロット ─ 作成手順</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap">
+      <div style="font-size:13px;font-weight:700;color:var(--main)">${SLOT_LABELS[slotH]}作成スロット ─ 作成手順</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:${progColor};font-weight:700">${doneCount}/${total} ${allDone?'✓ 完了':`(${pct}%)`}</span>
+        <div style="width:70px;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${progColor};transition:width .2s"></div>
+        </div>
+        ${doneCount>0?`<button onclick="resetSlotScheduleChecks(${dayIdx},${slotH})" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer">リセット</button>`:''}
+      </div>
+    </div>
     ${lines}
   </div>`;
+}
+function resetSlotScheduleChecks(dayIdx,slotH){
+  if(!confirm('この作成スロットのチェックをリセットしますか？'))return;
+  const prefix=`${dayIdx}_${slotH}_`;
+  Object.keys(S.checks||{}).forEach(k=>{
+    if(k.startsWith(prefix)&&k.includes('_b'))delete S.checks[k];
+  });
+  saveS();
+  renderProdDayContent(currentProdDay);
 }
 function prepBadge(p){
   const m=p.prepMethod;
