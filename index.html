@@ -2962,25 +2962,54 @@ function renderProdDayTabs(){
 
 function selectProdDay(i){currentProdDay=i;renderProdDayTabs();renderProdDayContent(i);}
 
-// 作成効率順の優先度計算（小さいほど先）
+// 新商品判定
+function isNewProduct(p){
+  return p.isNew||(p.category||'').endsWith('新商品');
+}
+// 作成効率順の優先度計算（電子レンジ1台想定 + 新商品優先）
 function prepPriority(p){
   const m=p.prepMethod||'none';
-  const fryerMin=p.fryerMin||0;
-  const microwaveMin=p.microwaveMin||0;
   let group;
-  if(m==='microwave_fryer')group=1;     // 順次：レンジ→フライヤー（先にレンジで温め開始）
-  else if(m==='fryer')group=2;          // フライヤーのみ（並行投入）
-  else if(m==='microwave')group=3;      // レンジのみ（最後・隙間）
-  else group=4;                          // 設定なし
-  // 同グループ内：処理時間長い方を先に（ボトルネック優先）
-  const time=m==='microwave_fryer'?(microwaveMin+fryerMin):m==='fryer'?fryerMin:microwaveMin;
-  return{group,time};
+  if(m==='microwave_fryer')group=1;  // レンジ→フライヤー（最優先：レンジで温め始めてフライヤーへ）
+  else if(m==='fryer')group=2;       // フライヤーのみ（並行投入）
+  else if(m==='microwave')group=3;   // レンジのみ（最後／レンジ1台のため混雑回避）
+  else group=4;                       // 設定なし
+  return{group};
 }
 function compareEfficient(a,b){
   const pa=prepPriority(a),pb=prepPriority(b);
   if(pa.group!==pb.group)return pa.group-pb.group;
-  if(pb.time!==pa.time)return pb.time-pa.time;
+  // グループ内：新商品優先
+  const aNew=isNewProduct(a)?0:1;
+  const bNew=isNewProduct(b)?0:1;
+  if(aNew!==bNew)return aNew-bNew;
+  // 群ごとに最適な並び順を適用（電子レンジ1台ボトルネック前提）
+  const m=a.prepMethod||'none';
+  if(pa.group===1){
+    // レンジ→フライヤー：レンジ短い順（次バッチへ早くバトンタッチ＝Johnson's rule的）
+    const aMw=a.microwaveMin||0,bMw=b.microwaveMin||0;
+    if(aMw!==bMw)return aMw-bMw;
+    const aFr=a.fryerMin||0,bFr=b.fryerMin||0;
+    if(aFr!==bFr)return bFr-aFr;
+  } else if(pa.group===2){
+    // フライヤーのみ：時間長い順（並行投入で総時間最小化）
+    const aFr=a.fryerMin||0,bFr=b.fryerMin||0;
+    if(aFr!==bFr)return bFr-aFr;
+  } else if(pa.group===3){
+    // レンジのみ：時間短い順（レンジは1台なので回転を早くする）
+    const aMw=a.microwaveMin||0,bMw=b.microwaveMin||0;
+    if(aMw!==bMw)return aMw-bMw;
+  }
+  // 最後は商品設定の order で安定化
   return (a.order??0)-(b.order??0);
+}
+// グローバル作成順（カテゴリ横断）：pid → 1始まりの番号
+function buildGlobalOrderMap(){
+  const all=S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&p.prepMethod&&p.prepMethod!=='none')
+    .slice().sort(compareEfficient);
+  const m=new Map();
+  all.forEach((p,i)=>m.set(p.id,i));
+  return m;
 }
 function prepBadge(p){
   const m=p.prepMethod;
@@ -3030,7 +3059,7 @@ function renderProdDayContent(dayIdx){
     <span style="font-size:11px;color:#666">並び順：</span>
     <button onclick="setProdSortMode('default')" class="${(_prodSortMode||'default')==='default'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">通常順</button>
     <button onclick="setProdSortMode('efficient')" class="${_prodSortMode==='efficient'?'btn-primary':'btn-secondary'}" style="padding:3px 12px;font-size:11px">作成効率順</button>
-    ${_prodSortMode==='efficient'?`<span style="font-size:10px;color:#9a3412">②商品設定で「作成方法」を入れた商品が最適順に並びます</span>`:''}
+    ${_prodSortMode==='efficient'?`<span style="font-size:10px;color:#9a3412">①からの番号順に作成（カテゴリ横断・新商品優先）</span>`:''}
   </div>`;
 
   // Progress bars for each slot
@@ -3062,6 +3091,8 @@ function renderProdDayContent(dayIdx){
       ?[...prods0].sort(compareEfficient)
       :[...prods0].sort((a,b)=>(a.order??0)-(b.order??0));
     if(!prods.length)return;
+    // 効率順ではグローバル番号を使う
+    const globalOrderMap=_prodSortMode==='efficient'?buildGlobalOrderMap():null;
 
     html+=`<div class="card">`;
     // 効率順ヒント（カテゴリ単位で1回だけ表示）
@@ -3071,12 +3102,13 @@ function renderProdDayContent(dayIdx){
       const hasFry=prods.some(p=>p.prepMethod==='fryer');
       const hasMw=prods.some(p=>p.prepMethod==='microwave');
       const tips=[];
-      if(hasSeq)tips.push('「レンジ→フライヤー」の商品をまずレンジに入れる（温め中に他作業）');
-      if(hasFry&&hasSeq)tips.push('「フライヤー」の商品はレンジ稼働中に同時投入');
-      if(hasMw)tips.push('「レンジのみ」の商品は最後・隙間時間でOK');
+      if(hasSeq)tips.push('「レンジ→フライヤー」の商品から順にレンジへ。温め完了したらフライヤーへ移す');
+      if(hasFry)tips.push('「フライヤー」の商品はレンジ稼働中に同時並行で投入');
+      if(hasMw)tips.push('「レンジのみ」の商品は最後（レンジ1台のため、他のレンジ使用後に処理）');
+      tips.push('同じグループ内では「新」表示の商品から先に作成（新商品優先）');
       if(tips.length){
         effHint=`<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:8px 12px;font-size:12px;color:#9a3412;margin:0 0 8px 0;line-height:1.7">
-          <div style="font-weight:700;margin-bottom:2px">作成順のコツ</div>
+          <div style="font-weight:700;margin-bottom:2px">作成順のコツ（電子レンジ1台想定）</div>
           <ol style="margin:0;padding-left:18px">${tips.map(t=>`<li>${t}</li>`).join('')}</ol>
         </div>`;
       }
@@ -3097,8 +3129,11 @@ function renderProdDayContent(dayIdx){
     const _circled=(i)=>{const a=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];return a[i]||`(${i+1})`;};
     prods.forEach((p,pi)=>{
       const hasExtra=p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0);
-      const orderBadge=_prodSortMode==='efficient'&&p.prepMethod&&p.prepMethod!=='none'?`<span style="font-size:11px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(pi)}</span>`:'';
-      html+=`<tr><td style="text-align:left;font-size:12px">${orderBadge}${p.name}${prepBadge(p)}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
+      // グローバル番号（カテゴリ横断・1始まり）
+      const gIdx=globalOrderMap?.get(p.id);
+      const orderBadge=(gIdx!=null)?`<span style="font-size:13px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(gIdx)}</span>`:'';
+      const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'';
+      html+=`<tr><td style="text-align:left;font-size:12px">${orderBadge}${p.name}${newBadge}${prepBadge(p)}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
       cfg.slots.forEach(slotH=>{
         const cnt=getProdCnt(p.id,dayIdx,slotH);
         const extra=getInvestExtra(p.id,dayIdx,slotH);
