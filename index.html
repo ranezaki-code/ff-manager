@@ -788,6 +788,17 @@ const I18N = {
     'order.scheduleTitle':'📋 発注スケジュール',
     'order.checkProgress':'発注済み',
     'order.resetChecks':'☑ チェックリセット',
+    'order.checkHint':'☑ 発注したらチェック → 完了セルは緑色＋数字に取消線が入ります',
+    'order.yellowNote':'📈 黄色 = 投資/新商品追加分を含む',
+    'order.scheduleByDay':'📦 発注スケジュール（発注日ベース）',
+    'order.scheduleByDayHint':'水曜・土曜は発注休み。朝締め発注 → 当日夜納品 → 翌日以降の作成に充当。',
+    'order.timingTitle':'発注タイムラグの考え方：',
+    'order.timingLine1':'朝締め発注 → 当日夜納品 → 翌日の作成に使用',
+    'order.timingLabel1':'前週月発注','order.timingDesc1':'：今週火曜の作成分（週始まりに必須）',
+    'order.timingLabel2':'火曜発注','order.timingDesc2':'：水・木の作成分を合算（水曜は発注休みのため木分も火に前倒し）',
+    'order.timingLabel3':'金曜発注','order.timingDesc3':'：土・日の作成分を合算（土曜は発注休みのため日分も金に前倒し）',
+    'order.weekTotal':'週発注計','order.subtotal':'小計',
+    'order.grandTotal':'発注合計','order.holiday':'休み',
     // Sold-out modal
     'sold.title':'🔔 完売 → 追加作成提案',
     'sold.timeInputLabel':'完売した時刻を入力',
@@ -963,6 +974,17 @@ const I18N = {
     'order.scheduleTitle':'📋 Order schedule',
     'order.checkProgress':'Ordered',
     'order.resetChecks':'☑ Reset checks',
+    'order.checkHint':'☑ Check after ordering → completed cells turn green with strikethrough',
+    'order.yellowNote':'📈 Yellow = includes investment/new product additions',
+    'order.scheduleByDay':'📦 Order schedule (by order day)',
+    'order.scheduleByDayHint':'Wed & Sat are off. Morning cutoff → evening delivery → next-day production.',
+    'order.timingTitle':'Order timing logic:',
+    'order.timingLine1':'Morning order → evening delivery → next-day production',
+    'order.timingLabel1':'Prev. Mon order','order.timingDesc1':': for this Tue (week start)',
+    'order.timingLabel2':'Tue order','order.timingDesc2':': covers Wed+Thu (Wed is off, so Thu pulled in)',
+    'order.timingLabel3':'Fri order','order.timingDesc3':': covers Sat+Sun (Sat is off, so Sun pulled in)',
+    'order.weekTotal':'Weekly total','order.subtotal':'Subtotal',
+    'order.grandTotal':'Grand total','order.holiday':'Off',
     'sold.title':'🔔 Sold out → Suggest additional',
     'sold.timeInputLabel':'Enter sold-out time',
     'sold.timeConfirm':'Confirm time',
@@ -1099,6 +1121,17 @@ const I18N = {
     'budget.resetStore':'स्टोर सेटिङ रिसेट',
     'order.scheduleTitle':'📋 अर्डर तालिका','order.checkProgress':'अर्डर गरिएको',
     'order.resetChecks':'☑ चेकबक्स रिसेट',
+    'order.checkHint':'☑ अर्डर गरेपछि चेक → पूर्ण सेल हरियो + संख्यामा कट',
+    'order.yellowNote':'📈 पहेँलो = लगानी/नयाँ उत्पादन थप समेटिएको',
+    'order.scheduleByDay':'📦 अर्डर तालिका (अर्डर दिन आधार)',
+    'order.scheduleByDayHint':'बुध र शनि अर्डर बिदा। बिहान कटौटी → बेलुका डेलिभरी → भोलिको उत्पादनमा।',
+    'order.timingTitle':'अर्डर समयको तर्क:',
+    'order.timingLine1':'बिहान अर्डर → बेलुका डेलिभरी → भोलिको उत्पादनमा',
+    'order.timingLabel1':'अघिल्लो सोमको अर्डर','order.timingDesc1':': यो हप्ताको मंगल (हप्ता सुरु)',
+    'order.timingLabel2':'मंगलको अर्डर','order.timingDesc2':': बुध+बिहि (बुध बिदा भएकोले बिहिको पनि)',
+    'order.timingLabel3':'शुक्रको अर्डर','order.timingDesc3':': शनि+आइत (शनि बिदा भएकोले आइतको पनि)',
+    'order.weekTotal':'साप्ताहिक जम्मा','order.subtotal':'उप-योग',
+    'order.grandTotal':'कुल अर्डर','order.holiday':'बिदा',
     'sold.title':'🔔 बिक्री समाप्त → थप उत्पादन सुझाव',
     'sold.timeInputLabel':'बिक्री समाप्त समय राख्नुहोस्',
     'sold.timeConfirm':'समय पुष्टि','sold.timeRedo':'समय फेरि',
@@ -4795,7 +4828,7 @@ function renderOrderTable(){
   <div class="card" style="padding:14px 12px">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
       <div>
-        <div style="font-size:16px;font-weight:700;color:var(--main)">📋 発注スケジュール</div>
+        <div style="font-size:16px;font-weight:700;color:var(--main)">${t('order.scheduleTitle')}</div>
         <div style="font-size:12px;color:#666;margin-top:2px">${dateRange}</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -4804,7 +4837,7 @@ function renderOrderTable(){
           const pct=total?Math.round(done/total*100):0;
           const color=pct===100?'#047857':pct>=50?'#d97706':'#666';
           return total?`<div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:4px 10px">
-            <span style="font-size:11px;color:#666">発注済み</span>
+            <span style="font-size:11px;color:#666">${t('order.checkProgress')}</span>
             <span style="font-size:14px;font-weight:700;color:${color}">${done}/${total}</span>
             <span style="font-size:11px;color:${color}">(${pct}%)</span>
             <div style="width:60px;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-left:2px">
@@ -4812,13 +4845,13 @@ function renderOrderTable(){
             </div>
           </div>`:'';
         })()}
-        <button onclick="resetOrderChecks()" style="padding:6px 10px;font-size:11px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">☑ チェックリセット</button>
-        <button onclick="window.print()" style="padding:6px 12px;font-size:12px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">🖨 印刷</button>
+        <button onclick="resetOrderChecks()" style="padding:6px 10px;font-size:11px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">${t('order.resetChecks')}</button>
+        <button onclick="window.print()" style="padding:6px 12px;font-size:12px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">${t('common.print')}</button>
       </div>
     </div>
-    <div style="font-size:11px;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">☑ 発注したらチェック → 完了セルは緑色＋数字に取消線が入ります</div>
+    <div style="font-size:11px;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">${t('order.checkHint')}</div>
     ${S.PM.some(p=>p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0))?
-      '<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">📈 黄色 = 投資/新商品追加分を含む</div>':''}
+      `<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">${t('order.yellowNote')}</div>`:''}
   </div>`;
 
   // ── 発注スケジュール（発注日ベース） ──
@@ -5058,14 +5091,14 @@ function buildOrderScheduleHTML(dates, activeCats){
 
   let html=`
   <div style="margin-top:20px;border-top:2px dashed #ddd;padding-top:16px">
-  <div style="font-size:15px;font-weight:700;color:var(--main);margin-bottom:4px">📦 発注スケジュール（発注日ベース）</div>
-  <div style="font-size:12px;color:#666;margin-bottom:8px">水曜・土曜は発注休み。朝締め発注 → 当日夜納品 → 翌日以降の作成に充当。</div>
+  <div style="font-size:15px;font-weight:700;color:var(--main);margin-bottom:4px">${t('order.scheduleByDay')}</div>
+  <div style="font-size:12px;color:#666;margin-bottom:8px">${t('order.scheduleByDayHint')}</div>
   <div style="font-size:11px;line-height:1.7;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:8px 12px;margin-bottom:12px;color:#5d4037">
-    <b>発注タイムラグの考え方：</b><br>
-    朝締め発注 → 当日夜納品 → 翌日の作成に使用<br>
-    ・<span style="color:#e65100;font-weight:700">前週月発注</span>：今週火曜の作成分（週始まりに必須）<br>
-    ・<b>火曜発注</b>：水・木の作成分を合算（水曜は発注休みのため木分も火に前倒し）<br>
-    ・<b>金曜発注</b>：土・日の作成分を合算（土曜は発注休みのため日分も金に前倒し）
+    <b>${t('order.timingTitle')}</b><br>
+    ${t('order.timingLine1')}<br>
+    ・<span style="color:#e65100;font-weight:700">${t('order.timingLabel1')}</span>${t('order.timingDesc1')}<br>
+    ・<b>${t('order.timingLabel2')}</b>${t('order.timingDesc2')}<br>
+    ・<b>${t('order.timingLabel3')}</b>${t('order.timingDesc3')}
   </div>`;
 
   // 各列の週発注計（月発注=翌週分は除外）
@@ -5084,14 +5117,14 @@ function buildOrderScheduleHTML(dates, activeCats){
     const colDates = ORDER_COLS.map((col,ci)=> ci===0 ? preMonDate : dates[col.id]);
 
     html+=`<div class="card" style="margin-top:8px;padding:0;overflow:hidden">
-      <div style="background:var(--main);color:#fff;padding:8px 14px;font-size:13px;font-weight:700">${cat}</div>
+      <div style="background:var(--main);color:#fff;padding:8px 14px;font-size:13px;font-weight:700">${tCat(cat)}</div>
       <div class="overflow-auto">
       <table style="width:100%;border-collapse:collapse">
         <thead>
           <tr>
-            <th style="text-align:left;padding:8px 12px;font-size:12px;min-width:110px;position:sticky;left:0;background:#f0f4ff;z-index:1">商品名</th>
+            <th style="text-align:left;padding:8px 12px;font-size:12px;min-width:110px;position:sticky;left:0;background:#f0f4ff;z-index:1">${t('jisseki.productName')}</th>
             ${ORDER_COLS.map((col,ci)=>thCol(col, colDates[ci])).join('')}
-            <th style="text-align:center;min-width:52px;padding:8px 4px;background:#e8eef8">週発注計</th>
+            <th style="text-align:center;min-width:52px;padding:8px 4px;background:#e8eef8">${t('order.weekTotal')}</th>
           </tr>
         </thead>
         <tbody>`;
@@ -5149,7 +5182,7 @@ function buildOrderScheduleHTML(dates, activeCats){
     grandWeek+=catWeek;
 
     html+=`<tr style="font-weight:700;background:#e8eef8;border-top:2px solid #cdd7ec">
-      <td style="padding:8px 10px;position:sticky;left:0;background:#e8eef8;z-index:1;font-size:12px">小計</td>
+      <td style="padding:8px 10px;position:sticky;left:0;background:#e8eef8;z-index:1;font-size:12px">${t('order.subtotal')}</td>
       ${catColTotals.map((v,ci)=>{
         const col=ORDER_COLS[ci];
         if(col.noOrder) return`<td style="text-align:center;padding:6px 4px;background:#f0f0f0"><span style="color:#ccc">✕</span></td>`;
@@ -5173,11 +5206,11 @@ function buildOrderScheduleHTML(dates, activeCats){
     <table style="width:100%;border-collapse:collapse">
       <tbody>
         <tr style="background:var(--main)">
-          <td style="padding:10px 12px;color:#fff;font-size:13px;font-weight:700;min-width:110px;position:sticky;left:0;background:var(--main);z-index:1">発注合計</td>
+          <td style="padding:10px 12px;color:#fff;font-size:13px;font-weight:700;min-width:110px;position:sticky;left:0;background:var(--main);z-index:1">${t('order.grandTotal')}</td>
           ${grandColTotals.map((v,ci)=>{
             const col=ORDER_COLS[ci];
             if(col.noOrder) return`<td style="text-align:center;padding:8px 4px;min-width:52px;background:rgba(0,0,0,.25)">
-              <span style="font-size:11px;color:rgba(255,255,255,.3)">休み</span></td>`;
+              <span style="font-size:11px;color:rgba(255,255,255,.3)">${t('order.holiday')}</span></td>`;
             let bg='';
             if(col.isPreWeek) bg='background:rgba(230,81,0,.5)';
             else if(col.isFuture) bg='background:rgba(21,101,192,.4)';
