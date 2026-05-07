@@ -639,6 +639,7 @@ let S = {
   rules:[],
   checks:{},
   orderChecks:{},
+  soldOuts:{},
   discountSchedule:{},
   budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{},investDays:{}},
   discHist:[],
@@ -693,6 +694,7 @@ function syncActiveWeek(){
     cust:(S.cust||[]).map(r=>[...r]),
     checks:{...(S.checks||{})},
     orderChecks:{...(S.orderChecks||{})},
+    soldOuts:JSON.parse(JSON.stringify(S.soldOuts||{})),
     weekStart:S.weekStart
   };
 }
@@ -703,7 +705,7 @@ function saveS(){
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-    rules:S.rules,checks:S.checks,orderChecks:S.orderChecks,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
+    rules:S.rules,checks:S.checks,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
     施策:S.施策,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
@@ -1015,8 +1017,12 @@ function loadS(){
   if(!S.budget.investCounts)S.budget.investCounts={};
   if(!S.budget.investDays)S.budget.investDays={};
   if(!S.orderChecks)S.orderChecks={};
+  if(!S.soldOuts)S.soldOuts={};
   if(!S.discountSchedule)S.discountSchedule={};
-  // 現在の週から orderChecks を復元
+  // 現在の週から orderChecks/soldOuts を復元
+  if(S.activeWeek&&S.weeks[S.activeWeek]?.soldOuts){
+    S.soldOuts=JSON.parse(JSON.stringify(S.weeks[S.activeWeek].soldOuts));
+  }
   if(S.activeWeek&&S.weeks[S.activeWeek]?.orderChecks){
     S.orderChecks={...S.weeks[S.activeWeek].orderChecks};
   }
@@ -1360,6 +1366,12 @@ function getInvestDays(pid){
   return [0,1,2,3,4,5,6];
 }
 // 投資/新商品の1スロットあたり追加作成数を返す（perDay個/日をスロット数で均等分配）
+// 完売後の追加作成（採用済みイベント）の合計個数
+function getSoldOutTotal(pid,dayIdx,slotH){
+  const arr=(S.soldOuts||{})[`${dayIdx}_${slotH}_${pid}`]||[];
+  return arr.reduce((s,e)=>s+(e.added||0),0);
+}
+
 function getInvestExtra(pid,dayIdx,slotH){
   const p=getP(pid);if(!p||!p.enabled)return 0;
   const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.length)return 0;
@@ -1592,6 +1604,7 @@ function switchWeek(key){
   S.cust=(w.cust||[]).map(r=>[...r]);
   S.checks={...(w.checks||{})};
   S.orderChecks={...(w.orderChecks||{})};
+  S.soldOuts=JSON.parse(JSON.stringify(w.soldOuts||{}));
   S.weekStart=w.weekStart||weekKeyToDateStr(key);
   saveS();
   renderWeekSelector();
@@ -1609,6 +1622,7 @@ function addWeek(dateStr){
   S.cust=S.weeks[key].cust.map(r=>[...r]);
   S.checks={...S.weeks[key].checks};
   S.orderChecks={...(S.weeks[key].orderChecks||{})};
+  S.soldOuts=JSON.parse(JSON.stringify(S.weeks[key].soldOuts||{}));
   S.weekStart=dateStr;
   saveS();
   renderWeekSelector();
@@ -2978,12 +2992,24 @@ function renderProdDayContent(dayIdx){
           `基準との差：${diff>0?'+'+diff:diff}\n`+
           `最低引出客数：${Math.round(wl)}人（実客${sc}人 / ${wl>0&&sc>=wl?'OK':'不足'}）\n`+
           (discOn?`値引開始：${fmtHour(mdTime)}`:`値引：なし（この曜日は値引OFF）`);
+        // 完売イベント（追加作成履歴）
+        const soEvents=getSoldOutEvents(p.id,dayIdx,slotH);
+        const soSum=soEvents.reduce((s,e)=>s+(e.added||0),0);
+        const grandTotal=totalCnt+soSum;
+        const soBadges=soEvents.map(e=>`<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${fmtHour(e.soldAt)}完売 → ${e.added}個追加">+${e.added}</span>`).join('');
         html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${extra>0?';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px':''}">
           <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1${extra>0?';color:#d97706':''}">${isSkip?'—':totalCnt}</span>
+            <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1${extra>0?';color:#d97706':''}">${isSkip?'—':grandTotal}</span>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
-            <input type="checkbox" ${checked?'checked':''} ${isSkip?'disabled':''}
-              onchange="setCheck('${chkKey}',this.checked)" style="margin:0">
+            ${soBadges?`<span style="display:flex;flex-wrap:wrap;justify-content:center;gap:1px">${soBadges}</span>`:''}
+            <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
+              <input type="checkbox" ${checked?'checked':''} ${isSkip?'disabled':''}
+                onchange="setCheck('${chkKey}',this.checked)" style="margin:0">
+              <button type="button" onclick="openSoldOutModal('${p.id}',${dayIdx},${slotH})" title="完売した時刻を入力して追加作成数を提案"
+                style="padding:0;width:18px;height:18px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;line-height:1">🔔</button>
+              ${soEvents.length>0?`<button type="button" onclick="removeLastSoldOut('${p.id}',${dayIdx},${slotH})" title="最後の追加分を取消"
+                style="padding:0;width:18px;height:18px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:4px;cursor:pointer;font-size:10px;line-height:1">↶</button>`:''}
+            </div>
           </div>
         </td>`;
       });
@@ -3013,6 +3039,161 @@ function setCheck(key,val){
 function resetChecks(){
   if(!confirm('チェックをリセットしますか？'))return;
   S.checks={};saveS();renderProdDayContent(currentProdDay);
+}
+
+// ============================================================
+// 完売 → 追加作成提案
+// ============================================================
+function getSoldOutEvents(pid,dayIdx,slotH){
+  const k=`${dayIdx}_${slotH}_${pid}`;
+  return (S.soldOuts||{})[k]||[];
+}
+// 客数表から [hs, he) の客数合計を返す（小数時刻対応・翌日ラップ対応）
+function getCustHoursRange(dayIdx,hs,he){
+  if(he<=hs)return 0;
+  let total=0;
+  let h=hs;
+  while(h<he){
+    const wholeH=Math.floor(h);
+    const nextWhole=wholeH+1;
+    const segEnd=Math.min(he,nextWhole);
+    const frac=segEnd-h;
+    const di=wholeH<24?dayIdx:(dayIdx+1)%7;
+    const hh=wholeH<24?wholeH:wholeH-24;
+    total+=((S.cust[di]||[])[hh]||0)*frac;
+    h=segEnd;
+  }
+  return total;
+}
+function calcSoldOutSuggestion(pid,dayIdx,slotH,soldAt){
+  const p=getP(pid);if(!p)return{error:'商品が見つかりません'};
+  const range=getCatSlotRange(p.category,slotH);
+  if(!range)return{error:'スロット範囲が取得できません'};
+  const slotEnd=range[1];
+  const displayStart=slotH+PREP_HOURS;
+  if(soldAt<displayStart)return{error:`完売時刻は陳列開始（${fmtHour(displayStart)}）以降を入れてください`};
+  if(soldAt>slotEnd)return{error:`完売時刻はスロット終了（${fmtHour(slotEnd)}）以前を入れてください`};
+  const events=getSoldOutEvents(pid,dayIdx,slotH);
+  let sellingStart, soldCount, batchLabel;
+  if(events.length===0){
+    sellingStart=displayStart;
+    soldCount=getProdCnt(pid,dayIdx,slotH);
+    batchLabel='当初の作成計画';
+  } else {
+    const last=events[events.length-1];
+    sellingStart=last.soldAt;
+    soldCount=last.added;
+    batchLabel=`${events.length}回目の追加分`;
+  }
+  if(soldAt<=sellingStart)return{error:`完売時刻は前回の完売時刻（${fmtHour(sellingStart)}）より後にしてください`};
+  if(soldCount<=0)return{error:'販売数が0以下のため計算できません'};
+  const custDuring=getCustHoursRange(dayIdx,sellingStart,soldAt);
+  const custAfter=getCustHoursRange(dayIdx,soldAt,slotEnd);
+  if(custDuring<=0)return{error:'販売中の客数が0です（客数データを確認してください）'};
+  const rate=soldCount/custDuring;
+  const D=rate*custAfter;
+  const margin=p.shopPrice>0?(p.shopPrice-p.cost)/p.shopPrice:0;
+  const suggest=Math.max(0,Math.ceil(D*(1+margin)));
+  return{
+    suggest, rate, custDuring, custAfter, D, margin,
+    sellingStart, soldAt, slotEnd, displayStart,
+    soldCount, batchLabel, eventCount:events.length+1,
+    p
+  };
+}
+
+let _soldOutCtx=null;
+function openSoldOutModal(pid,dayIdx,slotH){
+  const p=getP(pid);if(!p)return;
+  // デフォルト時刻：現在時刻 or 陳列開始時刻
+  const now=new Date();
+  const nowH=now.getHours()+now.getMinutes()/60;
+  const range=getCatSlotRange(p.category,slotH);
+  const displayStart=slotH+PREP_HOURS;
+  const slotEnd=range?range[1]:slotH+4;
+  const def=Math.max(displayStart+0.25,Math.min(slotEnd-0.01,nowH));
+  _soldOutCtx={pid,dayIdx,slotH,p};
+  // モーダル生成
+  let m=document.getElementById('soldOutModal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='soldOutModal';
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999';
+    document.body.appendChild(m);
+    m.addEventListener('click',e=>{if(e.target===m)closeSoldOutModal();});
+  }
+  m.innerHTML=`<div style="background:#fff;border-radius:12px;padding:18px;width:92%;max-width:480px;font-size:13px;box-shadow:0 10px 40px rgba(0,0,0,.3)">
+    <div style="font-weight:700;font-size:15px;margin-bottom:10px;color:var(--main)">🔔 完売 → 追加作成提案</div>
+    <div style="font-size:12px;color:#555;margin-bottom:6px">${p.name} / ${SLOT_LABELS[slotH]}作成スロット</div>
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px">
+        完売時刻：
+        <input id="soldOutTimeInput" type="time" value="${String(Math.floor(def%24)).padStart(2,'0')}:${String(Math.round((def%1)*60)).padStart(2,'0')}" style="padding:4px 6px;font-size:14px">
+        <button onclick="recalcSoldOut()" class="btn-secondary" style="font-size:11px">再計算</button>
+      </label>
+    </div>
+    <div id="soldOutResult"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button onclick="closeSoldOutModal()" class="btn-secondary">閉じる</button>
+      <button id="soldOutAcceptBtn" onclick="acceptSoldOut()" class="btn-primary">採用</button>
+    </div>
+  </div>`;
+  m.style.display='flex';
+  recalcSoldOut();
+}
+function recalcSoldOut(){
+  if(!_soldOutCtx)return;
+  const v=document.getElementById('soldOutTimeInput')?.value||'';
+  const [hh,mm]=v.split(':').map(Number);
+  const soldAt=hh+(mm||0)/60;
+  const r=calcSoldOutSuggestion(_soldOutCtx.pid,_soldOutCtx.dayIdx,_soldOutCtx.slotH,soldAt);
+  const el=document.getElementById('soldOutResult');
+  const btn=document.getElementById('soldOutAcceptBtn');
+  if(r.error){
+    el.innerHTML=`<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:8px;color:#991b1b">⚠️ ${r.error}</div>`;
+    if(btn)btn.disabled=true;
+    return;
+  }
+  if(btn)btn.disabled=false;
+  _soldOutCtx.soldAt=soldAt;
+  _soldOutCtx.suggest=r.suggest;
+  el.innerHTML=`<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px;line-height:1.7">
+    <div style="font-size:11px;color:#0369a1;font-weight:600">${r.eventCount}回目の完売（${r.batchLabel}）</div>
+    <div>直前バッチ：<b>${r.soldCount}個</b>（${fmtHour(r.sellingStart)}〜${fmtHour(r.soldAt)}）</div>
+    <div>販売中の客数：${r.custDuring.toFixed(1)}人</div>
+    <div>購買率：<b>${(r.rate*100).toFixed(1)}%</b>（1人あたり${r.rate.toFixed(3)}個）</div>
+    <div>残り時間（${fmtHour(r.soldAt)}〜${fmtHour(r.slotEnd)}）の客数：${r.custAfter.toFixed(1)}人</div>
+    <div>期待需要：${r.D.toFixed(2)}個</div>
+    <div>マージン補正（+${(r.margin*100).toFixed(0)}%）：${(r.D*(1+r.margin)).toFixed(2)}個</div>
+    <div style="margin-top:8px;padding-top:6px;border-top:1px solid #bae6fd;font-size:18px;color:#0c4a6e">
+      ✨ 推奨：<b>${r.suggest}個</b>
+    </div>
+  </div>`;
+}
+function closeSoldOutModal(){
+  const m=document.getElementById('soldOutModal');if(m)m.style.display='none';
+  _soldOutCtx=null;
+}
+function acceptSoldOut(){
+  if(!_soldOutCtx||_soldOutCtx.suggest==null)return;
+  const{pid,dayIdx,slotH,soldAt,suggest}=_soldOutCtx;
+  if(!S.soldOuts)S.soldOuts={};
+  const k=`${dayIdx}_${slotH}_${pid}`;
+  if(!S.soldOuts[k])S.soldOuts[k]=[];
+  S.soldOuts[k].push({soldAt,added:suggest});
+  saveS();
+  closeSoldOutModal();
+  renderProdDayContent(currentProdDay);
+}
+function removeLastSoldOut(pid,dayIdx,slotH){
+  const k=`${dayIdx}_${slotH}_${pid}`;
+  const arr=(S.soldOuts||{})[k]||[];
+  if(!arr.length)return;
+  if(!confirm(`最後の追加分（+${arr[arr.length-1].added}個）を取消しますか？`))return;
+  arr.pop();
+  if(!arr.length)delete S.soldOuts[k];
+  saveS();
+  renderProdDayContent(currentProdDay);
 }
 
 function checkCurrentSlot(){
