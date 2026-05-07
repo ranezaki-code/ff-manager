@@ -308,20 +308,20 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <!-- Tab 1: 商品設定 -->
     <div class="tab-panel" id="tab1">
       <div class="card">
-        <div class="section-title">カテゴリ ON/OFF</div>
+        <div class="section-title" data-i18n="product.catToggle">カテゴリ ON/OFF</div>
         <div id="cat-toggle-area"></div>
       </div>
       <div class="card">
-        <div class="section-title">カテゴリ別作成時間設定</div>
+        <div class="section-title" data-i18n="product.catTimeCfg">カテゴリ別作成時間設定</div>
         <div id="cat-cfg-area"></div>
       </div>
       <div class="card">
-        <div class="section-title">商品マスタ</div>
+        <div class="section-title" data-i18n="product.list">商品マスタ</div>
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
-          <button class="btn-primary" style="width:auto;margin:0;padding:6px 14px;font-size:13px" onclick="addProduct()">+ 商品追加</button>
-          <button type="button" onclick="collapseAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer">すべて閉じる</button>
-          <button type="button" onclick="expandAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer">すべて開く</button>
-          <span style="font-size:11px;color:#888;margin-left:auto">💡 ⠿ドラッグ または ▲▼ で並び替え</span>
+          <button class="btn-primary" style="width:auto;margin:0;padding:6px 14px;font-size:13px" onclick="addProduct()" data-i18n="product.add">+ 商品追加</button>
+          <button type="button" onclick="collapseAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.collapseAll">すべて閉じる</button>
+          <button type="button" onclick="expandAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.expandAll">すべて開く</button>
+          <span style="font-size:11px;color:#888;margin-left:auto" data-i18n="product.dragHint">💡 ⠿ドラッグ または ▲▼ で並び替え</span>
         </div>
         <div id="product-cards"></div>
       </div>
@@ -715,6 +715,17 @@ const I18N = {
     'product.fryerTime':'フライヤー時間',
     'product.fryerCap':'フライヤー容量（個/回）',
     'product.fryerStackable':'2段調理可（他商品と同時OK）',
+    'product.dragHint':'💡 ⠿ドラッグ または ▲▼ で並び替え',
+    'product.discountToggle':'値引き 曜日別ON/OFF',
+    'product.discountToggleHint':'（OFFの曜日は④作成表に「値引なし」と表示）',
+    'product.discountAppliesAlsoNew':'※ {0}新商品にも同じ設定が適用されます',
+    'product.allOn':'全ON','product.allOff':'全OFF',
+    'product.suggestSlot':'最適時間を提案',
+    'product.allowedHours':'販売許容時間',
+    'product.discountTimeBase':'値引き目安',
+    'product.makeSlots':'作成時間（最大カバー時間：{0}h）：',
+    'product.suggestion':'提案','product.suggestPeak':'が客数ピーク前の時刻です',
+    'product.adoptSuggestion':'この提案を採用する',
     // Tab 3 - Make Table
     'make.sortOrder':'並び順：',
     'make.sortDefault':'通常順',
@@ -837,6 +848,17 @@ const I18N = {
     'product.fryerTime':'Fryer time',
     'product.fryerCap':'Fryer capacity (pcs/cycle)',
     'product.fryerStackable':'Can be stacked (parallel with others)',
+    'product.dragHint':'💡 Drag ⠿ or use ▲▼ to reorder',
+    'product.discountToggle':'Discount by day ON/OFF',
+    'product.discountToggleHint':'(Days OFF show "No discount" in production plan)',
+    'product.discountAppliesAlsoNew':'※ Same setting applies to {0} New',
+    'product.allOn':'All ON','product.allOff':'All OFF',
+    'product.suggestSlot':'Suggest best time',
+    'product.allowedHours':'Shelf life (h)',
+    'product.discountTimeBase':'Discount time est.',
+    'product.makeSlots':'Make slots (max coverage: {0}h):',
+    'product.suggestion':'Suggestion','product.suggestPeak':'are pre-peak times',
+    'product.adoptSuggestion':'Apply this suggestion',
     'make.sortOrder':'Sort: ',
     'make.sortDefault':'Default',
     'make.sortEfficient':'Efficient order',
@@ -923,6 +945,17 @@ const I18N = {
     'product.prepBoth':'माइक्रोवेभ → फ्राइयर','product.microwaveTime':'माइक्रोवेभ समय',
     'product.fryerTime':'फ्राइयर समय','product.fryerCap':'फ्राइयर क्षमता (वटा/चक्र)',
     'product.fryerStackable':'स्ट्याकेबल (अरूसँग समानान्तर)',
+    'product.dragHint':'💡 ⠿ तानेर वा ▲▼ ले क्रम मिलाउनुहोस्',
+    'product.discountToggle':'दिन अनुसार छुट ON/OFF',
+    'product.discountToggleHint':'(OFF दिनहरूमा उत्पादन योजनामा "छुट छैन" देखिन्छ)',
+    'product.discountAppliesAlsoNew':'※ {0} नयाँमा पनि सेटिङ लागू',
+    'product.allOn':'सबै ON','product.allOff':'सबै OFF',
+    'product.suggestSlot':'सबैभन्दा राम्रो समय सुझाव',
+    'product.allowedHours':'अनुमति समय (घ.)',
+    'product.discountTimeBase':'छुट समयको अनुमान',
+    'product.makeSlots':'उत्पादन समय (अधिकतम कभरेज: {0}h):',
+    'product.suggestion':'सुझाव','product.suggestPeak':'पीक भन्दा पहिलेको समय हो',
+    'product.adoptSuggestion':'यो सुझाव लागू गर्नुहोस्',
     'make.sortOrder':'क्रम: ','make.sortDefault':'सामान्य','make.sortEfficient':'दक्ष क्रम',
     'make.efficientHint':'१२३ क्रममा बनाउनुहोस् (श्रेणी पार, नयाँ पहिले)',
     'make.cellHint':'💡 सेल: ठूलो नम्बर = बनाउने संख्या / ☑ = सम्पन्न',
@@ -2357,30 +2390,30 @@ function renderCatCfgArea(){
       }).join(' ');
       discountUi=`<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:12px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
-          <span style="color:#d97706;font-weight:600">💰 値引き 曜日別ON/OFF</span>
-          <span style="font-size:10px;color:#999">（OFFの曜日は④作成表に「値引なし」と表示）</span>
+          <span style="color:#d97706;font-weight:600">💰 ${t('product.discountToggle')}</span>
+          <span style="font-size:10px;color:#999">${t('product.discountToggleHint')}</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
           ${dayBoxes}
-          <button onclick="setDiscountAllDays('${c}',true)" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer;margin-left:6px">全ON</button>
-          <button onclick="setDiscountAllDays('${c}',false)" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer">全OFF</button>
+          <button onclick="setDiscountAllDays('${c}',true)" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer;margin-left:6px">${t('product.allOn')}</button>
+          <button onclick="setDiscountAllDays('${c}',false)" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer">${t('product.allOff')}</button>
         </div>
-        <div style="font-size:10px;color:#888;margin-top:3px">※ ${c}新商品にも同じ設定が適用されます</div>
+        <div style="font-size:10px;color:#888;margin-top:3px">${t('product.discountAppliesAlsoNew').replace('{0}',tCat(c))}</div>
       </div>`;
     }
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;${S.catOn[c]?'':'opacity:.5'}">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:13px">${c}</b>
-        <button class="btn-secondary" style="font-size:11px" onclick="suggestSlots('${c}')">最適時間を提案</button>
+        <b style="font-size:13px">${tCat(c)}</b>
+        <button class="btn-secondary" style="font-size:11px" onclick="suggestSlots('${c}')">${t('product.suggestSlot')}</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;flex-wrap:wrap">
-        <span>販売許容時間:</span>
+        <span>${t('product.allowedHours')}:</span>
         <input type="number" value="${cfg.ah}" min="1" max="24" style="width:60px"
-          onchange="setCatCfg('${c}','ah',parseInt(this.value)||6)">時間
-        <span style="color:var(--gray)">値引き目安: ${cfg.slots.map(h=>`${getMarkdownTime(c,h)}:00`).join('/')}</span>
+          onchange="setCatCfg('${c}','ah',parseInt(this.value)||6)">${t('common.hour')}
+        <span style="color:var(--gray)">${t('product.discountTimeBase')}: ${cfg.slots.map(h=>`${getMarkdownTime(c,h)}:00`).join('/')}</span>
       </div>
       <div style="margin-top:6px;font-size:12px">
-        <div style="margin-bottom:3px">作成時間（最大カバー時間：${CALC_MAX_HOURS[mainCatOf(c)]||4}h）：</div>
+        <div style="margin-bottom:3px">${t('product.makeSlots').replace('{0}',CALC_MAX_HOURS[mainCatOf(c)]||4)}</div>
         <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px 4px">
         ${ALL_SLOTS.map(h=>{
           const on=cfg.slots.includes(h);
@@ -2420,8 +2453,8 @@ function suggestSlots(cat){
     return wt?slotTotal/wt>0.05:false;
   });
   el.style.display='block';
-  el.innerHTML=`<b>提案:</b> ${suggestions.map(h=>SLOT_LABELS[h]).join(', ')} が客数ピーク前の時刻です
-    <br><button class="btn-secondary mt-1" onclick="adoptSuggest('${cat}',[${suggestions}])">この提案を採用する</button>`;
+  el.innerHTML=`<b>${t('product.suggestion')}:</b> ${suggestions.map(h=>SLOT_LABELS[h]).join(', ')} ${t('product.suggestPeak')}
+    <br><button class="btn-secondary mt-1" onclick="adoptSuggest('${cat}',[${suggestions}])">${t('product.adoptSuggestion')}</button>`;
 }
 
 function adoptSuggest(cat,slots){
