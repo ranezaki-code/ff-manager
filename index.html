@@ -2256,17 +2256,35 @@ function renderProductCard(p){
               <span style="font-size:11px;color:${col};font-weight:${(p.prepMethod||'none')===v?700:400}">${label}</span>
             </label>`).join('')}
         </div>
-        ${(p.prepMethod&&p.prepMethod!=='none')?`
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:11px;color:#555;margin-top:4px">
-          ${(p.prepMethod==='microwave'||p.prepMethod==='microwave_fryer')?`
-          <div><label style="font-size:10px;color:#888">レンジ時間（分）</label>
-            <input type="text" inputmode="decimal" value="${p.microwaveMin??1}" style="width:100%"
-              onchange="setProdField('${p.id}','microwaveMin',parseFloat(toHalf(this.value))||0)">
+        ${(p.prepMethod&&p.prepMethod!=='none')?(()=>{
+          const mwTotal=p.microwaveMin??1;
+          const mwM=Math.floor(mwTotal),mwS=Math.round((mwTotal-mwM)*60);
+          const frTotal=p.fryerMin??5;
+          const frM=Math.floor(frTotal),frS=Math.round((frTotal-frM)*60);
+          const mw=(p.prepMethod==='microwave'||p.prepMethod==='microwave_fryer');
+          const fr=(p.prepMethod==='fryer'||p.prepMethod==='microwave_fryer');
+          return `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:11px;color:#555;margin-top:4px">
+          ${mw?`<div>
+            <label style="font-size:10px;color:#888">レンジ時間</label>
+            <div style="display:flex;align-items:center;gap:3px">
+              <input id="mwm_${p.id}" type="text" inputmode="numeric" value="${mwM}" style="width:48px;text-align:right"
+                onchange="setProdTimeMS('${p.id}','microwaveMin',this.value,document.getElementById('mws_${p.id}').value)">
+              <span style="font-size:10px;color:#666">分</span>
+              <input id="mws_${p.id}" type="text" inputmode="numeric" value="${mwS}" style="width:48px;text-align:right"
+                onchange="setProdTimeMS('${p.id}','microwaveMin',document.getElementById('mwm_${p.id}').value,this.value)">
+              <span style="font-size:10px;color:#666">秒</span>
+            </div>
           </div>`:'<div></div>'}
-          ${(p.prepMethod==='fryer'||p.prepMethod==='microwave_fryer')?`
-          <div><label style="font-size:10px;color:#888">フライヤー時間（分）</label>
-            <input type="text" inputmode="decimal" value="${p.fryerMin??5}" style="width:100%"
-              onchange="setProdField('${p.id}','fryerMin',parseFloat(toHalf(this.value))||0)">
+          ${fr?`<div>
+            <label style="font-size:10px;color:#888">フライヤー時間</label>
+            <div style="display:flex;align-items:center;gap:3px">
+              <input id="frm_${p.id}" type="text" inputmode="numeric" value="${frM}" style="width:48px;text-align:right"
+                onchange="setProdTimeMS('${p.id}','fryerMin',this.value,document.getElementById('frs_${p.id}').value)">
+              <span style="font-size:10px;color:#666">分</span>
+              <input id="frs_${p.id}" type="text" inputmode="numeric" value="${frS}" style="width:48px;text-align:right"
+                onchange="setProdTimeMS('${p.id}','fryerMin',document.getElementById('frm_${p.id}').value,this.value)">
+              <span style="font-size:10px;color:#666">秒</span>
+            </div>
           </div>
           <div><label style="font-size:10px;color:#888">フライヤー容量（個/回）</label>
             <input type="text" inputmode="numeric" value="${p.fryerCap??6}" style="width:100%"
@@ -2278,8 +2296,9 @@ function renderProductCard(p){
                 onchange="setProdField('${p.id}','fryerStackable',this.checked)">
               <span>2段調理可（他商品と同時OK）</span>
             </label>
-          </div>`:'<div></div><div></div><div></div>'}
-        </div>`:''}
+          </div>`:''}
+        </div>`;
+        })():''}
       </div>
     </div>`:''}
   </div>`;
@@ -2294,6 +2313,13 @@ function setProdField(pid,key,val){
   // 入力系フィールドは再描画しない（フォーカス奪取を防ぐ）
   if(_PROD_FIELDS_SILENT.has(key)) return;
   renderProductCards();
+}
+// 分・秒の2入力を合成して decimal 分として保存
+function setProdTimeMS(pid,key,minStr,secStr){
+  const m=parseInt(toHalf(String(minStr||'0')))||0;
+  const s=parseInt(toHalf(String(secStr||'0')))||0;
+  const total=Math.max(0,m+s/60);
+  setProdField(pid,key,total);
 }
 
 // 値入率（売価基準）= (店頭売価 − 原価) / 店頭売価 × 100
