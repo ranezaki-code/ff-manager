@@ -823,7 +823,21 @@ const I18N = {
     // Sold-out modal
     'sold.title':'🔔 完売 → 追加作成提案',
     'sold.timeInputLabel':'完売した時刻を入力',
+    'sold.readyAtLabel':'追加作成完了予定時刻を入力',
+    'sold.readyAtHint':'（追加バッチが陳列に並ぶ時刻。完売直後から作って約1時間後を想定）',
     'sold.timeConfirm':'時刻を確定',
+    'sold.estSuffix':' 推定',
+    'sold.readyAtShow':'陳列予定 {0}',
+    'sold.batchOriginal':'当初の作成計画',
+    'sold.batchNth':'{0}回目の追加分',
+    'sold.errProd':'商品が見つかりません',
+    'sold.errRange':'スロット範囲が取得できません',
+    'sold.errReadyEarly':'陳列予定時刻は最低でも {0} 以降にしてください',
+    'sold.errReadyLate':'陳列予定時刻はスロット終了（{0}）以前にしてください',
+    'sold.errAfterPrev':'前回の完売時刻（{0}）より後にしてください',
+    'sold.errNoSold':'販売数が0以下のため計算できません',
+    'sold.errNoCust':'販売中の客数が0です（客数データを確認してください）',
+    'sold.badgeReady':'陳列・{0}個追加',
     'sold.timeRedo':'時刻を直す',
     'sold.recommendation':'追加作成の推奨',
     'sold.calcDetails':'計算根拠を見る',
@@ -1029,7 +1043,21 @@ const I18N = {
     'order.grandTotal':'Grand total','order.holiday':'Off',
     'sold.title':'🔔 Sold out → Suggest additional',
     'sold.timeInputLabel':'Enter sold-out time',
+    'sold.readyAtLabel':'Enter expected ready time of additional batch',
+    'sold.readyAtHint':'(When the additional batch will be on shelf — typically 1h after sold-out)',
     'sold.timeConfirm':'Confirm time',
+    'sold.estSuffix':' (est.)',
+    'sold.readyAtShow':'Ready at {0}',
+    'sold.batchOriginal':'Original plan',
+    'sold.batchNth':'Additional #{0}',
+    'sold.errProd':'Product not found',
+    'sold.errRange':'Slot range unavailable',
+    'sold.errReadyEarly':'Ready time must be ≥ {0}',
+    'sold.errReadyLate':'Ready time must be ≤ slot end ({0})',
+    'sold.errAfterPrev':'Must be after previous sold-out ({0})',
+    'sold.errNoSold':'No sales — cannot calculate',
+    'sold.errNoCust':'No customers during sale (check customer data)',
+    'sold.badgeReady':'On shelf · +{0} pcs',
     'sold.timeRedo':'Re-enter',
     'sold.recommendation':'Recommended additional',
     'sold.calcDetails':'Show calculation',
@@ -1197,7 +1225,21 @@ const I18N = {
     'order.grandTotal':'कुल अर्डर','order.holiday':'बिदा',
     'sold.title':'🔔 बिक्री समाप्त → थप उत्पादन सुझाव',
     'sold.timeInputLabel':'बिक्री समाप्त समय राख्नुहोस्',
+    'sold.readyAtLabel':'थप उत्पादन तयार हुने समय राख्नुहोस्',
+    'sold.readyAtHint':'(थप ब्याच शेल्फमा राखिने समय — समाप्त भएपछि सामान्यतया १ घण्टा)',
     'sold.timeConfirm':'समय पुष्टि','sold.timeRedo':'समय फेरि',
+    'sold.estSuffix':' (अनुमान)',
+    'sold.readyAtShow':'तयार समय {0}',
+    'sold.batchOriginal':'मूल योजना',
+    'sold.batchNth':'थप #{0}',
+    'sold.errProd':'उत्पादन फेला परेन',
+    'sold.errRange':'स्लट दायरा अनुपलब्ध',
+    'sold.errReadyEarly':'तयार समय कम्तीमा {0} पछि हुनुपर्छ',
+    'sold.errReadyLate':'तयार समय स्लट अन्त्य ({0}) अघि हुनुपर्छ',
+    'sold.errAfterPrev':'अघिल्लो समाप्त समय ({0}) पछि हुनुपर्छ',
+    'sold.errNoSold':'बिक्री शून्य — गणना सम्भव छैन',
+    'sold.errNoCust':'बिक्रीको समयमा ग्राहक छैन (ग्राहक डाटा जाँच्नुहोस्)',
+    'sold.badgeReady':'शेल्फमा · +{0} वटा',
     'sold.recommendation':'थप बनाउने सिफारिस','sold.calcDetails':'गणना देखाउनुहोस्',
     'sold.eventCount':'समाप्ति #{0} ({1})',
     'sold.prevBatch':'अघिल्लो ब्याच',
@@ -3919,7 +3961,10 @@ function renderProdDayContent(dayIdx){
         const soEvents=getSoldOutEvents(p.id,dayIdx,slotH);
         const soSum=soEvents.reduce((s,e)=>s+(e.added||0),0);
         const grandTotal=totalCnt+soSum;
-        const soBadges=soEvents.map(e=>`<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${fmtHour(e.soldAt)}完売 → ${e.added}個追加">+${e.added}</span>`).join('');
+        const soBadges=soEvents.map(e=>{
+          const at=e.readyAt!=null?e.readyAt:e.soldAt;
+          return `<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${fmtHour(at)} ${t('sold.badgeReady').replace('{0}',e.added)}">+${e.added}</span>`;
+        }).join('');
         html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${extra>0?';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px':''}">
           <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
             <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1${extra>0?';color:#d97706':''}">${isSkip?'—':grandTotal}</span>
@@ -4063,50 +4108,48 @@ function newsvendorPoisson(lam,fract){
   return 2000;
 }
 
-function calcSoldOutSuggestion(pid,dayIdx,slotH,soldAt){
-  const p=getP(pid);if(!p)return{error:'商品が見つかりません'};
+// readyAt = 追加作成完了予定時刻（= 追加バッチが陳列に並ぶ時刻）
+// 前バッチの完売時刻は readyAt - PREP_HOURS と推定
+function calcSoldOutSuggestion(pid,dayIdx,slotH,readyAt){
+  const p=getP(pid);if(!p)return{error:t('sold.errProd')};
   const range=getCatSlotRange(p.category,slotH);
-  if(!range)return{error:'スロット範囲が取得できません'};
-  // このバッチの販売終了時刻 = 次バッチの陳列開始（= 次作成 + PREP_HOURS）
-  // ※ 最終スロットは getCatSlotRange の循環で先頭+24 をnextに設定済
-  // 計算ウィンドウは「販売中」を対象としたいので、creation_end に PREP_HOURS を足す
+  if(!range)return{error:t('sold.errRange')};
   const main=mainCatOf(p.category);
   const calcMax=CALC_MAX_HOURS[main]||4;
   const displayStart=slotH+PREP_HOURS;
-  // 販売終了 = 次バッチが陳列されるまで（≦ 販売開始 + 最大カバー時間）
   const slotEnd=Math.min(range[1]+PREP_HOURS,displayStart+calcMax);
-  if(soldAt<displayStart)return{error:`完売時刻は陳列開始（${fmtHour(displayStart)}）以降を入れてください`};
-  if(soldAt>slotEnd)return{error:`完売時刻は次バッチの陳列開始（${fmtHour(slotEnd)}）以前を入れてください`};
+  // 推定完売時刻（追加作成は完売直後に開始 → 1h で陳列完了 と仮定）
+  const estSoldOut=Math.max(displayStart,readyAt-PREP_HOURS);
+  if(readyAt<displayStart+PREP_HOURS)return{error:t('sold.errReadyEarly').replace('{0}',fmtHour(displayStart+PREP_HOURS))};
+  if(readyAt>slotEnd)return{error:t('sold.errReadyLate').replace('{0}',fmtHour(slotEnd))};
   const events=getSoldOutEvents(pid,dayIdx,slotH);
   let sellingStart, soldCount, batchLabel;
   if(events.length===0){
     sellingStart=displayStart;
     soldCount=getProdCnt(pid,dayIdx,slotH);
-    batchLabel='当初の作成計画';
+    batchLabel=t('sold.batchOriginal');
   } else {
     const last=events[events.length-1];
-    sellingStart=last.soldAt;
+    // 後方互換：旧データは soldAt のみ、新データは readyAt を保持
+    sellingStart=last.readyAt!=null?last.readyAt:last.soldAt;
     soldCount=last.added;
-    batchLabel=`${events.length}回目の追加分`;
+    batchLabel=t('sold.batchNth').replace('{0}',events.length);
   }
-  if(soldAt<=sellingStart)return{error:`完売時刻は前回の完売時刻（${fmtHour(sellingStart)}）より後にしてください`};
-  if(soldCount<=0)return{error:'販売数が0以下のため計算できません'};
-  const custDuring=getCustHoursRange(dayIdx,sellingStart,soldAt);
-  const custAfter=getCustHoursRange(dayIdx,soldAt,slotEnd);
-  if(custDuring<=0)return{error:'販売中の客数が0です（客数データを確認してください）'};
-  // 観測購買率
+  if(estSoldOut<=sellingStart)return{error:t('sold.errAfterPrev').replace('{0}',fmtHour(sellingStart+PREP_HOURS))};
+  if(soldCount<=0)return{error:t('sold.errNoSold')};
+  const custDuring=getCustHoursRange(dayIdx,sellingStart,estSoldOut);
+  const custAfter=getCustHoursRange(dayIdx,readyAt,slotEnd);
+  if(custDuring<=0)return{error:t('sold.errNoCust')};
   const observedRate=soldCount/custDuring;
-  // Wilson 95%下限で「信頼できる購買率」に丸める（短時間観測の暴走を抑制）
   const safeRate=wilsonLower95(soldCount,custDuring);
-  // 期待需要（残り客数より多くは売れない物理上限）
   const D=Math.min(safeRate*custAfter,custAfter);
-  // 利益率（Newsvendor 分位点）
   const fractile=p.shopPrice>0?(p.shopPrice-p.cost)/p.shopPrice:0.5;
-  // 利益最大化の最適在庫
-  const suggest=newsvendorPoisson(D,fractile);
+  // ニューズベンダー＋ユーザー要望：最低1個（残り客数 0 のときのみ 0）
+  let suggest=newsvendorPoisson(D,fractile);
+  if(custAfter>0&&soldCount>0)suggest=Math.max(1,suggest);
   return{
     suggest, observedRate, safeRate, custDuring, custAfter, D, fractile,
-    sellingStart, soldAt, slotEnd, displayStart,
+    sellingStart, soldAt:estSoldOut, readyAt, slotEnd, displayStart,
     soldCount, batchLabel, eventCount:events.length+1,
     p
   };
@@ -4115,13 +4158,14 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,soldAt){
 let _soldOutCtx=null;
 function openSoldOutModal(pid,dayIdx,slotH){
   const p=getP(pid);if(!p)return;
-  // デフォルト時刻：現在時刻 or 陳列開始時刻
+  // デフォルト時刻：現在時刻 + 1時間（追加作成完了予定）or 陳列開始+1h
   const now=new Date();
   const nowH=now.getHours()+now.getMinutes()/60;
   const range=getCatSlotRange(p.category,slotH);
   const displayStart=slotH+PREP_HOURS;
-  const slotEnd=range?range[1]:slotH+4;
-  const def=Math.max(displayStart+0.25,Math.min(slotEnd-0.01,nowH));
+  const slotEnd=range?range[1]+PREP_HOURS:slotH+5;
+  // 追加作成完了予定：現在時刻 + 1時間（PREP_HOURS）を初期値に
+  const def=Math.max(displayStart+PREP_HOURS+0.01,Math.min(slotEnd-0.01,nowH+PREP_HOURS));
   _soldOutCtx={pid,dayIdx,slotH,p};
   // モーダル生成
   let m=document.getElementById('soldOutModal');
@@ -4138,9 +4182,10 @@ function openSoldOutModal(pid,dayIdx,slotH){
     <div style="font-weight:700;font-size:16px;margin-bottom:4px;color:var(--main)">🔔 完売 → 追加作成提案</div>
     <div style="font-size:12px;color:#888;margin-bottom:18px">${p.name}</div>
     <div id="soldOutPhase1">
-      <label style="display:block;font-size:12px;color:#555;margin-bottom:6px">完売した時刻を入力</label>
+      <label style="display:block;font-size:12px;color:#555;margin-bottom:6px">${t('sold.readyAtLabel')}</label>
+      <div style="font-size:10px;color:#888;margin-bottom:6px">${t('sold.readyAtHint')}</div>
       <input id="soldOutTimeInput" type="time" value="${hh}:${mm}" style="width:100%;padding:10px 12px;font-size:18px;text-align:center;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box">
-      <button onclick="confirmSoldOutTime()" class="btn-primary" style="width:100%;margin-top:14px;padding:12px;font-size:15px;font-weight:700">時刻を確定</button>
+      <button onclick="confirmSoldOutTime()" class="btn-primary" style="width:100%;margin-top:14px;padding:12px;font-size:15px;font-weight:700">${t('sold.timeConfirm')}</button>
     </div>
     <div id="soldOutPhase2" style="display:none"></div>
     <div style="margin-top:14px;text-align:center">
@@ -4165,18 +4210,18 @@ function confirmSoldOutTime(){
       <button onclick="resetSoldOutPhase()" class="btn-secondary" style="width:100%;margin-top:10px;padding:10px">${t('sold.timeRedo')}</button>`;
     return;
   }
-  _soldOutCtx.soldAt=soldAt;
+  _soldOutCtx.readyAt=r.readyAt;
   _soldOutCtx.suggest=r.suggest;
   document.getElementById('soldOutPhase1').style.display='none';
   ph2.style.display='block';
   const damped=r.safeRate<r.observedRate*0.95;
   const detailHtml=`
     <div>${t('sold.eventCount').replace('{0}',r.eventCount).replace('{1}',r.batchLabel)}</div>
-    <div>${t('sold.prevBatch')}：<b>${r.soldCount}${t('common.piece')}</b>（${fmtHour(r.sellingStart)}〜${fmtHour(r.soldAt)}）</div>
+    <div>${t('sold.prevBatch')}：<b>${r.soldCount}${t('common.piece')}</b>（${fmtHour(r.sellingStart)}〜${fmtHour(r.soldAt)}${t('sold.estSuffix')}）</div>
     <div>${t('sold.custDuring')}：${r.custDuring.toFixed(1)}${t('common.person')}</div>
     <div>${t('sold.obsRate')}：${(r.observedRate*100).toFixed(1)}%</div>
     <div>${damped?'⚠️ ':''}${t('sold.safeRate')}：<b>${(r.safeRate*100).toFixed(1)}%</b>${damped?`<span style="font-size:10px;color:#92400e"> ← ${t('sold.dampedNote')}</span>`:''}</div>
-    <div>${t('sold.custAfter').replace('{0}',fmtHour(r.soldAt)).replace('{1}',fmtHour(r.slotEnd))}：${r.custAfter.toFixed(1)}${t('common.person')}</div>
+    <div>${t('sold.custAfter').replace('{0}',fmtHour(r.readyAt)).replace('{1}',fmtHour(r.slotEnd))}：${r.custAfter.toFixed(1)}${t('common.person')}</div>
     <div>${t('sold.expectedD')}：${r.D.toFixed(2)}${t('common.piece')}</div>
     <div>${t('sold.fractile')}：${(r.fractile*100).toFixed(1)}%</div>
   `;
@@ -4184,7 +4229,7 @@ function confirmSoldOutTime(){
     <div style="text-align:center;padding:20px 0;background:#f0f9ff;border-radius:10px;margin-bottom:14px">
       <div style="font-size:11px;color:#0369a1;letter-spacing:.05em">${t('sold.recommendation')}</div>
       <div style="font-size:48px;font-weight:800;color:#0c4a6e;line-height:1.1;margin-top:4px">${r.suggest}<span style="font-size:18px;font-weight:600;margin-left:4px;color:#0369a1">${t('common.piece')}</span></div>
-      <div style="font-size:11px;color:#888;margin-top:6px">${t('sold.soldAt').replace('{0}',fmtHour(r.soldAt))}</div>
+      <div style="font-size:11px;color:#888;margin-top:6px">${t('sold.readyAtShow').replace('{0}',fmtHour(r.readyAt))}</div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:6px">
       <button onclick="resetSoldOutPhase()" class="btn-secondary" style="flex:1;padding:10px;font-size:13px">${t('sold.timeRedo')}</button>
@@ -4211,11 +4256,13 @@ function closeSoldOutModal(){
 }
 function acceptSoldOut(){
   if(!_soldOutCtx||_soldOutCtx.suggest==null)return;
-  const{pid,dayIdx,slotH,soldAt,suggest}=_soldOutCtx;
+  const{pid,dayIdx,slotH,readyAt,suggest}=_soldOutCtx;
   if(!S.soldOuts)S.soldOuts={};
   const k=`${dayIdx}_${slotH}_${pid}`;
   if(!S.soldOuts[k])S.soldOuts[k]=[];
-  S.soldOuts[k].push({soldAt,added:suggest});
+  // 新フォーマット：readyAt（追加バッチ陳列時刻）を記録
+  // 後方互換のため soldAt にも同じ値を保存（既存の表示コードで動く）
+  S.soldOuts[k].push({readyAt,soldAt:readyAt,added:suggest});
   saveS();
   closeSoldOutModal();
   renderProdDayContent(currentProdDay);
