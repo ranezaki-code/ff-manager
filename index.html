@@ -824,7 +824,7 @@ const I18N = {
     'sold.title':'🔔 完売 → 追加作成提案',
     'sold.timeInputLabel':'完売した時刻を入力',
     'sold.readyAtLabel':'追加作成完了予定時刻を入力',
-    'sold.readyAtHint':'（追加バッチが陳列に並ぶ時刻。完売直後から作って約1時間後を想定）',
+    'sold.readyAtHint':'（追加バッチが陳列に並ぶ時刻＝販売開始時刻）',
     'sold.timeConfirm':'時刻を確定',
     'sold.estSuffix':' 推定',
     'sold.readyAtShow':'陳列予定 {0}',
@@ -1044,7 +1044,7 @@ const I18N = {
     'sold.title':'🔔 Sold out → Suggest additional',
     'sold.timeInputLabel':'Enter sold-out time',
     'sold.readyAtLabel':'Enter expected ready time of additional batch',
-    'sold.readyAtHint':'(When the additional batch will be on shelf — typically 1h after sold-out)',
+    'sold.readyAtHint':'(When the additional batch goes on shelf = selling start)',
     'sold.timeConfirm':'Confirm time',
     'sold.estSuffix':' (est.)',
     'sold.readyAtShow':'Ready at {0}',
@@ -1226,7 +1226,7 @@ const I18N = {
     'sold.title':'🔔 बिक्री समाप्त → थप उत्पादन सुझाव',
     'sold.timeInputLabel':'बिक्री समाप्त समय राख्नुहोस्',
     'sold.readyAtLabel':'थप उत्पादन तयार हुने समय राख्नुहोस्',
-    'sold.readyAtHint':'(थप ब्याच शेल्फमा राखिने समय — समाप्त भएपछि सामान्यतया १ घण्टा)',
+    'sold.readyAtHint':'(थप ब्याच शेल्फमा राखिने समय = बिक्री सुरु समय)',
     'sold.timeConfirm':'समय पुष्टि','sold.timeRedo':'समय फेरि',
     'sold.estSuffix':' (अनुमान)',
     'sold.readyAtShow':'तयार समय {0}',
@@ -4118,9 +4118,8 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,readyAt){
   const calcMax=CALC_MAX_HOURS[main]||4;
   const displayStart=slotH+PREP_HOURS;
   const slotEnd=Math.min(range[1]+PREP_HOURS,displayStart+calcMax);
-  // 推定完売時刻（追加作成は完売直後に開始 → 1h で陳列完了 と仮定）
-  const estSoldOut=Math.max(displayStart,readyAt-PREP_HOURS);
-  if(readyAt<displayStart+PREP_HOURS)return{error:t('sold.errReadyEarly').replace('{0}',fmtHour(displayStart+PREP_HOURS))};
+  // 完売時刻の仮定は行わない。readyAt（追加バッチ陳列開始）を全境界として使う。
+  if(readyAt<=displayStart)return{error:t('sold.errReadyEarly').replace('{0}',fmtHour(displayStart))};
   if(readyAt>slotEnd)return{error:t('sold.errReadyLate').replace('{0}',fmtHour(slotEnd))};
   const events=getSoldOutEvents(pid,dayIdx,slotH);
   let sellingStart, soldCount, batchLabel;
@@ -4130,14 +4129,15 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,readyAt){
     batchLabel=t('sold.batchOriginal');
   } else {
     const last=events[events.length-1];
-    // 後方互換：旧データは soldAt のみ、新データは readyAt を保持
     sellingStart=last.readyAt!=null?last.readyAt:last.soldAt;
     soldCount=last.added;
     batchLabel=t('sold.batchNth').replace('{0}',events.length);
   }
-  if(estSoldOut<=sellingStart)return{error:t('sold.errAfterPrev').replace('{0}',fmtHour(sellingStart+PREP_HOURS))};
+  if(readyAt<=sellingStart)return{error:t('sold.errAfterPrev').replace('{0}',fmtHour(sellingStart))};
   if(soldCount<=0)return{error:t('sold.errNoSold')};
-  const custDuring=getCustHoursRange(dayIdx,sellingStart,estSoldOut);
+  // 前バッチの販売区間 = 前陳列開始 〜 readyAt（完売時刻は不明なのでこの全区間で平均）
+  const custDuring=getCustHoursRange(dayIdx,sellingStart,readyAt);
+  // 追加バッチの販売区間 = readyAt 〜 slotEnd
   const custAfter=getCustHoursRange(dayIdx,readyAt,slotEnd);
   if(custDuring<=0)return{error:t('sold.errNoCust')};
   const observedRate=soldCount/custDuring;
@@ -4149,7 +4149,7 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,readyAt){
   if(custAfter>0&&soldCount>0)suggest=Math.max(1,suggest);
   return{
     suggest, observedRate, safeRate, custDuring, custAfter, D, fractile,
-    sellingStart, soldAt:estSoldOut, readyAt, slotEnd, displayStart,
+    sellingStart, soldAt:readyAt, readyAt, slotEnd, displayStart,
     soldCount, batchLabel, eventCount:events.length+1,
     p
   };
@@ -4217,7 +4217,7 @@ function confirmSoldOutTime(){
   const damped=r.safeRate<r.observedRate*0.95;
   const detailHtml=`
     <div>${t('sold.eventCount').replace('{0}',r.eventCount).replace('{1}',r.batchLabel)}</div>
-    <div>${t('sold.prevBatch')}：<b>${r.soldCount}${t('common.piece')}</b>（${fmtHour(r.sellingStart)}〜${fmtHour(r.soldAt)}${t('sold.estSuffix')}）</div>
+    <div>${t('sold.prevBatch')}：<b>${r.soldCount}${t('common.piece')}</b>（${fmtHour(r.sellingStart)}〜${fmtHour(r.readyAt)}）</div>
     <div>${t('sold.custDuring')}：${r.custDuring.toFixed(1)}${t('common.person')}</div>
     <div>${t('sold.obsRate')}：${(r.observedRate*100).toFixed(1)}%</div>
     <div>${damped?'⚠️ ':''}${t('sold.safeRate')}：<b>${(r.safeRate*100).toFixed(1)}%</b>${damped?`<span style="font-size:10px;color:#92400e"> ← ${t('sold.dampedNote')}</span>`:''}</div>
