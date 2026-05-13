@@ -3902,6 +3902,7 @@ function renderSlotSchedule(dayIdx,slotH){
     }
     const batchLabel=totalBatches>1?`<span style="font-size:10px;color:#9333ea;font-weight:600;margin-left:4px">${t('make.batchOf')}${batchIdx}/${totalBatches}</span>`:'';
     const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">${t('make.newBadge')}</span>`:'';
+    const endingBadge=p.orderEnding?`<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px" title="${t('order.endingHint')}">${t('order.endingBadge')}</span>`:'';
     const methodBadge=noMethod?`<span style="font-size:9px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:6px;margin-left:4px">${t('product.prepNone')}</span>`:prepBadge(p);
     const rowOpacity=checked?'opacity:.45':'';
     const textDecor=checked?'text-decoration:line-through':'';
@@ -3911,7 +3912,7 @@ function renderSlotSchedule(dayIdx,slotH){
           onchange="setCheck('${ckKey}',this.checked)"
           style="width:18px;height:18px;cursor:pointer;flex-shrink:0">
         <span style="font-size:14px;font-weight:700;color:#1d4ed8;min-width:24px">${_circled(idx)}</span>
-        <span style="font-weight:600;${textDecor}">${p.name}</span>${batchLabel}${newBadge}${methodBadge}
+        <span style="font-weight:600;${textDecor}">${p.name}</span>${batchLabel}${newBadge}${endingBadge}${methodBadge}
         <span style="margin-left:auto;font-size:13px;font-weight:700;color:#0c4a6e;${textDecor}">${qty}${t('common.piece')}</span>
       </div>
       ${hint}
@@ -4085,7 +4086,8 @@ function renderProdDayContent(dayIdx){
       const gIdx=globalOrderMap?.get(p.id);
       const orderBadge=(gIdx!=null)?`<span style="font-size:13px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(gIdx)}</span>`:'';
       const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'';
-      html+=`<tr><td style="text-align:left;font-size:12px">${orderBadge}${p.name}${newBadge}${prepBadge(p)}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
+      const endingBadge=p.orderEnding?`<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px" title="${t('order.endingHint')}">${t('order.endingBadge')}</span>`:'';
+      html+=`<tr><td style="text-align:left;font-size:12px;${p.orderEnding?'background:#fef2f2':''}">${orderBadge}${p.name}${newBadge}${endingBadge}${prepBadge(p)}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
       cfg.slots.forEach(slotH=>{
         const cnt=getProdCnt(p.id,dayIdx,slotH);
         const extra=getInvestExtra(p.id,dayIdx,slotH);
