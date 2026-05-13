@@ -321,7 +321,19 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
           <button class="btn-primary" style="width:auto;margin:0;padding:6px 14px;font-size:13px" onclick="addProduct()" data-i18n="product.add">+ 商品追加</button>
           <button type="button" onclick="collapseAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.collapseAll">すべて閉じる</button>
           <button type="button" onclick="expandAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.expandAll">すべて開く</button>
-          <span style="font-size:11px;color:#888;margin-left:auto" data-i18n="product.dragHint">💡 ⠿ドラッグ または ▲▼ で並び替え</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px">
+          <span style="font-size:12px;color:#555;font-weight:600" data-i18n="product.sortLabel">並び順：</span>
+          <select id="prod-sort-select" onchange="setProductSortMode(this.value)" style="padding:5px 10px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer">
+            <option value="manual" data-i18n="product.sortManual">手動（追加順／ドラッグ）</option>
+            <option value="category" data-i18n="product.sortCategory">カテゴリ別</option>
+            <option value="name" data-i18n="product.sortName">商品名 (50音)</option>
+            <option value="cost" data-i18n="product.sortCost">原価 安→高</option>
+            <option value="costDesc" data-i18n="product.sortCostDesc">原価 高→安</option>
+            <option value="profit" data-i18n="product.sortProfit">利益率 高→低</option>
+            <option value="status" data-i18n="product.sortStatus">発注ステータス別</option>
+          </select>
+          <span id="prod-sort-hint" style="font-size:10px;color:#666"></span>
         </div>
         <div id="product-cards"></div>
       </div>
@@ -726,6 +738,16 @@ const I18N = {
     'product.fryerCap':'フライヤー容量（個/回）',
     'product.fryerStackable':'2段調理可（他商品と同時OK）',
     'product.dragHint':'💡 ⠿ドラッグ または ▲▼ で並び替え',
+    'product.sortLabel':'並び順：',
+    'product.sortManual':'手動（追加順／ドラッグ）',
+    'product.sortCategory':'カテゴリ別',
+    'product.sortName':'商品名 (50音)',
+    'product.sortCost':'原価 安→高',
+    'product.sortCostDesc':'原価 高→安',
+    'product.sortProfit':'利益率 高→低',
+    'product.sortStatus':'発注ステータス別',
+    'product.sortHintCategory':'カテゴリ毎にグループ表示',
+    'product.sortHintStatus':'継続発注 ／ 終了予定 で分類',
     'product.discountToggle':'値引き 曜日別ON/OFF',
     'product.discountToggleHint':'（OFFの曜日は④作成表に「値引なし」と表示）',
     'product.discountAppliesAlsoNew':'※ {0}新商品にも同じ設定が適用されます',
@@ -956,6 +978,16 @@ const I18N = {
     'product.fryerCap':'Fryer capacity (pcs/cycle)',
     'product.fryerStackable':'Can be stacked (parallel with others)',
     'product.dragHint':'💡 Drag ⠿ or use ▲▼ to reorder',
+    'product.sortLabel':'Sort: ',
+    'product.sortManual':'Manual (added order / drag)',
+    'product.sortCategory':'By category',
+    'product.sortName':'Name',
+    'product.sortCost':'Cost low→high',
+    'product.sortCostDesc':'Cost high→low',
+    'product.sortProfit':'Profit % high→low',
+    'product.sortStatus':'By order status',
+    'product.sortHintCategory':'Grouped by category',
+    'product.sortHintStatus':'Grouped by continuous / ending',
     'product.discountToggle':'Discount by day ON/OFF',
     'product.discountToggleHint':'(Days OFF show "No discount" in production plan)',
     'product.discountAppliesAlsoNew':'※ Same setting applies to {0} New',
@@ -1150,6 +1182,16 @@ const I18N = {
     'product.fryerTime':'फ्राइयर समय','product.fryerCap':'फ्राइयर क्षमता (वटा/चक्र)',
     'product.fryerStackable':'स्ट्याकेबल (अरूसँग समानान्तर)',
     'product.dragHint':'💡 ⠿ तानेर वा ▲▼ ले क्रम मिलाउनुहोस्',
+    'product.sortLabel':'क्रम: ',
+    'product.sortManual':'म्यानुअल (थप क्रम / तान्ने)',
+    'product.sortCategory':'श्रेणी अनुसार',
+    'product.sortName':'नाम',
+    'product.sortCost':'लागत कम→बढी',
+    'product.sortCostDesc':'लागत बढी→कम',
+    'product.sortProfit':'मुनाफा % बढी→कम',
+    'product.sortStatus':'अर्डर स्थिति अनुसार',
+    'product.sortHintCategory':'श्रेणी अनुसार समूहीकृत',
+    'product.sortHintStatus':'निरन्तर / अन्त्य अनुसार समूहीकृत',
     'product.discountToggle':'दिन अनुसार छुट ON/OFF',
     'product.discountToggleHint':'(OFF दिनहरूमा उत्पादन योजनामा "छुट छैन" देखिन्छ)',
     'product.discountAppliesAlsoNew':'※ {0} नयाँमा पनि सेटिङ लागू',
@@ -2754,10 +2796,86 @@ function adoptSuggest(cat,slots){
 
 let _dragPid=null, _dragOverPid=null;
 
+let _prodMasterSortMode=localStorage.getItem('ffv6_prodMasterSort')||'manual';
+function setProductSortMode(mode){
+  _prodMasterSortMode=mode;
+  localStorage.setItem('ffv6_prodMasterSort',mode);
+  renderProductCards();
+}
+function _sortProducts(arr,mode){
+  const cmp=(a,b)=>(a.order??0)-(b.order??0);
+  if(mode==='manual')return arr.sort(cmp);
+  if(mode==='category'){
+    return arr.sort((a,b)=>{
+      const ai=CATS.indexOf(a.category),bi=CATS.indexOf(b.category);
+      if(ai!==bi)return ai-bi;
+      return cmp(a,b);
+    });
+  }
+  if(mode==='name'){
+    return arr.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ja'));
+  }
+  if(mode==='cost'){
+    return arr.sort((a,b)=>(a.cost||0)-(b.cost||0));
+  }
+  if(mode==='costDesc'){
+    return arr.sort((a,b)=>(b.cost||0)-(a.cost||0));
+  }
+  if(mode==='profit'){
+    const r=p=>{const sp=Number(p.shopPrice)||0;return sp>0?(sp-(p.cost||0))/sp:0;};
+    return arr.sort((a,b)=>r(b)-r(a));
+  }
+  if(mode==='status'){
+    // 終了予定を下に、その中はカテゴリ別
+    return arr.sort((a,b)=>{
+      const ae=a.orderEnding?1:0,be=b.orderEnding?1:0;
+      if(ae!==be)return ae-be;
+      const ai=CATS.indexOf(a.category),bi=CATS.indexOf(b.category);
+      if(ai!==bi)return ai-bi;
+      return cmp(a,b);
+    });
+  }
+  return arr.sort(cmp);
+}
 function renderProductCards(){
   const el=document.getElementById('product-cards');
-  const sorted=[...S.PM].sort((a,b)=>(a.order??0)-(b.order??0));
-  el.innerHTML=sorted.map(p=>renderProductCard(p)).join('');
+  const ls=document.getElementById('prod-sort-select');if(ls)ls.value=_prodMasterSortMode;
+  const sorted=_sortProducts([...S.PM],_prodMasterSortMode);
+  // カテゴリ別または発注ステータス別ではグループ見出しを挿入
+  let html='';
+  const hint=document.getElementById('prod-sort-hint');
+  if(_prodMasterSortMode==='manual'){
+    if(hint)hint.textContent='⠿ドラッグ または ▲▼ で並び替え';
+    html=sorted.map(p=>renderProductCard(p)).join('');
+  } else if(_prodMasterSortMode==='category'){
+    if(hint)hint.textContent=t('product.sortHintCategory')||'カテゴリ毎にグループ表示';
+    let prevCat='';
+    sorted.forEach(p=>{
+      if(p.category!==prevCat){
+        html+=`<div style="margin:10px 0 4px 0;padding:6px 10px;background:var(--main-lt);border-left:4px solid var(--main);border-radius:6px;font-size:13px;font-weight:700;color:var(--main)">${tCat(p.category)}</div>`;
+        prevCat=p.category;
+      }
+      html+=renderProductCard(p);
+    });
+  } else if(_prodMasterSortMode==='status'){
+    if(hint)hint.textContent=t('product.sortHintStatus')||'継続発注 ／ 終了予定 で分類';
+    let prevEnding=null;
+    sorted.forEach(p=>{
+      const e=!!p.orderEnding;
+      if(e!==prevEnding){
+        const label=e?t('product.orderEnding'):t('product.orderContinuous');
+        const color=e?'#dc2626':'#16a34a';
+        const bg=e?'#fef2f2':'#f0fdf4';
+        html+=`<div style="margin:10px 0 4px 0;padding:6px 10px;background:${bg};border-left:4px solid ${color};border-radius:6px;font-size:13px;font-weight:700;color:${color}">${label}</div>`;
+        prevEnding=e;
+      }
+      html+=renderProductCard(p);
+    });
+  } else {
+    if(hint)hint.textContent='';
+    html=sorted.map(p=>renderProductCard(p)).join('');
+  }
+  el.innerHTML=html;
   // ドラッグ＆ドロップ: カード全体にイベント設定
   el.querySelectorAll('[data-pid]').forEach(card=>{
     card.addEventListener('dragstart',e=>{
