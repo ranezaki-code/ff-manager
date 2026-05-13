@@ -713,6 +713,9 @@ const I18N = {
     'product.typeStd':'📦 定番商品',
     'product.typeNew':'🆕 新商品',
     'product.typeInvest':'📈 投資対象',
+    'product.orderStatus':'発注ステータス',
+    'product.orderContinuous':'継続発注',
+    'product.orderEnding':'終了予定（在庫消化）',
     'product.prepMethod':'作成方法（効率化用）',
     'product.prepNone':'設定なし',
     'product.prepMicrowave':'レンジのみ',
@@ -820,6 +823,9 @@ const I18N = {
     'order.timingLabel3':'金曜発注','order.timingDesc3':'：土・日の作成分を合算（土曜は発注休みのため日分も金に前倒し）',
     'order.weekTotal':'週発注計','order.subtotal':'小計',
     'order.grandTotal':'発注合計','order.holiday':'休み',
+    'order.endingBadge':'終了予定',
+    'order.endingHint':'在庫消化次第発注停止',
+    'order.endingBannerNote':'🔴 赤色 = 終了予定商品（在庫を見て調整）',
     // Sold-out modal
     'sold.title':'🔔 完売 → 追加作成提案',
     'sold.timeInputLabel':'完売した時刻を入力',
@@ -937,6 +943,9 @@ const I18N = {
     'product.tags':'Tags',
     'product.type':'Product Type',
     'product.typeStd':'📦 Standard','product.typeNew':'🆕 New','product.typeInvest':'📈 Invested',
+    'product.orderStatus':'Order Status',
+    'product.orderContinuous':'Continuous order',
+    'product.orderEnding':'Ending (clear stock)',
     'product.prepMethod':'Prep Method (for efficiency)',
     'product.prepNone':'Not set',
     'product.prepMicrowave':'Microwave only',
@@ -1041,6 +1050,9 @@ const I18N = {
     'order.timingLabel3':'Fri order','order.timingDesc3':': covers Sat+Sun (Sat is off, so Sun pulled in)',
     'order.weekTotal':'Weekly total','order.subtotal':'Subtotal',
     'order.grandTotal':'Grand total','order.holiday':'Off',
+    'order.endingBadge':'Ending',
+    'order.endingHint':'Stop ordering once stock clears',
+    'order.endingBannerNote':'🔴 Red = Ending products (adjust based on stock)',
     'sold.title':'🔔 Sold out → Suggest additional',
     'sold.timeInputLabel':'Enter sold-out time',
     'sold.readyAtLabel':'Enter expected ready time of additional batch',
@@ -1129,6 +1141,9 @@ const I18N = {
     'product.timeStart':'बिक्री सुरु घण्टा','product.timeEnd':'बिक्री अन्त्य घण्टा',
     'product.tags':'ट्यागहरू','product.type':'उत्पादन प्रकार',
     'product.typeStd':'📦 मानक','product.typeNew':'🆕 नयाँ','product.typeInvest':'📈 लगानी',
+    'product.orderStatus':'अर्डर स्थिति',
+    'product.orderContinuous':'निरन्तर अर्डर',
+    'product.orderEnding':'अन्त्य हुने (स्टक सकाउने)',
     'product.prepMethod':'तयारी विधि (कुशलता)','product.prepNone':'सेट छैन',
     'product.prepMicrowave':'माइक्रोवेभ मात्र','product.prepFryer':'फ्राइयर मात्र',
     'product.prepBoth':'माइक्रोवेभ → फ्राइयर','product.microwaveTime':'माइक्रोवेभ समय',
@@ -1223,6 +1238,9 @@ const I18N = {
     'order.timingLabel3':'शुक्रको अर्डर','order.timingDesc3':': शनि+आइत (शनि बिदा भएकोले आइतको पनि)',
     'order.weekTotal':'साप्ताहिक जम्मा','order.subtotal':'उप-योग',
     'order.grandTotal':'कुल अर्डर','order.holiday':'बिदा',
+    'order.endingBadge':'अन्त्य',
+    'order.endingHint':'स्टक सकिएपछि अर्डर रोक्नुहोस्',
+    'order.endingBannerNote':'🔴 रातो = अन्त्य हुने उत्पादन (स्टक हेरेर मिलाउनुहोस्)',
     'sold.title':'🔔 बिक्री समाप्त → थप उत्पादन सुझाव',
     'sold.timeInputLabel':'बिक्री समाप्त समय राख्नुहोस्',
     'sold.readyAtLabel':'थप उत्पादन तयार हुने समय राख्नुहोस्',
@@ -2915,6 +2933,22 @@ function renderProductCard(p){
             onchange="setProdField('${p.id}','newDays',parseInt(toHalf(this.value))||0)">
           <span style="color:#666">日</span>
         </div>`:''}
+      </div>
+      <!-- 発注ステータス -->
+      <div style="grid-column:span 2;background:${p.orderEnding?'#fef2f2':'#f0fdf4'};border-radius:6px;padding:8px 10px;border:1px solid ${p.orderEnding?'#fecaca':'#bbf7d0'}">
+        <div style="font-size:11px;color:${p.orderEnding?'#991b1b':'#166534'};margin-bottom:6px;font-weight:600">${t('product.orderStatus')}</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="orderEnd_${p.id}" value="0" ${!p.orderEnding?'checked':''}
+              onchange="setProdField('${p.id}','orderEnding',false)">
+            <span style="font-size:12px;color:#166534;font-weight:${!p.orderEnding?700:400}">${t('product.orderContinuous')}</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="orderEnd_${p.id}" value="1" ${p.orderEnding?'checked':''}
+              onchange="setProdField('${p.id}','orderEnding',true)">
+            <span style="font-size:12px;color:#991b1b;font-weight:${p.orderEnding?700:400}">${t('product.orderEnding')}</span>
+          </label>
+        </div>
       </div>
       <!-- 作成方法（オペレーション設定） -->
       <div style="grid-column:span 2;background:#fff7ed;border-radius:6px;padding:8px 10px;border:1px solid #fed7aa">
@@ -4962,6 +4996,8 @@ function renderOrderTable(){
     <div style="font-size:11px;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">${t('order.checkHint')}</div>
     ${S.PM.some(p=>p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0))?
       `<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">${t('order.yellowNote')}</div>`:''}
+    ${S.PM.some(p=>p.enabled&&p.orderEnding)?
+      `<div style="font-size:11px;color:#7f1d1d;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">${t('order.endingBannerNote')}</div>`:''}
   </div>`;
 
   // ── 発注スケジュール（発注日ベース） ──
@@ -5240,7 +5276,8 @@ function buildOrderScheduleHTML(dates, activeCats){
         <tbody>`;
 
     prods.forEach((p,pi)=>{
-      const rowBg=pi%2===0?'#fff':'#fafafa';
+      const isEnding=!!p.orderEnding;
+      const rowBg=isEnding?'#fef2f2':(pi%2===0?'#fff':'#fafafa');
 
       // 各列の発注数を計算
       const colQtys = ORDER_COLS.map(col=>{
@@ -5258,9 +5295,12 @@ function buildOrderScheduleHTML(dates, activeCats){
       const weekTotal = colQtys.reduce((s,v,i)=> ORDER_COLS[i].isFuture ? s : s+v, 0);
       colQtys.forEach((v,i)=>{ catColTotals[i]+=v; });
 
+      const endingBadge=isEnding?`<span style="display:inline-block;margin-left:6px;font-size:9px;background:#dc2626;color:#fff;padding:1px 6px;border-radius:8px;font-weight:700;vertical-align:middle">${t('order.endingBadge')}</span>`:'';
+
       html+=`<tr style="background:${rowBg};border-bottom:1px solid #eee">
         <td style="padding:8px 10px;position:sticky;left:0;background:${rowBg};z-index:1">
-          <div style="font-size:13px;font-weight:600">${p.name}</div>
+          <div style="font-size:13px;font-weight:600;${isEnding?'color:#7f1d1d':''}">${p.name}${endingBadge}</div>
+          ${isEnding?`<div style="font-size:10px;color:#991b1b;margin-top:2px">${t('order.endingHint')}</div>`:''}
         </td>
         ${colQtys.map((qty,ci)=>{
           const col=ORDER_COLS[ci];
