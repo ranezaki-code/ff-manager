@@ -281,10 +281,9 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <option value="en">🇬🇧 English</option>
         <option value="ne">🇳🇵 नेपाली</option>
       </select>
-      <button onclick="openStoreManager()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px">
-        <span id="header-store"></span>
-        <span style="font-size:10px;opacity:.8">▼</span>
-      </button>
+      <!-- 【店舗統合】FF内の店舗管理ボタンは廃止（ハブで一元管理）。
+           現在の店舗名は表示だけ残す（読み取り専用） -->
+      <span id="header-store" style="background:rgba(255,255,255,0.10);color:#fff;border-radius:16px;padding:4px 12px;font-size:12px;display:inline-flex;align-items:center"></span>
     </div>
   </div>
   <div id="tabs">
@@ -2118,6 +2117,31 @@ function renderGistPanel(){
     </div>`;
 }
 function loadS(){
+  // 【店舗統合】グローバル店舗をFFの内部キーへ同期
+  // - global_stores → ffv6_stores（不足分のみ追記）
+  // - current_store_id → ffv6_current（ハブで切替えた店舗をFFが採用）
+  try{
+    const gsRaw=localStorage.getItem('global_stores');
+    const gCurId=localStorage.getItem('current_store_id');
+    if(gsRaw){
+      const globalList=JSON.parse(gsRaw);
+      const ffRaw=localStorage.getItem('ffv6_stores');
+      const ffList=ffRaw?JSON.parse(ffRaw):[];
+      const ffIds=new Set(ffList.map(s=>s.id));
+      let modified=false;
+      globalList.forEach(gs=>{
+        if(!ffIds.has(gs.id)){
+          ffList.push({id:gs.id,name:gs.name||''});
+          modified=true;
+        }
+      });
+      if(modified) localStorage.setItem('ffv6_stores',JSON.stringify(ffList));
+      if(gCurId && ffList.find(s=>s.id===gCurId)){
+        localStorage.setItem('ffv6_current',gCurId);
+      }
+    }
+  }catch(_){}
+
   // ストアリストを読み込む
   const sl=localStorage.getItem('ffv6_stores');
   storeList=sl?JSON.parse(sl):[];

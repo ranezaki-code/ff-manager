@@ -337,9 +337,41 @@
 
 <script>
 /* ============================================================
+   グローバル店舗管理（4システム共通）
+============================================================ */
+function _ensureGlobalStores(){
+  let stores=[];
+  try{stores=JSON.parse(localStorage.getItem('global_stores')||'[]');}catch(_){}
+  if(stores.length===0){
+    try{
+      const ff=JSON.parse(localStorage.getItem('ffv6_stores')||'[]');
+      if(Array.isArray(ff)&&ff.length>0){
+        stores=ff.map(s=>({id:s.id,name:s.name||'',createdAt:Date.now()}));
+      }
+    }catch(_){}
+  }
+  if(stores.length===0){
+    stores=[{id:'store_'+Date.now(),name:'松本新村店',createdAt:Date.now()}];
+  }
+  let _modified=false;
+  stores.forEach(s=>{if(!s.name||!s.name.trim()){s.name='松本新村店';_modified=true;}});
+  if(_modified){
+    try{localStorage.setItem('ffv6_stores',JSON.stringify(stores.map(s=>({id:s.id,name:s.name}))));}catch(_){}
+  }
+  try{localStorage.setItem('global_stores',JSON.stringify(stores));}catch(_){}
+  let cur=localStorage.getItem('current_store_id')||localStorage.getItem('ffv6_current')||'';
+  if(!cur||!stores.find(s=>s.id===cur))cur=stores[0].id;
+  try{localStorage.setItem('current_store_id',cur);}catch(_){}
+  return{stores,currentId:cur};
+}
+const _gs=_ensureGlobalStores();
+const _STORE_ID=_gs.currentId;
+
+/* ============================================================
    データ定義
 ============================================================ */
-const STORAGE_KEY = 'shinmuraten-plan-v1';
+// STORAGE_KEY を店舗IDごとに分離（shinmuraten-plan-v1_store_<id>）
+const STORAGE_KEY = _STORE_ID?'shinmuraten-plan-v1_store_'+_STORE_ID:'shinmuraten-plan-v1';
 
 const CATS_DEPT = ['弁当','チルド弁当','常温寿司','おにぎり','調理パン','ワンハンドスナック','冷し麺','ホット麺','パスタ','焼きそば他','サラダ','オリジナル惣菜','オリジナル軽食','チルド和洋菓子','食卓パン','菓子パン','惣菜パン','健康・機能性ベーカリー','カット野菜','カットフルーツ','ファストフーズ','デザート','常温和洋菓子','生鮮品','日配食品','冷凍食品','アイスクリーム','チルド飲料','ソフトドリンク','日本酒・焼酎','ビール・発泡酒','洋酒・酎ハイ','即席麺','即席食品','ポケット菓子','スナック','珍味','米菓・焼菓子','化粧品','紙・生理・衛生用品','電気・小物用品','玩具','ドリンク剤&ヘルスケア','たばこ','合計'];
 
@@ -660,6 +692,16 @@ async function previewSnpRecovery(item){let content='';if(item.source==='Indexed
 async function restoreSnpFromRecovery(item){let content='';if(item.source==='IndexedDB')content=item.content||'';else{try{content=localStorage.getItem(item.key)||'';}catch(_){}}if(!content){alert('このスナップショットは空です（復元できません）');return;}if(!confirm(`スナップショット「${new Date(item.t).toLocaleString('ja-JP')}」を復元しますか？\n現在のデータは emergency 退避してから上書きします。`))return;_snpBackup('emergency');snpLogOp('RECOVERY_RESTORE',{from:item.key,source:item.source});try{localStorage.setItem(STORAGE_KEY,content);alert('復元しました。ページをリロードします。');location.reload();}catch(e){snpLogOp('RECOVERY_RESTORE_ERROR',{msg:String(e)});alert('復元に失敗しました: '+e.message);}}
 
 function loadState(){
+  // 【店舗統合・初回マイグレーション】per-storeキーが空 かつ レガシーキー'shinmuraten-plan-v1'にデータがあれば複製
+  if(_STORE_ID && !localStorage.getItem(STORAGE_KEY)){
+    try{
+      const legacy=localStorage.getItem('shinmuraten-plan-v1');
+      if(legacy && legacy.length>10 && legacy!=='{}'){
+        localStorage.setItem('shinmuraten-plan-v1_premigration_'+Date.now(),legacy);
+        localStorage.setItem(STORAGE_KEY,legacy);
+      }
+    }catch(_){}
+  }
   const raw = localStorage.getItem(STORAGE_KEY);
   if(!raw){ state = {}; return; }
   try{

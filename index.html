@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>松本新村店</title>
+<title>店舗ハブ</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -11,6 +11,7 @@
   --card:#ffffff;
   --text:#0f172a;
   --text-sub:#64748b;
+  --border:#e2e8f0;
   --shadow:0 1px 2px rgba(15,23,42,.03),0 4px 16px rgba(15,23,42,.05);
   --shadow-hover:0 4px 8px rgba(15,23,42,.05),0 16px 36px rgba(15,23,42,.10);
 }
@@ -26,13 +27,79 @@ body{
   -moz-osx-font-smoothing:grayscale;
 }
 .container{max-width:880px;margin:0 auto;}
-.title{
+
+/* ===== 店舗ドロップダウン（タイトル位置） ===== */
+.store-switcher{
+  position:relative;
+  display:inline-block;
+  margin-bottom:56px;
+}
+.store-trigger{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
   font-size:36px;
   font-weight:300;
   letter-spacing:-.02em;
-  margin-bottom:56px;
   color:var(--text);
+  background:transparent;
+  border:none;
+  cursor:pointer;
+  padding:0;
+  text-align:left;
+  font-family:inherit;
 }
+.store-trigger:hover{opacity:.7;}
+.store-trigger .chev{
+  font-size:14px;
+  color:var(--text-sub);
+  margin-top:6px;
+  transition:transform .2s ease;
+}
+.store-switcher.open .chev{transform:rotate(180deg);}
+.store-menu{
+  display:none;
+  position:absolute;
+  top:100%;
+  left:0;
+  margin-top:8px;
+  min-width:260px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 12px 32px rgba(15,23,42,.16);
+  padding:6px;
+  z-index:100;
+}
+.store-switcher.open .store-menu{display:block;}
+.store-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:14px;
+  color:var(--text);
+  user-select:none;
+}
+.store-item:hover{background:#f1f5f9;}
+.store-item.current{background:#eff6ff;color:#1d4ed8;font-weight:600;}
+.store-item .check{width:18px;text-align:center;color:#1d4ed8;font-weight:700;}
+.store-divider{height:1px;background:var(--border);margin:6px 4px;}
+.store-action{
+  padding:10px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:13px;
+  color:var(--text-sub);
+  display:flex;align-items:center;gap:8px;
+  user-select:none;
+}
+.store-action:hover{background:#f1f5f9;color:var(--text);}
+.store-action .ico{width:18px;text-align:center;}
+
+/* ===== タイル ===== */
 .tiles{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
@@ -73,7 +140,8 @@ body{
 }
 @media (max-width:480px){
   body{padding:48px 18px 18px;}
-  .title{font-size:28px;margin-bottom:36px;}
+  .store-trigger{font-size:28px;}
+  .store-switcher{margin-bottom:36px;}
   .tile{padding:24px 18px;min-height:120px;gap:14px;}
   .icon-wrap{width:48px;height:48px;font-size:24px;border-radius:12px;}
   .name{font-size:15px;}
@@ -82,7 +150,14 @@ body{
 </head>
 <body>
 <div class="container">
-  <h1 class="title">松本新村店</h1>
+  <div class="store-switcher" id="store-switcher">
+    <button class="store-trigger" id="store-trigger" type="button">
+      <span id="store-name">読み込み中…</span>
+      <span class="chev">▼</span>
+    </button>
+    <div class="store-menu" id="store-menu"></div>
+  </div>
+
   <div class="tiles">
     <a class="tile ff" href="./ff/index.html">
       <div class="icon-wrap">🍗</div>
@@ -98,7 +173,123 @@ body{
     </a>
   </div>
 </div>
+
 <script>
+/* ========== グローバル店舗管理（4システム共通） ========== */
+function _ensureGlobalStores(){
+  let stores=[];
+  try{stores=JSON.parse(localStorage.getItem('global_stores')||'[]');}catch(_){}
+  // 初回：FFの既存ffv6_storesから移行
+  if(stores.length===0){
+    try{
+      const ff=JSON.parse(localStorage.getItem('ffv6_stores')||'[]');
+      if(Array.isArray(ff)&&ff.length>0){
+        stores=ff.map(s=>({id:s.id,name:s.name||'',createdAt:Date.now()}));
+      }
+    }catch(_){}
+  }
+  if(stores.length===0){
+    stores=[{id:'store_'+Date.now(),name:'松本新村店',createdAt:Date.now()}];
+  }
+  // 空名は「松本新村店」をデフォルトとして補完（既存FF店舗が無名だったケース対応）
+  let _modified=false;
+  stores.forEach(s=>{if(!s.name||!s.name.trim()){s.name='松本新村店';_modified=true;}});
+  if(_modified){
+    // FF側のffv6_storesも追従して更新
+    try{localStorage.setItem('ffv6_stores',JSON.stringify(stores.map(s=>({id:s.id,name:s.name}))));}catch(_){}
+  }
+  try{localStorage.setItem('global_stores',JSON.stringify(stores));}catch(_){}
+  let cur=localStorage.getItem('current_store_id')||localStorage.getItem('ffv6_current')||'';
+  if(!cur||!stores.find(s=>s.id===cur))cur=stores[0].id;
+  try{localStorage.setItem('current_store_id',cur);}catch(_){}
+  return{stores,currentId:cur};
+}
+
+function getStores(){return _ensureGlobalStores().stores;}
+function getCurrentId(){return _ensureGlobalStores().currentId;}
+function getCurrentName(){
+  const{stores,currentId}=_ensureGlobalStores();
+  return(stores.find(s=>s.id===currentId)||{}).name||'(未設定)';
+}
+function setCurrentId(id){
+  const stores=getStores();
+  if(!stores.find(s=>s.id===id))return;
+  localStorage.setItem('current_store_id',id);
+  // FFの内部キーも同期（FFを開いた時に新店舗データを読むようにする）
+  localStorage.setItem('ffv6_current',id);
+  renderSwitcher();
+}
+function addStore(name){
+  const stores=getStores();
+  const id='store_'+Date.now();
+  stores.push({id,name:name.trim()||'新店舗',createdAt:Date.now()});
+  localStorage.setItem('global_stores',JSON.stringify(stores));
+  setCurrentId(id);
+}
+function renameStore(id,newName){
+  const stores=getStores();
+  const s=stores.find(x=>x.id===id);
+  if(!s)return;
+  s.name=newName.trim()||s.name;
+  localStorage.setItem('global_stores',JSON.stringify(stores));
+  renderSwitcher();
+}
+
+function renderSwitcher(){
+  const{stores,currentId}=_ensureGlobalStores();
+  document.getElementById('store-name').textContent=(stores.find(s=>s.id===currentId)||{}).name||'(未設定)';
+  const menu=document.getElementById('store-menu');
+  menu.innerHTML=
+    stores.map(s=>`
+      <div class="store-item ${s.id===currentId?'current':''}" data-id="${s.id}">
+        <span class="check">${s.id===currentId?'✓':''}</span>
+        <span style="flex:1">${escapeHtml(s.name)}</span>
+        <span class="ico-rename" data-id="${s.id}" title="名前を変更" style="opacity:.5;cursor:pointer;font-size:13px;padding:2px 6px">✏️</span>
+      </div>`).join('')+
+    `<div class="store-divider"></div>
+     <div class="store-action" id="add-store-btn"><span class="ico">＋</span>店舗を追加</div>`;
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// 起動時
+renderSwitcher();
+const sw=document.getElementById('store-switcher');
+document.getElementById('store-trigger').addEventListener('click',e=>{
+  e.stopPropagation();
+  sw.classList.toggle('open');
+});
+document.addEventListener('click',e=>{
+  if(!sw.contains(e.target))sw.classList.remove('open');
+});
+document.getElementById('store-menu').addEventListener('click',e=>{
+  e.stopPropagation();
+  // 名前変更
+  const renameBtn=e.target.closest('.ico-rename');
+  if(renameBtn){
+    const id=renameBtn.dataset.id;
+    const cur=getStores().find(s=>s.id===id);
+    const newName=prompt('店舗名を変更',cur?.name||'');
+    if(newName!==null&&newName.trim())renameStore(id,newName);
+    return;
+  }
+  // 切替
+  const item=e.target.closest('.store-item');
+  if(item){
+    setCurrentId(item.dataset.id);
+    sw.classList.remove('open');
+    return;
+  }
+  // 追加
+  if(e.target.closest('#add-store-btn')){
+    const name=prompt('追加する店舗名を入力');
+    if(name&&name.trim()){
+      addStore(name);
+      sw.classList.remove('open');
+    }
+  }
+});
+
+/* タイルクリック時：sessionStorageにハブURLを記憶（戻りボタン用） */
 document.querySelectorAll('a.tile').forEach(function(a){
   a.addEventListener('click',function(){
     try{

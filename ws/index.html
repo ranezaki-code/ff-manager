@@ -2758,8 +2758,37 @@ body.admin-mode #view-tabs #tab-db,body.admin-mode #view-tabs #tab-list{display:
 <script>
 'use strict';
 
+/* ========== グローバル店舗管理（4システム共通） ========== */
+function _ensureGlobalStores(){
+  let stores=[];
+  try{stores=JSON.parse(localStorage.getItem('global_stores')||'[]');}catch(_){}
+  if(stores.length===0){
+    try{
+      const ff=JSON.parse(localStorage.getItem('ffv6_stores')||'[]');
+      if(Array.isArray(ff)&&ff.length>0){
+        stores=ff.map(s=>({id:s.id,name:s.name||'',createdAt:Date.now()}));
+      }
+    }catch(_){}
+  }
+  if(stores.length===0){
+    stores=[{id:'store_'+Date.now(),name:'松本新村店',createdAt:Date.now()}];
+  }
+  let _modified=false;
+  stores.forEach(s=>{if(!s.name||!s.name.trim()){s.name='松本新村店';_modified=true;}});
+  if(_modified){
+    try{localStorage.setItem('ffv6_stores',JSON.stringify(stores.map(s=>({id:s.id,name:s.name}))));}catch(_){}
+  }
+  try{localStorage.setItem('global_stores',JSON.stringify(stores));}catch(_){}
+  let cur=localStorage.getItem('current_store_id')||localStorage.getItem('ffv6_current')||'';
+  if(!cur||!stores.find(s=>s.id===cur))cur=stores[0].id;
+  try{localStorage.setItem('current_store_id',cur);}catch(_){}
+  return{stores,currentId:cur};
+}
+const _gs=_ensureGlobalStores();
+const _STORE_ID=_gs.currentId;
+
 /* ========== 状態管理 ========== */
-const STORAGE_KEY = 'ws_v1';
+const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
 const APP_VERSION = '5.4'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
@@ -2778,6 +2807,16 @@ let editingDateKey = null;
 let nowTimer = null;
 
 function loadState(){
+  // 【店舗統合・初回マイグレーション】per-storeキーが空 かつ レガシーキー'ws_v1'にデータがあれば複製。
+  if(_STORE_ID && !localStorage.getItem(STORAGE_KEY)){
+    try{
+      const legacy=localStorage.getItem('ws_v1');
+      if(legacy && legacy.length>10 && legacy!=='{}'){
+        localStorage.setItem('ws_v1_premigration_'+Date.now(),legacy);
+        localStorage.setItem(STORAGE_KEY,legacy);
+      }
+    }catch(_){}
+  }
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
