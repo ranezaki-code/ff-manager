@@ -1625,6 +1625,35 @@ async function gistPush(manual){
   _gistSyncing=true;
   if(manual)gistSetStatus('送信中…','#1d4ed8');
   try{
+    // 【事故対策・編集中multi-device上書き防止】
+    // push前にリモートのupdated_atを確認。前回同期以降にリモートが進んでいたら
+    // = 別端末が編集してpushしている → このまま送ると別端末の変更を踏み潰す
+    // → push中止して「先に取得してください」と案内（手動時はconfirmで強行も可）
+    try{
+      const meta=await gistApi('/gists/'+gistId);
+      const remoteAt=meta&&meta.updated_at?new Date(meta.updated_at).getTime():0;
+      const knownAt=parseInt(localStorage.getItem('ffv6_gist_synced_at')?new Date(localStorage.getItem('ffv6_gist_synced_at')).getTime():'0',10)||0;
+      // リモートが10秒以上進んでいたら別端末のpushを疑う（自分のpushの瞬間の差は無視）
+      if(remoteAt>0&&knownAt>0&&remoteAt>knownAt+10000){
+        logOp('PUSH_BLOCKED_REMOTE_NEWER',{remote:meta.updated_at,known:localStorage.getItem('ffv6_gist_synced_at')});
+        gistSetStatus('別端末の変更を検出。送信を中止しました','#b91c1c');
+        if(manual){
+          const msg='別端末でデータが更新されています。\n\nリモート更新: '+new Date(remoteAt).toLocaleString('ja-JP')+'\n前回同期: '+new Date(knownAt).toLocaleString('ja-JP')+'\n\n[OK] 別端末の変更を「取得」する（推奨。今の編集は「データ復元」から戻せます）\n[キャンセル] 何もしない（送信中止のまま）';
+          if(confirm(msg)){
+            _gistSyncing=false;
+            await gistPull(true,meta);
+            return;
+          }
+        } else {
+          // 自動push時は黙って中止（次の手動操作で気付かせる）
+          console.warn('FF管理: 別端末の変更を検出、自動push中止');
+        }
+        return;
+      }
+    }catch(e){
+      // 鮮度確認の失敗はpush自体は止めない（ネットワークエラー時に詰むのを避ける）
+      console.warn('FF管理: push前鮮度確認失敗（push続行）',e);
+    }
     const data=gistBuildPayload();
     const r=await gistApi('/gists/'+gistId,{method:'PATCH',body:JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(data,null,2)}}})});
     localStorage.setItem('ffv6_gist_lastPush',new Date().toISOString());
