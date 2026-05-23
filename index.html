@@ -448,7 +448,26 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <div class="flex gap-2 flex-wrap">
           <button class="btn-primary" onclick="exportData()">エクスポート</button>
           <button class="btn-secondary" onclick="importData()">インポート</button>
+          <button class="btn-success" onclick="openRecoveryModal()" title="自動バックアップから過去のデータに戻す">🛟 データ復元</button>
           <button class="btn-danger" onclick="resetSetup()">店舗設定をリセット</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#6b7280;line-height:1.6">
+          自動バックアップ：保存のたびに最大1分間隔でスナップショット（端末内に20件＋IndexedDBに30件）。<br>
+          リセット・インポート・取得の直前にも退避を作成しています。誤操作で消えた時は「🛟 データ復元」から戻せます。
+        </div>
+      </div>
+
+      <!-- データ復元モーダル -->
+      <div id="recovery-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:12px;width:min(720px,92vw);max-height:85vh;overflow:hidden;display:flex;flex-direction:column">
+          <div style="padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between">
+            <div style="font-weight:700;font-size:16px">🛟 データ復元</div>
+            <button class="btn-secondary" onclick="closeRecoveryModal()" style="padding:4px 10px">閉じる</button>
+          </div>
+          <div style="padding:10px 18px 0;font-size:12px;color:#6b7280;line-height:1.7">
+            過去のスナップショットから選んで復元できます。復元時は「現状」も emergency バックアップとして退避するので、間違えても戻せます。
+          </div>
+          <div id="recovery-list" style="padding:14px 18px 18px;overflow-y:auto;flex:1"></div>
         </div>
       </div>
     </div>
@@ -1559,6 +1578,110 @@ async function idbListSnapshots(){
       req.onerror=()=>rej(req.error);
     });
   }catch(_){return[];}
+}
+
+// ============================================================
+// データ復元UI（過去のスナップ/緊急退避から戻す）
+// ============================================================
+function openRecoveryModal(){
+  const m=document.getElementById('recovery-modal');
+  if(!m)return;
+  m.style.display='flex';
+  renderRecoveryList();
+}
+function closeRecoveryModal(){
+  const m=document.getElementById('recovery-modal');
+  if(m)m.style.display='none';
+}
+async function renderRecoveryList(){
+  const el=document.getElementById('recovery-list');
+  if(!el)return;
+  el.innerHTML='<div style="color:#6b7280">読み込み中…</div>';
+  // localStorage 側を集約
+  const lsItems=[];
+  const labelOf=p=>({snap:'自動スナップ',emergency:'緊急退避',pre_import:'インポート直前',pre_pull:'クラウド取得直前',autobackup:'自動退避'})[p]||p;
+  Object.keys(localStorage).forEach(k=>{
+    const m=k.match(/^ffv6_(snap|emergency|pre_import|pre_pull|autobackup)_(?:([a-zA-Z0-9_]+)_)?(\d{10,})$/);
+    if(!m)return;
+    lsItems.push({source:'localStorage',key:k,prefix:m[1],storeId:m[2]||'',t:parseInt(m[3],10)});
+  });
+  // IndexedDB 側
+  const idb=await idbListSnapshots();
+  const idbItems=idb.map(r=>({source:'IndexedDB',key:'idb:'+r.t,prefix:'snap',storeId:r.storeId||'',t:r.t,content:r.content}));
+  const all=[...lsItems,...idbItems].sort((a,b)=>b.t-a.t);
+  if(all.length===0){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:#6b7280">復元できるスナップショットがまだありません。<br>データを編集して保存すると自動で作成されます。</div>';
+    return;
+  }
+  // サイズ計算
+  const sizeOf=item=>{
+    if(item.source==='IndexedDB')return(item.content||'').length;
+    try{return(localStorage.getItem(item.key)||'').length;}catch(_){return 0;}
+  };
+  const fmtT=ts=>new Date(ts).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const fmtBytes=n=>n<1024?n+'B':n<1024*1024?(n/1024).toFixed(1)+'KB':(n/1024/1024).toFixed(2)+'MB';
+  const storeName=id=>(storeList||[]).find(s=>s.id===id)?.name||(id?'(削除済 '+id.slice(0,8)+')':'');
+  el.innerHTML=all.slice(0,80).map((it,i)=>{
+    const sn=storeName(it.storeId);
+    const isCurrent=it.storeId===currentStoreId||(!it.storeId&&!currentStoreId);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #f1f5f9">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:#1e293b">${fmtT(it.t)} <span style="font-weight:400;color:#64748b">[${labelOf(it.prefix)}]</span></div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px">${it.source} ・ ${fmtBytes(sizeOf(it))}${sn?' ・ 店舗: '+sn+(isCurrent?' (現在の店舗)':''):''}</div>
+      </div>
+      <button class="btn-secondary" style="padding:4px 10px;font-size:11px" onclick='previewRecovery(${JSON.stringify(it)})'>👁 中身</button>
+      <button class="btn-primary" style="padding:6px 12px;font-size:12px" onclick='restoreFromRecovery(${JSON.stringify(it)})' ${!isCurrent&&it.storeId?'title="この店舗のデータに復元"':''}>復元</button>
+    </div>`;
+  }).join('')+(all.length>80?`<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px">…他${all.length-80}件は省略</div>`:'');
+}
+async function previewRecovery(item){
+  let content='';
+  if(item.source==='IndexedDB'){content=item.content||'';}
+  else{try{content=localStorage.getItem(item.key)||'';}catch(_){}}
+  let preview=content.slice(0,1500);
+  try{
+    const obj=JSON.parse(content);
+    const summary={
+      storeName:obj.storeName||'(未設定)',
+      週数:Object.keys(obj.weeks||{}).length,
+      アクティブ週:obj.activeWeek||'(なし)',
+      ルール件数:(obj.rules||[]).length,
+      施策件数:(obj.施策||[]).length,
+      PM件数:(obj.PM||[]).length
+    };
+    preview=JSON.stringify(summary,null,2)+'\n\n--- 先頭プレビュー ---\n'+content.slice(0,800);
+  }catch(_){}
+  alert('=== '+item.key+' ===\n保存時刻: '+new Date(item.t).toLocaleString('ja-JP')+'\n\n'+preview);
+}
+async function restoreFromRecovery(item){
+  let content='';
+  if(item.source==='IndexedDB'){content=item.content||'';}
+  else{try{content=localStorage.getItem(item.key)||'';}catch(_){}}
+  if(!content){alert('このスナップショットは空です（復元できません）');return;}
+  // 復元先の店舗ID（スナップに含まれていればそれを優先、なければ現在の店舗）
+  const targetStoreId=item.storeId||currentStoreId||'';
+  const targetKey=targetStoreId?'ffv6_store_'+targetStoreId:'ffv6';
+  const targetName=targetStoreId?((storeList||[]).find(s=>s.id===targetStoreId)?.name||targetStoreId):'(無名)';
+  if(!confirm(`スナップショット「${new Date(item.t).toLocaleString('ja-JP')}」を\n店舗「${targetName}」に復元しますか？\n\n現在のデータは emergency 退避してから上書きします（再度「データ復元」から戻せます）。`))return;
+  // 現状を退避してから復元
+  try{
+    const cur=localStorage.getItem(targetKey);
+    if(cur)localStorage.setItem('ffv6_emergency_'+targetStoreId+'_'+Date.now(),cur);
+  }catch(_){}
+  logOp('RECOVERY_RESTORE',{from:item.key,to:targetKey,source:item.source});
+  try{
+    localStorage.setItem(targetKey,content);
+    // 復元した店舗をアクティブに
+    if(targetStoreId){
+      localStorage.setItem('ffv6_current',targetStoreId);
+      localStorage.setItem('ffv6_setup_'+targetStoreId,'1');
+    }
+    alert('復元しました。ページをリロードします。');
+    location.reload();
+  }catch(e){
+    logOp('RECOVERY_RESTORE_ERROR',{msg:String(e)});
+    alert('復元に失敗しました: '+e.message);
+  }
 }
 
 // ============================================================
