@@ -4419,6 +4419,55 @@ function setProdSortMode(mode){
   renderProdDayContent(currentProdDay);
 }
 
+// ====== カテゴリ折りたたみ & 未完了検知ヘルパー ======
+let _collapsedCats=new Set(JSON.parse(localStorage.getItem('ffv6_collapsed_cats')||'[]'));
+function toggleCatCollapse(cat){
+  if(_collapsedCats.has(cat))_collapsedCats.delete(cat);
+  else _collapsedCats.add(cat);
+  try{localStorage.setItem('ffv6_collapsed_cats',JSON.stringify([..._collapsedCats]));}catch(_){}
+  renderProdDayContent(currentProdDay);
+}
+function collapseAllCats(){
+  CATS.forEach(c=>{if(S.catOn[c])_collapsedCats.add(c);});
+  try{localStorage.setItem('ffv6_collapsed_cats',JSON.stringify([..._collapsedCats]));}catch(_){}
+  renderProdDayContent(currentProdDay);
+}
+function expandAllCats(){
+  _collapsedCats.clear();
+  try{localStorage.setItem('ffv6_collapsed_cats',JSON.stringify([]));}catch(_){}
+  renderProdDayContent(currentProdDay);
+}
+function _isViewingToday(dayIdx){
+  try{const dates=getWeekDates();if(!dates[dayIdx])return false;return dates[dayIdx].toDateString()===new Date().toDateString();}catch(_){return false;}
+}
+function _isSlotOverdue(dayIdx,slotH){
+  // 今日を表示中で、現在時刻が「作成スロット時刻+1時間（陳列予定時刻）」を過ぎていれば overdue
+  if(!_isViewingToday(dayIdx))return false;
+  const now=new Date();
+  const nowMin=now.getHours()*60+now.getMinutes();
+  return nowMin>(slotH+1)*60;
+}
+function _catProgress(cat,dayIdx){
+  if(!S.catOn[cat])return{done:0,total:0,allDone:true,hasOverdue:false};
+  const cfg=S.catCfg[cat];
+  if(!cfg||!cfg.slots.length)return{done:0,total:0,allDone:true,hasOverdue:false};
+  const prods=S.PM.filter(p=>p.enabled&&p.category===cat);
+  let total=0,done=0,hasOverdue=false;
+  prods.forEach(p=>{
+    cfg.slots.forEach(slotH=>{
+      // 作成数が0なら「やることなし」としてカウント外
+      const cnt=getProdCnt(p.id,dayIdx,slotH);
+      const extra=getInvestExtra(p.id,dayIdx,slotH);
+      if(cnt+extra<=0)return;
+      total++;
+      const chk=`${dayIdx}_${slotH}_${p.id}`;
+      if(S.checks[chk])done++;
+      else if(_isSlotOverdue(dayIdx,slotH))hasOverdue=true;
+    });
+  });
+  return{done,total,allDone:total===0||done===total,hasOverdue};
+}
+
 function renderProdDayContent(dayIdx){
   const el=document.getElementById('prod-day-content');
   const e=S.ext[dayIdx]||{weather:'晴れ',temp:20,event:'',correction:0};
@@ -4478,25 +4527,35 @@ function renderProdDayContent(dayIdx){
     }
   }
 
-  // Progress bars for each slot
-  html+=`<div class="card">`;
-  html+=`<div class="section-title">${t('make.slotProgress')}</div>`;
-  ALL_SLOTS.forEach(slotH=>{
-    const prods=S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]?.slots.includes(slotH));
-    if(!prods.length)return;
-    const total=prods.length;
-    const done=prods.filter(p=>S.checks[`${dayIdx}_${slotH}_${p.id}`]).length;
-    const pct=total?Math.round(done/total*100):0;
-    const icon=pct===100?'✅':pct>0?'🔵':'⬜';
-    html+=`<div style="margin-bottom:6px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
-        <span>${SLOT_LABELS[slotH]} ${icon}</span>
-        <span>${done}/${total} (${pct}%)</span>
-      </div>
-      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+  // ====== 未完了カテゴリの早期警告バナー（条件付き表示） ======
+  // - 未完了カテゴリが1つでもあれば表示
+  // - 時刻超過の未完了があれば赤系で強調、それ以外は黄系
+  // - 全部完了したら自動で非表示
+  const _catProgs=CATS.filter(c=>S.catOn[c]).map(cat=>({cat,...(_catProgress(cat,dayIdx))}));
+  const _incompleteCats=_catProgs.filter(p=>p.total>0&&!p.allDone);
+  const _anyOverdue=_incompleteCats.some(p=>p.hasOverdue);
+  if(_incompleteCats.length>0){
+    const bg=_anyOverdue?'#fee2e2':'#fef3c7';
+    const bd=_anyOverdue?'#ef4444':'#f59e0b';
+    const tx=_anyOverdue?'#991b1b':'#78350f';
+    const icon=_anyOverdue?'🔴':'⚠️';
+    const labelTxt=_anyOverdue?'時刻超過の未完了':'未完了';
+    const items=_incompleteCats.map(p=>{
+      const od=p.hasOverdue?' style="font-weight:800;text-decoration:underline"':'';
+      return `<span${od}>${p.cat} ${p.done}/${p.total}</span>`;
+    }).join('、');
+    html+=`<div style="position:sticky;top:0;z-index:50;background:${bg};border:2px solid ${bd};border-radius:8px;padding:10px 14px;font-size:13px;color:${tx};margin-bottom:10px;line-height:1.6">
+      ${icon} <b>${labelTxt}：</b>${items}
     </div>`;
-  });
-  html+=`</div>`;
+  }
+
+  // ====== カテゴリ折りたたみ全操作ボタン ======
+  const _anyCollapsed=CATS.some(c=>S.catOn[c]&&_collapsedCats.has(c));
+  const _allCollapsed=CATS.filter(c=>S.catOn[c]).every(c=>_collapsedCats.has(c));
+  html+=`<div style="display:flex;gap:6px;margin-bottom:8px">
+    <button onclick="${_allCollapsed?'expandAllCats()':'collapseAllCats()'}" style="padding:6px 12px;font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#374151">${_allCollapsed?'▼ 全て展開':'▶ 全て折りたたむ'}</button>
+    ${(_anyCollapsed&&!_allCollapsed)?`<button onclick="expandAllCats()" style="padding:6px 12px;font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#374151">▼ 全て展開</button>`:''}
+  </div>`;
 
   // Category sections
   CATS.forEach(cat=>{
@@ -4529,7 +4588,26 @@ function renderProdDayContent(dayIdx){
         </div>`;
       }
     }
-    html+=`<div class="section-title">${cat}</div>${effHint}`;
+    // ====== カテゴリヘッダー：進捗バッジ＋折りたたみトグル ======
+    const _prog=_catProgress(cat,dayIdx);
+    const _isCollapsed=_collapsedCats.has(cat);
+    let _badgeBg='#9ca3af',_badgeIcon='';
+    if(_prog.total===0){_badgeBg='#9ca3af';_badgeIcon='—';}
+    else if(_prog.allDone){_badgeBg='#16a34a';_badgeIcon='✓ ';}
+    else if(_prog.hasOverdue){_badgeBg='#dc2626';_badgeIcon='⏰ ';}
+    else{_badgeBg='#2563eb';_badgeIcon='';}
+    const _badgeTxt=_prog.total===0?'—':`${_badgeIcon}${_prog.done}/${_prog.total}`;
+    html+=`<div class="section-title" style="cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none" onclick="toggleCatCollapse('${cat}')">
+      <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
+      <span>${cat}</span>
+      <span style="background:${_badgeBg};color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${_badgeTxt}</span>
+    </div>`;
+    if(_isCollapsed){
+      // 折りたたみ時はテーブル本体・効率順ヒント・カテゴリ合計をすべてスキップ
+      html+=`</div>`;
+      return;
+    }
+    html+=effHint;
     html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
     html+=`<thead><tr><th style="width:110px;text-align:left">商品名</th>`;
     const discOn=isDiscountOn(cat,dayIdx);
