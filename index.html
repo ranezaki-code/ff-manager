@@ -4440,32 +4440,52 @@ function expandAllCats(){
 function _isViewingToday(dayIdx){
   try{const dates=getWeekDates();if(!dates[dayIdx])return false;return dates[dayIdx].toDateString()===new Date().toDateString();}catch(_){return false;}
 }
+function _isSlotDueByNow(dayIdx,slotH){
+  // 今日を表示中で、作成開始時刻が来ていれば「もう作るべき」
+  if(!_isViewingToday(dayIdx))return true; // 他日表示時は全部「該当」
+  return new Date().getHours()>=slotH;
+}
 function _isSlotOverdue(dayIdx,slotH){
-  // 今日を表示中で、現在時刻が「作成スロット時刻+1時間（陳列予定時刻）」を過ぎていれば overdue
+  // 陳列予定時刻（作成スロット+1時間）を過ぎているのに未完了なら overdue
   if(!_isViewingToday(dayIdx))return false;
   const now=new Date();
   const nowMin=now.getHours()*60+now.getMinutes();
-  return nowMin>(slotH+1)*60;
+  return nowMin>=(slotH+1)*60;
 }
 function _catProgress(cat,dayIdx){
-  if(!S.catOn[cat])return{done:0,total:0,allDone:true,hasOverdue:false};
+  // 戻り値:
+  //   total/done = その日の全スロット合計（参考値）
+  //   dueSoFar/doneSoFar = 「今までに作るべき分」（今日表示時のみ縮小、他日は total と同じ）
+  //   allDone = 1日全部完了
+  //   allDueDone = 「今まで分」だけは全部完了
+  //   hasOverdue = 陳列時刻を過ぎたのに未完了がある
+  if(!S.catOn[cat])return{done:0,total:0,dueSoFar:0,doneSoFar:0,allDone:true,allDueDone:true,hasOverdue:false};
   const cfg=S.catCfg[cat];
-  if(!cfg||!cfg.slots.length)return{done:0,total:0,allDone:true,hasOverdue:false};
+  if(!cfg||!cfg.slots.length)return{done:0,total:0,dueSoFar:0,doneSoFar:0,allDone:true,allDueDone:true,hasOverdue:false};
   const prods=S.PM.filter(p=>p.enabled&&p.category===cat);
-  let total=0,done=0,hasOverdue=false;
+  let total=0,done=0,dueSoFar=0,doneSoFar=0,hasOverdue=false;
   prods.forEach(p=>{
     cfg.slots.forEach(slotH=>{
-      // 作成数が0なら「やることなし」としてカウント外
       const cnt=getProdCnt(p.id,dayIdx,slotH);
       const extra=getInvestExtra(p.id,dayIdx,slotH);
       if(cnt+extra<=0)return;
       total++;
       const chk=`${dayIdx}_${slotH}_${p.id}`;
-      if(S.checks[chk])done++;
-      else if(_isSlotOverdue(dayIdx,slotH))hasOverdue=true;
+      const isChecked=!!S.checks[chk];
+      if(isChecked)done++;
+      if(_isSlotDueByNow(dayIdx,slotH)){
+        dueSoFar++;
+        if(isChecked)doneSoFar++;
+        else if(_isSlotOverdue(dayIdx,slotH))hasOverdue=true;
+      }
     });
   });
-  return{done,total,allDone:total===0||done===total,hasOverdue};
+  return{
+    done,total,dueSoFar,doneSoFar,
+    allDone:total===0||done===total,
+    allDueDone:dueSoFar===0||doneSoFar===dueSoFar,
+    hasOverdue
+  };
 }
 
 function renderProdDayContent(dayIdx){
@@ -4527,22 +4547,26 @@ function renderProdDayContent(dayIdx){
     }
   }
 
-  // ====== 未完了カテゴリの早期警告バナー（条件付き表示） ======
-  // - 未完了カテゴリが1つでもあれば表示
-  // - 時刻超過の未完了があれば赤系で強調、それ以外は黄系
+  // ====== 「いま作るべき」カテゴリの早期警告バナー（条件付き表示） ======
+  // - 今日表示時のみ動作（他日は未来予定なので警告対象外）
+  // - 「現時点で作るべきスロット」のうち未完了があるカテゴリを表示
+  // - 陳列時刻を過ぎてる未完了があれば赤、それ以外は黄
   // - 全部完了したら自動で非表示
+  const _isToday=_isViewingToday(dayIdx);
   const _catProgs=CATS.filter(c=>S.catOn[c]).map(cat=>({cat,...(_catProgress(cat,dayIdx))}));
-  const _incompleteCats=_catProgs.filter(p=>p.total>0&&!p.allDone);
-  const _anyOverdue=_incompleteCats.some(p=>p.hasOverdue);
-  if(_incompleteCats.length>0){
+  const _attentionCats=_isToday
+    ? _catProgs.filter(p=>p.dueSoFar>0 && !p.allDueDone)
+    : [];
+  const _anyOverdue=_attentionCats.some(p=>p.hasOverdue);
+  if(_attentionCats.length>0){
     const bg=_anyOverdue?'#fee2e2':'#fef3c7';
     const bd=_anyOverdue?'#ef4444':'#f59e0b';
     const tx=_anyOverdue?'#991b1b':'#78350f';
     const icon=_anyOverdue?'🔴':'⚠️';
-    const labelTxt=_anyOverdue?'時刻超過の未完了':'未完了';
-    const items=_incompleteCats.map(p=>{
+    const labelTxt=_anyOverdue?'陳列時刻を過ぎています':'いま作るべき';
+    const items=_attentionCats.map(p=>{
       const od=p.hasOverdue?' style="font-weight:800;text-decoration:underline"':'';
-      return `<span${od}>${p.cat} ${p.done}/${p.total}</span>`;
+      return `<span${od}>${p.cat} ${p.doneSoFar}/${p.dueSoFar}</span>`;
     }).join('、');
     html+=`<div style="position:sticky;top:0;z-index:50;background:${bg};border:2px solid ${bd};border-radius:8px;padding:10px 14px;font-size:13px;color:${tx};margin-bottom:10px;line-height:1.6">
       ${icon} <b>${labelTxt}：</b>${items}
@@ -4589,14 +4613,28 @@ function renderProdDayContent(dayIdx){
       }
     }
     // ====== カテゴリヘッダー：進捗バッジ＋折りたたみトグル ======
+    // 今日表示時：分母=「現時点で作るべき分」、他日表示時：分母=全スロット
     const _prog=_catProgress(cat,dayIdx);
     const _isCollapsed=_collapsedCats.has(cat);
-    let _badgeBg='#9ca3af',_badgeIcon='';
-    if(_prog.total===0){_badgeBg='#9ca3af';_badgeIcon='—';}
-    else if(_prog.allDone){_badgeBg='#16a34a';_badgeIcon='✓ ';}
-    else if(_prog.hasOverdue){_badgeBg='#dc2626';_badgeIcon='⏰ ';}
-    else{_badgeBg='#2563eb';_badgeIcon='';}
-    const _badgeTxt=_prog.total===0?'—':`${_badgeIcon}${_prog.done}/${_prog.total}`;
+    let _badgeBg='#9ca3af',_badgeIcon='',_badgeTxt='—';
+    if(_prog.total===0){
+      _badgeTxt='—';
+    } else if(_prog.allDone){
+      _badgeBg='#16a34a';_badgeIcon='✓ ';_badgeTxt=`${_badgeIcon}${_prog.done}/${_prog.total} 完了`;
+    } else if(_isToday){
+      if(_prog.hasOverdue){
+        _badgeBg='#dc2626';_badgeIcon='⏰ ';_badgeTxt=`${_badgeIcon}${_prog.doneSoFar}/${_prog.dueSoFar}`;
+      } else if(_prog.dueSoFar===0){
+        _badgeBg='#9ca3af';_badgeTxt=`これから ${_prog.total}件`;
+      } else if(_prog.allDueDone){
+        _badgeBg='#16a34a';_badgeIcon='✓ ';_badgeTxt=`${_badgeIcon}${_prog.doneSoFar}/${_prog.dueSoFar} (現時点)`;
+      } else {
+        _badgeBg='#2563eb';_badgeTxt=`${_prog.doneSoFar}/${_prog.dueSoFar} (現時点)`;
+      }
+    } else {
+      // 他日（明日以降や過去）は1日全体を見せる
+      _badgeBg='#6b7280';_badgeTxt=`${_prog.done}/${_prog.total}`;
+    }
     html+=`<div class="section-title" style="cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none" onclick="toggleCatCollapse('${cat}')">
       <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
       <span>${cat}</span>
