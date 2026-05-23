@@ -1456,8 +1456,21 @@ function syncActiveWeek(){
 function saveS(){
   syncActiveWeek();
   const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
-  // 保存前のサイズを記録（大幅減検知用）
-  let prevSize=0;try{prevSize=(localStorage.getItem(key)||'').length;}catch(_){}
+
+  // 【追加保護B】空state上書き拒否
+  // 既存に意味あるデータが入っていて、いまの S が完全に空っぽなら拒否
+  // （初期化バグや一過性の例外で実データが空に置き換わる事故を未然防止）
+  let prevRaw='';try{prevRaw=localStorage.getItem(key)||'';}catch(_){}
+  if(_hasMeaningfulExisting(prevRaw) && _looksEmptyState(S)){
+    logOp('SAVE_BLOCKED_EMPTY_OVER_EXISTING',{prevSize:prevRaw.length});
+    console.error('FF管理: 空のstateで既存データを上書きしようとしたため保存を中止しました');
+    return;
+  }
+
+  // 【追加保護A】quota枯渇前の自動削減
+  _trimAllBackupsIfNeeded();
+
+  const prevSize=prevRaw.length;
   try{localStorage.setItem(key,JSON.stringify({
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
@@ -1466,19 +1479,29 @@ function saveS(){
     施策:S.施策,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
-  }));}catch(e){console.warn('save error',e);logOp('SAVE_ERROR',{msg:String(e)});return;}
+  }));}catch(e){
+    // QuotaExceededError ならもう一度強めにtrimして再試行
+    console.warn('save error (1st)',e);logOp('SAVE_ERROR',{msg:String(e),phase:'first'});
+    _trimAllBackupsIfNeeded();
+    try{localStorage.setItem(key,JSON.stringify({
+      storeName:S.storeName,chainName:S.chainName,PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
+      ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
+      rules:S.rules,checks:S.checks,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
+      施策:S.施策,booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
+      weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
+    }));}catch(e2){console.error('save error (final)',e2);logOp('SAVE_ERROR',{msg:String(e2),phase:'final'});return;}
+  }
   // 大幅減検知：50%以上減ったら緊急バックアップ＋警告ログ
-  // （誤操作や状態リセットbug で気付かぬうちにデータが消える事故の検知）
   const newSize=(localStorage.getItem(key)||'').length;
   if(prevSize>1000 && newSize<prevSize*0.5){
     logOp('WARN_BIG_DROP',{prev:prevSize,now:newSize,ratio:Math.round(newSize/prevSize*100)/100});
     _backupCurrent('emergency');
     console.warn('FF管理: データが大幅に減少しました（緊急バックアップを作成）',{prev:prevSize,now:newSize});
   }
-  // ローカル変更時刻を記録（リロード時の比較に使用）
   localStorage.setItem('ffv6_local_modified',Date.now().toString());
-  // 自動スナップショット（1分間隔、localStorage 20件 + IndexedDB 30件）
   autoSnapshot();
+  // 【追加保護D】保存を他タブに通知
+  _broadcastSave();
   gistSyncDebouncedPush();
 }
 
@@ -1578,6 +1601,137 @@ async function idbListSnapshots(){
       req.onerror=()=>rej(req.error);
     });
   }catch(_){return[];}
+}
+
+// ============================================================
+// 【追加保護A】localStorage quota 枯渇前の自動防御
+//   5MB上限に近づいたら、バックアップを古い順に自動削除
+//   削除順序：snap → autobackup → pre_pull → pre_import → emergency（大事なほど後）
+// ============================================================
+const _QUOTA_THRESHOLD=4500000; // 4.5MB相当
+function _estimateLocalStorageUsage(){
+  let n=0;
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      n+=(k||'').length+(localStorage.getItem(k)||'').length;
+    }
+  }catch(_){}
+  return n;
+}
+function _trimAllBackupsIfNeeded(){
+  if(_estimateLocalStorageUsage()<_QUOTA_THRESHOLD)return;
+  const prefixes=['snap','autobackup','pre_pull','pre_import','emergency'];
+  for(const prefix of prefixes){
+    if(_estimateLocalStorageUsage()<_QUOTA_THRESHOLD)return;
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith('ffv6_'+prefix+'_')).sort();
+    while(keys.length>0 && _estimateLocalStorageUsage()>=_QUOTA_THRESHOLD){
+      const removed=keys.shift();
+      try{localStorage.removeItem(removed);logOp('AUTO_TRIM_QUOTA',{removed,prefix});}catch(_){}
+    }
+  }
+}
+
+// ============================================================
+// 【追加保護B】空state上書きの拒否
+//   既存データが意味のある内容を持ち、新state が完全に空っぽならsaveを拒否。
+//   初期化バグや一過性の例外で「実データが空Sに置き換えられる」事故を防ぐ。
+// ============================================================
+function _looksEmptyState(stateObj){
+  if(!stateObj||typeof stateObj!=='object')return true;
+  const PM=stateObj.PM||[];
+  const weeks=Object.keys(stateObj.weeks||{}).length;
+  const rules=(stateObj.rules||[]).length;
+  const measures=(stateObj.施策||[]).length;
+  return PM.length===0 && weeks===0 && rules===0 && measures===0 && !stateObj.storeName && !stateObj.chainName;
+}
+function _hasMeaningfulExisting(existingJson){
+  if(!existingJson||existingJson.length<200)return false;
+  try{
+    const o=JSON.parse(existingJson);
+    return !_looksEmptyState(o);
+  }catch(_){return false;}
+}
+
+// ============================================================
+// 【追加保護C】JSON破損検知時の自動復旧
+//   loadS で読込が失敗 or 空だった時、最新のスナップショットから自動復元する
+// ============================================================
+async function _autoRecoverFromCorruption(storeKey){
+  // 1. localStorage 内の snap/emergency/autobackup を新しい順に試す
+  const lsKeys=Object.keys(localStorage)
+    .filter(k=>k.startsWith('ffv6_snap_')||k.startsWith('ffv6_emergency_')||k.startsWith('ffv6_autobackup_'))
+    .sort().reverse();
+  for(const k of lsKeys){
+    try{
+      const v=localStorage.getItem(k);
+      if(!v)continue;
+      const o=JSON.parse(v);
+      if(_looksEmptyState(o))continue;
+      localStorage.setItem(storeKey,v);
+      logOp('AUTO_RECOVER',{from:'localStorage:'+k,to:storeKey});
+      return{recovered:true,from:k,time:parseInt(k.split('_').pop(),10)||0};
+    }catch(_){}
+  }
+  // 2. IndexedDB を試す
+  try{
+    const idbSnaps=await idbListSnapshots();
+    for(const snap of idbSnaps){
+      try{
+        const o=JSON.parse(snap.content);
+        if(_looksEmptyState(o))continue;
+        localStorage.setItem(storeKey,snap.content);
+        logOp('AUTO_RECOVER',{from:'IndexedDB:'+snap.t,to:storeKey});
+        return{recovered:true,from:'IndexedDB',time:snap.t};
+      }catch(_){}
+    }
+  }catch(_){}
+  return{recovered:false};
+}
+
+// ============================================================
+// 【追加保護D】同一オリジン多タブの検知警告
+//   BroadcastChannel で他タブの存在と保存イベントを検知。
+//   2タブ並行編集による上書き事故を未然に警告。
+// ============================================================
+let _bcChannel=null;
+function _initMultiTabGuard(){
+  try{
+    if(!window.BroadcastChannel)return;
+    _bcChannel=new BroadcastChannel('ffv6_tabs');
+    _bcChannel.postMessage({type:'HELLO',t:Date.now()});
+    _bcChannel.onmessage=(e)=>{
+      const msg=e.data||{};
+      if(msg.type==='HELLO'){
+        try{_bcChannel.postMessage({type:'ALIVE',t:Date.now()});}catch(_){}
+        _showMultiTabWarning();
+      } else if(msg.type==='ALIVE'){
+        _showMultiTabWarning();
+      } else if(msg.type==='SAVED'){
+        // 別タブで保存があった → 自分が表示中のデータは古い
+        _showStaleStateWarning();
+      }
+    };
+  }catch(_){}
+}
+function _showMultiTabWarning(){
+  if(document.getElementById('multi-tab-warn'))return;
+  const div=document.createElement('div');
+  div.id='multi-tab-warn';
+  div.style.cssText='position:fixed;top:0;left:0;right:0;background:#fef3c7;border-bottom:2px solid #f59e0b;padding:8px 14px;font-size:12px;z-index:9998;text-align:center;color:#78350f;line-height:1.5';
+  div.innerHTML='⚠️ <b>このシステムが別タブ/別ウィンドウでも開かれています</b>。両方で編集すると一方が他方を上書きする可能性があります。 <button onclick="this.parentNode.style.display=\'none\'" style="margin-left:10px;padding:2px 10px;font-size:11px;cursor:pointer">了解</button>';
+  document.body.appendChild(div);
+}
+function _showStaleStateWarning(){
+  if(document.getElementById('stale-warn'))return;
+  const div=document.createElement('div');
+  div.id='stale-warn';
+  div.style.cssText='position:fixed;top:0;left:0;right:0;background:#fee2e2;border-bottom:2px solid #ef4444;padding:8px 14px;font-size:12px;z-index:9998;text-align:center;color:#991b1b;line-height:1.5';
+  div.innerHTML='🔴 <b>別タブでデータが更新されました</b>。このタブの編集内容は古いデータに基づいています。 <button onclick="location.reload()" style="margin-left:10px;padding:4px 14px;font-size:12px;background:#dc2626;color:#fff;border:none;border-radius:4px;cursor:pointer">最新を読み込む</button>';
+  document.body.appendChild(div);
+}
+function _broadcastSave(){
+  try{if(_bcChannel)_bcChannel.postMessage({type:'SAVED',t:Date.now(),storeId:currentStoreId||''});}catch(_){}
 }
 
 // ============================================================
@@ -1977,10 +2131,29 @@ function loadS(){
 
   // アクティブ店舗のデータを読み込む
   if(currentStoreId){
-    try{
-      const d=localStorage.getItem('ffv6_store_'+currentStoreId);
-      if(d) Object.assign(S,JSON.parse(d));
-    }catch(e){console.warn('load store error',e)}
+    const storeKey='ffv6_store_'+currentStoreId;
+    const d=localStorage.getItem(storeKey);
+    let loaded=false;
+    if(d){
+      try{
+        const parsed=JSON.parse(d);
+        Object.assign(S,parsed);
+        loaded=true;
+      }catch(e){
+        // 【追加保護C】JSON破損検知 → 最新snapから自動復旧
+        console.error('FF管理: 保存データのJSON解析失敗、自動復旧を試みます',e);
+        logOp('LOAD_PARSE_ERROR',{storeKey,msg:String(e)});
+        _autoRecoverFromCorruption(storeKey).then(r=>{
+          if(r.recovered){
+            const t=r.time?new Date(r.time).toLocaleString('ja-JP'):'(時刻不明)';
+            alert('保存データが破損していたため、'+t+'のスナップショットから自動復旧しました。\nページをリロードします。');
+            location.reload();
+          } else {
+            alert('保存データが破損しており、復旧できるスナップショットも見つかりませんでした。\n「データ復元」から手動で過去のスナップを試してください。');
+          }
+        });
+      }
+    }
   }
 
   // 旧データの互換性: weeks が空なら現在データで初期化
@@ -2164,6 +2337,8 @@ function renderAll(){
 }
 
 window.addEventListener('DOMContentLoaded',async()=>{
+  // 【追加保護D】多タブ検知の早期初期化
+  _initMultiTabGuard();
   // URLの #sync=token:gistId から自動設定（共有リンク経由）
   // ※ プレビュー環境では共有リンク自動設定もスキップ（本番Gistトークンの混入を防ぐ）
   const fromHash=IS_LOCAL_PREVIEW?false:gistApplyHashIfAny();
