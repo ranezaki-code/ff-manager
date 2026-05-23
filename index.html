@@ -178,6 +178,22 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 </head>
 <body>
 
+<!-- ハブへ戻るボタン（ハブ経由でアクセス時のみ表示） -->
+<a href="./index.html" id="hub-back-btn" style="display:none;position:fixed;top:8px;left:8px;z-index:9997;background:rgba(30,58,95,0.92);color:#fff;text-decoration:none;font-size:12px;font-weight:600;padding:6px 12px;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,0.2);backdrop-filter:blur(4px)">← ハブ</a>
+<script>(function(){
+  // ハブ→システムの遷移時のみ表示。直リンク等で開いた時は表示しない
+  // 判定：referrer がハブ(index.html)由来、または sessionStorage に _fromHub=1
+  try{
+    var ref=document.referrer||'';
+    var fromHub=ref.includes('/index.html')||ref.endsWith('/%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0/')||ref.endsWith('/システム/')||sessionStorage.getItem('_fromHub')==='1';
+    if(fromHub){
+      sessionStorage.setItem('_fromHub','1');
+      var btn=document.getElementById('hub-back-btn');
+      if(btn)btn.style.display='inline-block';
+    }
+  }catch(e){}
+})();</script>
+
 <!-- Setup Screen -->
 <div id="setup-screen">
   <div class="wizard-card">
