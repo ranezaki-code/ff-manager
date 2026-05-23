@@ -1437,6 +1437,8 @@ function syncActiveWeek(){
 function saveS(){
   syncActiveWeek();
   const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
+  // 保存前のサイズを記録（大幅減検知用）
+  let prevSize=0;try{prevSize=(localStorage.getItem(key)||'').length;}catch(_){}
   try{localStorage.setItem(key,JSON.stringify({
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
@@ -1445,9 +1447,19 @@ function saveS(){
     施策:S.施策,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
-  }));}catch(e){console.warn('save error',e)}
+  }));}catch(e){console.warn('save error',e);logOp('SAVE_ERROR',{msg:String(e)});return;}
+  // 大幅減検知：50%以上減ったら緊急バックアップ＋警告ログ
+  // （誤操作や状態リセットbug で気付かぬうちにデータが消える事故の検知）
+  const newSize=(localStorage.getItem(key)||'').length;
+  if(prevSize>1000 && newSize<prevSize*0.5){
+    logOp('WARN_BIG_DROP',{prev:prevSize,now:newSize,ratio:Math.round(newSize/prevSize*100)/100});
+    _backupCurrent('emergency');
+    console.warn('FF管理: データが大幅に減少しました（緊急バックアップを作成）',{prev:prevSize,now:newSize});
+  }
   // ローカル変更時刻を記録（リロード時の比較に使用）
   localStorage.setItem('ffv6_local_modified',Date.now().toString());
+  // 自動スナップショット（1分間隔、localStorage 20件 + IndexedDB 30件）
+  autoSnapshot();
   gistSyncDebouncedPush();
 }
 
@@ -1634,7 +1646,7 @@ async function gistPull(manual,prefetched){
   if(IS_LOCAL_PREVIEW){if(manual)alert('プレビュー環境ではクラウド同期は無効です（本番Gist保護）');return;}
   const{token,gistId}=gistGetConfig();
   if(!token||!gistId){if(manual)alert('トークンとGist IDを設定してください');return;}
-  if(manual&&!confirm('クラウドの最新データで上書きします。現在の端末の未保存データは失われます。よろしいですか？'))return;
+  if(manual&&!confirm('クラウドの最新データで上書きします。現在の端末の未保存データは失われます。よろしいですか？\n（万一に備え、取得直前のデータは「データ復元」から戻せます）'))return;
   gistSetStatus('取得中…','#1d4ed8');
   try{
     const res=prefetched||await gistApi('/gists/'+gistId);
@@ -1642,6 +1654,14 @@ async function gistPull(manual,prefetched){
     if(!f)throw new Error('Gist内にff-data.jsonが見つかりません');
     const obj=JSON.parse(f.content);
     if(obj.version!=='ffv6')throw new Error('データ形式が不正');
+    // 【事故対策】上書き前に全店舗データを退避
+    try{
+      (storeList||[]).forEach(s=>{
+        const raw=localStorage.getItem('ffv6_store_'+s.id);
+        if(raw)localStorage.setItem('ffv6_pre_pull_'+s.id+'_'+Date.now(),raw);
+      });
+    }catch(_){}
+    logOp('GIST_PULL',{manual:!!manual,storeCount:Object.keys(obj.storeData||{}).length});
     if(obj.stores)localStorage.setItem('ffv6_stores',JSON.stringify(obj.stores));
     if(obj.storeData)Object.entries(obj.storeData).forEach(([id,d])=>{
       localStorage.setItem('ffv6_store_'+id,JSON.stringify(d));
@@ -5673,6 +5693,14 @@ function importData(){
       const obj=JSON.parse(text);
       if(obj.version!=='ffv6')throw new Error('このファイルはFF管理システムのデータではありません');
       if(!confirm(`「${file.name}」のデータを読み込みます。\n現在のデータは上書きされます。よろしいですか？`))return;
+      // 【事故対策】インポート前に全店舗データを退避（後で「データ復元」から戻せる）
+      try{
+        (storeList||[]).forEach(s=>{
+          const raw=localStorage.getItem('ffv6_store_'+s.id);
+          if(raw)localStorage.setItem('ffv6_pre_import_'+s.id+'_'+Date.now(),raw);
+        });
+      }catch(_){}
+      logOp('IMPORT',{filename:file.name,size:text.length,storeCount:Object.keys(obj.storeData||{}).length});
       // 店舗リストを復元
       if(obj.stores)localStorage.setItem('ffv6_stores',JSON.stringify(obj.stores));
       // 各店舗データを復元
@@ -5684,9 +5712,10 @@ function importData(){
       }
       // アクティブ店舗を復元
       if(obj.currentStoreId)localStorage.setItem('ffv6_current',obj.currentStoreId);
-      alert('インポート完了！ページをリロードします。');
+      alert('インポート完了！ページをリロードします。\n（万一に備え、インポート直前のデータは「データ復元」から戻せます）');
       location.reload();
     }catch(err){
+      logOp('IMPORT_ERROR',{msg:String(err)});
       alert('インポートエラー: '+err.message);
     }
   };
@@ -5694,7 +5723,10 @@ function importData(){
 }
 
 function resetSetup(){
-  if(!confirm('店舗設定をリセットしますか？すべてのデータが失われます。'))return;
+  if(!confirm('店舗設定をリセットしますか？すべてのデータが失われます。\n（万一に備え、リセット直前のデータは「データ復元」から戻せます）'))return;
+  // 【事故対策】リセット前に緊急退避
+  _backupCurrent('emergency');
+  logOp('RESET_SETUP',{storeId:currentStoreId});
   localStorage.removeItem('ffv6_setup_'+currentStoreId);
   localStorage.removeItem('ffv6_store_'+currentStoreId);
   // 後方互換
