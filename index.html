@@ -4452,40 +4452,78 @@ function _isSlotOverdue(dayIdx,slotH){
   const nowMin=now.getHours()*60+now.getMinutes();
   return nowMin>=(slotH+1)*60;
 }
-function _catProgress(cat,dayIdx){
-  // 戻り値:
-  //   total/done = その日の全スロット合計（参考値）
-  //   dueSoFar/doneSoFar = 「今までに作るべき分」（今日表示時のみ縮小、他日は total と同じ）
-  //   allDone = 1日全部完了
-  //   allDueDone = 「今まで分」だけは全部完了
-  //   hasOverdue = 陳列時刻を過ぎたのに未完了がある
-  if(!S.catOn[cat])return{done:0,total:0,dueSoFar:0,doneSoFar:0,allDone:true,allDueDone:true,hasOverdue:false};
+function _catStatus(cat,dayIdx){
+  // カテゴリの「いま何すべき？」を時刻ラベル中心に返す
+  // 戻り値の state:
+  //   'none'        : このカテゴリは今日作るものがない
+  //   'all_done'    : 1日分すべて完了
+  //   'overdue'     : 陳列時刻を過ぎても未完了（赤・最優先）
+  //   'current'     : 今この時刻に作るべき（黄）
+  //   'future'      : 次にやる予定（グレー、まだ時刻が来ていない）
+  //   'all_due_done': 過去〜現在の分はすべて完了、未来分が残っている（緑）
+  // 補足フィールド: slot=対象スロット時刻、remaining=その slot で残ってる件数、overdueSlots=遅れslotのリスト
+  if(!S.catOn[cat])return{state:'none'};
   const cfg=S.catCfg[cat];
-  if(!cfg||!cfg.slots.length)return{done:0,total:0,dueSoFar:0,doneSoFar:0,allDone:true,allDueDone:true,hasOverdue:false};
+  if(!cfg||!cfg.slots.length)return{state:'none'};
+  const isToday=_isViewingToday(dayIdx);
+  const now=new Date();
+  const nowH=now.getHours();
+  const nowMin=nowH*60+now.getMinutes();
   const prods=S.PM.filter(p=>p.enabled&&p.category===cat);
-  let total=0,done=0,dueSoFar=0,doneSoFar=0,hasOverdue=false;
-  prods.forEach(p=>{
-    cfg.slots.forEach(slotH=>{
+  // 各スロットの状態
+  const slots=[];
+  cfg.slots.forEach(slotH=>{
+    let total=0,done=0;
+    prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH);
       const extra=getInvestExtra(p.id,dayIdx,slotH);
       if(cnt+extra<=0)return;
       total++;
-      const chk=`${dayIdx}_${slotH}_${p.id}`;
-      const isChecked=!!S.checks[chk];
-      if(isChecked)done++;
-      if(_isSlotDueByNow(dayIdx,slotH)){
-        dueSoFar++;
-        if(isChecked)doneSoFar++;
-        else if(_isSlotOverdue(dayIdx,slotH))hasOverdue=true;
-      }
+      if(S.checks[`${dayIdx}_${slotH}_${p.id}`])done++;
     });
+    if(total===0)return;
+    let timeState='future';
+    if(isToday){
+      if(nowMin>=(slotH+1)*60)timeState='overdue';
+      else if(nowH===slotH)timeState='current';
+    }
+    slots.push({slotH,total,done,timeState,complete:done===total,remaining:total-done});
   });
-  return{
-    done,total,dueSoFar,doneSoFar,
-    allDone:total===0||done===total,
-    allDueDone:dueSoFar===0||doneSoFar===dueSoFar,
-    hasOverdue
-  };
+  if(slots.length===0)return{state:'none'};
+  if(slots.every(s=>s.complete))return{state:'all_done'};
+  if(!isToday){
+    // 他日：最初の未完了スロットを返す
+    const next=slots.find(s=>!s.complete);
+    return{state:'future',slot:next.slotH,remaining:next.remaining,total:slots.reduce((a,s)=>a+s.total,0),done:slots.reduce((a,s)=>a+s.done,0)};
+  }
+  // 今日表示時：優先度順に分類
+  const overdueIncomplete=slots.filter(s=>s.timeState==='overdue'&&!s.complete);
+  if(overdueIncomplete.length>0){
+    return{
+      state:'overdue',
+      slot:overdueIncomplete[0].slotH,
+      remaining:overdueIncomplete[0].remaining,
+      overdueSlots:overdueIncomplete.map(s=>s.slotH)
+    };
+  }
+  const currentIncomplete=slots.filter(s=>s.timeState==='current'&&!s.complete);
+  if(currentIncomplete.length>0){
+    return{
+      state:'current',
+      slot:currentIncomplete[0].slotH,
+      remaining:currentIncomplete[0].remaining
+    };
+  }
+  const futureIncomplete=slots.filter(s=>s.timeState==='future'&&!s.complete);
+  if(futureIncomplete.length>0){
+    return{
+      state:'future',
+      slot:futureIncomplete[0].slotH,
+      remaining:futureIncomplete[0].remaining
+    };
+  }
+  // 過去・現在分はすべて完了、ただし未完了スロットが「謎に分類できない」場合（理論上は来ない）
+  return{state:'all_due_done'};
 }
 
 function renderProdDayContent(dayIdx){
@@ -4547,29 +4585,37 @@ function renderProdDayContent(dayIdx){
     }
   }
 
-  // ====== 「いま作るべき」カテゴリの早期警告バナー（条件付き表示） ======
-  // - 今日表示時のみ動作（他日は未来予定なので警告対象外）
-  // - 「現時点で作るべきスロット」のうち未完了があるカテゴリを表示
-  // - 陳列時刻を過ぎてる未完了があれば赤、それ以外は黄
-  // - 全部完了したら自動で非表示
+  // ====== 「忘れ」「いま作る」バナー（時刻ラベル中心・条件付き） ======
+  // - 今日表示時のみ動作
+  // - 忘れ（overdue）と いま作る（current）を集約して具体的に列挙
+  // - 1件もなければ自動で非表示
   const _isToday=_isViewingToday(dayIdx);
-  const _catProgs=CATS.filter(c=>S.catOn[c]).map(cat=>({cat,...(_catProgress(cat,dayIdx))}));
-  const _attentionCats=_isToday
-    ? _catProgs.filter(p=>p.dueSoFar>0 && !p.allDueDone)
-    : [];
-  const _anyOverdue=_attentionCats.some(p=>p.hasOverdue);
-  if(_attentionCats.length>0){
-    const bg=_anyOverdue?'#fee2e2':'#fef3c7';
-    const bd=_anyOverdue?'#ef4444':'#f59e0b';
-    const tx=_anyOverdue?'#991b1b':'#78350f';
-    const icon=_anyOverdue?'🔴':'⚠️';
-    const labelTxt=_anyOverdue?'陳列時刻を過ぎています':'いま作るべき';
-    const items=_attentionCats.map(p=>{
-      const od=p.hasOverdue?' style="font-weight:800;text-decoration:underline"':'';
-      return `<span${od}>${p.cat} ${p.doneSoFar}/${p.dueSoFar}</span>`;
-    }).join('、');
-    html+=`<div style="position:sticky;top:0;z-index:50;background:${bg};border:2px solid ${bd};border-radius:8px;padding:10px 14px;font-size:13px;color:${tx};margin-bottom:10px;line-height:1.6">
-      ${icon} <b>${labelTxt}：</b>${items}
+  const _overdueItems=[];
+  const _currentItems=[];
+  if(_isToday){
+    CATS.filter(c=>S.catOn[c]).forEach(cat=>{
+      const st=_catStatus(cat,dayIdx);
+      if(st.state==='overdue'){
+        (st.overdueSlots||[st.slot]).forEach(s=>_overdueItems.push(`${cat} ${s}時`));
+      } else if(st.state==='current'){
+        _currentItems.push(`${cat} ${st.slot}時`);
+      }
+    });
+  }
+  if(_overdueItems.length>0||_currentItems.length>0){
+    const isRed=_overdueItems.length>0;
+    const bg=isRed?'#fee2e2':'#fef3c7';
+    const bd=isRed?'#ef4444':'#f59e0b';
+    const tx=isRed?'#991b1b':'#78350f';
+    let bannerLines='';
+    if(_overdueItems.length>0){
+      bannerLines+=`<div>🔴 <b>忘れてます：</b>${_overdueItems.join('、')}</div>`;
+    }
+    if(_currentItems.length>0){
+      bannerLines+=`<div>⏳ <b>いま作る：</b>${_currentItems.join('、')}</div>`;
+    }
+    html+=`<div style="position:sticky;top:0;z-index:50;background:${bg};border:2px solid ${bd};border-radius:8px;padding:10px 14px;font-size:14px;color:${tx};margin-bottom:10px;line-height:1.8">
+      ${bannerLines}
     </div>`;
   }
 
@@ -4612,28 +4658,32 @@ function renderProdDayContent(dayIdx){
         </div>`;
       }
     }
-    // ====== カテゴリヘッダー：進捗バッジ＋折りたたみトグル ======
-    // 今日表示時：分母=「現時点で作るべき分」、他日表示時：分母=全スロット
-    const _prog=_catProgress(cat,dayIdx);
+    // ====== カテゴリヘッダー：時刻ラベル中心の状態バッジ＋折りたたみトグル ======
+    const _st=_catStatus(cat,dayIdx);
     const _isCollapsed=_collapsedCats.has(cat);
-    let _badgeBg='#9ca3af',_badgeIcon='',_badgeTxt='—';
-    if(_prog.total===0){
-      _badgeTxt='—';
-    } else if(_prog.allDone){
-      _badgeBg='#16a34a';_badgeIcon='✓ ';_badgeTxt=`${_badgeIcon}${_prog.done}/${_prog.total} 完了`;
-    } else if(_isToday){
-      if(_prog.hasOverdue){
-        _badgeBg='#dc2626';_badgeIcon='⏰ ';_badgeTxt=`${_badgeIcon}${_prog.doneSoFar}/${_prog.dueSoFar}`;
-      } else if(_prog.dueSoFar===0){
-        _badgeBg='#9ca3af';_badgeTxt=`これから ${_prog.total}件`;
-      } else if(_prog.allDueDone){
-        _badgeBg='#16a34a';_badgeIcon='✓ ';_badgeTxt=`${_badgeIcon}${_prog.doneSoFar}/${_prog.dueSoFar} (現時点)`;
-      } else {
-        _badgeBg='#2563eb';_badgeTxt=`${_prog.doneSoFar}/${_prog.dueSoFar} (現時点)`;
-      }
-    } else {
-      // 他日（明日以降や過去）は1日全体を見せる
-      _badgeBg='#6b7280';_badgeTxt=`${_prog.done}/${_prog.total}`;
+    let _badgeBg='#9ca3af',_badgeTxt='—';
+    switch(_st.state){
+      case 'none':
+        _badgeBg='#9ca3af';_badgeTxt='—';
+        break;
+      case 'all_done':
+        _badgeBg='#16a34a';_badgeTxt='✅ 全部完了';
+        break;
+      case 'all_due_done':
+        _badgeBg='#16a34a';_badgeTxt='✅ 現時点OK';
+        break;
+      case 'overdue':
+        _badgeBg='#dc2626';
+        _badgeTxt=_st.remaining===1?`🔴 ${_st.slot}時 忘れ`:`🔴 ${_st.slot}時 残り${_st.remaining}`;
+        break;
+      case 'current':
+        _badgeBg='#f59e0b';
+        _badgeTxt=_st.remaining===1?`⏳ ${_st.slot}時 やる`:`⏳ ${_st.slot}時 残り${_st.remaining}`;
+        break;
+      case 'future':
+        _badgeBg='#6b7280';
+        _badgeTxt=`📋 次 ${_st.slot}時`;
+        break;
     }
     html+=`<div class="section-title" style="cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none" onclick="toggleCatCollapse('${cat}')">
       <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
