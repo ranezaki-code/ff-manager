@@ -1452,6 +1452,104 @@ function saveS(){
 }
 
 // ============================================================
+// バックアップ基盤（事故対策の根幹）
+//   - ffv6_snap_<時刻>    : 保存時の自動スナップショット（最大20件）
+//   - ffv6_emergency_<時刻>: リセット/インポート/大幅減検知時の緊急退避
+//   - ffv6_pre_import_<時刻>: インポート直前の退避
+//   - ffv6_oplog          : 操作ログ（直近200件）
+//   - IndexedDB           : localStorage クリア対策の二重保管（最大30件）
+// ============================================================
+const OP_LOG_KEY='ffv6_oplog';
+function _storeKey(){return currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';}
+function _currentStateRaw(){try{return localStorage.getItem(_storeKey())||'';}catch(_){return'';}}
+function _backupCurrent(prefix){
+  try{
+    const cur=_currentStateRaw();
+    if(!cur)return;
+    localStorage.setItem('ffv6_'+prefix+'_'+Date.now(),cur);
+  }catch(_){}
+}
+function _trimBackups(prefix,max){
+  try{
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith('ffv6_'+prefix+'_')).sort();
+    while(keys.length>max){localStorage.removeItem(keys.shift());}
+  }catch(_){}
+}
+function logOp(op,detail){
+  try{
+    const log=JSON.parse(localStorage.getItem(OP_LOG_KEY)||'[]');
+    log.push({t:Date.now(),op,storeId:currentStoreId||'',detail:detail||null});
+    while(log.length>200)log.shift();
+    localStorage.setItem(OP_LOG_KEY,JSON.stringify(log));
+  }catch(_){}
+}
+let _lastSnapshotAt=0;
+function autoSnapshot(){
+  try{
+    const now=Date.now();
+    if(now-_lastSnapshotAt<60000)return;
+    const cur=_currentStateRaw();
+    if(!cur)return;
+    localStorage.setItem('ffv6_snap_'+now,cur);
+    _trimBackups('snap',20);
+    idbSaveSnapshot(cur).catch(()=>{});
+    _lastSnapshotAt=now;
+  }catch(_){}
+}
+
+// IndexedDB: localStorage クリア対策の独立永続層
+const IDB_NAME='ffv6_backups',IDB_STORE='snapshots',IDB_MAX=30;
+function _idbOpen(){
+  return new Promise((res,rej)=>{
+    try{
+      const r=indexedDB.open(IDB_NAME,1);
+      r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(IDB_STORE)){db.createObjectStore(IDB_STORE,{keyPath:'t'});}};
+      r.onsuccess=()=>res(r.result);
+      r.onerror=()=>rej(r.error);
+    }catch(e){rej(e);}
+  });
+}
+async function idbSaveSnapshot(content){
+  if(!content)return;
+  const db=await _idbOpen();
+  await new Promise((res,rej)=>{
+    const tx=db.transaction(IDB_STORE,'readwrite');
+    const os=tx.objectStore(IDB_STORE);
+    os.put({t:Date.now(),storeId:currentStoreId||'',content});
+    tx.oncomplete=()=>res();
+    tx.onerror=()=>rej(tx.error);
+  });
+  // IDB_MAX超過分を古い順に削除
+  try{
+    const db2=await _idbOpen();
+    const keys=await new Promise((res,rej)=>{
+      const tx=db2.transaction(IDB_STORE,'readonly');
+      const req=tx.objectStore(IDB_STORE).getAllKeys();
+      req.onsuccess=()=>res(req.result);
+      req.onerror=()=>rej(req.error);
+    });
+    if(keys.length>IDB_MAX){
+      const sorted=keys.slice().sort((a,b)=>a-b);
+      const remove=sorted.slice(0,sorted.length-IDB_MAX);
+      const tx=db2.transaction(IDB_STORE,'readwrite');
+      const os=tx.objectStore(IDB_STORE);
+      remove.forEach(k=>os.delete(k));
+    }
+  }catch(_){}
+}
+async function idbListSnapshots(){
+  try{
+    const db=await _idbOpen();
+    return await new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,'readonly');
+      const req=tx.objectStore(IDB_STORE).getAll();
+      req.onsuccess=()=>res((req.result||[]).sort((a,b)=>b.t-a.t));
+      req.onerror=()=>rej(req.error);
+    });
+  }catch(_){return[];}
+}
+
+// ============================================================
 // GitHub Gist 同期
 // ============================================================
 const GIST_FILE='ff-data.json';
