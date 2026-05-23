@@ -1455,6 +1455,9 @@ function saveS(){
 // GitHub Gist 同期
 // ============================================================
 const GIST_FILE='ff-data.json';
+// プレビュー環境（localhost/127.0.0.1/file://）ではGist同期を完全停止。
+// 開発中の入力が本番Gistを上書きする事故を防ぐ。
+const IS_LOCAL_PREVIEW = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname) || location.protocol === 'file:';
 let _gistPushTimer=null;
 let _gistSyncing=false;
 function gistGetConfig(){
@@ -1488,6 +1491,7 @@ async function gistApi(path,opts={}){
   return r.json();
 }
 async function gistCreate(){
+  if(IS_LOCAL_PREVIEW){alert('プレビュー環境ではクラウド同期は無効です（本番Gist保護）');return;}
   const{token}=gistGetConfig();
   if(!token){alert('GitHubトークンを先に入力してください');return;}
   if(!confirm('新しいGistを作成し、現在のデータをクラウドに保存します。よろしいですか？'))return;
@@ -1504,6 +1508,7 @@ async function gistCreate(){
   }catch(e){gistSetStatus('エラー: '+e.message,'#b91c1c');}
 }
 async function gistPush(manual){
+  if(IS_LOCAL_PREVIEW){if(manual)alert('プレビュー環境ではクラウド同期は無効です（本番Gist保護）');return;}
   const{token,gistId}=gistGetConfig();
   if(!token||!gistId)return;
   if(_gistSyncing)return;
@@ -1521,12 +1526,14 @@ async function gistPush(manual){
   finally{_gistSyncing=false;}
 }
 function gistSyncDebouncedPush(){
+  if(IS_LOCAL_PREVIEW)return;
   const{token,gistId}=gistGetConfig();
   if(!token||!gistId)return;
   if(_gistPushTimer)clearTimeout(_gistPushTimer);
   _gistPushTimer=setTimeout(()=>gistPush(false),3000);
 }
 async function gistPull(manual,prefetched){
+  if(IS_LOCAL_PREVIEW){if(manual)alert('プレビュー環境ではクラウド同期は無効です（本番Gist保護）');return;}
   const{token,gistId}=gistGetConfig();
   if(!token||!gistId){if(manual)alert('トークンとGist IDを設定してください');return;}
   if(manual&&!confirm('クラウドの最新データで上書きします。現在の端末の未保存データは失われます。よろしいですか？'))return;
@@ -1613,6 +1620,16 @@ function renderGistPanel(){
   const{token,gistId,lastPush,lastPull}=gistGetConfig();
   const ts=(s)=>s?new Date(s).toLocaleString('ja-JP'):'—';
   const connected=token&&gistId;
+  if(IS_LOCAL_PREVIEW){
+    el.innerHTML=`
+      <div style="padding:14px;background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;font-size:13px;color:#78350f;line-height:1.7">
+        🔒 <b>プレビュー環境のためクラウド同期を停止しています</b><br>
+        この画面は <code>${location.hostname||'file://'}</code> で動作しています。<br>
+        開発・検証用の入力が本番Gist（共有リンク先）を上書きする事故を防ぐため、<b>Gistの作成・送信・取得はすべて無効</b>です。<br>
+        本番データを操作するには公開URL（https://ranezaki-code.github.io/ff-manager/）を開いてください。
+      </div>`;
+    return;
+  }
   el.innerHTML=`
     <div style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.7">
       複数端末で同じデータを使うためにGitHub Gistで同期します。
@@ -1878,11 +1895,12 @@ function renderAll(){
 
 window.addEventListener('DOMContentLoaded',async()=>{
   // URLの #sync=token:gistId から自動設定（共有リンク経由）
-  const fromHash=gistApplyHashIfAny();
+  // ※ プレビュー環境では共有リンク自動設定もスキップ（本番Gistトークンの混入を防ぐ）
+  const fromHash=IS_LOCAL_PREVIEW?false:gistApplyHashIfAny();
   // クラウド同期が設定済みなら、ローカル読込の前にGistから最新データを取得
   const gc=localStorage.getItem('ffv6_gist_token');
   const gi=localStorage.getItem('ffv6_gist_id');
-  if(gc&&gi){
+  if(!IS_LOCAL_PREVIEW&&gc&&gi){
     // タイムスタンプ比較でローカル/クラウドのどちらが新しいか判定
     // - localMod > 0 かつ Gistのupdated_atより新しい → ローカルが未送信の最新変更を持つ → push
     // - それ以外 → クラウドが新しい or 同期済み → pull
