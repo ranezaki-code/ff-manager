@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新村店次週計画</title>
+<style>
+  :root{
+    --bg:#fafafa; --panel:#fff; --border:#d0d7de; --border-strong:#8c959f;
+    --head:#f3f4f6; --head2:#e5e7eb; --accent:#2563eb; --accent-soft:#dbeafe;
+    --text:#1f2328; --muted:#6b7280; --ok:#10b981; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:"Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;font-size:13px}
+  header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:15px;margin:0;font-weight:600}
+  .toolbar{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  button{background:#fff;border:1px solid var(--border);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text)}
+  button:hover{background:var(--head)}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.primary:hover{background:#1d4ed8}
+  .save-status{font-size:11px;color:var(--muted);min-width:120px}
+  .save-status.saved{color:var(--ok)}
+  nav.tabs{background:#fff;border-bottom:1px solid var(--border);padding:0 16px;display:flex;gap:0;overflow-x:auto}
+  nav.tabs button{background:transparent;border:none;border-bottom:2px solid transparent;border-radius:0;padding:10px 14px;font-size:13px;white-space:nowrap}
+  nav.tabs button.active{border-bottom-color:var(--accent);color:var(--accent);font-weight:600}
+  main{padding:16px}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;overflow:hidden}
+  .section-title{padding:8px 12px;background:var(--head);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px}
+  .section-title .desc{font-weight:400;color:var(--muted);font-size:11px}
+  .table-wrap{overflow:auto;max-width:100%}
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  th,td{border:1px solid var(--border);padding:4px 6px;text-align:center;vertical-align:middle;min-width:60px;white-space:nowrap}
+  th{background:var(--head);font-weight:600;position:sticky;top:0;z-index:1}
+  th.h2{background:var(--head2)}
+  td.row-label,th.row-label{background:var(--head);text-align:left;font-weight:500;position:sticky;left:0;z-index:2;min-width:140px}
+  th.row-label{z-index:3}
+  td[contenteditable="true"]{background:#fff;cursor:text}
+  td[contenteditable="true"]:focus{outline:2px solid var(--accent);background:var(--accent-soft)}
+  td.total-row{background:#fef3c7;font-weight:600}
+  td.total-row[contenteditable="true"]{background:#fef9c3}
+  .grid-layout{display:grid;gap:1px;background:var(--border);border:1px solid var(--border)}
+  .grid-cell{background:#fff;padding:6px;min-height:36px;font-size:11px;text-align:center;display:flex;align-items:center;justify-content:center}
+  .grid-cell[contenteditable="true"]:focus{outline:2px solid var(--accent);background:var(--accent-soft)}
+  .grid-cell.label{background:var(--head);font-weight:600}
+  .grid-cell.special{background:#fee2e2}
+  .grid-cell.aisle{background:#dbeafe;font-weight:600}
+  /* 店舗レイアウトマップ — 統一グリッド版 */
+  .store-map-wrap{
+    padding:28px;
+    overflow:auto;
+    background:linear-gradient(135deg,#f8fafc 0%,#eef2f7 100%);
+    max-height:88vh;
+    border-radius:8px;
+  }
+  .store-map-legend{
+    display:flex;gap:14px;align-items:center;justify-content:flex-end;
+    padding:0 8px 12px;font-size:11px;color:#64748b;flex-wrap:wrap;
+  }
+  .store-map-legend .key{display:inline-flex;align-items:center;gap:5px}
+  .store-map-legend .swatch{
+    width:14px;height:14px;border-radius:3px;border:1px solid #94a3b8;
+    display:inline-block;
+  }
+  .store-map{
+    position:relative;width:1280px;height:1110px;margin:0 auto;
+    background:#ffffff;
+    border:1.5px solid #334155;
+    border-radius:6px;
+    box-shadow:0 10px 30px -10px rgba(15,23,42,0.18),0 2px 6px rgba(15,23,42,0.05);
+    background-image:
+      linear-gradient(rgba(148,163,184,0.06) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(148,163,184,0.06) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+  .store-cell{
+    position:absolute;
+    background:#fff;
+    border:1.5px solid #475569;
+    border-radius:4px;
+    box-sizing:border-box;
+    padding:4px 6px;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:center;
+    font-size:11.5px;
+    font-weight:500;
+    color:#1e293b;
+    text-align:center;
+    white-space:pre-line;
+    overflow:hidden;
+    line-height:1.22;
+    letter-spacing:0.01em;
+    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+    box-shadow:0 1px 2px rgba(15,23,42,0.04);
+  }
+  .store-cell:hover{
+    z-index:10;
+    border-color:var(--accent);
+    box-shadow:0 6px 18px -4px rgba(37,99,235,0.28);
+    transform:translateY(-1px);
+  }
+  .store-cell .lbl{font-weight:600;flex:0 0 auto}
+  .store-cell .note{
+    margin-top:4px;
+    padding:1px 3px;
+    border-top:1px dashed #e2e8f0;
+    font-size:10px;
+    font-weight:400;
+    color:var(--accent);
+    min-height:13px;
+    cursor:text;
+    outline:none;
+    border-radius:2px;
+  }
+  .store-cell .note:hover{background:#f1f5f9}
+  .store-cell .note:focus{background:var(--accent-soft);outline:1.5px solid var(--accent)}
+  .store-cell .note:empty:before{content:'＋';color:#e2e8f0;font-weight:300}
+  .store-cell.fixture{
+    background:linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%);
+    color:#475569;
+    border-color:#64748b;
+  }
+  .store-cell.fixture .lbl{font-weight:700;color:#334155}
+  .store-cell.label-zone{
+    background:linear-gradient(135deg,#fef9c3 0%,#fde68a 100%);
+    border-color:#ca8a04;
+  }
+  .store-cell.label-zone .lbl{font-weight:700;color:#713f12;letter-spacing:.05em}
+  .store-cell.aisle-end{
+    background:linear-gradient(135deg,#fee2e2 0%,#fecaca 100%);
+    border-color:#dc2626;
+  }
+  .store-cell.aisle-end .lbl{font-weight:700;color:#7f1d1d}
+  .store-cell.merch{background:#fff}
+  /* 編集モード */
+  .edit-banner{
+    background:linear-gradient(135deg,#2563eb,#4f46e5);
+    color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:12px;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;
+    box-shadow:0 4px 12px -4px rgba(37,99,235,0.4);
+  }
+  .edit-banner b{font-size:13px}
+  .edit-banner .actions{display:flex;gap:6px;flex-wrap:wrap}
+  .edit-banner button{
+    background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.4);
+    border-radius:5px;padding:5px 11px;cursor:pointer;font-size:11.5px;
+  }
+  .edit-banner button:hover{background:rgba(255,255,255,0.3)}
+  .edit-banner button.primary{background:#fff;color:#2563eb;font-weight:700}
+  .layout-section-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .layout-section-head .edit-toggle{font-size:11px;font-weight:500;padding:5px 12px;border-radius:5px;background:#fff;border:1px solid var(--border);cursor:pointer}
+  .layout-section-head .edit-toggle:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  /* 売場レイアウト 内部サブタブ */
+  .layout-subtabs{
+    display:flex;gap:2px;padding:0 12px;background:#f8fafc;
+    border-bottom:1px solid var(--border);
+  }
+  .layout-subtab{
+    background:transparent;border:none;padding:10px 18px;font-size:12.5px;font-weight:500;
+    color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+    display:inline-flex;align-items:center;gap:6px;border-radius:0;
+  }
+  .layout-subtab:hover{color:var(--text);background:#eef2f7}
+  .layout-subtab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700;background:#fff}
+  .layout-subtab .badge{
+    background:#e2e8f0;color:#475569;font-size:10.5px;font-weight:600;
+    padding:1px 7px;border-radius:10px;
+  }
+  .layout-subtab.active .badge{background:var(--accent-soft);color:var(--accent)}
+  .layout-panel{display:none}
+  .layout-panel.active{display:block}
+  .store-map-wrap.edit-mode{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%)}
+  .store-map-wrap.edit-mode .store-map{
+    background-image:
+      linear-gradient(rgba(37,99,235,0.18) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(37,99,235,0.18) 1px,transparent 1px);
+    background-size:20px 20px;
+  }
+  .store-map-wrap.edit-mode .store-cell{cursor:move;user-select:none}
+  .store-map-wrap.edit-mode .store-cell:hover{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,0.3)}
+  .store-cell .resize-handle,
+  .store-cell .delete-btn,
+  .store-cell .type-btn{display:none}
+  /* 編集モード時のセルコントロール — 切り抜けないようにoverflow:visible、ホバー/選択時のみ表示 */
+  .store-map-wrap.edit-mode .store-cell{
+    overflow:visible;
+    transition:box-shadow .15s ease,border-color .15s ease;
+  }
+  .store-map-wrap.edit-mode .store-cell .lbl{overflow:hidden;text-overflow:ellipsis}
+  .store-map-wrap.edit-mode .store-cell .resize-handle,
+  .store-map-wrap.edit-mode .store-cell .delete-btn{
+    opacity:0;pointer-events:none;transition:opacity .15s ease,transform .1s ease,background .15s ease;
+  }
+  .store-map-wrap.edit-mode .store-cell:hover .resize-handle,
+  .store-map-wrap.edit-mode .store-cell:hover .delete-btn,
+  .store-map-wrap.edit-mode .store-cell.selected .resize-handle,
+  .store-map-wrap.edit-mode .store-cell.selected .delete-btn{
+    opacity:1;pointer-events:auto;
+  }
+  .store-map-wrap.edit-mode .store-cell .resize-handle{
+    display:block;position:absolute;bottom:-10px;right:-10px;width:24px;height:24px;
+    background:#2563eb;border:3px solid #fff;border-radius:50%;
+    cursor:nwse-resize;z-index:6;box-shadow:0 2px 8px rgba(37,99,235,0.5);
+  }
+  .store-map-wrap.edit-mode .store-cell .resize-handle::before{
+    content:'';position:absolute;top:50%;left:50%;width:8px;height:8px;
+    border-right:2px solid #fff;border-bottom:2px solid #fff;
+    transform:translate(-50%,-50%) translate(2px,2px);
+  }
+  .store-map-wrap.edit-mode .store-cell .resize-handle:hover{transform:scale(1.2);background:#1d4ed8}
+  .store-map-wrap.edit-mode .store-cell .delete-btn{
+    display:flex;position:absolute;top:-10px;right:-10px;width:24px;height:24px;
+    background:#dc2626;color:#fff;border:3px solid #fff;border-radius:50%;
+    font-size:13px;font-weight:700;line-height:1;
+    align-items:center;justify-content:center;cursor:pointer;z-index:7;
+    box-shadow:0 2px 8px rgba(220,38,38,0.5);
+  }
+  .store-map-wrap.edit-mode .store-cell .delete-btn:hover{transform:scale(1.15);background:#b91c1c}
+  /* 種類切替・エッジハンドルは廃止（セル管理パネルで操作） */
+  .store-cell .type-btn,
+  .store-cell .resize-edge-r,
+  .store-cell .resize-edge-b{display:none !important}
+  .store-map-wrap.edit-mode .store-cell .lbl{
+    cursor:text;outline:1px dashed rgba(37,99,235,0.25);outline-offset:1px;border-radius:2px;
+    transition:outline-color .15s ease;
+  }
+  .store-map-wrap.edit-mode .store-cell:hover .lbl,
+  .store-map-wrap.edit-mode .store-cell.selected .lbl{outline-color:rgba(37,99,235,0.6)}
+  .store-map-wrap.edit-mode .store-cell .lbl:focus{
+    background:#fff;outline:2px solid #2563eb;outline-offset:1px;
+  }
+  .store-map-wrap.edit-mode .store-cell .note{pointer-events:none;opacity:0.5}
+  .store-map-wrap.edit-mode .store-cell:hover{
+    z-index:9;border-color:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,0.25);
+  }
+  .store-map-wrap.edit-mode .store-cell.selected{
+    border-color:#2563eb !important;
+    box-shadow:0 0 0 3px rgba(37,99,235,0.3),0 4px 12px rgba(37,99,235,0.25) !important;
+    z-index:10;
+  }
+  .store-map-wrap.edit-mode .store-cell.dragging{
+    opacity:0.85;cursor:grabbing !important;
+    box-shadow:0 0 0 3px rgba(37,99,235,0.5),0 8px 24px rgba(37,99,235,0.4) !important;
+    z-index:50;
+  }
+
+  /* セル管理パネル */
+  .cell-manager{
+    margin-top:16px;background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;
+    box-shadow:0 2px 8px rgba(15,23,42,0.04);
+  }
+  .cm-header{
+    background:linear-gradient(135deg,#f1f5f9,#e2e8f0);padding:10px 14px;
+    border-bottom:1px solid var(--border);display:flex;justify-content:space-between;
+    align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .cm-header h4{margin:0;font-size:13px;font-weight:700;color:#1e293b}
+  .cm-header .count{font-weight:400;color:var(--muted);font-size:11px;margin-left:6px}
+  .cm-controls{display:flex;gap:8px;align-items:center}
+  .cm-search{padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px;width:180px;background:#fff}
+  .cm-sort{padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:11.5px;background:#fff;cursor:pointer}
+  .cm-list-head,.cm-list{font-size:12px}
+  .cm-row{
+    display:grid;
+    grid-template-columns:34px 1fr 60px 60px 60px 60px 30px 32px;
+    gap:6px;padding:6px 14px;align-items:center;border-bottom:1px solid #f1f5f9;
+  }
+  .cm-row.head{background:#f8fafc;color:#64748b;font-weight:700;font-size:11px;border-bottom:1px solid var(--border)}
+  .cm-row.head span{text-align:center;letter-spacing:.05em}
+  .cm-row.head .name-h{text-align:left;padding-left:6px}
+  .cm-list{max-height:340px;overflow-y:auto}
+  .cm-row:hover{background:#f8fafc}
+  .cm-row.flash{animation:flashRow 1.2s ease}
+  @keyframes flashRow{0%{background:#fef3c7}100%{background:transparent}}
+  .cm-row input{padding:4px 6px;border:1px solid var(--border);border-radius:3px;font-size:11.5px;font-family:inherit;background:#fff;width:100%;box-sizing:border-box}
+  .cm-row input[type=number]{text-align:center}
+  .cm-row input:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+  .type-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:24px;border-radius:5px;font-size:11px;font-weight:700;color:#fff;
+    cursor:pointer;user-select:none;transition:transform .1s ease;
+  }
+  .type-badge:hover{transform:scale(1.08)}
+  .type-badge.merch{background:#64748b}
+  .type-badge.fixture{background:#475569}
+  .type-badge.label-zone{background:#ca8a04}
+  .type-badge.aisle-end{background:#dc2626}
+  .cm-locate{background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:4px;padding:3px;cursor:pointer;font-size:11px}
+  .cm-locate:hover{background:#bfdbfe}
+  .cm-del{background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:4px;padding:3px 4px;cursor:pointer;font-size:12px;font-weight:700}
+  .cm-del:hover{background:#dc2626;color:#fff}
+  .add-row-btn{margin:8px 12px;padding:4px 10px;font-size:11px}
+  footer{padding:16px;text-align:center;color:var(--muted);font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- ハブへ戻るボタン（ハブ経由でアクセス時のみ表示） -->
+<a href="../index.html" id="hub-back-btn" style="display:none;position:fixed;top:8px;left:8px;z-index:9997;background:rgba(30,58,95,0.92);color:#fff;text-decoration:none;font-size:12px;font-weight:600;padding:6px 12px;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,0.2);backdrop-filter:blur(4px)">← ハブ</a>
+<script>(function(){
+  try{
+    var ref=document.referrer||'';
+    var refIsHub=ref.endsWith('/index.html')||/\/(?:ff-manager|%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0|システム)\/$/.test(ref);
+    var fromHub=refIsHub||sessionStorage.getItem('_fromHub')==='1';
+    if(fromHub){
+      sessionStorage.setItem('_fromHub','1');
+      if(refIsHub)sessionStorage.setItem('_hubUrl',ref);
+      var btn=document.getElementById('hub-back-btn');
+      if(btn){
+        btn.style.display='inline-block';
+        var stored=sessionStorage.getItem('_hubUrl');
+        if(stored)btn.href=stored;
+      }
+    }
+  }catch(e){}
+})();</script>
+
+<header>
+  <h1>新村店次週計画</h1>
+  <span class="save-status" id="saveStatus">読み込み中…</span>
+  <div class="toolbar">
+    <button onclick="exportJSON()">JSONエクスポート</button>
+    <button onclick="document.getElementById('importFile').click()">インポート</button>
+    <button onclick="openSnpRecoveryModal()" title="自動バックアップから過去のデータに戻す">🛟 復元</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button onclick="resetData()">全リセット</button>
+    <button class="primary" onclick="saveNow()">保存</button>
+  </div>
+</header>
+<nav class="tabs" id="tabNav"></nav>
+<main id="main"></main>
+<footer>新村店次週計画システム / ローカル保存（このブラウザのみ）</footer>
+
+<script>
+/* ============================================================
+   データ定義
+============================================================ */
+const STORAGE_KEY = 'shinmuraten-plan-v1';
+
+const CATS_DEPT = ['弁当','チルド弁当','常温寿司','おにぎり','調理パン','ワンハンドスナック','冷し麺','ホット麺','パスタ','焼きそば他','サラダ','オリジナル惣菜','オリジナル軽食','チルド和洋菓子','食卓パン','菓子パン','惣菜パン','健康・機能性ベーカリー','カット野菜','カットフルーツ','ファストフーズ','デザート','常温和洋菓子','生鮮品','日配食品','冷凍食品','アイスクリーム','チルド飲料','ソフトドリンク','日本酒・焼酎','ビール・発泡酒','洋酒・酎ハイ','即席麺','即席食品','ポケット菓子','スナック','珍味','米菓・焼菓子','化粧品','紙・生理・衛生用品','電気・小物用品','玩具','ドリンク剤&ヘルスケア','たばこ','合計'];
+
+const CATS_AICO = ['弁当','チルド弁当','常温寿司','おにぎり','調理パン','ワンハンドスナック','冷し麺','ホット麺','パスタ','焼きそば他','サラダ','オリジナル惣菜','オリジナル軽食','チルド和洋菓子','食卓パン','菓子パン','惣菜パン','健康・機能性ベーカリー','カット野菜','カットフルーツ','AICOカテゴリ合計'];
+
+const CATS_DRIVER = ['弁当','チルド弁当','常温寿司','おにぎり','調理パン','冷し麺','ホット麺','パスタ','焼きそば他','サラダ','オリジナル惣菜','オリジナル軽食','チルド和洋菓子','食卓パン','菓子パン','惣菜パン','健康・機能性ベーカリー'];
+
+const KEIEI_ROWS = ['平均日販','平均日販前年比','営業日数','売変率','商品売上高','その他営業収入','売上高','総粗利益高','フランチャイジー収入','パート給与','見切・処分','棚卸ロス','包装費','水道光熱費','雑費','営業費計','見切・処分支援','電気・光熱費支援','雑益計','店利益'];
+
+const TABS = [
+  {id:'tab1', name:'カテゴリ別実績/予算・次月次週計画'},
+  {id:'tab2', name:'AICOドライバ設定'},
+  {id:'tab3', name:'日販客数実績'},
+  {id:'tab4', name:'施策一覧'},
+  {id:'tab5', name:'施策/売場レイアウト計画'},
+  {id:'tab6', name:'3つの徹底'},
+  {id:'tab7', name:'その他計画'},
+  {id:'tab8', name:'発注表'},
+];
+
+/* ============================================================
+   売場レイアウト デフォルト定義
+============================================================ */
+// {id, x, y, w, h, label, type}
+// 通路を考慮したY配置：エンド3↔ベーカリー間20px、ベーカリー↔スナック間20px、スナック↔シーズン間60px(大通路)、シーズン↔雑貨間20px
+const DEFAULT_STORE_CELLS = [
+  // 北壁
+  {id:'c-toilet',x:320,y:0,w:100,h:60,label:'トイレ',type:'fixture'},
+  {id:'c-sake1',x:420,y:60,w:100,h:80,label:'酒',type:'merch'},
+  {id:'c-sake2',x:520,y:60,w:100,h:80,label:'酒',type:'merch'},
+  {id:'c-soft1',x:620,y:60,w:100,h:80,label:'ソフトドリンク',type:'merch'},
+  {id:'c-soft2',x:720,y:60,w:100,h:80,label:'ソフトドリンク',type:'merch'},
+  {id:'c-soft3',x:820,y:60,w:100,h:80,label:'ソフトドリンク',type:'merch'},
+  // 西壁（全て20pxグリッド上）
+  {id:'c-rice',x:20,y:300,w:120,h:80,label:'米飯',type:'merch'},
+  {id:'c-bread',x:20,y:380,w:120,h:80,label:'調理パン\nホット麺\n冷し麺',type:'merch'},
+  {id:'c-salad',x:20,y:480,w:120,h:80,label:'サラダ\n焼そば他\nパスタ\n料理麺',type:'merch'},
+  {id:'c-nippai',x:20,y:560,w:120,h:80,label:'日配',type:'merch'},
+  {id:'c-chicken',x:20,y:660,w:120,h:80,label:'チキン\n野菜',type:'merch'},
+  {id:'c-chilled1',x:20,y:740,w:120,h:80,label:'チルド飲料',type:'merch'},
+  {id:'c-chilled2',x:20,y:880,w:120,h:80,label:'チルド飲料',type:'merch'},
+  // 冷食
+  {id:'c-rei1',x:180,y:140,w:100,h:80,label:'冷食',type:'merch'},
+  {id:'c-rei2',x:180,y:220,w:100,h:80,label:'冷食',type:'merch'},
+  // エンド3 ゾーン (y=300-460)
+  {id:'c-end3',x:300,y:300,w:80,h:160,label:'エンド\n３',type:'aisle-end'},
+  {id:'c-jouon1',x:380,y:300,w:100,h:80,label:'常温酒',type:'merch'},
+  {id:'c-jouon2',x:480,y:300,w:100,h:80,label:'常温酒',type:'merch'},
+  {id:'c-chinmi',x:380,y:380,w:100,h:80,label:'珍味',type:'merch'},
+  {id:'c-beika',x:480,y:380,w:100,h:80,label:'米菓珍味',type:'merch'},
+  {id:'c-reion',x:580,y:300,w:80,h:160,label:'冷温',type:'merch'},
+  // ベーカリー ゾーン (y=480-640) — 20px aisle from エンド3
+  {id:'c-dezart',x:180,y:480,w:200,h:160,label:'デザート\nラウンドケース',type:'merch'},
+  {id:'c-yakigashi',x:380,y:480,w:100,h:80,label:'焼菓子\n嗜好品',type:'merch'},
+  {id:'c-bake1',x:480,y:480,w:100,h:80,label:'ベーカリー',type:'merch'},
+  {id:'c-bake2',x:580,y:480,w:100,h:80,label:'ベーカリー',type:'merch'},
+  {id:'c-bake3',x:680,y:480,w:100,h:80,label:'ベーカリー',type:'merch'},
+  {id:'c-orig1',x:380,y:560,w:100,h:80,label:'オリジナル\n菓子',type:'merch'},
+  {id:'c-orig2',x:480,y:560,w:100,h:80,label:'オリジナル\n菓子',type:'merch'},
+  {id:'c-choco1',x:580,y:560,w:100,h:80,label:'チョコ',type:'merch'},
+  {id:'c-choco2',x:680,y:560,w:100,h:80,label:'チョコ',type:'merch'},
+  {id:'c-nl',x:780,y:480,w:80,h:160,label:'NL',type:'merch'},
+  // スナック ゾーン (y=660-820) — 全て20pxグリッド上
+  {id:'c-snack-lbl',x:180,y:660,w:100,h:160,label:'スナック',type:'label-zone'},
+  {id:'c-snack1',x:280,y:660,w:100,h:80,label:'スナック',type:'merch'},
+  {id:'c-soup',x:280,y:740,w:100,h:80,label:'スープ',type:'merch'},
+  {id:'c-snack2',x:380,y:660,w:100,h:80,label:'スナック',type:'merch'},
+  {id:'c-instant1',x:380,y:740,w:100,h:80,label:'即席麺',type:'merch'},
+  {id:'c-gummy1',x:480,y:660,w:100,h:80,label:'グミ',type:'merch'},
+  {id:'c-instant2',x:480,y:740,w:100,h:80,label:'即席麺',type:'merch'},
+  {id:'c-gummy2',x:580,y:660,w:100,h:80,label:'グミ',type:'merch'},
+  {id:'c-instant3',x:580,y:740,w:100,h:80,label:'即席麺',type:'merch'},
+  {id:'c-amegum',x:680,y:660,w:100,h:80,label:'あめガム',type:'merch'},
+  {id:'c-instant-new',x:680,y:740,w:100,h:80,label:'即席麺新商品\n同時購入セール',type:'merch'},
+  {id:'c-end2',x:780,y:660,w:80,h:160,label:'エンド\n２',type:'aisle-end'},
+  // シーズン ゾーン (y=880-1040) — 60px 大通路、全て20pxグリッド上
+  {id:'c-season-lbl',x:180,y:880,w:100,h:160,label:'シーズン\n生理',type:'label-zone'},
+  {id:'c-dansei',x:280,y:880,w:100,h:80,label:'男性化粧\n洗面衛生',type:'merch'},
+  {id:'c-muji-cosme',x:280,y:960,w:100,h:80,label:'無印\n化粧品',type:'merch'},
+  {id:'c-chomi1',x:380,y:880,w:100,h:80,label:'調味料',type:'merch'},
+  {id:'c-muji-bun',x:380,y:960,w:100,h:80,label:'無印\n文具',type:'merch'},
+  {id:'c-chomi2',x:480,y:880,w:100,h:80,label:'調味料',type:'merch'},
+  {id:'c-muji-i1',x:480,y:960,w:100,h:80,label:'無印\n衣料',type:'merch'},
+  {id:'c-kinou',x:580,y:880,w:100,h:80,label:'機能性食品\nクッキー',type:'merch'},
+  {id:'c-muji-i2',x:580,y:960,w:100,h:80,label:'無印\n衣料',type:'merch'},
+  {id:'c-toy',x:680,y:880,w:100,h:80,label:'玩具・\n駄菓子',type:'merch'},
+  {id:'c-drink',x:680,y:960,w:100,h:80,label:'ドリンク剤',type:'merch'},
+  {id:'c-season-end',x:780,y:880,w:80,h:160,label:'シーズン\nエンド１',type:'aisle-end'},
+  // 南壁 (y=1060-1120) — 全て20pxグリッド上
+  {id:'c-elec',x:180,y:1060,w:100,h:60,label:'電気ペット\n作業文具',type:'merch'},
+  {id:'c-towel',x:280,y:1060,w:100,h:60,label:'家庭タオル\n洗剤',type:'merch'},
+  {id:'c-oral',x:380,y:1060,w:100,h:60,label:'オーラル\nマスク紙',type:'merch'},
+  {id:'c-comic',x:480,y:1060,w:100,h:60,label:'コミック\n雑誌',type:'merch'},
+  {id:'c-news',x:580,y:1060,w:80,h:60,label:'新聞',type:'merch'},
+  // 東壁（全て20pxグリッド上）
+  {id:'c-rejimae',x:920,y:300,w:60,h:340,label:'レジ\n前\n売\n場',type:'fixture'},
+  {id:'c-reji2',x:980,y:60,w:120,h:160,label:'レジ\n２',type:'fixture'},
+  {id:'c-chuka',x:980,y:220,w:120,h:80,label:'中華まん',type:'merch'},
+  {id:'c-hotff',x:980,y:300,w:120,h:80,label:'ホット\nFF',type:'merch'},
+  {id:'c-jouonff',x:980,y:380,w:120,h:80,label:'常温\nFF',type:'merch'},
+  {id:'c-reji1',x:980,y:560,w:120,h:160,label:'レジ\n１',type:'fixture'},
+  {id:'c-counter',x:1100,y:140,w:100,h:500,label:'カウンタ\n内',type:'fixture'},
+  {id:'c-tobacco',x:1200,y:300,w:80,h:340,label:'タバコ',type:'merch'},
+  {id:'c-icecream',x:1100,y:740,w:100,h:320,label:'アイス\nクリーム',type:'merch'},
+  {id:'c-iriguchi',x:980,y:1060,w:120,h:60,label:'出入り口',type:'fixture'},
+  {id:'c-kanban',x:1100,y:1120,w:100,h:40,label:'看板',type:'fixture'},
+];
+
+const SNAP_GRID = 20;
+const STORE_TYPES = ['merch','fixture','label-zone','aisle-end'];
+const STORE_TYPE_LABELS = {merch:'商', fixture:'設', 'label-zone':'ゾ', 'aisle-end':'エ'};
+
+let editMode = false;
+
+function getStoreCells(){
+  if(!Array.isArray(state.storeCells) || state.storeCells.length===0){
+    state.storeCells = DEFAULT_STORE_CELLS.map(c => ({...c}));
+  }
+  return state.storeCells;
+}
+function snapAllCellsToGrid(silent){
+  let changed = 0;
+  getStoreCells().forEach(c => {
+    const nx = Math.round(c.x / SNAP_GRID) * SNAP_GRID;
+    const ny = Math.round(c.y / SNAP_GRID) * SNAP_GRID;
+    const nw = Math.max(40, Math.round(c.w / SNAP_GRID) * SNAP_GRID);
+    const nh = Math.max(20, Math.round(c.h / SNAP_GRID) * SNAP_GRID);
+    if(c.x!==nx||c.y!==ny||c.w!==nw||c.h!==nh){ c.x=nx;c.y=ny;c.w=nw;c.h=nh;changed++; }
+  });
+  if(changed>0) scheduleSave();
+  return changed;
+}
+function findStoreCell(id){ return getStoreCells().find(c=>c.id===id); }
+function snap(v){ return Math.round(v/SNAP_GRID)*SNAP_GRID; }
+
+function toggleEditMode(){
+  editMode = !editMode;
+  renderTab(currentTab);
+}
+function addStoreCell(){
+  const cells = getStoreCells();
+  cells.push({id:'c-'+Date.now(), x:200, y:200, w:100, h:80, label:'新規セル', type:'merch'});
+  scheduleSave();
+  renderTab(currentTab);
+}
+function deleteStoreCell(id){
+  if(!confirm('このセルを削除しますか？')) return;
+  state.storeCells = getStoreCells().filter(c=>c.id!==id);
+  scheduleSave();
+  renderTab(currentTab);
+}
+function cycleStoreCellType(id){
+  const c = findStoreCell(id);
+  if(!c) return;
+  const i = STORE_TYPES.indexOf(c.type);
+  c.type = STORE_TYPES[(i+1)%STORE_TYPES.length];
+  scheduleSave();
+  renderTab(currentTab);
+}
+function resetStoreLayout(){
+  if(!confirm('レイアウトを初期状態に戻しますか？\n（位置・サイズ・名称・追加削除した内容が失われます。各セルのメモは保持されます）')) return;
+  delete state.storeCells;
+  scheduleSave();
+  renderTab(currentTab);
+}
+
+function alignAllToGrid(){
+  if(!confirm('全セルの位置とサイズを20pxグリッドに整列しますか？')) return;
+  getStoreCells().forEach(c => {
+    c.x = Math.round(c.x / SNAP_GRID) * SNAP_GRID;
+    c.y = Math.round(c.y / SNAP_GRID) * SNAP_GRID;
+    c.w = Math.max(40, Math.round(c.w / SNAP_GRID) * SNAP_GRID);
+    c.h = Math.max(20, Math.round(c.h / SNAP_GRID) * SNAP_GRID);
+  });
+  scheduleSave();
+  renderTab(currentTab);
+}
+
+let cmSortMode = 'pos';
+let cmFilterText = '';
+let selectedCellId = null;
+let layoutSubTab = 'map';
+
+function setLayoutSubTab(t){
+  layoutSubTab = t;
+  document.querySelectorAll('.layout-subtab').forEach(b => b.classList.toggle('active', b.dataset.sub===t));
+  document.querySelectorAll('.layout-panel').forEach(p => p.classList.toggle('active', p.dataset.sub===t));
+}
+
+function setCmSort(v){ cmSortMode = v; refreshCellManagerList(); }
+function setCmFilter(v){ cmFilterText = v.toLowerCase(); refreshCellManagerList(); }
+
+function sortedFilteredCells(){
+  let cells = getStoreCells().slice();
+  if(cmFilterText){
+    cells = cells.filter(c => c.label.toLowerCase().includes(cmFilterText) || c.id.includes(cmFilterText));
+  }
+  if(cmSortMode === 'pos'){
+    cells.sort((a,b) => a.y - b.y || a.x - b.x);
+  } else if(cmSortMode === 'name'){
+    cells.sort((a,b) => a.label.localeCompare(b.label, 'ja'));
+  } else if(cmSortMode === 'type'){
+    const order = {'fixture':0,'label-zone':1,'aisle-end':2,'merch':3};
+    cells.sort((a,b) => (order[a.type]||9)-(order[b.type]||9) || a.y-b.y);
+  }
+  return cells;
+}
+
+function refreshCellManagerList(){
+  const list = document.getElementById('cm-list');
+  if(!list) return;
+  list.innerHTML = sortedFilteredCells().map(renderCmRow).join('');
+  const cnt = document.getElementById('cm-count');
+  if(cnt) cnt.textContent = '('+getStoreCells().length+'件)';
+}
+
+function renderCmRow(c){
+  const labelEsc = escapeHtml(c.label.replace(/\n/g,'\\n'));
+  return `<div class="cm-row" data-id="${c.id}">
+    <span class="type-badge ${c.type}" onclick="cycleStoreCellType('${c.id}')" title="種類切替（商→設→ゾ→エ）">${STORE_TYPE_LABELS[c.type]||'?'}</span>
+    <input type="text" value="${labelEsc}" oninput="cmEditLabel('${c.id}',this.value)" placeholder="名称（\\n で改行）">
+    <input type="number" value="${c.x}" step="20" oninput="cmEditProp('${c.id}','x',this.value)">
+    <input type="number" value="${c.y}" step="20" oninput="cmEditProp('${c.id}','y',this.value)">
+    <input type="number" value="${c.w}" step="20" min="40" oninput="cmEditProp('${c.id}','w',this.value)">
+    <input type="number" value="${c.h}" step="20" min="30" oninput="cmEditProp('${c.id}','h',this.value)">
+    <button class="cm-locate" onclick="locateStoreCell('${c.id}')" title="マップで確認">📍</button>
+    <button class="cm-del" onclick="deleteStoreCell('${c.id}')" title="削除">✕</button>
+  </div>`;
+}
+
+function cmEditLabel(id, v){
+  const c = findStoreCell(id);
+  if(!c) return;
+  c.label = String(v).replace(/\\n/g,'\n');
+  scheduleSave();
+  const cellEl = document.querySelector(`.store-cell[data-cell-id="${id}"]`);
+  if(cellEl){
+    const lbl = cellEl.querySelector('.lbl');
+    if(lbl && document.activeElement !== lbl) lbl.innerText = c.label;
+  }
+}
+function cmEditProp(id, prop, v){
+  const c = findStoreCell(id);
+  if(!c) return;
+  const num = parseFloat(v);
+  if(isNaN(num)) return;
+  c[prop] = num;
+  scheduleSave();
+  const cellEl = document.querySelector(`.store-cell[data-cell-id="${id}"]`);
+  if(cellEl){
+    if(prop==='x') cellEl.style.left = num+'px';
+    if(prop==='y') cellEl.style.top = num+'px';
+    if(prop==='w') cellEl.style.width = num+'px';
+    if(prop==='h') cellEl.style.height = num+'px';
+  }
+}
+
+function locateStoreCell(id){
+  const cellEl = document.querySelector(`.store-cell[data-cell-id="${id}"]`);
+  if(!cellEl) return;
+  const wrap = document.querySelector('.store-map-wrap');
+  cellEl.scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
+  document.querySelectorAll('.store-cell.selected').forEach(el => el.classList.remove('selected'));
+  cellEl.classList.add('selected');
+  selectedCellId = id;
+  setTimeout(() => cellEl.classList.remove('selected'), 2500);
+}
+
+/* ============================================================
+   状態管理
+============================================================ */
+let state = {};
+let currentTab = 'tab1';
+let saveTimer = null;
+
+// ============================================================
+// データ保護基盤（事故対策）
+//   - snp_v1_snap_<時刻>      : 自動スナップショット（最大20件）
+//   - snp_v1_emergency_<時刻> : リセット/インポート/大幅減検知時の緊急退避
+//   - snp_v1_pre_import_<時刻>: インポート直前の退避
+//   - snp_v1_oplog            : 操作ログ（直近200件）
+//   - IndexedDB               : localStorageクリア対策の二重保管（最大30件）
+// ============================================================
+const SNP_OP_LOG_KEY='snp_v1_oplog';
+const SNP_QUOTA_THRESHOLD=4500000;
+function _snpCurrentRaw(){try{return localStorage.getItem(STORAGE_KEY)||'';}catch(_){return'';}}
+function _snpBackup(prefix){try{const cur=_snpCurrentRaw();if(!cur)return;localStorage.setItem('snp_v1_'+prefix+'_'+Date.now(),cur);}catch(_){}}
+function _snpTrim(prefix,max){try{const keys=Object.keys(localStorage).filter(k=>k.startsWith('snp_v1_'+prefix+'_')).sort();while(keys.length>max){localStorage.removeItem(keys.shift());}}catch(_){}}
+function snpLogOp(op,detail){try{const log=JSON.parse(localStorage.getItem(SNP_OP_LOG_KEY)||'[]');log.push({t:Date.now(),op,detail:detail||null});while(log.length>200)log.shift();localStorage.setItem(SNP_OP_LOG_KEY,JSON.stringify(log));}catch(_){}}
+let _snpLastSnap=0;
+function snpAutoSnapshot(){try{const now=Date.now();if(now-_snpLastSnap<60000)return;const cur=_snpCurrentRaw();if(!cur)return;localStorage.setItem('snp_v1_snap_'+now,cur);_snpTrim('snap',20);snpIdbSave(cur).catch(()=>{});_snpLastSnap=now;}catch(_){}}
+function _snpEstimateUsage(){let n=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);n+=(k||'').length+(localStorage.getItem(k)||'').length;}}catch(_){}return n;}
+function snpTrimAllIfNeeded(){if(_snpEstimateUsage()<SNP_QUOTA_THRESHOLD)return;const prefixes=['snap','autobackup','pre_import','emergency'];for(const p of prefixes){if(_snpEstimateUsage()<SNP_QUOTA_THRESHOLD)return;const keys=Object.keys(localStorage).filter(k=>k.startsWith('snp_v1_'+p+'_')).sort();while(keys.length>0&&_snpEstimateUsage()>=SNP_QUOTA_THRESHOLD){const r=keys.shift();try{localStorage.removeItem(r);snpLogOp('AUTO_TRIM_QUOTA',{removed:r,prefix:p});}catch(_){}}}}
+function _snpLooksEmpty(s){if(!s||typeof s!=='object')return true;return Object.keys(s).filter(k=>s[k]!==''&&s[k]!=null).length===0;}
+function _snpHasMeaningfulExisting(raw){if(!raw||raw.length<50)return false;try{return!_snpLooksEmpty(JSON.parse(raw));}catch(_){return false;}}
+
+// IndexedDB
+const SNP_IDB_NAME='shinmuraten_backups',SNP_IDB_STORE='snapshots',SNP_IDB_MAX=30;
+function _snpIdbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open(SNP_IDB_NAME,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(SNP_IDB_STORE))db.createObjectStore(SNP_IDB_STORE,{keyPath:'t'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+async function snpIdbSave(content){if(!content)return;const db=await _snpIdbOpen();await new Promise((res,rej)=>{const tx=db.transaction(SNP_IDB_STORE,'readwrite');tx.objectStore(SNP_IDB_STORE).put({t:Date.now(),content});tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});try{const db2=await _snpIdbOpen();const keys=await new Promise((res,rej)=>{const tx=db2.transaction(SNP_IDB_STORE,'readonly');const req=tx.objectStore(SNP_IDB_STORE).getAllKeys();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});if(keys.length>SNP_IDB_MAX){const sorted=keys.slice().sort((a,b)=>a-b);const remove=sorted.slice(0,sorted.length-SNP_IDB_MAX);const tx=db2.transaction(SNP_IDB_STORE,'readwrite');const os=tx.objectStore(SNP_IDB_STORE);remove.forEach(k=>os.delete(k));}}catch(_){}}
+async function snpIdbList(){try{const db=await _snpIdbOpen();return await new Promise((res,rej)=>{const tx=db.transaction(SNP_IDB_STORE,'readonly');const req=tx.objectStore(SNP_IDB_STORE).getAll();req.onsuccess=()=>res((req.result||[]).sort((a,b)=>b.t-a.t));req.onerror=()=>rej(req.error);});}catch(_){return[];}}
+
+// JSON破損時の自動復旧
+async function snpAutoRecover(){const lsKeys=Object.keys(localStorage).filter(k=>k.startsWith('snp_v1_snap_')||k.startsWith('snp_v1_emergency_')||k.startsWith('snp_v1_autobackup_')).sort().reverse();for(const k of lsKeys){try{const v=localStorage.getItem(k);if(!v)continue;const o=JSON.parse(v);if(_snpLooksEmpty(o))continue;localStorage.setItem(STORAGE_KEY,v);snpLogOp('AUTO_RECOVER',{from:'localStorage:'+k});return{recovered:true,from:k,time:parseInt(k.split('_').pop(),10)||0};}catch(_){}}try{const snaps=await snpIdbList();for(const s of snaps){try{const o=JSON.parse(s.content);if(_snpLooksEmpty(o))continue;localStorage.setItem(STORAGE_KEY,s.content);snpLogOp('AUTO_RECOVER',{from:'IndexedDB:'+s.t});return{recovered:true,from:'IndexedDB',time:s.t};}catch(_){}}}catch(_){}return{recovered:false};}
+
+// 同一オリジン多タブ検知
+let _snpBc=null;
+function snpInitMultiTabGuard(){try{if(!window.BroadcastChannel)return;_snpBc=new BroadcastChannel('shinmuraten_tabs');_snpBc.postMessage({type:'HELLO',t:Date.now()});_snpBc.onmessage=(e)=>{const m=e.data||{};if(m.type==='HELLO'){try{_snpBc.postMessage({type:'ALIVE',t:Date.now()});}catch(_){}_snpShowMultiTabWarn();}else if(m.type==='ALIVE'){_snpShowMultiTabWarn();}else if(m.type==='SAVED'){_snpShowStaleWarn();}};}catch(_){}}
+function _snpShowMultiTabWarn(){if(document.getElementById('snp-multi-tab-warn'))return;const div=document.createElement('div');div.id='snp-multi-tab-warn';div.style.cssText='position:fixed;top:0;left:0;right:0;background:#fef3c7;border-bottom:2px solid #f59e0b;padding:8px 14px;font-size:12px;z-index:9998;text-align:center;color:#78350f;line-height:1.5';div.innerHTML='⚠️ <b>次週計画が別タブ/別ウィンドウでも開かれています</b>。両方で編集すると一方が他方を上書きする可能性があります。 <button onclick="this.parentNode.style.display=\'none\'" style="margin-left:10px;padding:2px 10px;font-size:11px;cursor:pointer">了解</button>';document.body.appendChild(div);}
+function _snpShowStaleWarn(){if(document.getElementById('snp-stale-warn'))return;const div=document.createElement('div');div.id='snp-stale-warn';div.style.cssText='position:fixed;top:0;left:0;right:0;background:#fee2e2;border-bottom:2px solid #ef4444;padding:8px 14px;font-size:12px;z-index:9998;text-align:center;color:#991b1b;line-height:1.5';div.innerHTML='🔴 <b>別タブでデータが更新されました</b>。このタブの編集内容は古いデータに基づいています。 <button onclick="location.reload()" style="margin-left:10px;padding:4px 14px;font-size:12px;background:#dc2626;color:#fff;border:none;border-radius:4px;cursor:pointer">最新を読み込む</button>';document.body.appendChild(div);}
+function _snpBroadcastSave(){try{if(_snpBc)_snpBc.postMessage({type:'SAVED',t:Date.now()});}catch(_){}}
+
+// データ復元UI
+function openSnpRecoveryModal(){let m=document.getElementById('snp-recovery-modal');if(!m){m=document.createElement('div');m.id='snp-recovery-modal';m.style.cssText='display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center';m.innerHTML=`<div style="background:#fff;border-radius:12px;width:min(720px,92vw);max-height:85vh;overflow:hidden;display:flex;flex-direction:column"><div style="padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between"><div style="font-weight:700;font-size:16px">🛟 データ復元</div><button onclick="closeSnpRecoveryModal()" style="padding:4px 10px;font-size:12px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer">閉じる</button></div><div style="padding:10px 18px 0;font-size:12px;color:#6b7280;line-height:1.7">過去のスナップショットから選んで復元できます。復元時は「現状」も emergency バックアップとして退避します。</div><div id="snp-recovery-list" style="padding:14px 18px 18px;overflow-y:auto;flex:1"></div></div>`;document.body.appendChild(m);}else{m.style.display='flex';}renderSnpRecoveryList();}
+function closeSnpRecoveryModal(){const m=document.getElementById('snp-recovery-modal');if(m)m.style.display='none';}
+async function renderSnpRecoveryList(){const el=document.getElementById('snp-recovery-list');if(!el)return;el.innerHTML='<div style="color:#6b7280">読み込み中…</div>';const labelOf=p=>({snap:'自動スナップ',emergency:'緊急退避',pre_import:'インポート直前',autobackup:'自動退避'})[p]||p;const lsItems=[];Object.keys(localStorage).forEach(k=>{const m=k.match(/^snp_v1_(snap|emergency|pre_import|autobackup)_(\d{10,})$/);if(!m)return;lsItems.push({source:'localStorage',key:k,prefix:m[1],t:parseInt(m[2],10)});});const idb=await snpIdbList();const idbItems=idb.map(r=>({source:'IndexedDB',key:'idb:'+r.t,prefix:'snap',t:r.t,content:r.content}));const all=[...lsItems,...idbItems].sort((a,b)=>b.t-a.t);if(all.length===0){el.innerHTML='<div style="padding:20px;text-align:center;color:#6b7280">復元できるスナップショットがまだありません。<br>保存すると自動で作成されます。</div>';return;}const sizeOf=it=>it.source==='IndexedDB'?(it.content||'').length:(()=>{try{return(localStorage.getItem(it.key)||'').length;}catch(_){return 0;}})();const fmtT=ts=>new Date(ts).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});const fmtBytes=n=>n<1024?n+'B':n<1024*1024?(n/1024).toFixed(1)+'KB':(n/1024/1024).toFixed(2)+'MB';el.innerHTML=all.slice(0,80).map(it=>`<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #f1f5f9"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:#1e293b">${fmtT(it.t)} <span style="font-weight:400;color:#64748b">[${labelOf(it.prefix)}]</span></div><div style="font-size:11px;color:#6b7280;margin-top:2px">${it.source} ・ ${fmtBytes(sizeOf(it))}</div></div><button style="padding:4px 10px;font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer" onclick='previewSnpRecovery(${JSON.stringify(it)})'>👁 中身</button><button style="padding:6px 12px;font-size:12px;background:#2196f3;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick='restoreSnpFromRecovery(${JSON.stringify(it)})'>復元</button></div>`).join('')+(all.length>80?`<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px">…他${all.length-80}件は省略</div>`:'');}
+async function previewSnpRecovery(item){let content='';if(item.source==='IndexedDB')content=item.content||'';else{try{content=localStorage.getItem(item.key)||'';}catch(_){}}let preview=content.slice(0,1500);try{const obj=JSON.parse(content);const keys=Object.keys(obj);preview='記録項目数: '+keys.length+'\n項目例: '+keys.slice(0,10).join(', ')+'\n\n--- 先頭プレビュー ---\n'+content.slice(0,600);}catch(_){}alert('=== '+item.key+' ===\n保存時刻: '+new Date(item.t).toLocaleString('ja-JP')+'\n\n'+preview);}
+async function restoreSnpFromRecovery(item){let content='';if(item.source==='IndexedDB')content=item.content||'';else{try{content=localStorage.getItem(item.key)||'';}catch(_){}}if(!content){alert('このスナップショットは空です（復元できません）');return;}if(!confirm(`スナップショット「${new Date(item.t).toLocaleString('ja-JP')}」を復元しますか？\n現在のデータは emergency 退避してから上書きします。`))return;_snpBackup('emergency');snpLogOp('RECOVERY_RESTORE',{from:item.key,source:item.source});try{localStorage.setItem(STORAGE_KEY,content);alert('復元しました。ページをリロードします。');location.reload();}catch(e){snpLogOp('RECOVERY_RESTORE_ERROR',{msg:String(e)});alert('復元に失敗しました: '+e.message);}}
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){ state = {}; return; }
+  try{
+    state = JSON.parse(raw);
+  }catch(e){
+    // 【追加保護C】JSON破損 → 自動復旧
+    console.error('次週計画: 保存データのJSON解析失敗、自動復旧を試みます',e);
+    snpLogOp('LOAD_PARSE_ERROR',{msg:String(e)});
+    state = {};
+    snpAutoRecover().then(r=>{
+      if(r.recovered){
+        const t=r.time?new Date(r.time).toLocaleString('ja-JP'):'(時刻不明)';
+        alert('保存データが破損していたため、'+t+'のスナップショットから自動復旧しました。\nページをリロードします。');
+        location.reload();
+      }else{
+        alert('保存データが破損しており、復旧できるスナップショットも見つかりませんでした。\n「🛟 復元」から手動で過去のスナップを試してください。');
+      }
+    });
+  }
+}
+function saveState(){
+  // 【追加保護B】空state上書き拒否
+  const prevRaw=_snpCurrentRaw();
+  if(_snpHasMeaningfulExisting(prevRaw)&&_snpLooksEmpty(state)){
+    snpLogOp('SAVE_BLOCKED_EMPTY_OVER_EXISTING',{prevSize:prevRaw.length});
+    console.error('次週計画: 空のstateで既存データを上書きしようとしたため保存を中止しました');
+    return;
+  }
+  // 【追加保護A】quota枯渇前の自動削減
+  snpTrimAllIfNeeded();
+  const prevSize=prevRaw.length;
+  const payload=JSON.stringify(state);
+  try{localStorage.setItem(STORAGE_KEY, payload);}
+  catch(e){
+    console.warn('save error (1st)',e);snpLogOp('SAVE_ERROR',{msg:String(e),phase:'first'});
+    snpTrimAllIfNeeded();
+    try{localStorage.setItem(STORAGE_KEY, payload);}
+    catch(e2){console.error('save error (final)',e2);snpLogOp('SAVE_ERROR',{msg:String(e2),phase:'final'});showSaveStatus('保存失敗');return;}
+  }
+  // 大幅減検知
+  const newSize=(localStorage.getItem(STORAGE_KEY)||'').length;
+  if(prevSize>500 && newSize<prevSize*0.5){
+    snpLogOp('WARN_BIG_DROP',{prev:prevSize,now:newSize});
+    _snpBackup('emergency');
+    console.warn('次週計画: データが大幅に減少しました（緊急バックアップを作成）');
+  }
+  showSaveStatus('保存済 ' + new Date().toLocaleTimeString());
+  snpAutoSnapshot();
+  _snpBroadcastSave();
+}
+function showSaveStatus(msg){
+  const el = document.getElementById('saveStatus');
+  el.textContent = msg;
+  el.classList.add('saved');
+  clearTimeout(showSaveStatus._t);
+  showSaveStatus._t = setTimeout(()=>el.classList.remove('saved'), 2000);
+}
+function getCell(key){ return state[key] ?? ''; }
+function setCell(key, val){
+  if(val === '' && !(key in state)) return;
+  state[key] = val;
+  scheduleSave();
+}
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 400);
+  document.getElementById('saveStatus').textContent = '入力中…';
+}
+function saveNow(){ clearTimeout(saveTimer); saveState(); }
+
+function resetData(){
+  if(!confirm('すべての入力データを削除します。よろしいですか？\n（万一に備え、リセット直前のデータは「🛟 復元」から戻せます）')) return;
+  // リセット前に緊急退避
+  _snpBackup('emergency');
+  snpLogOp('RESET',{});
+  state = {};
+  localStorage.removeItem(STORAGE_KEY);
+  renderAll();
+  showSaveStatus('リセット完了');
+}
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `新村店次週計画_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importJSON(e){
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try{
+      const obj = JSON.parse(ev.target.result);
+      if(confirm('現在のデータを上書きしますか？\n（万一に備え、インポート直前のデータは「🛟 復元」から戻せます）')){
+        // インポート前に退避
+        _snpBackup('pre_import');
+        snpLogOp('IMPORT',{filename:f.name,size:ev.target.result.length});
+        state = obj;
+        saveState();
+        renderAll();
+      }
+    }catch(err){ snpLogOp('IMPORT_ERROR',{msg:String(err)}); alert('JSON読み込み失敗: '+err.message); }
+  };
+  r.readAsText(f);
+  e.target.value='';
+}
+
+/* ============================================================
+   汎用テーブルビルダ
+============================================================ */
+// 編集可能セル
+function editableCell(key, opts={}){
+  const cls = opts.totalRow ? ' class="total-row"' : '';
+  const v = getCell(key);
+  return `<td${cls} contenteditable="true" data-key="${key}">${escapeHtml(v)}</td>`;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// グループ化されたヘッダー＋カテゴリ行のテーブル
+// groups: [{label, cols:[colName, ...]}, ...]
+// rows: [rowLabel, ...]
+// keyPrefix: state key prefix
+function buildGroupedTable(keyPrefix, groups, rows, opts={}){
+  let html = '<div class="table-wrap"><table>';
+  // ヘッダー1行目
+  html += '<thead><tr><th class="row-label" rowspan="2">カテゴリ</th>';
+  groups.forEach(g => {
+    html += `<th class="h2" colspan="${g.cols.length}">${g.label}</th>`;
+  });
+  html += '</tr><tr>';
+  groups.forEach(g => g.cols.forEach(c => html += `<th>${c}</th>`));
+  html += '</tr></thead><tbody>';
+  // ボディ
+  rows.forEach(r => {
+    const isTotal = r === '合計' || r === 'AICOカテゴリ合計';
+    const cls = isTotal ? ' class="row-label total-row"' : ' class="row-label"';
+    html += `<tr><td${cls}>${r}</td>`;
+    groups.forEach(g => g.cols.forEach(c => {
+      const k = `${keyPrefix}::${r}::${g.label}::${c}`;
+      html += editableCell(k, {totalRow:isTotal});
+    }));
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+// シンプル行列テーブル
+function buildSimpleTable(keyPrefix, headers, rows){
+  let html = '<div class="table-wrap"><table><thead><tr>';
+  headers.forEach(h => html += `<th>${h}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach((r,i) => {
+    html += '<tr>';
+    headers.forEach((h,j) => {
+      const k = `${keyPrefix}::${i}::${h}`;
+      if(j === 0) html += `<td class="row-label">${escapeHtml(r[0]||'')}</td>`;
+      else html += editableCell(k);
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+/* ============================================================
+   タブ1: カテゴリ別実績/予算・次月次週計画
+============================================================ */
+function renderTab1(){
+  let html = '';
+
+  // ① 経営計画
+  const keieiGroups = [
+    {label:'先月計画(26/2)', cols:['実績','計画','計画比']},
+    {label:'前月実績(26/3)', cols:['計画(仮)','計画(意思)','前年実績','前月比','前年比']},
+    {label:'当月計画(26/3)', cols:['実績','計画','計画比']},
+    {label:'次週計画', cols:['実績','計画','計画比']},
+    {label:'当週計画', cols:['計画(仮)','計画(意思)','前年比']},
+  ];
+  let kt = '<div class="table-wrap"><table><thead><tr><th class="row-label" rowspan="2">指標</th>';
+  keieiGroups.forEach(g => kt += `<th class="h2" colspan="${g.cols.length}">${g.label}</th>`);
+  kt += '</tr><tr>';
+  keieiGroups.forEach(g => g.cols.forEach(c => kt += `<th>${c}</th>`));
+  kt += '</tr></thead><tbody>';
+  KEIEI_ROWS.forEach(r => {
+    kt += `<tr><td class="row-label">${r}</td>`;
+    keieiGroups.forEach(g => g.cols.forEach(c => {
+      kt += editableCell(`keiei::${r}::${g.label}::${c}`);
+    }));
+    kt += '</tr>';
+  });
+  kt += '</tbody></table></div>';
+  html += `<section class="section"><div class="section-title">① 経営計画 <span class="desc">月次/週次の経営指標</span></div>${kt}</section>`;
+
+  // ② Dept別次週計画
+  const deptCols = ['売上高','売上高 施策効果','売上高 前年比','売変高','売変率','粗利高','粗利高 施策効果','粗利高 前年比','利益率'];
+  const deptGroups = [
+    {label:'前月計画', cols:deptCols},
+    {label:'前月実績', cols:deptCols},
+    {label:'当月計画', cols:deptCols},
+    {label:'当週計画', cols:deptCols},
+  ];
+  html += `<section class="section"><div class="section-title">② Dept別次週計画 <span class="desc">${CATS_DEPT.length-1}カテゴリ＋合計</span></div>${buildGroupedTable('dept', deptGroups, CATS_DEPT)}</section>`;
+
+  // ③ AICOカテゴリ別 次週計画
+  const aicoGroups = [
+    {label:'当月(3/1〜3/22)', cols:['適正販売率①','販売高','前月比','前年比','前年比 支店差','販売率(高)②','販売率差異 ②-①','粗利高','利益率','粗利高 前年比','値引高','廃棄高','機会ロス高']},
+    {label:'前週(3/16〜3/22)', cols:['販売高','販売高 前週比','販売高 前年比','販売率','粗利高','利益率','粗利高 前年比','値引高','廃棄高','機会ロス高','仕入高 推奨差異','販売高 推奨差異']},
+    {label:'当週計画', cols:['売上高','売上高 施策効果','売上高 前年比','売変高','売変率','粗利高','粗利高 施策効果','利益高 前年比','利益率']},
+  ];
+  html += `<section class="section"><div class="section-title">③ AICOカテゴリ別 次週計画 <span class="desc">FF系カテゴリの販売率管理</span></div>${buildGroupedTable('aico', aicoGroups, CATS_AICO)}</section>`;
+
+  return html;
+}
+
+/* ============================================================
+   タブ2: AICOドライバ設定
+============================================================ */
+function renderTab2(){
+  const groups = [
+    {label:'2026.4月処方箋設定値', cols:['平日','土日']},
+    {label:'3/31週設定', cols:['木','金','土','日','月','火','水']},
+    {label:'判定(火〜月)', cols:['火','水','木','金','土','日','月']},
+    {label:'単品ドライバ在庫担保', cols:['設定品数','＋設定品数']},
+  ];
+  const html = buildGroupedTable('driver', groups, CATS_DRIVER);
+  return `<section class="section"><div class="section-title">処方箋/ドライバ次週計画 <span class="desc">AICO発注ドライバ設定</span></div>${html}</section>`;
+}
+
+/* ============================================================
+   タブ3: 日販客数実績
+============================================================ */
+function renderTab3(){
+  let html = '';
+
+  // 全体サマリー
+  const summaryRows = ['月累計','月平均'];
+  const summaryGroups = [
+    {label:'全体日販', cols:['当年売上高','前年売上高','同曜日前年比','前年比','支店差異','先週比']},
+    {label:'全体客数', cols:['当年客数','前年客数','同曜日前年比','前年比','支店差異','先週比']},
+  ];
+  html += `<section class="section"><div class="section-title">① 全体サマリー</div>${buildGroupedTable('summary', summaryGroups, summaryRows)}</section>`;
+
+  // 時間帯別（朝/昼/夕）
+  const timeSlots = ['朝0〜9','昼9〜16','夕16-24'];
+  const timeRows = ['月累計','月平均'];
+  timeSlots.forEach((slot,i) => {
+    const g = [
+      {label:`${slot} 売上`, cols:['売上高','前年売上高','同曜日前年比','売上構成比']},
+      {label:`${slot} 客数`, cols:['当年客数','前年客数','同曜日前年比','売上構成比']},
+      {label:'客単価', cols:['当年','前年差']},
+    ];
+    html += `<section class="section"><div class="section-title">② 時間帯別 ${slot}</div>${buildGroupedTable('time::'+slot, g, timeRows)}</section>`;
+  });
+
+  // 曜日別実績(4週平均)
+  const weekdays = ['月','火','水','木','金','土','日'];
+  const weekdayMetrics = ['日販','先週差(日販)','客数','先週差(客数)','客単価','先週差(客単価)'];
+  let wt = '<div class="table-wrap"><table><thead><tr><th class="row-label">指標</th>';
+  weekdays.forEach(d => wt += `<th>${d}</th>`);
+  wt += '</tr></thead><tbody>';
+  weekdayMetrics.forEach(m => {
+    wt += `<tr><td class="row-label">${m}</td>`;
+    weekdays.forEach(d => wt += editableCell(`weekday::${m}::${d}`));
+    wt += '</tr>';
+  });
+  wt += '</tbody></table></div>';
+  html += `<section class="section"><div class="section-title">③ 曜日別実績(4週平均)</div>${wt}</section>`;
+
+  // 直近4週平均実績（曜日ごと）
+  const weekdayFull = ['月曜日','火曜日','水曜日','木曜日','金曜日','土曜日','日曜日'];
+  weekdayFull.forEach(day => {
+    const hours = [];
+    for(let h=0;h<24;h++) hours.push(`${h}時`);
+    hours.push('合計');
+    const rows = ['売上高(千円)','客数','客単価'];
+    let t = '<div class="table-wrap"><table><thead><tr><th class="row-label">指標</th>';
+    hours.forEach(h => t += `<th>${h}</th>`);
+    t += '</tr></thead><tbody>';
+    rows.forEach(r => {
+      t += `<tr><td class="row-label">${r}</td>`;
+      hours.forEach(h => t += editableCell(`hourly::${day}::${r}::${h}`));
+      t += '</tr>';
+    });
+    t += '</tbody></table></div>';
+
+    // 朝/昼/夕集計
+    const summaryRows2 = ['朝','昼','夕','合計'];
+    const summaryCols = ['売上(千円)','売上前年比','売上構成比','客数','客数前年比','客数構成比'];
+    let s = '<div class="table-wrap"><table><thead><tr><th class="row-label">時間帯</th>';
+    summaryCols.forEach(c => s += `<th>${c}</th>`);
+    s += '</tr></thead><tbody>';
+    summaryRows2.forEach(r => {
+      s += `<tr><td class="row-label">${r}</td>`;
+      summaryCols.forEach(c => s += editableCell(`hourly::${day}::summary::${r}::${c}`));
+      s += '</tr>';
+    });
+    s += '</tbody></table></div>';
+
+    html += `<section class="section"><div class="section-title">④ 直近4週平均実績 ${day}</div>${t}${s}</section>`;
+  });
+
+  return html;
+}
+
+/* ============================================================
+   タブ4: 施策一覧
+============================================================ */
+const SISAKU_COLS = ['NO','区分','施策名/商品名','カテゴリ','週','開始','終了','訴求/POP','価格','参照P','備考','採用','発注商品','発注数','売上見込','利益'];
+const SISAKU_DEFAULT_ROWS = 20;
+
+function renderTab4(){
+  state._sisakuRows = state._sisakuRows ?? SISAKU_DEFAULT_ROWS;
+  const n = state._sisakuRows;
+  let t = '<div class="table-wrap"><table><thead><tr>';
+  SISAKU_COLS.forEach(c => t += `<th>${c}</th>`);
+  t += '</tr></thead><tbody>';
+  for(let i=0; i<n; i++){
+    t += '<tr>';
+    SISAKU_COLS.forEach(c => {
+      const k = `sisaku::${i}::${c}`;
+      if(c === 'NO') t += `<td class="row-label">${i+1}</td>`;
+      else t += editableCell(k);
+    });
+    t += '</tr>';
+  }
+  t += '</tbody></table></div>';
+  t += `<button class="add-row-btn" onclick="addSisakuRow()">+ 行を追加</button>`;
+  return `<section class="section"><div class="section-title">施策一覧 <span class="desc">${n}行</span></div>${t}</section>`;
+}
+function addSisakuRow(){
+  state._sisakuRows = (state._sisakuRows ?? SISAKU_DEFAULT_ROWS) + 5;
+  scheduleSave();
+  renderTab(currentTab);
+}
+
+/* ============================================================
+   タブ5: 施策/売場レイアウト計画
+============================================================ */
+function renderTab5(){
+  let html = '';
+
+  // ① 施策計画
+  const sisakuGroups = [
+    {label:'当週計画', cols:['売上高','売上高 施策効果','売上高 前年比','売変高','売変率','粗利高','粗利高 施策効果','利益高 前年比','利益率']},
+    {label:'特に力を入れる施策', cols:['内容']},
+  ];
+  html += `<section class="section"><div class="section-title">① カテゴリ別施策計画</div>${buildGroupedTable('layout-sisaku', sisakuGroups, CATS_DEPT)}</section>`;
+
+  // ② 売場レイアウト図（編集可能・統一グリッド・通路あり）
+  const cells = getStoreCells();
+  const mapHeight = 1160;
+
+  const legendHtml = `<div class="store-map-legend">
+    <span class="key"><span class="swatch" style="background:#fff"></span>商品棚</span>
+    <span class="key"><span class="swatch" style="background:linear-gradient(135deg,#fef9c3,#fde68a);border-color:#ca8a04"></span>ゾーン名</span>
+    <span class="key"><span class="swatch" style="background:linear-gradient(135deg,#fee2e2,#fecaca);border-color:#dc2626"></span>エンド</span>
+    <span class="key"><span class="swatch" style="background:linear-gradient(135deg,#f1f5f9,#e2e8f0);border-color:#64748b"></span>設備</span>
+  </div>`;
+
+  const banner = editMode ? `
+    <div class="edit-banner">
+      <span><b>📐 編集モード</b>　ドラッグで移動 ／ 右下●でサイズ変更 ／ 名前クリックで改名 ／ 右上×で削除 ／ 移動量がそのまま20px単位</span>
+      <span class="actions">
+        <button onclick="addStoreCell()">＋ セル追加</button>
+        <button onclick="alignAllToGrid()">▦ 全セルを整列</button>
+        <button onclick="resetStoreLayout()">⟲ デフォルトに戻す</button>
+        <button class="primary" onclick="toggleEditMode()">✓ 編集を終了</button>
+      </span>
+    </div>` : '';
+
+  let cellsHtml = '';
+  cells.forEach(c => {
+    const k = `storemap::${c.id}::note`;
+    const v = getCell(k);
+    const isFixture = c.type === 'fixture';
+    cellsHtml += `<div class="store-cell ${c.type}" data-cell-id="${c.id}" style="left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px">`;
+    cellsHtml += `<div class="lbl">${escapeHtml(c.label)}</div>`;
+    if(!isFixture){
+      if(editMode){
+        cellsHtml += `<div class="note">${escapeHtml(v)||'　'}</div>`;
+      } else {
+        cellsHtml += `<div class="note" contenteditable="true" data-key="${k}">${escapeHtml(v)}</div>`;
+      }
+    }
+    if(editMode){
+      cellsHtml += `<div class="type-btn" onclick="cycleStoreCellType('${c.id}')" title="種類切替">${STORE_TYPE_LABELS[c.type]||'?'}</div>`;
+      cellsHtml += `<div class="delete-btn" onclick="deleteStoreCell('${c.id}')" title="削除">×</div>`;
+      cellsHtml += `<div class="resize-edge-r" title="幅を変更"></div>`;
+      cellsHtml += `<div class="resize-edge-b" title="高さを変更"></div>`;
+      cellsHtml += `<div class="resize-handle" title="サイズ変更（縦横同時）"></div>`;
+    }
+    cellsHtml += `</div>`;
+  });
+
+  const storeHtml = `<div class="store-map-wrap${editMode?' edit-mode':''}">${legendHtml}<div class="store-map" style="height:${mapHeight}px">${cellsHtml}</div></div>`;
+
+  const sectionHead = `<div class="layout-section-head">
+    <span>② 売場レイアウト図 <span class="desc" style="font-weight:400;color:var(--muted);font-size:11px">実店舗マップ／${editMode?'編集モード':'各セルの＋でメモ入力'}</span></span>
+    ${editMode ? '' : `<button class="edit-toggle" onclick="toggleEditMode()">✏️ レイアウト編集</button>`}
+  </div>`;
+
+  if(editMode){
+    // 編集モード：サブタブで「マップ」と「セル一覧」を切り替え
+    const subtabs = `<div class="layout-subtabs">
+      <button class="layout-subtab ${layoutSubTab==='map'?'active':''}" data-sub="map" onclick="setLayoutSubTab('map')">📐 マップ</button>
+      <button class="layout-subtab ${layoutSubTab==='manager'?'active':''}" data-sub="manager" onclick="setLayoutSubTab('manager')">📋 セル一覧 <span class="badge" id="cm-count">${cells.length}</span></button>
+    </div>`;
+
+    const mapPanel = `<div class="layout-panel ${layoutSubTab==='map'?'active':''}" data-sub="map">${storeHtml}</div>`;
+
+    const cmPanel = `<div class="layout-panel ${layoutSubTab==='manager'?'active':''}" data-sub="manager">
+      <div class="cell-manager" style="margin-top:0;border:none;border-radius:0;box-shadow:none">
+        <div class="cm-header" style="border-radius:0">
+          <h4>セル管理 <span class="count">${cells.length}件</span></h4>
+          <div class="cm-controls">
+            <select class="cm-sort" onchange="setCmSort(this.value)">
+              <option value="pos" ${cmSortMode==='pos'?'selected':''}>位置順（上→下）</option>
+              <option value="name" ${cmSortMode==='name'?'selected':''}>名前順</option>
+              <option value="type" ${cmSortMode==='type'?'selected':''}>種類順</option>
+            </select>
+            <input type="search" class="cm-search" placeholder="🔍 名前で検索…" value="${escapeHtml(cmFilterText)}" oninput="setCmFilter(this.value)">
+          </div>
+        </div>
+        <div class="cm-row head">
+          <span>種類</span>
+          <span class="name-h">名前（\\n で改行）</span>
+          <span>X</span>
+          <span>Y</span>
+          <span>幅</span>
+          <span>高さ</span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="cm-list" id="cm-list" style="max-height:540px">
+          ${sortedFilteredCells().map(renderCmRow).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    html += `<section class="section"><div class="section-title">${sectionHead}</div>${banner}${subtabs}${mapPanel}${cmPanel}</section>`;
+  } else {
+    html += `<section class="section"><div class="section-title">${sectionHead}</div>${storeHtml}</section>`;
+  }
+
+  return html;
+}
+
+/* ============================================================
+   タブ6: 3つの徹底
+============================================================ */
+function renderTab6(){
+  const fields = [
+    {key:'name', label:'徹底項目（タイトル）', placeholder:'例：クリンリネスの徹底'},
+    {key:'goal', label:'目的・狙い'},
+    {key:'action', label:'具体的な取り組み'},
+    {key:'owner', label:'担当者'},
+    {key:'frequency', label:'実施頻度・タイミング'},
+    {key:'check', label:'確認方法'},
+    {key:'progress', label:'進捗・実績メモ'},
+  ];
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px">';
+  for(let i=1; i<=3; i++){
+    const colors = ['#fee2e2','#dbeafe','#dcfce7'];
+    html += `<section class="section" style="margin:0"><div class="section-title" style="background:${colors[i-1]}">徹底 ${i}</div><div style="padding:0"><table style="width:100%;border-collapse:collapse;font-size:12px">`;
+    fields.forEach(f => {
+      const k = `tettei::${i}::${f.key}`;
+      const v = getCell(k);
+      html += `<tr><td class="row-label" style="width:130px;vertical-align:top">${f.label}</td><td contenteditable="true" data-key="${k}" style="border:1px solid var(--border);padding:6px 8px;min-height:30px;text-align:left;background:#fff">${escapeHtml(v)}</td></tr>`;
+    });
+    html += `</table></div></section>`;
+  }
+  html += '</div>';
+
+  // 日次チェックリスト
+  const days = ['月','火','水','木','金','土','日'];
+  let cl = '<div class="table-wrap"><table><thead><tr><th class="row-label">徹底項目</th>';
+  days.forEach(d => cl += `<th>${d}</th>`);
+  cl += `<th>達成率</th></tr></thead><tbody>`;
+  for(let i=1; i<=3; i++){
+    const nameKey = `tettei::${i}::name`;
+    const name = getCell(nameKey) || `徹底 ${i}`;
+    cl += `<tr><td class="row-label">${escapeHtml(name)}</td>`;
+    days.forEach(d => cl += editableCell(`tettei::${i}::checklist::${d}`));
+    cl += editableCell(`tettei::${i}::achieve`);
+    cl += `</tr>`;
+  }
+  cl += '</tbody></table></div>';
+  html += `<section class="section" style="margin-top:16px"><div class="section-title">週次チェックリスト <span class="desc">○/×/△ などで記入</span></div>${cl}</section>`;
+
+  return html;
+}
+
+/* ============================================================
+   タブ7: その他計画
+============================================================ */
+function renderTab7(){
+  state._sonotaRows = state._sonotaRows ?? 12;
+  const cols = ['NO','分類','項目','内容・狙い','期日','担当','ステータス','備考'];
+  let t = '<div class="table-wrap"><table><thead><tr>';
+  cols.forEach(c => t += `<th>${c}</th>`);
+  t += '</tr></thead><tbody>';
+  for(let i=0; i<state._sonotaRows; i++){
+    t += '<tr>';
+    cols.forEach(c => {
+      const k = `sonota::${i}::${c}`;
+      if(c === 'NO') t += `<td class="row-label">${i+1}</td>`;
+      else t += editableCell(k);
+    });
+    t += '</tr>';
+  }
+  t += '</tbody></table></div>';
+  t += `<button class="add-row-btn" onclick="addSonotaRow()">+ 行を追加</button>`;
+
+  const noteKey = 'sonota::freeform';
+  const noteVal = getCell(noteKey);
+  const memo = `<div style="padding:12px"><div contenteditable="true" data-key="${noteKey}" style="border:1px solid var(--border);min-height:160px;padding:12px;border-radius:6px;background:#fff;font-size:12px;white-space:pre-wrap;text-align:left;line-height:1.5">${escapeHtml(noteVal)}</div></div>`;
+
+  return `<section class="section"><div class="section-title">① その他計画一覧</div>${t}</section><section class="section"><div class="section-title">② 自由記述メモ <span class="desc">改善案・気づき・申し送りなど</span></div>${memo}</section>`;
+}
+function addSonotaRow(){
+  state._sonotaRows = (state._sonotaRows ?? 12) + 5;
+  scheduleSave();
+  renderTab(currentTab);
+}
+
+/* ============================================================
+   タブ8: 発注表
+============================================================ */
+function renderTab8(){
+  state._hatchuRows = state._hatchuRows ?? 30;
+  const cols = ['NO','発注日','カテゴリ','商品名','JANコード','単価','発注数','合計金額','入荷予定日','備考'];
+  let t = '<div class="table-wrap"><table><thead><tr>';
+  cols.forEach(c => t += `<th>${c}</th>`);
+  t += '</tr></thead><tbody>';
+  for(let i=0; i<state._hatchuRows; i++){
+    t += '<tr>';
+    cols.forEach(c => {
+      const k = `hatchu::${i}::${c}`;
+      if(c === 'NO') t += `<td class="row-label">${i+1}</td>`;
+      else t += editableCell(k);
+    });
+    t += '</tr>';
+  }
+  t += '</tbody></table></div>';
+  t += `<button class="add-row-btn" onclick="addHatchuRow()">+ 行を追加</button>`;
+  return `<section class="section"><div class="section-title">発注表 <span class="desc">${state._hatchuRows}行 / 単価×発注数を手入力</span></div>${t}</section>`;
+}
+function addHatchuRow(){
+  state._hatchuRows = (state._hatchuRows ?? 30) + 10;
+  scheduleSave();
+  renderTab(currentTab);
+}
+
+/* ============================================================
+   レンダリング
+============================================================ */
+function renderTab(tabId){
+  currentTab = tabId;
+  const main = document.getElementById('main');
+  let html = '';
+  if(tabId==='tab1') html = renderTab1();
+  else if(tabId==='tab2') html = renderTab2();
+  else if(tabId==='tab3') html = renderTab3();
+  else if(tabId==='tab4') html = renderTab4();
+  else if(tabId==='tab5') html = renderTab5();
+  else if(tabId==='tab6') html = renderTab6();
+  else if(tabId==='tab7') html = renderTab7();
+  else if(tabId==='tab8') html = renderTab8();
+  main.innerHTML = `<div class="tab-panel active">${html}</div>`;
+  attachCellHandlers();
+  if(tabId==='tab5') attachStoreEditHandlers();
+  // タブボタン
+  document.querySelectorAll('#tabNav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tabId);
+  });
+}
+
+function attachCellHandlers(){
+  document.querySelectorAll('[contenteditable="true"][data-key]').forEach(el => {
+    el.addEventListener('input', e => {
+      setCell(el.dataset.key, el.textContent);
+    });
+    el.addEventListener('blur', e => {
+      saveNow();
+    });
+    // Enterで次のセルへ
+    el.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        const all = Array.from(document.querySelectorAll('[contenteditable="true"][data-key]'));
+        const i = all.indexOf(el);
+        if(i >= 0 && i+1 < all.length) all[i+1].focus();
+      }
+      if(e.key === 'Tab'){
+        // ブラウザのデフォルトTab動作でOK
+      }
+    });
+  });
+}
+
+/* ============================================================
+   売場レイアウト 編集モードハンドラ
+============================================================ */
+function attachStoreEditHandlers(){
+  if(!editMode) return;
+  const map = document.querySelector('.store-map');
+  if(!map) return;
+
+  document.querySelectorAll('.store-cell[data-cell-id]').forEach(el => {
+    const id = el.dataset.cellId;
+
+    // ラベル編集
+    const lbl = el.querySelector('.lbl');
+    if(lbl){
+      lbl.contentEditable = 'true';
+      lbl.spellcheck = false;
+      lbl.addEventListener('pointerdown', e => e.stopPropagation());
+      lbl.addEventListener('blur', () => {
+        const c = findStoreCell(id);
+        if(!c) return;
+        const txt = (lbl.innerText||'').trim();
+        if(txt && txt !== c.label){
+          c.label = txt;
+          scheduleSave();
+        } else {
+          lbl.innerText = c.label;
+        }
+      });
+      lbl.addEventListener('keydown', e => {
+        if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); lbl.blur(); }
+      });
+    }
+
+    // ドラッグ移動（閾値あり、デルタスナップで元位置オフセット保持）
+    el.addEventListener('pointerdown', e => {
+      if(e.target.closest('.resize-handle, .resize-edge-r, .resize-edge-b, .delete-btn, .type-btn, .lbl, .note')) return;
+      e.preventDefault();
+      const c = findStoreCell(id);
+      if(!c) return;
+      const startX = e.clientX, startY = e.clientY;
+      const startLeft = c.x, startTop = c.y;
+      let dragging = false;
+      const DRAG_THRESHOLD = 10;
+
+      // 選択状態
+      document.querySelectorAll('.store-cell.selected').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedCellId = id;
+
+      const move = em => {
+        const dx = em.clientX - startX;
+        const dy = em.clientY - startY;
+        if(!dragging){
+          if(Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+          dragging = true;
+          el.classList.add('dragging');
+        }
+        // デルタをスナップ：移動量だけを20px単位に丸める（元のオフセットは保持）
+        const sdx = Math.round(dx / SNAP_GRID) * SNAP_GRID;
+        const sdy = Math.round(dy / SNAP_GRID) * SNAP_GRID;
+        let nx = Math.max(0, startLeft + sdx);
+        let ny = Math.max(0, startTop + sdy);
+        el.style.left = nx + 'px';
+        el.style.top = ny + 'px';
+      };
+      const up = () => {
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        if(!dragging) return; // 閾値未満：移動なし
+        el.classList.remove('dragging');
+        c.x = parseFloat(el.style.left)||0;
+        c.y = parseFloat(el.style.top)||0;
+        scheduleSave();
+        // セル管理パネルの該当行を同期
+        const row = document.querySelector(`.cm-row[data-id="${id}"]`);
+        if(row){
+          const inputs = row.querySelectorAll('input[type=number]');
+          if(inputs[0] && document.activeElement!==inputs[0]) inputs[0].value = c.x;
+          if(inputs[1] && document.activeElement!==inputs[1]) inputs[1].value = c.y;
+        }
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+    });
+
+    // リサイズ（コーナー＋エッジ）— 閾値あり
+    function startResize(triggerEl, axes){
+      triggerEl.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        const c = findStoreCell(id);
+        if(!c) return;
+        const startX = e.clientX, startY = e.clientY;
+        const startW = c.w, startH = c.h;
+        let resizing = false;
+        const RESIZE_THRESHOLD = 5;
+
+        // 選択状態
+        document.querySelectorAll('.store-cell.selected').forEach(s => s.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedCellId = id;
+
+        const move = em => {
+          const dx = em.clientX - startX;
+          const dy = em.clientY - startY;
+          if(!resizing){
+            const relevantDelta = axes.includes('w') ? Math.abs(dx) : 0;
+            const relevantDeltaY = axes.includes('h') ? Math.abs(dy) : 0;
+            if(Math.max(relevantDelta, relevantDeltaY) < RESIZE_THRESHOLD) return;
+            resizing = true;
+            el.classList.add('dragging');
+          }
+          // デルタをスナップ：サイズ変化量だけを20px単位に丸める
+          if(axes.includes('w')){
+            const sdx = Math.round(dx / SNAP_GRID) * SNAP_GRID;
+            let nw = Math.max(40, startW + sdx);
+            el.style.width = nw + 'px';
+          }
+          if(axes.includes('h')){
+            const sdy = Math.round(dy / SNAP_GRID) * SNAP_GRID;
+            let nh = Math.max(20, startH + sdy);
+            el.style.height = nh + 'px';
+          }
+        };
+        const up = () => {
+          document.removeEventListener('pointermove', move);
+          document.removeEventListener('pointerup', up);
+          if(!resizing) return;
+          el.classList.remove('dragging');
+          c.w = parseFloat(el.style.width)||c.w;
+          c.h = parseFloat(el.style.height)||c.h;
+          scheduleSave();
+          // セル管理パネルの該当行の値を更新
+          const row = document.querySelector(`.cm-row[data-id="${id}"]`);
+          if(row){
+            const inputs = row.querySelectorAll('input[type=number]');
+            if(inputs[2] && document.activeElement!==inputs[2]) inputs[2].value = c.w;
+            if(inputs[3] && document.activeElement!==inputs[3]) inputs[3].value = c.h;
+          }
+        };
+        document.addEventListener('pointermove', move);
+        document.addEventListener('pointerup', up);
+      });
+    }
+    const cornerHandle = el.querySelector('.resize-handle');
+    if(cornerHandle) startResize(cornerHandle, ['w','h']);
+    const edgeR = el.querySelector('.resize-edge-r');
+    if(edgeR) startResize(edgeR, ['w']);
+    const edgeB = el.querySelector('.resize-edge-b');
+    if(edgeB) startResize(edgeB, ['h']);
+  });
+
+  // Delete キーで選択中のセルを削除
+  if(!window._editKeyHandler){
+    document.addEventListener('keydown', e => {
+      if(!editMode) return;
+      if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+      if((e.key === 'Delete' || e.key === 'Backspace') && selectedCellId){
+        e.preventDefault();
+        deleteStoreCell(selectedCellId);
+        selectedCellId = null;
+      }
+    });
+    window._editKeyHandler = true;
+  }
+}
+
+function renderTabNav(){
+  const nav = document.getElementById('tabNav');
+  nav.innerHTML = TABS.map(t =>
+    `<button data-tab="${t.id}" onclick="renderTab('${t.id}')">${t.name}</button>`
+  ).join('');
+}
+
+function renderAll(){
+  renderTabNav();
+  renderTab(currentTab);
+}
+
+/* ============================================================
+   起動
+============================================================ */
+snpInitMultiTabGuard();
+loadState();
+renderAll();
+showSaveStatus('準備完了');
+
+// Ctrl+S で手動保存
+document.addEventListener('keydown', e => {
+  if((e.ctrlKey || e.metaKey) && e.key === 's'){
+    e.preventDefault();
+    saveNow();
+  }
+});
+</script>
+</body>
+</html>
