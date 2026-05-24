@@ -4877,7 +4877,7 @@ function _catStatus(cat,dayIdx){
       if(cnt+extra<=0)return;
       total++;
       const k=`${dayIdx}_${slotH}_${p.id}`;
-      // 「作成済」「作れず（在庫切れ等でユーザーが明示マーク）」のどちらも「対応済」として完了扱い
+      // 「作成済」「在庫欠品（在庫切れ等でユーザーが明示マーク）」のどちらも「対応済」として完了扱い
       if(S.checks[k] || (S.skipped&&S.skipped[k])) done++;
     });
     if(total===0)return;
@@ -4938,16 +4938,9 @@ function renderProdDayContent(dayIdx){
   // Selected day badge
   let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
     <div class="selected-day-badge">📅 ${dateStr} を表示中</div>
-    ${e.correction!==0?`<span style="background:${e.correction>0?'#e8f5e9':'#e3f2fd'};color:${e.correction>0?'#2e7d32':'#1565c0'};border-radius:12px;padding:3px 10px;font-size:12px;font-weight:700">${e.correction>0?'▲':'▼'} 補正${e.correction>0?'+':''}${e.correction}%</span>`:''}
   </div>`;
-
-  // Info bar
-  html+=`<div class="info-bar">
-    <span class="info-item">🌤 ${e.weather} ${e.temp}℃</span>
-    ${e.event?`<span class="info-item">📅 ${e.event}</span>`:''}
-    <span class="info-item">補正: <b>${e.correction>=0?'+':''}${e.correction}%</b></span>
-    <span class="info-item">週総客数: <b>${wt}</b></span>
-  </div>
+  // 外部ファクト関連の天気/温度/イベント/補正%、週総客数は非表示
+  // （外部ファクトタブを使わない運用に合わせて削除）
   ${(()=>{
     const hasInvest=S.PM.some(p=>p.enabled&&(p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)));
     return hasInvest?'<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:6px 12px;font-size:11px;color:#92400e;margin-bottom:6px">📈 <b>黄色セル</b> = 投資/新商品追加分（⑤予算管理で設定）　<a onclick="showTab(4)" style="color:var(--main);cursor:pointer;text-decoration:underline">→ 予算管理で編集</a></div>':''
@@ -5154,13 +5147,13 @@ function renderProdDayContent(dayIdx){
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
         const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
         // ⊘ボタン：skippedの時は紺塗りで「対応済」を示す
-        const skipBtn=isSkip?'':`<button type="button" onclick="toggleSkipped('${chkKey}')" title="${skipped?'在庫切れ解除':'在庫切れ等で作れなかった時に押す'}"
+        const skipBtn=isSkip?'':`<button type="button" onclick="toggleSkipped('${chkKey}')" title="${skipped?'在庫欠品マークを解除':'在庫欠品で作れなかった時に押す'}"
           style="padding:0;width:18px;height:18px;border:1px solid ${skipped?'#475569':'#cbd5e1'};background:${skipped?'#475569':'#fff'};color:${skipped?'#fff':'#64748b'};border-radius:4px;cursor:pointer;font-size:11px;line-height:1;font-weight:700">⊘</button>`;
         html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">
           <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
             <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
-            ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">作れず</span>`:''}
+            ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">在庫欠品</span>`:''}
             ${soBadges?`<span style="display:flex;flex-wrap:wrap;justify-content:center;gap:1px">${soBadges}</span>`:''}
             <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
               <input type="checkbox" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}
@@ -6175,13 +6168,17 @@ function renderOrderTable(){
       </div>
     </div>
     ${(()=>{
-      const{total,done}=getOrderCheckProgress();
+      // 「今日までに発注すべき分」(total/done) と「週全体」(totalAll/doneAll) を区別表示
+      const{total,done,totalAll,doneAll}=getOrderCheckProgress();
       const remaining=total-done;
+      const remainAll=totalAll-doneAll;
+      if(totalAll===0)return '';
       if(remaining===0){
-        if(total===0)return '';
-        return `<div style="font-size:13px;color:#065f46;background:#d1fae5;border:2px solid #10b981;border-radius:8px;padding:8px 14px;margin-top:8px;font-weight:600">✅ 全${total}件チェック完了</div>`;
+        // 今日までは完了。週全体がまだなら別バナーで残り通知
+        const allDoneBanner=`<div style="font-size:13px;color:#065f46;background:#d1fae5;border:2px solid #10b981;border-radius:8px;padding:8px 14px;margin-top:8px;font-weight:600">✅ 今日までの発注は完了（${done}/${total}件）${remainAll>0?` <span style="font-weight:400;color:#374151;font-size:12px;margin-left:6px">／ 週全体ではあと ${remainAll}件（未来の発注分）</span>`:''}</div>`;
+        return allDoneBanner;
       }
-      return `<div style="font-size:13px;color:#92400e;background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:8px 14px;margin-top:8px;font-weight:600;line-height:1.6">⚠️ 未チェック <span style="font-size:18px;font-weight:800">${remaining}件</span> 残っています（オレンジ色の発注セル）</div>`;
+      return `<div style="font-size:13px;color:#92400e;background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:8px 14px;margin-top:8px;font-weight:600;line-height:1.6">⚠️ 今日までに発注すべき分が <span style="font-size:18px;font-weight:800">${remaining}件</span> 未チェック残っています（オレンジ色のセル）${remainAll>remaining?` <span style="font-weight:400;color:#374151;font-size:12px;margin-left:6px">／ 週全体: ${doneAll}/${totalAll}</span>`:''}</div>`;
     })()}
     <div style="font-size:11px;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">${t('order.checkHint')}</div>
     ${S.PM.some(p=>p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0))?
@@ -6380,7 +6377,24 @@ function resetOrderChecks(){
 }
 function getOrderCheckProgress(){
   // 数量>0で発注対象（noOrder以外）のセルをカウント
-  let total=0,done=0;
+  // 発注列が「現在日までに発注すべき」かを判定
+  // ORDER_COL の id (0=火, 2=木, 3=金, 5=日) はその週内の発注日インデックス
+  // 'pre' は前週月（常に過去なので due）
+  function isColDueByNow(col){
+    if(col.id==='pre')return true;
+    const dates=getWeekDates();
+    if(!dates||!dates.length)return true;
+    const now=new Date();
+    const today0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    const weekStart0=new Date(dates[0].getFullYear(),dates[0].getMonth(),dates[0].getDate());
+    const weekEnd0=new Date(dates[6].getFullYear(),dates[6].getMonth(),dates[6].getDate());
+    if(today0<weekStart0)return false;  // 未来週の発注 → まだ
+    if(today0>weekEnd0)return true;     // 過去週 → 全て due
+    const colDate=new Date(dates[col.id].getFullYear(),dates[col.id].getMonth(),dates[col.id].getDate());
+    return today0>=colDate;
+  }
+  let total=0,done=0;          // 「今日までに発注すべき」分の集計
+  let totalAll=0,doneAll=0;    // 週全体の集計
   const activeCats=CATS.filter(c=>S.catOn[c]&&S.catCfg[c]?.slots.length);
   activeCats.forEach(cat=>{
     const cfg=S.catCfg[cat];
@@ -6393,13 +6407,18 @@ function getOrderCheckProgress(){
           return sum+cfg.slots.reduce((s,h)=>s+getProdCnt(p.id,di,h)+getInvestExtra(p.id,di,h),0);
         },0);
         if(qty>0){
-          total++;
-          if((S.orderChecks||{})[`${p.id}_${col.id}`])done++;
+          const checked=!!(S.orderChecks||{})[`${p.id}_${col.id}`];
+          totalAll++;
+          if(checked)doneAll++;
+          if(isColDueByNow(col)){
+            total++;
+            if(checked)done++;
+          }
         }
       });
     });
   });
-  return{total,done};
+  return{total,done,totalAll,doneAll};
 }
 
 function buildOrderScheduleHTML(dates, activeCats){
