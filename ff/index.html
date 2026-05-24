@@ -95,6 +95,9 @@ th{background:var(--main-lt);font-weight:600;color:var(--main)}
 /* ランキングUI */
 .rank-chip{padding:6px 14px;font-size:12px;font-weight:600;border:none;border-radius:7px;cursor:pointer;background:transparent;color:#64748b;transition:all .15s}
 .rank-chip.active{background:#fff;color:#1e3a5f;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.rank-cat-chip{padding:5px 12px;font-size:11px;font-weight:600;border:1.5px solid #e2e8f0;border-radius:14px;cursor:pointer;background:#fff;color:#64748b;transition:all .15s;white-space:nowrap}
+.rank-cat-chip:hover{border-color:#cbd5e1;color:#475569}
+.rank-cat-chip.active{background:#1e3a5f;border-color:#1e3a5f;color:#fff}
 .rank-row{display:grid;grid-template-columns:36px 1fr 100px 1fr;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px}
 .rank-row:last-child{border-bottom:none}
 .rank-badge{font-size:18px;font-weight:700;text-align:center}
@@ -390,15 +393,24 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <!-- サブタブ2：ランキング -->
       <div id="jsubpanel-rank" style="display:none">
         <div class="card">
-          <div class="section-title">🏆 今週の実績ランキング</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding:4px;background:#f8fafc;border-radius:10px">
-            <button class="rank-chip active" data-metric="salesAmt" onclick="setRankMetric('salesAmt')">販売高</button>
-            <button class="rank-chip" data-metric="profit" onclick="setRankMetric('profit')">利益額</button>
-            <button class="rank-chip" data-metric="profitRate" onclick="setRankMetric('profitRate')">利益率</button>
-            <button class="rank-chip" data-metric="discAmt" onclick="setRankMetric('discAmt')">値引額</button>
-            <button class="rank-chip" data-metric="sellChangeRate" onclick="setRankMetric('sellChangeRate')">値引率</button>
-            <button class="rank-chip" data-metric="wasteAmt" onclick="setRankMetric('wasteAmt')">廃棄額</button>
-            <button class="rank-chip" data-metric="sellRate" onclick="setRankMetric('sellRate')">販売率</button>
+          <div class="section-title" id="ranking-title">🏆 実績ランキング</div>
+          <!-- カテゴリフィルタ -->
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+            <span style="font-size:11px;color:#64748b;margin-right:4px">カテゴリ：</span>
+            <div id="rank-cat-row" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+          </div>
+          <!-- 指標切替 -->
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+            <span style="font-size:11px;color:#64748b;margin-right:4px">指標：</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px;background:#f8fafc;border-radius:10px">
+              <button class="rank-chip active" data-metric="salesAmt" onclick="setRankMetric('salesAmt')">販売高</button>
+              <button class="rank-chip" data-metric="profit" onclick="setRankMetric('profit')">利益額</button>
+              <button class="rank-chip" data-metric="profitRate" onclick="setRankMetric('profitRate')">利益率</button>
+              <button class="rank-chip" data-metric="discAmt" onclick="setRankMetric('discAmt')">値引額</button>
+              <button class="rank-chip" data-metric="sellChangeRate" onclick="setRankMetric('sellChangeRate')">値引率</button>
+              <button class="rank-chip" data-metric="wasteAmt" onclick="setRankMetric('wasteAmt')">廃棄額</button>
+              <button class="rank-chip" data-metric="sellRate" onclick="setRankMetric('sellRate')">販売率</button>
+            </div>
           </div>
           <div id="ranking-list"></div>
         </div>
@@ -2820,14 +2832,51 @@ function switchJisubTab(name){
 
 // ====== ランキング表示 ======
 let _rankMetric='salesAmt';
+let _rankCategory='all';
 function setRankMetric(m){
   _rankMetric=m;
   document.querySelectorAll('.rank-chip').forEach(b=>b.classList.toggle('active',b.dataset.metric===m));
   renderRanking();
 }
+function setRankCategory(c){
+  _rankCategory=c;
+  document.querySelectorAll('.rank-cat-chip').forEach(b=>b.classList.toggle('active',b.dataset.cat===c));
+  renderRanking();
+}
+// 「先週」(=活動週のひとつ前)の日付範囲を返す。
+// renderJissekiTitle と同じロジック（planStart - 8〜-2 日）
+function getPrevWeekRange(){
+  try{
+    const ws=S.weekStart||weekKeyToDateStr(S.activeWeek);
+    if(!ws)return null;
+    const planStart=parseLocalDate(ws);
+    const s=new Date(planStart);s.setDate(s.getDate()-8);
+    const e=new Date(planStart);e.setDate(e.getDate()-2);
+    return{start:s,end:e};
+  }catch(_){return null;}
+}
+function fmtPrevWeekShort(){
+  const r=getPrevWeekRange();
+  if(!r)return '';
+  return `${r.start.getMonth()+1}/${r.start.getDate()}〜${r.end.getMonth()+1}/${r.end.getDate()}`;
+}
 function renderRanking(){
   const el=document.getElementById('ranking-list');
   if(!el)return;
+  // タイトル更新（先週日付を表示）
+  const titleEl=document.getElementById('ranking-title');
+  if(titleEl){
+    const range=fmtPrevWeekShort();
+    titleEl.innerHTML=`🏆 先週の実績ランキング${range?` <span style="font-size:12px;color:#64748b;font-weight:400">（${range}）</span>`:''}`;
+  }
+  // カテゴリチップを再描画（有効カテゴリ＋全部）
+  const catRow=document.getElementById('rank-cat-row');
+  if(catRow){
+    const activeCats=CATS.filter(c=>S.catOn[c]);
+    catRow.innerHTML=`<button class="rank-cat-chip ${_rankCategory==='all'?'active':''}" data-cat="all" onclick="setRankCategory('all')">全部</button>`+
+      activeCats.map(c=>`<button class="rank-cat-chip ${_rankCategory===c?'active':''}" data-cat="${c}" onclick="setRankCategory('${c}')">${tCat(c)}</button>`).join('');
+  }
+
   const METRIC_INFO={
     salesAmt:{label:'販売高',unit:'円',isPercent:false,desc:'値引後実売上'},
     profit:{label:'利益額',unit:'円',isPercent:false,desc:'販売高 − 廃棄 − 原価'},
@@ -2838,8 +2887,8 @@ function renderRanking(){
     sellRate:{label:'販売率',unit:'%',isPercent:true,desc:'(定価+値引販売) / 作成数'}
   };
   const info=METRIC_INFO[_rankMetric]||METRIC_INFO.salesAmt;
-  // 有効商品の指標を集計
-  const rows=(S.PM||[]).filter(p=>p.enabled).map(p=>{
+  // 有効商品＋カテゴリフィルタの指標を集計
+  const rows=(S.PM||[]).filter(p=>p.enabled&&(_rankCategory==='all'||p.category===_rankCategory)).map(p=>{
     const m=calcJissekiMetrics(p.id);
     if(!m)return null;
     return{p,metric:m[_rankMetric]||0,m};
@@ -2849,8 +2898,9 @@ function renderRanking(){
   // 上位以外の「全部ゼロ」だけのケースに対応
   const maxVal=rows.length?rows[0].metric:0;
   if(rows.length===0||maxVal<=0){
+    const catLabel=_rankCategory==='all'?'':`【${tCat(_rankCategory)}】の `;
     el.innerHTML=`<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;line-height:1.7">
-      ${info.label}が記録されている商品がまだありません。<br>「📝 入力」タブで実績を入力すると、ここにランキングが表示されます。
+      ${catLabel}${info.label}が記録されている商品がまだありません。<br>「📝 入力」タブで実績を入力すると、ここにランキングが表示されます。
     </div>`;
     return;
   }
@@ -2858,8 +2908,9 @@ function renderRanking(){
   const barClasses=['gold','silver','bronze'];
   const _circled=(i)=>{const a=['④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];return a[i-3]||`(${i+1})`;};
   const fmtVal=v=>info.isPercent?v.toFixed(1)+'%':fmt(Math.round(v))+'円';
+  const catScope=_rankCategory==='all'?'全カテゴリ':tCat(_rankCategory);
   el.innerHTML=`
-    <div style="font-size:11px;color:#64748b;margin-bottom:6px">${info.desc} ・ 全${rows.length}商品中（高い順）</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:6px">${info.desc} ・ ${catScope} 全${rows.length}商品中（高い順）</div>
     `+rows.map((r,i)=>{
       const pct=maxVal>0?Math.max(2,Math.min(100,r.metric/maxVal*100)):0;
       const isTop3=i<3;
@@ -2985,6 +3036,9 @@ function renderWeekSelector(){
   };
   const currentLabel=S.activeWeek?fmtLabel(S.activeWeek):'(未設定)';
   const canDelete=keys.length>1;
+  // 先週日付の説明キャプション
+  const prevRange=(typeof fmtPrevWeekShort==='function')?fmtPrevWeekShort():'';
+  const caption=prevRange?`<div style="font-size:11px;color:#64748b;margin-top:6px;padding-left:4px">この週で入力する実績データ = <b style="color:#1d4ed8">先週分（${prevRange}）</b>の結果</div>`:'';
   el.innerHTML=`
     <div class="week-switcher" id="week-switcher">
       <button class="week-trigger" type="button" id="week-trigger">
@@ -3004,7 +3058,8 @@ function renderWeekSelector(){
         <div class="week-divider"></div>
         <div class="week-action" id="week-add-btn"><span style="width:18px;text-align:center">＋</span>新しい週を追加</div>
       </div>
-    </div>`;
+    </div>
+    ${caption}`;
 
   // イベント
   const sw=document.getElementById('week-switcher');
