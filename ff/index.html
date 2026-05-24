@@ -2664,8 +2664,9 @@ function getDayCust(dayIdx){
 function getCorrTarget(pid,dayIdx){
   const p=getP(pid);if(!p)return 0;
   const wt=getWeekTotal();if(!wt)return 0;
-  const ji=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
-  const teika=ji.teika||0;
+  // 直近4週の teika 移動平均を使う（単週の偶発変動を平滑化）
+  // 過去週データが無い時は現在週の teika だけが採用される
+  const teika=getRecentAvgTeika(pid, 4);
   const rate=teika/wt;
   const valInput=p.shopPrice-p.cost;
   const aggressive=valInput/(p.cost+valInput);
@@ -2741,9 +2742,18 @@ function getProdCnt(pid,dayIdx,slotH){
   const wt=getWeekTotal();if(!wt)return 0;
   const ct=getCorrTarget(pid,dayIdx);
   let cnt=roundCnt(ct*sc/wt);
-  // 最低引出客数（廃棄リスク回避）：客数が足りずかつ(A)OFFなら0返却
+  // 損益分岐ガード（段階化）：
+  // 旧: 客数<損益分岐 → 一律0（機会損失大）
+  // 新: 損益分岐の半分未満→0、半分〜未満→客数比で比例減衰、それ以上→通常
+  // (A)forceOnの場合は後段で最低batch保証されるのでガードはスキップ可
   const wl=getWithdraw(pid);
-  if(wl>0&&sc<wl&&!forceOn)return 0;
+  if(wl>0 && !forceOn){
+    if(sc < wl*0.5){
+      cnt=0;  // 客数が極端に少なく原価回収率も低い→作らない
+    } else if(sc < wl){
+      cnt=Math.floor(cnt * (sc/wl));  // 段階的に減衰
+    }
+  }
   // (A) 算出が0の時、ONなら最低 batch 個作る
   if(cnt===0 && forceOn) cnt=batch;
   // (B) バッチ単位で常に切り上げ（cnt > 0 のとき）
@@ -2761,6 +2771,32 @@ function getJiAllWeeks(pid){
     t+=j.teika||0;n+=j.nebiki||0;h+=j.haiki||0;
   });
   return{teika:t,nebiki:n,haiki:h,total:t+n+h};
+}
+
+// 直近 N 週分の teika（定価販売数）平均を返す（移動平均）
+// activeWeek を含む直近4週まで使う。週が足りなければあるだけ使う。
+function getRecentAvgTeika(pid, windowSize){
+  windowSize = windowSize || 4;
+  const list = [];
+  // activeWeek（今表示中の週＝直近実績）
+  const cur = S.ji[pid];
+  if(cur && (cur.teika||0) > 0) list.push(cur.teika);
+  // 過去週（古い順にソート→新しい順）
+  const keys = Object.keys(S.weeks||{})
+    .filter(k => k !== S.activeWeek)
+    .sort();
+  // 「アクティブ週より前の週」だけを対象に（順番に意味があるよう、古い順から「アクティブの直前」を辿る）
+  // ここでは単純に keys を新しい順にソートして上位 (windowSize-1) 件
+  keys.reverse();
+  for(const k of keys){
+    if(list.length >= windowSize) break;
+    const j = (S.weeks[k].ji||{})[pid];
+    if(!j) continue;
+    const v = j.teika||0;
+    if(v > 0) list.push(v);
+  }
+  if(list.length === 0) return 0;
+  return list.reduce((a,b)=>a+b, 0) / list.length;
 }
 
 // 投資/新商品の対象曜日を返す（デフォルト全7日）。配列 [0..6]
