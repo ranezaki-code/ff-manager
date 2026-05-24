@@ -54,6 +54,44 @@ th{background:var(--main-lt);font-weight:600;color:var(--main)}
 .chip{background:var(--gray-lt);border-radius:12px;padding:2px 8px;font-size:11px;color:var(--gray)}
 .chip.warn{background:var(--red-lt);color:var(--red)}
 .chip.ok{background:var(--green-lt);color:var(--green)}
+/* 週セレクター（ドロップダウン式） */
+.week-switcher{position:relative;display:inline-block}
+.week-trigger{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;background:#fff;border:1px solid var(--border);
+  border-radius:12px;cursor:pointer;font-family:inherit;
+  box-shadow:0 1px 2px rgba(0,0,0,.04);transition:all .15s;
+}
+.week-trigger:hover{border-color:#cbd5e1;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.week-label{font-size:14px;font-weight:600;color:#0f172a;letter-spacing:.01em}
+.week-chev{font-size:11px;color:#9ca3af;margin-left:2px;transition:transform .2s ease}
+.week-switcher.open .week-chev{transform:rotate(180deg)}
+.week-menu{
+  display:none;position:absolute;top:100%;left:0;margin-top:6px;min-width:280px;
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 12px 32px rgba(15,23,42,.16);padding:6px;z-index:100;
+}
+.week-switcher.open .week-menu{display:block}
+.week-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
+  cursor:pointer;font-size:13px;color:#0f172a;user-select:none;
+}
+.week-item:hover{background:#f1f5f9}
+.week-item.current{background:#eff6ff;color:#1d4ed8;font-weight:600}
+.week-item .check{width:18px;text-align:center;color:#1d4ed8;font-weight:700}
+.week-item .week-del{
+  background:transparent;border:none;color:#cbd5e1;cursor:pointer;
+  font-size:14px;padding:4px 6px;border-radius:6px;opacity:0;transition:opacity .15s;
+}
+.week-item:hover .week-del{opacity:1}
+.week-item .week-del:hover{background:#fee2e2;color:#dc2626}
+.week-divider{height:1px;background:var(--border);margin:6px 4px}
+.week-action{
+  padding:9px 12px;border-radius:8px;cursor:pointer;font-size:12px;
+  color:#64748b;display:flex;align-items:center;gap:8px;user-select:none;font-weight:500;
+}
+.week-action:hover{background:#f1f5f9;color:#0f172a}
+
 /* ランキングUI */
 .rank-chip{padding:6px 14px;font-size:12px;font-weight:600;border:none;border-radius:7px;cursor:pointer;background:transparent;color:#64748b;transition:all .15s}
 .rank-chip.active{background:#fff;color:#1e3a5f;box-shadow:0 1px 2px rgba(0,0,0,.08)}
@@ -311,6 +349,9 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div id="content">
     <!-- Tab 0: 実績入力 -->
     <div class="tab-panel active" id="tab0">
+      <!-- 週セレクター（サブタブ外に配置、両サブタブから共通） -->
+      <div id="week-selector" style="margin-bottom:12px"></div>
+
       <!-- サブタブ：入力 / ランキング -->
       <div style="display:flex;gap:6px;margin-bottom:10px;padding:4px;background:#f1f5f9;border-radius:10px;width:fit-content">
         <button id="jsubtab-input" onclick="switchJisubTab('input')" style="padding:7px 16px;font-size:13px;font-weight:600;border:none;border-radius:7px;cursor:pointer;background:#fff;color:#0f172a;box-shadow:0 1px 2px rgba(0,0,0,.06)">📝 入力</button>
@@ -319,9 +360,6 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 
       <!-- サブタブ1：入力（既存内容） -->
       <div id="jsubpanel-input">
-        <div class="card" style="padding:10px 12px">
-          <div id="week-selector"></div>
-        </div>
         <div class="card">
           <div class="section-title" data-i18n="jisseki.weekSummary">週合計サマリー</div>
           <div class="summary-grid" id="jisseki-summary"></div>
@@ -358,6 +396,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
             <button class="rank-chip" data-metric="profit" onclick="setRankMetric('profit')">利益額</button>
             <button class="rank-chip" data-metric="profitRate" onclick="setRankMetric('profitRate')">利益率</button>
             <button class="rank-chip" data-metric="discAmt" onclick="setRankMetric('discAmt')">値引額</button>
+            <button class="rank-chip" data-metric="sellChangeRate" onclick="setRankMetric('sellChangeRate')">値引率</button>
             <button class="rank-chip" data-metric="wasteAmt" onclick="setRankMetric('wasteAmt')">廃棄額</button>
             <button class="rank-chip" data-metric="sellRate" onclick="setRankMetric('sellRate')">販売率</button>
           </div>
@@ -2794,6 +2833,7 @@ function renderRanking(){
     profit:{label:'利益額',unit:'円',isPercent:false,desc:'販売高 − 廃棄 − 原価'},
     profitRate:{label:'利益率',unit:'%',isPercent:true,desc:'利益額 / 販売高'},
     discAmt:{label:'値引額',unit:'円',isPercent:false,desc:'値引販売による値引総額'},
+    sellChangeRate:{label:'値引率',unit:'%',isPercent:true,desc:'値引額 / 販売高（売上に対する値引比率）'},
     wasteAmt:{label:'廃棄額',unit:'円',isPercent:false,desc:'廃棄数 × 原価'},
     sellRate:{label:'販売率',unit:'%',isPercent:true,desc:'(定価+値引販売) / 作成数'}
   };
@@ -2937,41 +2977,75 @@ function renderWeekSelector(){
   const el=document.getElementById('week-selector');
   if(!el)return;
   const keys=Object.keys(S.weeks).sort();
-  const canDelete=keys.length>1;
-  let html=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span style="font-size:12px;font-weight:700;color:var(--main);white-space:nowrap">📅 週</span>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1;overflow-x:auto">`;
   const DOW=['日','月','火','水','木','金','土'];
-  keys.forEach(key=>{
-    const active=key===S.activeWeek;
+  const fmtLabel=(key)=>{
     const w=S.weeks[key];
     const d=parseLocalDate(w?.weekStart||weekKeyToDateStr(key));
-    const dow=DOW[d.getDay()];
-    const label=`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}(${dow})週`;
-    html+=`<div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
-      <button onclick="switchWeek('${key}')"
-        style="padding:5px 14px;border-radius:20px;border:2px solid ${active?'var(--accent)':'var(--border)'};
-        background:${active?'var(--accent)':'#fff'};color:${active?'#fff':'#555'};
-        font-size:12px;font-weight:${active?700:400};cursor:pointer;white-space:nowrap;transition:all .15s">
-        ${label}${active?' ✓':''}
+    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${DOW[d.getDay()]}）週`;
+  };
+  const currentLabel=S.activeWeek?fmtLabel(S.activeWeek):'(未設定)';
+  const canDelete=keys.length>1;
+  el.innerHTML=`
+    <div class="week-switcher" id="week-switcher">
+      <button class="week-trigger" type="button" id="week-trigger">
+        <span style="font-size:13px;color:#64748b">📅</span>
+        <span class="week-label">${currentLabel}</span>
+        <span class="week-chev">▼</span>
       </button>
-      ${canDelete?(deleteConfirmKey===key
-        ?`<button onclick="deleteWeek('${key}')"
-          title="もう一度タップで削除"
-          style="padding:1px 6px;border-radius:10px;background:#e53935;border:none;color:#fff;font-size:10px;cursor:pointer;line-height:1.4;flex-shrink:0;font-weight:700;animation:pulse .6s infinite alternate">削除?</button>`
-        :`<button onclick="deleteWeek('${key}')"
-          title="タップで削除確認"
-          style="width:18px;height:18px;border-radius:50%;background:#e0e0e0;border:none;color:#666;font-size:10px;cursor:pointer;line-height:1;flex-shrink:0">×</button>`)
-      :''}
+      <div class="week-menu" id="week-menu">
+        ${keys.map(key=>{
+          const active=key===S.activeWeek;
+          return `<div class="week-item ${active?'current':''}" data-key="${key}">
+            <span class="check">${active?'✓':''}</span>
+            <span style="flex:1">${fmtLabel(key)}</span>
+            ${canDelete?`<button class="week-del" data-key="${key}" title="削除">🗑</button>`:''}
+          </div>`;
+        }).join('')}
+        <div class="week-divider"></div>
+        <div class="week-action" id="week-add-btn"><span style="width:18px;text-align:center">＋</span>新しい週を追加</div>
+      </div>
     </div>`;
+
+  // イベント
+  const sw=document.getElementById('week-switcher');
+  document.getElementById('week-trigger').addEventListener('click',e=>{
+    e.stopPropagation();
+    sw.classList.toggle('open');
   });
-  html+=`</div>
-    <button onclick="showAddWeekDialog()"
-      style="padding:5px 12px;border-radius:20px;border:2px dashed var(--border);background:#fff;color:var(--gray);font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0">
-      ＋ 追加
-    </button>
-  </div>`;
-  el.innerHTML=html;
+  // 外クリックで閉じる
+  if(!renderWeekSelector._closeBound){
+    renderWeekSelector._closeBound=true;
+    document.addEventListener('click',e=>{
+      const s=document.getElementById('week-switcher');
+      if(s && !s.contains(e.target))s.classList.remove('open');
+    });
+  }
+  document.getElementById('week-menu').addEventListener('click',e=>{
+    e.stopPropagation();
+    // 削除
+    const del=e.target.closest('.week-del');
+    if(del){
+      const k=del.dataset.key;
+      if(confirm(`「${fmtLabel(k)}」を削除しますか？\nこの週の実績・客数データが完全に消えます（取り消し不可）`)){
+        // 既存の deleteWeek を2回目のタップ扱いで実行するため、フラグセット
+        deleteConfirmKey=k;
+        deleteWeek(k);
+      }
+      return;
+    }
+    // 切替
+    const item=e.target.closest('.week-item');
+    if(item){
+      switchWeek(item.dataset.key);
+      sw.classList.remove('open');
+      return;
+    }
+    // 追加
+    if(e.target.closest('#week-add-btn')){
+      showAddWeekDialog();
+      sw.classList.remove('open');
+    }
+  });
 }
 function switchWeek(key){
   if(key===S.activeWeek)return;
