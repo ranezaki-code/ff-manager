@@ -2726,39 +2726,49 @@ function getSlotForceOn(p,slotH){
   return true; // 未指定なら ON（既定）
 }
 
-function getProdCnt(pid,dayIdx,slotH){
-  const p=getP(pid);if(!p||!p.enabled)return 0;
-  if(!S.catOn[p.category])return 0;
-  const cfg=S.catCfg[p.category];if(!cfg)return 0;
-  if(!cfg.slots.includes(slotH))return 0;
-  const range=getCatSlotRange(p.category,slotH);if(!range)return 0;
+// 作成数の内訳を返す: {total, natural, forced}
+//   natural = 需要から計算された自然算出分（haiki_rate_p で評価する分）
+//   forced  = 強制最低分（自然算出0で minSlots ON のため作る分）。100%廃棄想定にすべき
+//   total   = natural + forced
+function getProdCntDetail(pid,dayIdx,slotH){
+  const ZERO={total:0,natural:0,forced:0};
+  const p=getP(pid);if(!p||!p.enabled)return ZERO;
+  if(!S.catOn[p.category])return ZERO;
+  const cfg=S.catCfg[p.category];if(!cfg)return ZERO;
+  if(!cfg.slots.includes(slotH))return ZERO;
+  const range=getCatSlotRange(p.category,slotH);if(!range)return ZERO;
   const[hs,he]=range;
   const ts=p.timeStart??7,te=p.timeEnd??22;
   const batch=getBatchUnit(p);
   const forceOn=getSlotForceOn(p,slotH);
-  // 商品の販売時間帯から外れていれば「作らない」が基本だが、(A)ONなら最低batch分
-  if(hs>=te||he<=ts)return forceOn?batch:0;
+  if(hs>=te||he<=ts){
+    // 商品販売時間帯外。(A)ON なら最低batch を作る（=強制扱い）
+    if(forceOn) return {total:batch, natural:0, forced:batch};
+    return ZERO;
+  }
   const sc=getSlotCust(dayIdx,hs,he);
-  const wt=getWeekTotal();if(!wt)return 0;
+  const wt=getWeekTotal();if(!wt)return ZERO;
   const ct=getCorrTarget(pid,dayIdx);
-  let cnt=roundCnt(ct*sc/wt);
-  // 損益分岐ガード（段階化）：
-  // 旧: 客数<損益分岐 → 一律0（機会損失大）
-  // 新: 損益分岐の半分未満→0、半分〜未満→客数比で比例減衰、それ以上→通常
-  // (A)forceOnの場合は後段で最低batch保証されるのでガードはスキップ可
+  let natural=roundCnt(ct*sc/wt);
+  // 損益分岐ガード（段階化）：(A)forceOnならスキップ
   const wl=getWithdraw(pid);
   if(wl>0 && !forceOn){
     if(sc < wl*0.5){
-      cnt=0;  // 客数が極端に少なく原価回収率も低い→作らない
+      natural=0;
     } else if(sc < wl){
-      cnt=Math.floor(cnt * (sc/wl));  // 段階的に減衰
+      natural=Math.floor(natural*(sc/wl));
     }
   }
-  // (A) 算出が0の時、ONなら最低 batch 個作る
-  if(cnt===0 && forceOn) cnt=batch;
-  // (B) バッチ単位で常に切り上げ（cnt > 0 のとき）
-  if(cnt>0 && batch>1) cnt=Math.ceil(cnt/batch)*batch;
-  return cnt;
+  let total=natural;
+  // (A) 自然算出0 で ON なら強制 batch
+  if(total===0 && forceOn) total=batch;
+  // (B) バッチ単位で切上（cnt>0 のとき）。切上で増えた分も forced 扱い
+  if(total>0 && batch>1) total=Math.ceil(total/batch)*batch;
+  const forced=Math.max(0, total-natural);
+  return {total, natural, forced};
+}
+function getProdCnt(pid,dayIdx,slotH){
+  return getProdCntDetail(pid,dayIdx,slotH).total;
 }
 
 // 全週の実績を集計するヘルパー（グローバル）
@@ -5695,29 +5705,35 @@ function renderBudgetPlan(){
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category];if(!cfg)return;
-    let baseCnt=0, extraCnt=0;
+    // 作成数を3種類に分けて集計
+    //   naturalCnt : 自然算出分（需要から計算された分）→ 歴史的廃棄率で評価
+    //   forcedCnt  : 強制最低分（自然算出0でも作る分）→ 100%廃棄想定
+    //   extraCnt   : 投資/新商品追加分                  → 100%廃棄想定
+    let naturalCnt=0, forcedCnt=0, extraCnt=0;
     DAYS.forEach((_,di)=>{
       cfg.slots.forEach(h=>{
-        baseCnt +=getProdCnt(p.id,di,h);
-        extraCnt+=getInvestExtra(p.id,di,h);
+        const d=getProdCntDetail(p.id,di,h);
+        naturalCnt += d.natural;
+        forcedCnt  += d.forced;
+        extraCnt   += getInvestExtra(p.id,di,h);
       });
     });
+    const baseCnt=naturalCnt+forcedCnt; // 旧 baseCnt（強制分含む）
     const cnt_week=baseCnt+extraCnt;
     nextMake     +=cnt_week*p.shopPrice;
     nextTotalCost+=cnt_week*p.cost;
     nextBaseCost +=baseCnt *p.cost;
     // 商品別の実績レート（S.ji + 他週）
     const ji=getJiAllWeeks(p.id);
-    // ※ ji.total=0（実績未入力）の場合は廃棄率100%・値引率0%を使用する。
-    //   作成計画がある以上、実績なし=全廃棄リスクとして保守的に見積もるのが正当。
-    //   利益がマイナスになるのは意図した動作（「このまま作ると赤字」の警告）。
     const haiki_rate_p =ji.total?ji.haiki/ji.total:1.0;
     const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0;
     if(!ji.total&&cnt_week>0) noDataProds.push(p.name);
-    // 廃棄額（売価ベース）= 作成数（投資込み）× 廃棄率 × 売価
-    nextWasteAmt+=cnt_week*haiki_rate_p*p.shopPrice;
-    // 値引額 = 作成数（投資込み）× 値引率 × 商品別値引額（p.disc）
-    nextDiscAmt +=cnt_week*nebiki_rate_p*p.disc;
+    // 廃棄額（売価ベース）:
+    //   自然算出 × 歴史的廃棄率 + (強制最低分 + 投資追加分) × 100% を売価で評価
+    nextWasteAmt += naturalCnt * haiki_rate_p * p.shopPrice;
+    nextWasteAmt += (forcedCnt + extraCnt) * 1.0 * p.shopPrice;
+    // 値引額: 自然算出分のみ歴史的値引率で。強制/投資分は売れない前提なので値引もしない
+    nextDiscAmt  += naturalCnt * nebiki_rate_p * p.disc;
     // 全体集計（適正販売率の表示用）
     sumTeika+=ji.teika; sumNebiki+=ji.nebiki; sumHaiki+=ji.haiki;
   });
