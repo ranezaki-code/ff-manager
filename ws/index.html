@@ -2807,13 +2807,30 @@ let editingDateKey = null;
 let nowTimer = null;
 
 function loadState(){
-  // 【店舗統合・初回マイグレーション】per-storeキーが空 かつ レガシーキー'ws_v1'にデータがあれば複製。
-  if(_STORE_ID && !localStorage.getItem(STORAGE_KEY)){
+  // 【店舗統合・マイグレーション】per-storeキーが「空 or 実質空(タスク0/スタッフ0)」
+  // かつ レガシーキー 'ws_v1' に意味のあるデータがあれば自動復元する。
+  // 旧コードは「完全に存在しない」場合のみ migrate だったが、ユーザー操作で
+  // 0.7KB の初期化状態にされた場合もフォールバックする（再発防止）。
+  if(_STORE_ID){
     try{
-      const legacy=localStorage.getItem('ws_v1');
-      if(legacy && legacy.length>10 && legacy!=='{}'){
-        localStorage.setItem('ws_v1_premigration_'+Date.now(),legacy);
-        localStorage.setItem(STORAGE_KEY,legacy);
+      const curRaw=localStorage.getItem(STORAGE_KEY)||'';
+      let curEmpty=true;
+      if(curRaw){
+        try{curEmpty=_wsLooksEmpty(JSON.parse(curRaw));}catch(_){curEmpty=true;}
+      }
+      if(curEmpty){
+        const legacy=localStorage.getItem('ws_v1');
+        if(legacy && legacy.length>200){
+          let legacyOk=false;
+          try{legacyOk=!_wsLooksEmpty(JSON.parse(legacy));}catch(_){}
+          if(legacyOk){
+            const hasPremig=Object.keys(localStorage).some(k=>k.startsWith('ws_v1_premigration_'));
+            if(!hasPremig){
+              try{localStorage.setItem('ws_v1_premigration_'+Date.now(),legacy);}catch(_){}
+            }
+            localStorage.setItem(STORAGE_KEY,legacy);
+          }
+        }
       }
     }catch(_){}
   }
@@ -2854,13 +2871,68 @@ function loadState(){
     priorityTasks: []
   };
 }
+// 「実質空」判定：tasks/staff/recurringTasks がすべて空なら true
+function _wsLooksEmpty(s){
+  if(!s||typeof s!=='object')return true;
+  const tasks=Object.values(s.tasks||{}).reduce((a,arr)=>a+(Array.isArray(arr)?arr.length:0),0);
+  const staff=Array.isArray(s.staff)?s.staff.length:0;
+  const rec=Array.isArray(s.recurringTasks)?s.recurringTasks.length:0;
+  return tasks===0 && staff===0 && rec===0;
+}
+function _wsHasMeaningfulExisting(raw){
+  if(!raw||raw.length<200)return false;
+  try{return !_wsLooksEmpty(JSON.parse(raw));}catch(_){return false;}
+}
+// localStorage の容量を概算（文字数ベース）
+function _wsEstimateUsage(){
+  let n=0;
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);n+=(k||'').length+(localStorage.getItem(k)||'').length;}}catch(_){}
+  return n;
+}
+// 4.5MB超なら古いバックアップを削除して空き確保。削除順序: snap → autobackup → pre_import → premigration → emergency
+function _wsTrimAllIfNeeded(){
+  const THRESHOLD=4500000;
+  if(_wsEstimateUsage()<THRESHOLD)return;
+  const prefixes=['ws_v1_snap_','ws_v1_autobackup_','ws_v1_pre_import_','ws_v1_premigration_','ws_v1_emergency_'];
+  for(const prefix of prefixes){
+    if(_wsEstimateUsage()<THRESHOLD)return;
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith(prefix)).sort();
+    while(keys.length>0 && _wsEstimateUsage()>=THRESHOLD){
+      const removed=keys.shift();
+      try{localStorage.removeItem(removed);}catch(_){}
+    }
+  }
+}
+
 function saveState(){
+  // 【再発防止1】空state上書き拒否：既存に意味のあるデータがあり、新stateが空なら保存中止
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const prevRaw=localStorage.getItem(STORAGE_KEY)||'';
+    if(_wsHasMeaningfulExisting(prevRaw) && _wsLooksEmpty(state)){
+      const el=document.getElementById('save-info');
+      if(el)el.textContent='保存中止: 空データで上書きを防止';
+      console.error('WS: 空のstateで既存データを上書きしようとしたため保存を中止');
+      return;
+    }
+  }catch(_){}
+  // 【再発防止2】容量枯渇前の自動trim
+  _wsTrimAllIfNeeded();
+  // 通常の保存（QuotaExceededError 時は強めにtrimして再試行）
+  const payload=JSON.stringify(state);
+  try{
+    localStorage.setItem(STORAGE_KEY, payload);
     document.getElementById('save-info').textContent =
       '最終保存: ' + new Date().toLocaleTimeString('ja-JP');
   }catch(e){
-    document.getElementById('save-info').textContent = '保存失敗: ' + e.message;
+    console.warn('WS save error (1st), trimming and retry:',e);
+    _wsTrimAllIfNeeded();
+    try{
+      localStorage.setItem(STORAGE_KEY, payload);
+      document.getElementById('save-info').textContent =
+        '最終保存: ' + new Date().toLocaleTimeString('ja-JP');
+    }catch(e2){
+      document.getElementById('save-info').textContent = '保存失敗: ' + e2.message;
+    }
   }
 }
 
