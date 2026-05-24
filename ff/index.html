@@ -4977,7 +4977,7 @@ function renderProdDayContent(dayIdx){
   </div>`;
   // 外部ファクト関連の天気/温度/イベント/補正%、週総客数は非表示
   // （外部ファクトタブを使わない運用に合わせて削除）
-  ${(()=>{
+  html+=`${(()=>{
     const hasInvest=S.PM.some(p=>p.enabled&&(p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)));
     return hasInvest?'<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:6px 12px;font-size:11px;color:#92400e;margin-bottom:6px">📈 <b>黄色セル</b> = 投資/新商品追加分（⑤予算管理で設定）　<a onclick="showTab(4)" style="color:var(--main);cursor:pointer;text-decoration:underline">→ 予算管理で編集</a></div>':''
   })()}
