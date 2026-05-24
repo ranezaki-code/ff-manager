@@ -1504,6 +1504,7 @@ let S = {
   ext:DEF_EXT.map(e=>({...e})),
   rules:[],
   checks:{},
+  skipped:{}, // 「作れなかった（在庫切れ等）」マーク。checksとは別管理
   orderChecks:{},
   soldOuts:{},
   discountSchedule:{},
@@ -1560,6 +1561,7 @@ function syncActiveWeek(){
     ji:JSON.parse(JSON.stringify(S.ji||{})),
     cust:(S.cust||[]).map(r=>[...r]),
     checks:{...(S.checks||{})},
+    skipped:{...(S.skipped||{})},
     orderChecks:{...(S.orderChecks||{})},
     soldOuts:JSON.parse(JSON.stringify(S.soldOuts||{})),
     weekStart:S.weekStart
@@ -1587,7 +1589,7 @@ function saveS(){
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-    rules:S.rules,checks:S.checks,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
+    rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
     施策:S.施策,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
@@ -1598,7 +1600,7 @@ function saveS(){
     try{localStorage.setItem(key,JSON.stringify({
       storeName:S.storeName,chainName:S.chainName,PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
       ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-      rules:S.rules,checks:S.checks,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
+      rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
       施策:S.施策,booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
       weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
     }));}catch(e2){console.error('save error (final)',e2);logOp('SAVE_ERROR',{msg:String(e2),phase:'final'});return;}
@@ -3155,6 +3157,7 @@ function switchWeek(key){
   S.ji=JSON.parse(JSON.stringify(w.ji||{}));
   S.cust=(w.cust||[]).map(r=>[...r]);
   S.checks={...(w.checks||{})};
+  S.skipped={...(w.skipped||{})};
   S.orderChecks={...(w.orderChecks||{})};
   S.soldOuts=JSON.parse(JSON.stringify(w.soldOuts||{}));
   S.weekStart=w.weekStart||weekKeyToDateStr(key);
@@ -3167,12 +3170,13 @@ function addWeek(dateStr){
   syncActiveWeek();
   const key=weekKeyFromDate(dateStr);
   if(!S.weeks[key]){
-    S.weeks[key]={ji:{},cust:Array.from({length:7},()=>new Array(24).fill(0)),checks:{},weekStart:dateStr};
+    S.weeks[key]={ji:{},cust:Array.from({length:7},()=>new Array(24).fill(0)),checks:{},skipped:{},weekStart:dateStr};
   }
   S.activeWeek=key;
   S.ji=JSON.parse(JSON.stringify(S.weeks[key].ji));
   S.cust=S.weeks[key].cust.map(r=>[...r]);
   S.checks={...S.weeks[key].checks};
+  S.skipped={...(S.weeks[key].skipped||{})};
   S.orderChecks={...(S.weeks[key].orderChecks||{})};
   S.soldOuts=JSON.parse(JSON.stringify(S.weeks[key].soldOuts||{}));
   S.weekStart=dateStr;
@@ -4872,7 +4876,9 @@ function _catStatus(cat,dayIdx){
       const extra=getInvestExtra(p.id,dayIdx,slotH);
       if(cnt+extra<=0)return;
       total++;
-      if(S.checks[`${dayIdx}_${slotH}_${p.id}`])done++;
+      const k=`${dayIdx}_${slotH}_${p.id}`;
+      // 「作成済」「作れず（在庫切れ等でユーザーが明示マーク）」のどちらも「対応済」として完了扱い
+      if(S.checks[k] || (S.skipped&&S.skipped[k])) done++;
     });
     if(total===0)return;
     let timeState='future';
@@ -5116,6 +5122,7 @@ function renderProdDayContent(dayIdx){
         const totalCnt=cnt+extra;
         const chkKey=`${dayIdx}_${slotH}_${p.id}`;
         const checked=!!S.checks[chkKey];
+        const skipped=!!(S.skipped&&S.skipped[chkKey]); // 在庫切れ等で「作れなかった」
         const wl=getWithdraw(p.id);
         const range=getCatSlotRange(cat,slotH);
         const sc=range?getSlotCust(dayIdx,range[0],range[1]):0;
@@ -5141,14 +5148,24 @@ function renderProdDayContent(dayIdx){
           const at=e.readyAt!=null?e.readyAt:e.soldAt;
           return `<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${fmtHour(at)} ${t('sold.badgeReady').replace('{0}',e.added)}">+${e.added}</span>`;
         }).join('');
-        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${extra>0?';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px':''}">
+        // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、それ以外はチェック状態次第
+        let cellExtraStyle='';
+        if(extra>0) cellExtraStyle=';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px';
+        else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
+        const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
+        // ⊘ボタン：skippedの時は紺塗りで「対応済」を示す
+        const skipBtn=isSkip?'':`<button type="button" onclick="toggleSkipped('${chkKey}')" title="${skipped?'在庫切れ解除':'在庫切れ等で作れなかった時に押す'}"
+          style="padding:0;width:18px;height:18px;border:1px solid ${skipped?'#475569':'#cbd5e1'};background:${skipped?'#475569':'#fff'};color:${skipped?'#fff':'#64748b'};border-radius:4px;cursor:pointer;font-size:11px;line-height:1;font-weight:700">⊘</button>`;
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">
           <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1${extra>0?';color:#d97706':''}">${isSkip?'—':grandTotal}</span>
+            <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
+            ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">作れず</span>`:''}
             ${soBadges?`<span style="display:flex;flex-wrap:wrap;justify-content:center;gap:1px">${soBadges}</span>`:''}
             <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
-              <input type="checkbox" ${checked?'checked':''} ${isSkip?'disabled':''}
+              <input type="checkbox" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}
                 onchange="setCheck('${chkKey}',this.checked)" style="margin:0">
+              ${skipBtn}
               <button type="button" onclick="openSoldOutModal('${p.id}',${dayIdx},${slotH})" title="完売した時刻を入力して追加作成数を提案"
                 style="padding:0;width:18px;height:18px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;line-height:1">🔔</button>
               ${soEvents.length>0?`<button type="button" onclick="removeLastSoldOut('${p.id}',${dayIdx},${slotH})" title="最後の追加分を取消"
@@ -5176,8 +5193,30 @@ function renderProdDayContent(dayIdx){
   el.innerHTML=html;
 }
 
+// 「在庫切れ等で作れなかった」マークの切替（checksとは別管理）
+// trueにする時は同時にchecksを外す（同時にONはできない）
+function setSkipped(key,val){
+  if(!S.skipped)S.skipped={};
+  if(val){
+    S.skipped[key]=true;
+    if(S.checks[key]) delete S.checks[key]; // 作成済とは排他
+  } else {
+    delete S.skipped[key];
+  }
+  saveS();
+  if(currentTab===3) renderProdDayContent(currentProdDay);
+}
+function toggleSkipped(key){
+  setSkipped(key, !(S.skipped&&S.skipped[key]));
+}
+
 function setCheck(key,val){
-  if(val)S.checks[key]=true;else delete S.checks[key];
+  if(val){
+    S.checks[key]=true;
+    if(S.skipped && S.skipped[key]) delete S.skipped[key]; // 排他
+  } else {
+    delete S.checks[key];
+  }
   // セル↔バッチの連動
   const batchMatch=key.match(/^(\d+)_(\d+)_(.+)_b(\d+)$/);
   if(batchMatch){
