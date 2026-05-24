@@ -54,6 +54,20 @@ th{background:var(--main-lt);font-weight:600;color:var(--main)}
 .chip{background:var(--gray-lt);border-radius:12px;padding:2px 8px;font-size:11px;color:var(--gray)}
 .chip.warn{background:var(--red-lt);color:var(--red)}
 .chip.ok{background:var(--green-lt);color:var(--green)}
+/* ランキングUI */
+.rank-chip{padding:6px 14px;font-size:12px;font-weight:600;border:none;border-radius:7px;cursor:pointer;background:transparent;color:#64748b;transition:all .15s}
+.rank-chip.active{background:#fff;color:#1e3a5f;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.rank-row{display:grid;grid-template-columns:36px 1fr 100px 1fr;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px}
+.rank-row:last-child{border-bottom:none}
+.rank-badge{font-size:18px;font-weight:700;text-align:center}
+.rank-badge.medal{font-size:22px}
+.rank-row .pname{font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-row .pval{text-align:right;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums}
+.rank-bar{position:relative;height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden}
+.rank-bar-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:5px;transition:width .3s ease}
+.rank-bar-fill.gold{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.rank-bar-fill.silver{background:linear-gradient(90deg,#94a3b8,#cbd5e1)}
+.rank-bar-fill.bronze{background:linear-gradient(90deg,#a16207,#d97706)}
 
 /* Toggles */
 .toggle{position:relative;display:inline-block;width:44px;height:24px}
@@ -297,33 +311,58 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div id="content">
     <!-- Tab 0: 実績入力 -->
     <div class="tab-panel active" id="tab0">
-      <div class="card" style="padding:10px 12px">
-        <div id="week-selector"></div>
+      <!-- サブタブ：入力 / ランキング -->
+      <div style="display:flex;gap:6px;margin-bottom:10px;padding:4px;background:#f1f5f9;border-radius:10px;width:fit-content">
+        <button id="jsubtab-input" onclick="switchJisubTab('input')" style="padding:7px 16px;font-size:13px;font-weight:600;border:none;border-radius:7px;cursor:pointer;background:#fff;color:#0f172a;box-shadow:0 1px 2px rgba(0,0,0,.06)">📝 入力</button>
+        <button id="jsubtab-rank" onclick="switchJisubTab('rank')" style="padding:7px 16px;font-size:13px;font-weight:600;border:none;border-radius:7px;cursor:pointer;background:transparent;color:#64748b">🏆 ランキング</button>
       </div>
-      <div class="card">
-        <div class="section-title" data-i18n="jisseki.weekSummary">週合計サマリー</div>
-        <div class="summary-grid" id="jisseki-summary"></div>
-      </div>
-      <div class="card">
-        <div class="flex justify-between items-center mb-2">
-          <div class="section-title" style="margin:0" id="jisseki-title">実績入力</div>
-          <div class="flex gap-2">
-            <button class="btn-secondary" onclick="resetJisseki()" data-i18n="common.reset">リセット</button>
-            <button class="btn-secondary" onclick="loadPrevJisseki()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
-            <button class="btn-success" onclick="loadSampleJisseki()" data-i18n="jisseki.loadSample">サンプル読込</button>
-          </div>
+
+      <!-- サブタブ1：入力（既存内容） -->
+      <div id="jsubpanel-input">
+        <div class="card" style="padding:10px 12px">
+          <div id="week-selector"></div>
         </div>
-        <div class="overflow-auto"><div id="jisseki-table"></div></div>
-      </div>
-      <div class="card">
-        <div class="flex justify-between items-center mb-2">
-          <div class="section-title" style="margin:0" data-i18n="jisseki.custInput">曜日別・時間帯別客数</div>
-          <div class="flex gap-2">
-            <button class="btn-secondary" onclick="loadPrevCust()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
-            <button class="btn-secondary" onclick="resetCustZero()" data-i18n="jisseki.custResetAll">全て0にリセット</button>
-          </div>
+        <div class="card">
+          <div class="section-title" data-i18n="jisseki.weekSummary">週合計サマリー</div>
+          <div class="summary-grid" id="jisseki-summary"></div>
         </div>
-        <div class="overflow-auto"><div id="cust-grid"></div></div>
+        <div class="card">
+          <div class="flex justify-between items-center mb-2">
+            <div class="section-title" style="margin:0" id="jisseki-title">実績入力</div>
+            <div class="flex gap-2">
+              <button class="btn-secondary" onclick="resetJisseki()" data-i18n="common.reset">リセット</button>
+              <button class="btn-secondary" onclick="loadPrevJisseki()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
+              <button class="btn-success" onclick="loadSampleJisseki()" data-i18n="jisseki.loadSample">サンプル読込</button>
+            </div>
+          </div>
+          <div class="overflow-auto"><div id="jisseki-table"></div></div>
+        </div>
+        <div class="card">
+          <div class="flex justify-between items-center mb-2">
+            <div class="section-title" style="margin:0" data-i18n="jisseki.custInput">曜日別・時間帯別客数</div>
+            <div class="flex gap-2">
+              <button class="btn-secondary" onclick="loadPrevCust()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
+              <button class="btn-secondary" onclick="resetCustZero()" data-i18n="jisseki.custResetAll">全て0にリセット</button>
+            </div>
+          </div>
+          <div class="overflow-auto"><div id="cust-grid"></div></div>
+        </div>
+      </div>
+
+      <!-- サブタブ2：ランキング -->
+      <div id="jsubpanel-rank" style="display:none">
+        <div class="card">
+          <div class="section-title">🏆 今週の実績ランキング</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding:4px;background:#f8fafc;border-radius:10px">
+            <button class="rank-chip active" data-metric="salesAmt" onclick="setRankMetric('salesAmt')">販売高</button>
+            <button class="rank-chip" data-metric="profit" onclick="setRankMetric('profit')">利益額</button>
+            <button class="rank-chip" data-metric="profitRate" onclick="setRankMetric('profitRate')">利益率</button>
+            <button class="rank-chip" data-metric="discAmt" onclick="setRankMetric('discAmt')">値引額</button>
+            <button class="rank-chip" data-metric="wasteAmt" onclick="setRankMetric('wasteAmt')">廃棄額</button>
+            <button class="rank-chip" data-metric="sellRate" onclick="setRankMetric('sellRate')">販売率</button>
+          </div>
+          <div id="ranking-list"></div>
+        </div>
       </div>
     </div>
 
@@ -2719,6 +2758,80 @@ function renderJissekiTab(){
   renderJissekiSummary();
   renderJissekiTable();
   renderCustGrid();
+  renderRanking();
+}
+
+// ====== サブタブ切替 ======
+function switchJisubTab(name){
+  const ip=document.getElementById('jsubpanel-input');
+  const rp=document.getElementById('jsubpanel-rank');
+  const ib=document.getElementById('jsubtab-input');
+  const rb=document.getElementById('jsubtab-rank');
+  if(name==='rank'){
+    ip.style.display='none';rp.style.display='block';
+    ib.style.background='transparent';ib.style.color='#64748b';ib.style.boxShadow='none';
+    rb.style.background='#fff';rb.style.color='#0f172a';rb.style.boxShadow='0 1px 2px rgba(0,0,0,.06)';
+    renderRanking();
+  } else {
+    rp.style.display='none';ip.style.display='block';
+    rb.style.background='transparent';rb.style.color='#64748b';rb.style.boxShadow='none';
+    ib.style.background='#fff';ib.style.color='#0f172a';ib.style.boxShadow='0 1px 2px rgba(0,0,0,.06)';
+  }
+}
+
+// ====== ランキング表示 ======
+let _rankMetric='salesAmt';
+function setRankMetric(m){
+  _rankMetric=m;
+  document.querySelectorAll('.rank-chip').forEach(b=>b.classList.toggle('active',b.dataset.metric===m));
+  renderRanking();
+}
+function renderRanking(){
+  const el=document.getElementById('ranking-list');
+  if(!el)return;
+  const METRIC_INFO={
+    salesAmt:{label:'販売高',unit:'円',isPercent:false,desc:'値引後実売上'},
+    profit:{label:'利益額',unit:'円',isPercent:false,desc:'販売高 − 廃棄 − 原価'},
+    profitRate:{label:'利益率',unit:'%',isPercent:true,desc:'利益額 / 販売高'},
+    discAmt:{label:'値引額',unit:'円',isPercent:false,desc:'値引販売による値引総額'},
+    wasteAmt:{label:'廃棄額',unit:'円',isPercent:false,desc:'廃棄数 × 原価'},
+    sellRate:{label:'販売率',unit:'%',isPercent:true,desc:'(定価+値引販売) / 作成数'}
+  };
+  const info=METRIC_INFO[_rankMetric]||METRIC_INFO.salesAmt;
+  // 有効商品の指標を集計
+  const rows=(S.PM||[]).filter(p=>p.enabled).map(p=>{
+    const m=calcJissekiMetrics(p.id);
+    if(!m)return null;
+    return{p,metric:m[_rankMetric]||0,m};
+  }).filter(Boolean);
+  // 並べ替え（降順）
+  rows.sort((a,b)=>b.metric-a.metric);
+  // 上位以外の「全部ゼロ」だけのケースに対応
+  const maxVal=rows.length?rows[0].metric:0;
+  if(rows.length===0||maxVal<=0){
+    el.innerHTML=`<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;line-height:1.7">
+      ${info.label}が記録されている商品がまだありません。<br>「📝 入力」タブで実績を入力すると、ここにランキングが表示されます。
+    </div>`;
+    return;
+  }
+  const medals=['🥇','🥈','🥉'];
+  const barClasses=['gold','silver','bronze'];
+  const _circled=(i)=>{const a=['④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];return a[i-3]||`(${i+1})`;};
+  const fmtVal=v=>info.isPercent?v.toFixed(1)+'%':fmt(Math.round(v))+'円';
+  el.innerHTML=`
+    <div style="font-size:11px;color:#64748b;margin-bottom:6px">${info.desc} ・ 全${rows.length}商品中（高い順）</div>
+    `+rows.map((r,i)=>{
+      const pct=maxVal>0?Math.max(2,Math.min(100,r.metric/maxVal*100)):0;
+      const isTop3=i<3;
+      const badge=isTop3?medals[i]:_circled(i);
+      const barCls=isTop3?barClasses[i]:'';
+      return `<div class="rank-row">
+        <div class="rank-badge ${isTop3?'medal':''}">${badge}</div>
+        <div class="pname" title="${r.p.name}">${r.p.name}</div>
+        <div class="pval">${fmtVal(r.metric)}</div>
+        <div class="rank-bar"><div class="rank-bar-fill ${barCls}" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
 }
 
 function renderJissekiTitle(){
@@ -2814,6 +2927,7 @@ function setJi(pid,key,val){
   saveS();
   renderJissekiSummary();
   renderJissekiTable();
+  renderRanking();
 }
 
 // ============================================================
