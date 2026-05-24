@@ -344,7 +344,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div id="tabs">
     <button class="tab-btn active" onclick="showTab(0)" data-i18n="tab.jisseki">①実績入力</button>
     <button class="tab-btn" onclick="showTab(1)" data-i18n="tab.product">②商品設定</button>
-    <button class="tab-btn" onclick="showTab(2)" data-i18n="tab.ext">③外部ファクト</button>
+    <button class="tab-btn" onclick="showTab(2)" data-i18n="tab.ext" style="display:none">③外部ファクト</button>
     <button class="tab-btn" onclick="showTab(3)" data-i18n="tab.make">④作成表</button>
     <button class="tab-btn" onclick="showTab(4)" data-i18n="tab.budget">⑤予算管理</button>
     <button class="tab-btn" onclick="showTab(5)" data-i18n="tab.order">⑥発注管理表</button>
@@ -1806,41 +1806,73 @@ async function _autoRecoverFromCorruption(storeKey){
 //   BroadcastChannel で他タブの存在と保存イベントを検知。
 //   2タブ並行編集による上書き事故を未然に警告。
 // ============================================================
+// 構造的に多タブ上書きを防ぐ：
+// - 別タブで保存があれば storage event で即座に検知
+// - 自分のメモリ state を localStorage の最新値で置き換え＋再描画
+// - 入力フォーカス中なら blur 後に reflect（編集中の文字を失わない）
+// 警告UIは廃止（自動同期するため「上書き事故」自体が発生しない）
 let _bcChannel=null;
+let _pendingReload=false;
 function _initMultiTabGuard(){
+  // storage event = 別タブが localStorage を変更した時に発火（自タブの変更では発火しない）
+  try{
+    window.addEventListener('storage',(e)=>{
+      if(!e.key)return;
+      // 自分が使ってる店舗データキー or グローバル店舗関連 のみ反応
+      const myKey=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
+      const watch=[myKey,'ffv6_stores','ffv6_current','global_stores','current_store_id'];
+      if(!watch.includes(e.key))return;
+      _scheduleAutoReload();
+    });
+  }catch(_){}
+  // BroadcastChannel: 同一ブラウザ内のタブ間でも即時通知（storage event より高速）
   try{
     if(!window.BroadcastChannel)return;
     _bcChannel=new BroadcastChannel('ffv6_tabs');
-    _bcChannel.postMessage({type:'HELLO',t:Date.now()});
     _bcChannel.onmessage=(e)=>{
-      const msg=e.data||{};
-      if(msg.type==='HELLO'){
-        try{_bcChannel.postMessage({type:'ALIVE',t:Date.now()});}catch(_){}
-        _showMultiTabWarning();
-      } else if(msg.type==='ALIVE'){
-        _showMultiTabWarning();
-      } else if(msg.type==='SAVED'){
-        // 別タブで保存があった → 自分が表示中のデータは古い
-        _showStaleStateWarning();
-      }
+      const m=e.data||{};
+      if(m.type==='SAVED')_scheduleAutoReload();
     };
   }catch(_){}
 }
-function _showMultiTabWarning(){
-  if(document.getElementById('multi-tab-warn'))return;
-  const div=document.createElement('div');
-  div.id='multi-tab-warn';
-  div.style.cssText='position:fixed;top:0;left:0;right:0;background:#fef3c7;border-bottom:2px solid #f59e0b;padding:8px 14px;font-size:12px;z-index:9998;text-align:center;color:#78350f;line-height:1.5';
-  div.innerHTML='⚠️ <b>このシステムが別タブ/別ウィンドウでも開かれています</b>。両方で編集すると一方が他方を上書きする可能性があります。 <button onclick="this.parentNode.style.display=\'none\'" style="margin-left:10px;padding:2px 10px;font-size:11px;cursor:pointer">了解</button>';
-  document.body.appendChild(div);
-}
-function _showStaleStateWarning(){
-  if(document.getElementById('stale-warn'))return;
-  const div=document.createElement('div');
-  div.id='stale-warn';
-  div.style.cssText='position:fixed;top:0;left:0;right:0;background:#fee2e2;border-bottom:2px solid #ef4444;padding:8px 14px;font-size:12px;z-index:9998;text-align:center;color:#991b1b;line-height:1.5';
-  div.innerHTML='🔴 <b>別タブでデータが更新されました</b>。このタブの編集内容は古いデータに基づいています。 <button onclick="location.reload()" style="margin-left:10px;padding:4px 14px;font-size:12px;background:#dc2626;color:#fff;border:none;border-radius:4px;cursor:pointer">最新を読み込む</button>';
-  document.body.appendChild(div);
+function _scheduleAutoReload(){
+  if(_pendingReload)return;
+  _pendingReload=true;
+  // 入力フォーカス中は blur まで待ってから reflect（タイピング中のデータを失わないため）
+  const ae=document.activeElement;
+  const isEditing=ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.isContentEditable);
+  const doReload=()=>{
+    _pendingReload=false;
+    // localStorage の最新を読んで in-memory state に反映
+    try{
+      const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
+      const raw=localStorage.getItem(key);
+      if(!raw)return;
+      const fresh=JSON.parse(raw);
+      Object.assign(S,fresh);
+      // タブ全体を再描画（軽量にすべきは個別に。ここはまず全部）
+      if(typeof renderJissekiTab==='function')renderJissekiTab();
+      if(typeof renderProductTab==='function')renderProductTab();
+      if(typeof renderBudgetTab==='function'&&currentTab===4)renderBudgetTab();
+      if(typeof renderOrderTable==='function'&&currentTab===5)renderOrderTable();
+      if(typeof renderProdDayContent==='function'&&currentTab===3)renderProdDayContent(currentProdDay);
+    }catch(e){console.warn('auto reload failed',e);}
+  };
+  if(isEditing){
+    // 編集が終わるまで待つ。300ms ごとに再チェック（フォーカスが外れたらすぐ実行）
+    const wait=()=>{
+      const e=document.activeElement;
+      if(!e || (e.tagName!=='INPUT' && e.tagName!=='TEXTAREA' && !e.isContentEditable)){
+        doReload();
+      } else {
+        setTimeout(wait,300);
+      }
+    };
+    setTimeout(wait,300);
+  } else {
+    // 軽くdebounceして連続更新時の負荷を抑える
+    setTimeout(doReload,80);
+  }
 }
 function _broadcastSave(){
   try{if(_bcChannel)_bcChannel.postMessage({type:'SAVED',t:Date.now(),storeId:currentStoreId||''});}catch(_){}
@@ -6093,6 +6125,15 @@ function renderOrderTable(){
         <button onclick="window.print()" style="padding:6px 12px;font-size:12px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff;color:#555">${t('common.print')}</button>
       </div>
     </div>
+    ${(()=>{
+      const{total,done}=getOrderCheckProgress();
+      const remaining=total-done;
+      if(remaining===0){
+        if(total===0)return '';
+        return `<div style="font-size:13px;color:#065f46;background:#d1fae5;border:2px solid #10b981;border-radius:8px;padding:8px 14px;margin-top:8px;font-weight:600">✅ 全${total}件チェック完了</div>`;
+      }
+      return `<div style="font-size:13px;color:#92400e;background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:8px 14px;margin-top:8px;font-weight:600;line-height:1.6">⚠️ 未チェック <span style="font-size:18px;font-weight:800">${remaining}件</span> 残っています（オレンジ色の発注セル）</div>`;
+    })()}
     <div style="font-size:11px;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">${t('order.checkHint')}</div>
     ${S.PM.some(p=>p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0))?
       `<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">${t('order.yellowNote')}</div>`:''}
@@ -6413,9 +6454,16 @@ function buildOrderScheduleHTML(dates, activeCats){
           // 発注チェック（数量>0のセルのみ表示）
           const ckKey=`${p.id}_${col.id}`;
           const checked=!!(S.orderChecks||{})[ckKey];
-          const checkHtml=isZero?'':`<div style="margin-top:2px;line-height:1"><input type="checkbox" ${checked?'checked':''} onclick="toggleOrderCheck('${ckKey}',this.checked)" style="margin:0;cursor:pointer;width:16px;height:16px"></div>`;
+          const checkHtml=isZero?'':`<div style="margin-top:2px;line-height:1"><input type="checkbox" ${checked?'checked':''} onclick="toggleOrderCheck('${ckKey}',this.checked)" style="margin:0;cursor:pointer;width:18px;height:18px"></div>`;
           const numStyle=checked?'opacity:.4;text-decoration:line-through':'';
-          return`<td style="text-align:center;padding:6px 4px;${bg}${checked&&!isZero?';background:#ecfdf5':''}">
+          // 未チェック+数量>0 → 警告色（クルーがチェック忘れを瞬時に気付ける）
+          // 既存：チェック済 → 緑、ゼロ → グレー
+          let cellBg=bg;
+          if(!isZero){
+            if(checked) cellBg='background:#ecfdf5'; // 完了
+            else cellBg='background:#fef3c7;outline:2px solid #fbbf24;outline-offset:-2px'; // 未完了（警告色）
+          }
+          return`<td style="text-align:center;padding:6px 4px;${cellBg}">
             <span style="font-size:20px;font-weight:700;color:${color};${numStyle}">${isZero?'—':qty}</span>
             ${checkHtml}
           </td>`;
