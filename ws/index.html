@@ -2056,8 +2056,8 @@ body.admin-mode #view-tabs #tab-db,body.admin-mode #view-tabs #tab-list{display:
           <button class="btn-primary" onclick="exportDataToFile()" style="background:#16a34a">💾 データをファイルに保存（手動バックアップ）</button>
           <button class="btn-secondary" onclick="importDataFromFile()" style="background:#dbeafe;color:#1e40af;border-color:#93c5fd">📂 ファイルから復元</button>
         </div>
-        <details style="margin-top:8px">
-          <summary style="font-size:12px;color:var(--gray);cursor:pointer;padding:4px 0">▸ 緊急時の復旧オプション</summary>
+        <details style="margin-top:8px" open>
+          <summary style="font-size:12px;color:var(--gray);cursor:pointer;padding:4px 0">▼ 緊急時の復旧オプション（クリックで折りたたみ）</summary>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding:8px;background:#f8fafc;border-radius:6px">
             <button class="btn-secondary" onclick="idbRestoreLatest()" style="background:#f3e8ff;color:#6b21a8;border-color:#d8b4fe;font-size:12px;padding:6px 10px">🗄 IndexedDB から復元</button>
             <button class="btn-secondary" onclick="openRecoveryCenter()" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;font-size:12px;padding:6px 10px">🔍 データ復旧センター</button>
@@ -10832,23 +10832,56 @@ async function forcePullFromGist(){
   }
 }
 
-/* 直近の自動バックアップから復元（autobackup_, snap_, emergency_ を全部対象） */
+/* 直近の自動バックアップから復元（autobackup_, snap_, emergency_, premigration_, backup_, レガシー ws_v1 を全部対象） */
 function restoreLastAutobackup(){
   const keys = Object.keys(localStorage).filter(k =>
     k.startsWith('ws_v1_autobackup_') ||
     k.startsWith('ws_v1_snap_') ||
     k.startsWith('ws_v1_emergency_') ||
-    k.startsWith('ws_v1_backup_')
+    k.startsWith('ws_v1_backup_') ||
+    k.startsWith('ws_v1_premigration_') ||  // 多店舗化マイグレーション時の退避
+    k.startsWith('ws_v1_pre_import_')        // インポート直前退避
   );
-  if(keys.length === 0){ alert('バックアップが見つかりません'); return; }
-  // タイムスタンプ降順
+  // 旧データそのままの 'ws_v1' も候補に（中身があれば）
+  const legacy = localStorage.getItem('ws_v1');
+  const legacyHasContent = legacy && legacy.length > 10 && legacy !== '{}';
+  // キーの集計
   const withTs = keys.map(k => ({key: k, ts: parseInt(k.split('_').pop()) || 0}));
-  withTs.sort((a, b) => b.ts - a.ts);
-  const latest = withTs[0];
-  if(!confirm(`最新の自動バックアップ（${new Date(latest.ts).toLocaleString('ja-JP')}）から復元しますか？\n現在のデータは上書きされます。\nキー: ${latest.key}`)) return;
-  // 万一のため、現状を退避
+  if(legacyHasContent){
+    // ws_v1 単体はタイムスタンプ無いので、便宜上「現在」をTSとする
+    withTs.push({key: 'ws_v1', ts: Date.now(), isLegacy: true});
+  }
+  if(withTs.length === 0){ alert('バックアップが見つかりません'); return; }
+  // 中身が空のものを除外
+  const valid = withTs.filter(w => {
+    const v = localStorage.getItem(w.key);
+    return v && v.length > 10 && v !== '{}';
+  });
+  if(valid.length === 0){ alert('有効なバックアップが見つかりません'); return; }
+  // タイムスタンプ降順（最新）
+  valid.sort((a, b) => b.ts - a.ts);
+  // 一覧表示（最大10件まで）して選ばせる
+  const picks = valid.slice(0, 10);
+  const labelOf = (w) => {
+    const v = localStorage.getItem(w.key) || '';
+    const sizeKB = (v.length/1024).toFixed(1);
+    if(w.isLegacy) return `[ws_v1 (移行前の旧データ)] サイズ ${sizeKB}KB`;
+    const ts = w.ts ? new Date(w.ts).toLocaleString('ja-JP') : '(時刻不明)';
+    const tag = w.key.match(/^ws_v1_([a-z_]+)_/)?.[1] || '';
+    return `[${ts}] ${tag} ${sizeKB}KB`;
+  };
+  let msg = 'どのバックアップから復元しますか？\n（番号で選択、Cancelで中止）\n\n';
+  picks.forEach((w,i)=>{ msg += `${i+1}. ${labelOf(w)}\n`; });
+  const ans = prompt(msg, '1');
+  if(ans === null) return;
+  const idx = parseInt(ans, 10) - 1;
+  if(isNaN(idx) || idx < 0 || idx >= picks.length){ alert('番号が無効です'); return; }
+  const chosen = picks[idx];
+  const v = localStorage.getItem(chosen.key);
+  if(!v){ alert('選択したバックアップは空です'); return; }
+  if(!confirm(`「${labelOf(chosen)}」から復元します。\n現在のデータは emergency 退避してから上書きします。`)) return;
   try{ localStorage.setItem('ws_v1_emergency_' + Date.now(), localStorage.getItem(STORAGE_KEY) || ''); }catch(_){}
-  localStorage.setItem(STORAGE_KEY, localStorage.getItem(latest.key));
+  localStorage.setItem(STORAGE_KEY, v);
   alert('復元しました。再読み込みします。');
   location.reload();
 }
