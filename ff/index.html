@@ -2673,7 +2673,11 @@ function getCorrTarget(pid,dayIdx){
   // 週次目標の下限：1日あたり「有効な最低作成数の合計」×7日
   // 全スロットOFFなら下限=0、有効slot数だけ加算される
   const _cfg=S.catCfg[p.category];
-  const _dailyMin=(_cfg?.slots||[]).reduce((s,h)=>s+getEffectiveSlotMin(p,h),0);
+  // 週次目標の下限：ONスロット数 × バッチ単位 × 7日
+  // 例：batch=2, 4スロット中 6時&14時のみON → 1日2スロット×2個=4個/日 → 週28個
+  const _batch=getBatchUnit(p);
+  const _onSlotCount=(_cfg?.slots||[]).filter(h=>getSlotForceOn(p,h)).length;
+  const _dailyMin=_onSlotCount*_batch;
   const weekTarget=Math.max(teika+slack,_dailyMin*7);
   // Apply external correction
   const extCorr=(S.ext[dayIdx]?.correction||0)/100;
@@ -2704,16 +2708,19 @@ function getWithdraw(pid){
   return (p.cost/p.shopPrice)/rate;
 }
 
-// このスロットでの「最低作成数」を返す
-//  - p.minSlots[slotH] が明示的にtrue/false → その指定（trueなら p.minCount を採用、falseなら0）
-//  - 未指定（minSlots自体が無い or このスロットだけ未指定）→ 従来通り p.minCount を全スロット適用
-// これにより、商品ごとに時間帯別で最低作成数の0/1切替が可能（廃棄過剰の調整用）
-function getEffectiveSlotMin(p,slotH){
-  const baseMin=p.minCount||0;
-  if(p.minSlots && p.minSlots[slotH]!==undefined){
-    return p.minSlots[slotH]?baseMin:0;
-  }
-  return baseMin;
+// ==== 商品の最低作成 ====
+// 2つの独立した設定：
+//  (A) p.minSlots[slotH]  : スロットごとの「算出が0個の時に最低1個作るか」ON/OFF
+//                           true=作る / false=作らない（既定: true）
+//  (B) p.batchUnit         : この商品の「バッチ単位」。常にこの倍数で作成
+//                           （例: 2食ずつしか作れない商品は 2 を設定）
+// 旧 p.minCount は p.batchUnit と等価扱い（後方互換）
+function getBatchUnit(p){
+  return Math.max(1, p.batchUnit||p.minCount||1);
+}
+function getSlotForceOn(p,slotH){
+  if(p.minSlots && p.minSlots[slotH]!==undefined) return !!p.minSlots[slotH];
+  return true; // 未指定なら ON（既定）
 }
 
 function getProdCnt(pid,dayIdx,slotH){
@@ -2724,15 +2731,21 @@ function getProdCnt(pid,dayIdx,slotH){
   const range=getCatSlotRange(p.category,slotH);if(!range)return 0;
   const[hs,he]=range;
   const ts=p.timeStart??7,te=p.timeEnd??22;
-  const slotMin=getEffectiveSlotMin(p,slotH);
-  if(hs>=te||he<=ts)return slotMin;
+  const batch=getBatchUnit(p);
+  const forceOn=getSlotForceOn(p,slotH);
+  // 商品の販売時間帯から外れていれば「作らない」が基本だが、(A)ONなら最低batch分
+  if(hs>=te||he<=ts)return forceOn?batch:0;
   const sc=getSlotCust(dayIdx,hs,he);
   const wt=getWeekTotal();if(!wt)return 0;
   const ct=getCorrTarget(pid,dayIdx);
   let cnt=roundCnt(ct*sc/wt);
-  cnt=Math.max(cnt,slotMin);
+  // 最低引出客数（廃棄リスク回避）：客数が足りずかつ(A)OFFなら0返却
   const wl=getWithdraw(pid);
-  if(wl>0&&sc<wl&&!slotMin)return 0;
+  if(wl>0&&sc<wl&&!forceOn)return 0;
+  // (A) 算出が0の時、ONなら最低 batch 個作る
+  if(cnt===0 && forceOn) cnt=batch;
+  // (B) バッチ単位で常に切り上げ（cnt > 0 のとき）
+  if(cnt>0 && batch>1) cnt=Math.ceil(cnt/batch)*batch;
   return cnt;
 }
 
@@ -3786,31 +3799,33 @@ function renderProductCard(p){
         <select onchange="setProdField('${p.id}','category',this.value)">
           ${CATS.map(c=>`<option ${p.category===c?'selected':''} value="${c}">${tCat(c)}</option>`).join('')}
         </select></div>
-      <div style="grid-column:span 2"><label>${t('product.minCount')}
-        <span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:6px">＝この商品を作る時の最低数（例：2食ずつしか作れない場合は「2」）。通常算出が0個の時だけ適用</span>
+      <!-- (B) バッチ単位（最低作成単位） -->
+      <div style="grid-column:span 2"><label>最低作成単位（バッチサイズ）
+        <span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:6px">この単位ずつ作成（2食ずつしか作れない商品は「2」）。通常商品は「1」のまま</span>
       </label>
-        <div style="display:flex;gap:10px;align-items:flex-start;margin-top:3px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-            <input type="number" min="0" inputmode="numeric" value="${p.minCount??1}" style="width:60px;text-align:center;font-weight:700"
-              onchange="setProdField('${p.id}','minCount',parseInt(toHalf(this.value))||0)">
-            <span style="font-size:11px;color:#64748b">個ずつ</span>
-          </div>
-          <div style="flex:1;min-width:200px">
-            <div style="font-size:10px;color:#9ca3af;margin-bottom:3px">適用する時間帯</div>
-            <div style="display:flex;gap:4px;flex-wrap:wrap">
-              ${(()=>{
-                const slots=(S.catCfg[p.category]?.slots||[]);
-                if(slots.length===0)return '<span style="font-size:11px;color:#9ca3af">このカテゴリは作成スロットが未設定です</span>';
-                return slots.map(h=>{
-                  const isOn=(p.minSlots&&p.minSlots[h]!==undefined)?!!p.minSlots[h]:(p.minCount||0)>0;
-                  return `<button type="button" onclick="toggleSlotMin('${p.id}',${h})"
-                    style="padding:5px 10px;font-size:12px;border-radius:14px;border:1.5px solid ${isOn?'#2563eb':'#d1d5db'};background:${isOn?'#2563eb':'#fff'};color:${isOn?'#fff':'#9ca3af'};cursor:pointer;font-weight:600;min-width:50px">
-                    ${h}時 ${isOn?'✓':''}
-                  </button>`;
-                }).join('');
-              })()}
-            </div>
-          </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+          <input type="number" min="1" inputmode="numeric" value="${p.batchUnit??p.minCount??1}" style="width:60px;text-align:center;font-weight:700"
+            onchange="setProdField('${p.id}','batchUnit',Math.max(1,parseInt(toHalf(this.value))||1))">
+          <span style="font-size:11px;color:#64748b">個ずつ作成（2なら 2/4/6... と切上）</span>
+        </div>
+      </div>
+
+      <!-- (A) 算出0個の時の挙動 -->
+      <div style="grid-column:span 2"><label>算出0個の時間帯にも作る？
+        <span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:6px">ON=最低でも1個作る（バッチ単位適用） / OFF=算出通り0個</span>
+      </label>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">
+          ${(()=>{
+            const slots=(S.catCfg[p.category]?.slots||[]);
+            if(slots.length===0)return '<span style="font-size:11px;color:#9ca3af">このカテゴリは作成スロットが未設定です</span>';
+            return slots.map(h=>{
+              const isOn=(p.minSlots&&p.minSlots[h]!==undefined)?!!p.minSlots[h]:true;
+              return `<button type="button" onclick="toggleSlotMin('${p.id}',${h})"
+                style="padding:5px 10px;font-size:12px;border-radius:14px;border:1.5px solid ${isOn?'#2563eb':'#d1d5db'};background:${isOn?'#2563eb':'#fff'};color:${isOn?'#fff':'#9ca3af'};cursor:pointer;font-weight:600;min-width:50px">
+                ${h}時 ${isOn?'✓':''}
+              </button>`;
+            }).join('');
+          })()}
         </div>
       </div>
       <div><label>${t('product.cost')}</label>
@@ -3960,7 +3975,7 @@ function renderProductCard(p){
 }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
-const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap']);
+const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap']);
 
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
@@ -3972,18 +3987,13 @@ function setProdField(pid,key,val){
 // 時間帯別 最低作成数 chip のトグル（ON↔OFF）
 function toggleSlotMin(pid,slotH){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
-  // 初回トグル時：従来のp.minCount値で全スロットを初期化（後方互換）
-  if(!p.minSlots){
-    p.minSlots={};
-    const cfg=S.catCfg[p.category];
-    if(cfg)cfg.slots.forEach(h=>{p.minSlots[h]=(p.minCount||0)>0;});
-  }
-  // 既存値が無いスロットも明示化してからトグル
-  if(p.minSlots[slotH]===undefined)p.minSlots[slotH]=(p.minCount||0)>0;
+  // 既定はON（minSlots未設定=全スロットON）。OFFにしたい時のみ minSlots[h]=false を記録
+  if(!p.minSlots) p.minSlots={};
+  if(p.minSlots[slotH]===undefined) p.minSlots[slotH]=true;
   p.minSlots[slotH]=!p.minSlots[slotH];
-  // 全部ONに戻ったらminSlotsを掃除（再びデフォルトに戻る）
+  // 全部 true に戻ったら minSlots を掃除（既定状態に戻す）
   const cfg=S.catCfg[p.category];
-  if(cfg&&cfg.slots.every(h=>p.minSlots[h]===true)&&(p.minCount||0)>0){
+  if(cfg && cfg.slots.every(h=>p.minSlots[h]===true)){
     delete p.minSlots;
   }
   saveS();renderProductCards();
