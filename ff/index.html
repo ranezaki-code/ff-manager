@@ -6253,6 +6253,36 @@ function renderOrderTable(){
       }
       return `<div style="font-size:13px;color:#92400e;background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:8px 14px;margin-top:8px;font-weight:600;line-height:1.6">⚠️ 今日までに発注すべき分が <span style="font-size:18px;font-weight:800">${remaining}件</span> 未チェック残っています（オレンジ色のセル）${remainAll>remaining?` <span style="font-weight:400;color:#374151;font-size:12px;margin-left:6px">／ 週全体: ${doneAll}/${totalAll}</span>`:''}</div>`;
     })()}
+    ${(()=>{
+      // 在庫欠品統計（今週分・終了予定品を除く）
+      if(!S.skipped||Object.keys(S.skipped).length===0) return '';
+      const counts={};
+      let total=0;
+      Object.keys(S.skipped).forEach(k=>{
+        const m=k.match(/^(\d+)_(\d+)_(.+)$/);
+        if(!m)return;
+        const pid=m[3];
+        const p=S.PM.find(x=>x.id===pid);
+        if(!p||!p.enabled)return;
+        if(p.orderEnding)return; // 終了予定品はカウント外
+        if(!counts[pid])counts[pid]={name:p.name,category:p.category,count:0,days:new Set()};
+        counts[pid].count++;
+        counts[pid].days.add(parseInt(m[1]));
+        total++;
+      });
+      if(total===0)return '';
+      const DOW=['火','水','木','金','土','日','月'];
+      const sorted=Object.values(counts).sort((a,b)=>b.count-a.count);
+      const items=sorted.map(c=>{
+        const daysList=[...c.days].sort((a,b)=>a-b).map(d=>DOW[d]).join('・');
+        return `<span style="background:#fff;border:1px solid #fdba74;border-radius:6px;padding:3px 10px;font-size:12px;color:#7c2d12;font-weight:600">${c.name} <span style="color:#c2410c;font-weight:800">${c.count}件</span><span style="font-weight:400;color:#9a3412;margin-left:4px;font-size:11px">(${daysList})</span></span>`;
+      }).join(' ');
+      const subtitle=`商品 ${sorted.length}種・延べ ${total}件`;
+      return `<div style="background:#fff7ed;border:2px solid #fb923c;border-radius:8px;padding:10px 14px;margin-top:8px;line-height:1.7">
+        <div style="font-size:13px;color:#7c2d12;font-weight:700">📦 今週の在庫欠品 <span style="font-size:20px;font-weight:800;color:#c2410c;margin-left:4px">${total}</span><span style="font-size:11px;color:#9a3412;font-weight:400;margin-left:6px">${subtitle}（終了予定品を除く）</span></div>
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px">${items}</div>
+      </div>`;
+    })()}
     <div style="font-size:11px;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">${t('order.checkHint')}</div>
     ${S.PM.some(p=>p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0))?
       `<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">${t('order.yellowNote')}</div>`:''}
