@@ -3365,7 +3365,7 @@ function renderCustGrid(){
   const TH='position:sticky;left:0;background:#fff;z-index:2;white-space:nowrap;padding:4px 8px;';
   const TH_STICKY_LT='position:sticky;left:0;background:var(--main-lt);font-weight:700;white-space:nowrap;padding:4px 8px;text-align:center;';
   const inputStyle='width:46px;text-align:center;border:1px solid var(--border);border-radius:4px;padding:3px 2px;font-size:13px';
-  let html=`<div style="font-size:11px;color:var(--gray);margin-bottom:6px">💡 矢印キーで移動 / Enterで下へ / Tabで右へ移動できます</div>`;
+  let html=`<div style="font-size:11px;color:var(--gray);margin-bottom:6px">💡 Enter/→で右へ / ↓で下へ / Tab でも右へ移動できます</div>`;
   html+=`<table style="border-collapse:collapse;font-size:13px;min-width:1400px"><thead><tr>
     <th style="${TH}">曜日</th>
     ${Array.from({length:24},(_,h)=>`<th style="width:54px;white-space:nowrap;padding:4px 4px;text-align:center">${h}:00</th>`).join('')}
@@ -3500,16 +3500,17 @@ function custKeyNav(e,di,h){
   // IME変換中（Enter=候補確定等）はナビゲーションしない → 隣マスへの値漏れ防止
   if(e.isComposing||e.keyCode===229)return;
   let nd=di,nh=h;
-  if(e.key==='ArrowRight'){nh=h+1;if(nh>23){nh=0;nd=(di+1)%7;}}
-  else if(e.key==='ArrowLeft'){nh=h-1;if(nh<0){nh=23;nd=(di-1+7)%7;}}
-  else if(e.key==='ArrowDown'||e.key==='Enter'){e.preventDefault();nd=(di+1)%7;}
-  else if(e.key==='ArrowUp'){e.preventDefault();nd=(di-1+7)%7;}
-  else return;
-  if(e.key!=='Tab'){
-    e.preventDefault();
-    const next=document.getElementById(`cust-${nd}-${nh}`);
-    if(next){next.focus();next.select();}
+  if(e.key==='ArrowRight'||e.key==='Enter'){
+    // Enterも右移動。行末なら次の曜日の0時へ
+    nh=h+1;if(nh>23){nh=0;nd=(di+1)%7;}
   }
+  else if(e.key==='ArrowLeft'){nh=h-1;if(nh<0){nh=23;nd=(di-1+7)%7;}}
+  else if(e.key==='ArrowDown'){nd=(di+1)%7;}
+  else if(e.key==='ArrowUp'){nd=(di-1+7)%7;}
+  else return;
+  e.preventDefault();
+  const next=document.getElementById(`cust-${nd}-${nh}`);
+  if(next){next.focus();next.select();}
 }
 
 function setCust(di,h,val){
