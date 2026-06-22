@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FF管理 データ診断・復旧</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:#f3f4f6;color:#1f2937;line-height:1.6;padding:16px;max-width:820px;margin:0 auto}
+h1{font-size:20px;margin-bottom:4px}
+.sub{color:#6b7280;font-size:13px;margin-bottom:16px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:#e5e7eb;color:#374151}
+.store{border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px}
+.store.active{border-color:#2196f3;background:#e3f2fd}
+.store.empty{opacity:.6}
+.store .name{font-weight:700;font-size:15px}
+.store .meta{font-size:12px;color:#6b7280;margin:4px 0 8px}
+.store .stat{display:inline-block;margin-right:12px;font-size:13px}
+.store .stat b{font-size:16px;color:#1e3a5f}
+button{font-family:inherit;font-size:14px;border:none;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:600}
+.btn-main{background:#2196f3;color:#fff}
+.btn-main:hover{background:#1976d2}
+.btn-sub{background:#e5e7eb;color:#374151}
+.btn-sub:hover{background:#d1d5db}
+.btn-green{background:#4caf50;color:#fff}
+.btn-green:hover{background:#43a047}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.warn{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;font-size:13px;color:#9a3412;margin-bottom:12px}
+.ok{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px;font-size:13px;color:#065f46}
+.empty-note{color:#9ca3af;font-size:13px}
+.snap{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f3f4f6;padding:8px 0;font-size:13px;gap:8px;flex-wrap:wrap}
+.snap:last-child{border-bottom:none}
+.snap .when{font-weight:600}
+.snap .info{color:#6b7280;font-size:12px}
+code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:12px}
+.big-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.big-actions button{flex:1;min-width:160px;padding:14px}
+#log{font-size:12px;color:#6b7280;white-space:pre-wrap;background:#f9fafb;border-radius:8px;padding:10px;max-height:160px;overflow:auto;margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<h1>🔍 FF管理 データ診断・復旧</h1>
+<div class="sub">このページはデータを<b>勝手に書き換えません</b>。緑/青のボタンを押した時だけ動きます。書き換える前に必ず自動バックアップを取ります。</div>
+
+<div class="big-actions">
+  <button class="btn-green" onclick="downloadAll()">💾 まず全データをダウンロード（安全のため）</button>
+  <button class="btn-sub" onclick="location.href='./'">← FF管理に戻る</button>
+</div>
+
+<div id="result">読み込み中...</div>
+
+<div class="card">
+  <h2>📒 詳細ログ</h2>
+  <button class="btn-sub" onclick="toggleLog()">ログを表示/非表示</button>
+  <div id="log"></div>
+</div>
+
+<script>
+const LS=window.localStorage;
+function logln(s){const el=document.getElementById('log');el.textContent+=s+"\n";}
+function toggleLog(){const el=document.getElementById('log');el.style.display=el.style.display==='none'||!el.style.display?'block':'none';}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+// ---- localStorage 全スキャン ----
+function scanLS(){
+  const all={};
+  for(let i=0;i<LS.length;i++){const k=LS.key(i);all[k]=LS.getItem(k);}
+  return all;
+}
+
+// ストアデータblobを解析して中身の概要を返す
+function summarize(raw){
+  try{
+    const d=JSON.parse(raw);
+    const pm=Array.isArray(d.PM)?d.PM.length:0;
+    const weeks=d.weeks&&typeof d.weeks==='object'?Object.keys(d.weeks).length:0;
+    const name=d.storeName||'';
+    const chain=d.chainName||'';
+    let updated='';
+    if(d.updatedAt)updated=d.updatedAt;
+    return {ok:true,pm,weeks,name,chain,updated,size:raw.length,parsed:d};
+  }catch(e){
+    return {ok:false,err:String(e),size:raw?raw.length:0};
+  }
+}
+
+let SCAN=null;
+function render(){
+  SCAN=scanLS();
+  const keys=Object.keys(SCAN);
+  logln('localStorage キー総数: '+keys.length);
+  keys.forEach(k=>logln('  '+k+'  ('+(SCAN[k]?SCAN[k].length:0)+'文字)'));
+
+  const ffCurrent=SCAN['ffv6_current']||null;
+  const globalCur=SCAN['current_store_id']||null;
+  let storeList=[];
+  try{storeList=SCAN['ffv6_stores']?JSON.parse(SCAN['ffv6_stores']):[];}catch(_){}
+
+  // データの入った店舗鍵を全部見つける（storeListに無い孤児鍵も拾う）
+  const storeKeys=keys.filter(k=>k.indexOf('ffv6_store_')===0);
+  const legacyHas = SCAN['ffv6']!=null;
+
+  let html='';
+
+  // ===== 現在のポインタ =====
+  html+='<div class="card"><h2>📍 現在の状態</h2>';
+  html+='<div class="store '+( (ffCurrent&&SCAN['ffv6_store_'+ffCurrent]) ? '' : 'empty')+'">';
+  html+='<div class="meta">FFが今見ている店舗ポインタ: <code>'+esc(ffCurrent||'(なし)')+'</code></div>';
+  html+='<div class="meta">ハブの店舗ポインタ: <code>'+esc(globalCur||'(なし)')+'</code></div>';
+  const curRaw = ffCurrent?SCAN['ffv6_store_'+ffCurrent]:null;
+  if(curRaw){
+    const s=summarize(curRaw);
+    if(s.ok&&(s.pm>0||s.weeks>0)){
+      html+='<div class="ok">今のポインタ先にデータがあります（商品 '+s.pm+'件 / 週 '+s.weeks+'件）。データは消えていないかもしれません。FF管理に戻って確認してください。</div>';
+    }else if(s.ok){
+      html+='<div class="warn">今のポインタ先は<b>空</b>です（商品0件）。下に「データが入っている店舗」があれば、その店舗の「📂 この店舗を表示」を押せば戻ります。</div>';
+    }else{
+      html+='<div class="warn">今のポインタ先のデータが壊れています。下のスナップショットから復元してください。</div>';
+    }
+  }else{
+    html+='<div class="warn">今のポインタ先にデータがありません。下に「データが入っている店舗」があれば、それを表示してください。</div>';
+  }
+  html+='</div></div>';
+
+  // ===== データが入っている店舗一覧 =====
+  html+='<div class="card"><h2>🏪 見つかった店舗データ</h2>';
+  let foundData=false;
+  const seen=new Set();
+
+  // legacy ffv6
+  if(legacyHas){
+    const s=summarize(SCAN['ffv6']);
+    foundData = foundData || (s.ok&&(s.pm>0||s.weeks>0));
+    html+=renderStoreCard('(旧データ ffv6)','__legacy__',s,ffCurrent,globalCur,true);
+  }
+  // 各 ffv6_store_*
+  storeKeys.forEach(k=>{
+    const id=k.replace('ffv6_store_','');
+    if(seen.has(id))return;seen.add(id);
+    const s=summarize(SCAN[k]);
+    const stMeta=storeList.find(x=>x.id===id);
+    const dispName=(s.ok&&s.name)?s.name:(stMeta?stMeta.name:'')||'(名前なし)';
+    foundData = foundData || (s.ok&&(s.pm>0||s.weeks>0));
+    html+=renderStoreCard(dispName,id,s,ffCurrent,globalCur,false);
+  });
+
+  if(!legacyHas && storeKeys.length===0){
+    html+='<div class="empty-note">このブラウザ（この origin）には FF のデータが見つかりませんでした。<br>別の端末／別のブラウザ／Drive版のファイルで入力していた可能性があります。その場合は、そちらで同じこのページを開いてください。</div>';
+  } else if(!foundData){
+    html+='<div class="warn">店舗の枠はありますが、中身（商品・週データ）が空です。下のスナップショット（自動バックアップ）から復元できる可能性が高いです。</div>';
+  }
+  html+='</div>';
+
+  // ===== localStorage スナップショット =====
+  const snapKeys=keys.filter(k=>k.indexOf('ffv6_snap_')===0).sort().reverse();
+  html+='<div class="card"><h2>🛟 自動バックアップ（localStorage）<span class="pill">'+snapKeys.length+'件</span></h2>';
+  if(snapKeys.length===0){
+    html+='<div class="empty-note">localStorage 内のスナップショットはありません。下の IndexedDB も確認します。</div>';
+  }else{
+    snapKeys.slice(0,30).forEach(k=>{
+      const ts=parseInt(k.replace('ffv6_snap_',''),10);
+      const s=summarize(SCAN[k]);
+      html+='<div class="snap"><div><div class="when">'+fmt(ts)+'</div>';
+      html+='<div class="info">'+(s.ok?('商品 '+s.pm+'件 / 週 '+s.weeks+'件'+(s.name?' / '+esc(s.name):'')):'解析不可')+'</div></div>';
+      html+='<button class="btn-main" onclick="restoreSnap(\''+k+'\')">この時点に復元</button></div>';
+    });
+  }
+  html+='</div>';
+
+  // ===== IndexedDB スナップショット =====
+  html+='<div class="card"><h2>🗄️ 独立バックアップ（IndexedDB）<span class="pill" id="idb-count">確認中…</span></h2><div id="idb-list"><div class="empty-note">読み込み中…</div></div></div>';
+
+  document.getElementById('result').innerHTML=html;
+  loadIDB();
+}
+
+function renderStoreCard(name,id,s,ffCurrent,globalCur,isLegacy){
+  const isActive = (id===ffCurrent);
+  const hasData = s.ok&&(s.pm>0||s.weeks>0);
+  let cls='store'+(isActive?' active':'')+(hasData?'':' empty');
+  let h='<div class="'+cls+'">';
+  h+='<div class="name">'+esc(name)+(isActive?' <span class="pill">表示中</span>':'')+'</div>';
+  h+='<div class="meta">ID: <code>'+esc(id)+'</code></div>';
+  if(s.ok){
+    h+='<div><span class="stat">商品 <b>'+s.pm+'</b>件</span><span class="stat">週データ <b>'+s.weeks+'</b>件</span>';
+    h+='<span class="stat">サイズ '+Math.round(s.size/1024)+'KB</span></div>';
+    if(s.updated)h+='<div class="meta">最終更新: '+esc(s.updated)+'</div>';
+  }else{
+    h+='<div class="warn">データ解析失敗: '+esc(s.err)+'</div>';
+  }
+  h+='<div class="btn-row">';
+  if(hasData && !isLegacy){
+    h+='<button class="btn-green" onclick="showStore(\''+id+'\')">📂 この店舗を表示する</button>';
+  }
+  if(isLegacy && hasData){
+    h+='<button class="btn-green" onclick="restoreLegacy()">📂 この旧データを現在の店舗に復元する</button>';
+  }
+  h+='</div></div>';
+  return h;
+}
+
+function fmt(ts){
+  if(!ts||isNaN(ts))return '(時刻不明)';
+  try{return new Date(ts).toLocaleString('ja-JP');}catch(_){return String(ts);}
+}
+
+// ---- IndexedDB ----
+const IDB_NAME='ffv6_backups',IDB_STORE='snapshots';
+function idbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE,{keyPath:'t'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+async function loadIDB(){
+  try{
+    const db=await idbOpen();
+    const items=await new Promise((res,rej)=>{const tx=db.transaction(IDB_STORE,'readonly');const req=tx.objectStore(IDB_STORE).getAll();req.onsuccess=()=>res(req.result||[]);req.onerror=()=>rej(req.error);});
+    items.sort((a,b)=>b.t-a.t);
+    document.getElementById('idb-count').textContent=items.length+'件';
+    const list=document.getElementById('idb-list');
+    if(items.length===0){list.innerHTML='<div class="empty-note">IndexedDB にバックアップはありません。</div>';return;}
+    let h='';
+    window.__IDB=items;
+    items.slice(0,30).forEach((it,idx)=>{
+      const s=summarize(it.content);
+      h+='<div class="snap"><div><div class="when">'+fmt(it.t)+'</div>';
+      h+='<div class="info">'+(s.ok?('商品 '+s.pm+'件 / 週 '+s.weeks+'件'+(s.name?' / '+esc(s.name):'')):'解析不可')+' / store:'+esc(it.storeId||'(なし)')+'</div></div>';
+      h+='<button class="btn-main" onclick="restoreIDB('+idx+')">この時点に復元</button></div>';
+    });
+    list.innerHTML=h;
+    logln('IndexedDB スナップショット: '+items.length+'件');
+  }catch(e){
+    document.getElementById('idb-count').textContent='エラー';
+    document.getElementById('idb-list').innerHTML='<div class="empty-note">IndexedDB を開けませんでした: '+esc(String(e))+'</div>';
+  }
+}
+
+// ---- アクション（書き込み系。必ず事前バックアップ） ----
+function safetyBackup(reason){
+  try{
+    const dump={};for(let i=0;i<LS.length;i++){const k=LS.key(i);dump[k]=LS.getItem(k);}
+    LS.setItem('ffv6_recover_backup_'+Date.now(),JSON.stringify(dump));
+    logln('安全バックアップ作成: '+reason);
+  }catch(e){logln('安全バックアップ失敗(容量?): '+e);}
+}
+
+function showStore(id){
+  if(!confirm('この店舗を「表示中」に切り替えます。\n（データは書き換えません。ポインタを変えるだけです）\nよろしいですか？'))return;
+  safetyBackup('showStore');
+  LS.setItem('ffv6_current',id);
+  LS.setItem('current_store_id',id);
+  alert('切り替えました。FF管理を開きます。');
+  location.href='./';
+}
+
+function restoreLegacy(){
+  const cur=LS.getItem('ffv6_current');
+  if(!cur){alert('現在の店舗ポインタが見つかりません。先に店舗を1つ作ってください。');return;}
+  if(!confirm('旧データ(ffv6)を、現在の店舗('+cur+')のデータとして復元します。\n現在の店舗の中身は上書きされます（事前に自動バックアップを取ります）。\nよろしいですか？'))return;
+  safetyBackup('restoreLegacy');
+  LS.setItem('ffv6_store_'+cur,LS.getItem('ffv6'));
+  alert('復元しました。FF管理を開きます。');
+  location.href='./';
+}
+
+function restoreSnap(key){
+  const raw=LS.getItem(key);
+  if(!raw){alert('スナップショットが見つかりません');return;}
+  doRestore(raw,'localStorageスナップショット');
+}
+function restoreIDB(idx){
+  const it=window.__IDB&&window.__IDB[idx];
+  if(!it){alert('スナップショットが見つかりません');return;}
+  doRestore(it.content,'IndexedDBスナップショット',it.storeId);
+}
+function doRestore(content,label,snapStoreId){
+  let cur=LS.getItem('ffv6_current');
+  if(!cur && snapStoreId)cur=snapStoreId;
+  if(!cur){
+    // 店舗が無ければ作る
+    cur='store_'+Date.now();
+    LS.setItem('ffv6_current',cur);
+    LS.setItem('current_store_id',cur);
+    let sl=[];try{sl=JSON.parse(LS.getItem('ffv6_stores')||'[]');}catch(_){}
+    sl.push({id:cur,name:''});LS.setItem('ffv6_stores',JSON.stringify(sl));
+  }
+  const s=summarize(content);
+  if(!confirm(label+'を、現在の店舗('+cur+')に復元します。\n内容: 商品'+(s.ok?s.pm:'?')+'件 / 週'+(s.ok?s.weeks:'?')+'件\n\n現在の店舗の中身は上書きされます（事前に自動バックアップを取ります）。\nよろしいですか？'))return;
+  safetyBackup('doRestore');
+  LS.setItem('ffv6_store_'+cur,content);
+  alert('復元しました。FF管理を開きます。');
+  location.href='./';
+}
+
+function downloadAll(){
+  try{
+    const dump={_origin:location.origin,_when:new Date().toISOString(),localStorage:{}};
+    for(let i=0;i<LS.length;i++){const k=LS.key(i);dump.localStorage[k]=LS.getItem(k);}
+    // IndexedDB も含める
+    idbOpen().then(db=>{
+      const tx=db.transaction(IDB_STORE,'readonly');const req=tx.objectStore(IDB_STORE).getAll();
+      req.onsuccess=()=>{dump.indexedDB=req.result||[];finishDownload(dump);};
+      req.onerror=()=>{finishDownload(dump);};
+    }).catch(()=>finishDownload(dump));
+  }catch(e){alert('ダウンロード失敗: '+e);}
+}
+function finishDownload(dump){
+  const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='FF全データ_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+  a.click();
+  alert('ダウンロードしました。Downloadsフォルダを確認してください。\nこれで万一何があっても、このファイルから戻せます。');
+}
+
+render();
+</script>
+</body>
+</html>
