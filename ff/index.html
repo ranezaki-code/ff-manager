@@ -735,18 +735,19 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 // ============================================================
 // CONSTANTS
 // ============================================================
-const CATS = ['ホットFF','ホットFF新商品','常温FF','常温FF新商品','中華まん','中華まん新商品'];
+const CATS = ['ホットFF','ホットFF新商品','常温FF','常温FF新商品','中華まん','中華まん新商品','まちかど厨房','まちかど厨房新商品'];
 const DAYS = ['火','水','木','金','土','日','月'];
 // 作成スロット：0〜23時の全24時間から選択可能（販売開始は各時刻+1時間後＝陳列完了タイミング）
 const ALL_SLOTS = Array.from({length:24},(_,h)=>h);
 const SLOT_LABELS = Object.fromEntries(ALL_SLOTS.map(h=>[h,`${h}:00`]));
 // 算出時の最大カバー時間（カテゴリ別。次スロットが近ければそれが優先される）
-const CALC_MAX_HOURS = {'ホットFF':4,'常温FF':8,'中華まん':8};
+const CALC_MAX_HOURS = {'ホットFF':4,'常温FF':8,'中華まん':8,'まちかど厨房':8};
 const PROD_TAGS = ['ワンハンド','揚げ物','複数個入'];
 const CAT_CLASS = {
   'ホットFF':'cat-hot','ホットFF新商品':'cat-hot-new',
   '常温FF':'cat-room','常温FF新商品':'cat-room-new',
-  '中華まん':'cat-man','中華まん新商品':'cat-man-new'
+  '中華まん':'cat-man','中華まん新商品':'cat-man-new',
+  'まちかど厨房':'cat-machikado','まちかど厨房新商品':'cat-machikado-new'
 };
 
 const DEF_CUST = [
@@ -1052,6 +1053,8 @@ const I18N = {
     'cat.coldffNew':'常温FF新商品',
     'cat.man':'中華まん',
     'cat.manNew':'中華まん新商品',
+    'cat.machikado':'まちかど厨房',
+    'cat.machikadoNew':'まちかど厨房新商品',
     // Yes/No
     'yes':'はい',
     'no':'いいえ',
@@ -1277,6 +1280,7 @@ const I18N = {
     'cat.hotff':'Hot FF','cat.hotffNew':'Hot FF New',
     'cat.coldff':'Cold FF','cat.coldffNew':'Cold FF New',
     'cat.man':'Steamed bun','cat.manNew':'Steamed bun New',
+    'cat.machikado':'Machikado Kitchen','cat.machikadoNew':'Machikado Kitchen New',
     'yes':'Yes','no':'No',
   },
   ne: {
@@ -1473,6 +1477,7 @@ const I18N = {
     'cat.hotff':'तातो FF','cat.hotffNew':'तातो FF नयाँ',
     'cat.coldff':'चिसो FF','cat.coldffNew':'चिसो FF नयाँ',
     'cat.man':'स्टीम बन','cat.manNew':'स्टीम बन नयाँ',
+    'cat.machikado':'माचिकाडो किचेन','cat.machikadoNew':'माचिकाडो किचेन नयाँ',
     'yes':'हो','no':'होइन',
   }
 };
@@ -1502,7 +1507,7 @@ function setLang(lang){
 }
 // カテゴリ名の表示用：内部キーは日本語のままだが、表示時に翻訳
 function tCat(cat){
-  const map={'ホットFF':'cat.hotff','ホットFF新商品':'cat.hotffNew','常温FF':'cat.coldff','常温FF新商品':'cat.coldffNew','中華まん':'cat.man','中華まん新商品':'cat.manNew'};
+  const map={'ホットFF':'cat.hotff','ホットFF新商品':'cat.hotffNew','常温FF':'cat.coldff','常温FF新商品':'cat.coldffNew','中華まん':'cat.man','中華まん新商品':'cat.manNew','まちかど厨房':'cat.machikado','まちかど厨房新商品':'cat.machikadoNew'};
   return map[cat]?t(map[cat]):cat;
 }
 
@@ -1512,7 +1517,7 @@ function tCat(cat){
 let S = {
   storeName:'',chainName:'',
   PM:[],
-  catOn:{'ホットFF':true,'ホットFF新商品':true,'常温FF':true,'常温FF新商品':false,'中華まん':true,'中華まん新商品':false},
+  catOn:{'ホットFF':true,'ホットFF新商品':true,'常温FF':true,'常温FF新商品':false,'中華まん':true,'中華まん新商品':false,'まちかど厨房':true,'まちかど厨房新商品':false},
   catCfg:{
     'ホットFF':{ah:6,slots:[6,10,14,17]},
     'ホットFF新商品':{ah:6,slots:[6,10,14,17]},
@@ -1520,6 +1525,8 @@ let S = {
     '常温FF新商品':{ah:10,slots:[10]},
     '中華まん':{ah:10,slots:[6,10]},
     '中華まん新商品':{ah:10,slots:[6,10]},
+    'まちかど厨房':{ah:8,slots:[8,12,15]},
+    'まちかど厨房新商品':{ah:8,slots:[8,12,15]},
   },
   ji:{},prevJi:{},
   cust:DEF_CUST.map(r=>[...r]),
@@ -2420,6 +2427,17 @@ function loadS(){
   if(!S.施策)S.施策=[];
   if(!S.booklets)S.booklets={};
   if(!S.bookletDisplayMonths)S.bookletDisplayMonths=[];
+  // 【マイグレーション】まちかど厨房カテゴリが既存データに無ければ追加（v126）
+  if(!S.catCfg)S.catCfg={};
+  if(!S.catOn)S.catOn={};
+  if(!S.catCfg['まちかど厨房']){
+    S.catCfg['まちかど厨房']={ah:8,slots:[8,12,15]};
+    if(S.catOn['まちかど厨房']===undefined)S.catOn['まちかど厨房']=false; // 既存ユーザーは無効化スタート、有効化はユーザー判断
+  }
+  if(!S.catCfg['まちかど厨房新商品']){
+    S.catCfg['まちかど厨房新商品']={ah:8,slots:[8,12,15]};
+    if(S.catOn['まちかど厨房新商品']===undefined)S.catOn['まちかど厨房新商品']=false;
+  }
 }
 
 // ============================================================
@@ -4626,7 +4644,7 @@ function calcRuleSuggestions(){
   });
 
   // ── ③ 予算・実績ベース ──────────────────
-  const MCAT_TAG={'ホットFF':'揚げ物','常温FF':'','中華まん':'まん'};
+  const MCAT_TAG={'ホットFF':'揚げ物','常温FF':'','中華まん':'まん','まちかど厨房':'まちかど厨房'};
   ['ホットFF','常温FF','中華まん'].forEach(mc=>{
     const catKeys=CATS.filter(c=>c.startsWith(mc));
     let make=0,sold=0,profit=0,sales=0;
@@ -6827,10 +6845,11 @@ function switchStore(id){
   currentStoreId=id;
   localStorage.setItem('ffv6_current',id);
   // Sをリセット
-  const fresh={storeName:'',chainName:'',PM:[],catOn:{'ホットFF':true,'ホットFF新商品':true,'常温FF':true,'常温FF新商品':false,'中華まん':true,'中華まん新商品':false},catCfg:JSON.parse(JSON.stringify({
+  const fresh={storeName:'',chainName:'',PM:[],catOn:{'ホットFF':true,'ホットFF新商品':true,'常温FF':true,'常温FF新商品':false,'中華まん':true,'中華まん新商品':false,'まちかど厨房':true,'まちかど厨房新商品':false},catCfg:JSON.parse(JSON.stringify({
     'ホットFF':{ah:6,slots:[6,10,14,17]},'ホットFF新商品':{ah:6,slots:[6,10,14,17]},
     '常温FF':{ah:10,slots:[10]},'常温FF新商品':{ah:10,slots:[10]},
-    '中華まん':{ah:10,slots:[6,10]},'中華まん新商品':{ah:10,slots:[6,10]}
+    '中華まん':{ah:10,slots:[6,10]},'中華まん新商品':{ah:10,slots:[6,10]},
+    'まちかど厨房':{ah:8,slots:[8,12,15]},'まちかど厨房新商品':{ah:8,slots:[8,12,15]}
   })),ji:{},prevJi:{},cust:DEF_CUST.map(r=>[...r]),ext:DEF_EXT.map(e=>({...e})),rules:[],checks:{},budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{},investDays:{}},discHist:[],weekStart:'',weeks:{},activeWeek:''};
   Object.assign(S,fresh);
   loadS();
