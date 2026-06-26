@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>担当部門</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f1f5f9;--panel:#fff;--text:#0f172a;--sub:#64748b;--faint:#94a3b8;--border:#e2e8f0;
+  --accent:#2563eb;--accent-dk:#1d4ed8;--accent-lt:#eff6ff;
+  --green:#16a34a;--green-lt:#ecfdf5;--amber:#d97706;--amber-lt:#fffbeb;--red:#dc2626;--red-lt:#fef2f2;
+  --purple:#7c3aed;--purple-lt:#f5f3ff;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;padding-bottom:60px}
+.wrap{max-width:860px;margin:0 auto;padding:14px}
+header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+header h1{font-size:18px;font-weight:700}
+header .spacer{flex:1}
+.mgr-toggle{font-size:12px;font-weight:600;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer;color:var(--sub)}
+.mgr-toggle.on{background:var(--purple-lt);border-color:#ddd6fe;color:var(--purple)}
+.subtabs{display:flex;gap:6px;margin-bottom:14px}
+.subtab{flex:1;text-align:center;font-size:14px;font-weight:600;color:var(--sub);background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer}
+.subtab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.group-title{font-size:13px;font-weight:700;margin:16px 0 6px;display:flex;align-items:center;gap:6px}
+.group-title .g-cond{font-size:11px;font-weight:500;color:var(--faint)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.area-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.area-row:last-child{border-bottom:none}
+.area-main{flex:1;min-width:150px}
+.area-name{font-size:14px;font-weight:600}
+.area-cond{font-size:11px;color:var(--faint);margin-top:1px}
+.assignees{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;background:var(--accent-lt);color:var(--accent-dk);border-radius:999px;padding:3px 9px;font-weight:600}
+.chip .av{width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
+.unassigned{font-size:12px;color:var(--faint);border:1px dashed #cbd5e1;border-radius:999px;padding:3px 10px}
+.btn{font-family:inherit;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;padding:7px 12px}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-pri{background:var(--accent);color:#fff}.btn-pri:hover{background:var(--accent-dk)}
+.btn-ghost{background:#f1f5f9;color:var(--text)}.btn-ghost:hover{background:#e2e8f0}
+.btn-green{background:var(--green);color:#fff}.btn-amber{background:var(--amber);color:#fff}.btn-red{background:var(--red);color:#fff}
+.btn-line{background:#fff;border:1px solid var(--border);color:var(--sub)}
+.sheet-count{font-size:11px;color:var(--sub);white-space:nowrap}
+/* 作戦シート一覧 */
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filters select{font-family:inherit;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:7px 9px;background:#fff}
+.sheet{background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.sheet-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;cursor:pointer}
+.sheet-title{font-size:14px;font-weight:700;flex:1;min-width:120px}
+.badge{font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.b-draft{background:#f1f5f9;color:var(--sub)}
+.b-submitted{background:var(--amber-lt);color:var(--amber)}
+.b-returned{background:var(--red-lt);color:var(--red)}
+.b-doing{background:var(--accent-lt);color:var(--accent-dk)}
+.b-done{background:var(--green-lt);color:var(--green)}
+.b-retry{background:var(--purple-lt);color:var(--purple)}
+.sheet-meta{font-size:11px;color:var(--faint)}
+.sheet-body{padding:6px 14px 14px;display:none}
+.sheet.open .sheet-body{display:block}
+.step{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9}
+.step:last-child{border-bottom:none}
+.step .n{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent-lt);color:var(--accent-dk);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.step .n.n4{background:var(--green-lt);color:var(--green)}
+.step .s-label{font-size:12px;font-weight:700;color:var(--sub)}
+.step .s-val{font-size:13px;white-space:pre-wrap;margin-top:1px}
+.step .s-val.empty{color:var(--faint)}
+.sheet-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.empty-note{color:var(--faint);font-size:13px;text-align:center;padding:24px}
+/* モーダル */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:14px;overflow:auto}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:600px;width:100%;margin:auto;padding:18px}
+.modal h2{font-size:17px;margin-bottom:4px}
+.modal .mhint{font-size:12px;color:var(--sub);margin-bottom:12px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;font-weight:700;margin-bottom:4px}
+.field .ex{font-size:11px;color:var(--faint);margin-bottom:5px;line-height:1.5}
+.field input,.field select,.field textarea{width:100%;font-family:inherit;font-size:14px;border:1px solid var(--border);border-radius:8px;padding:9px 10px;background:#fff}
+.field textarea{min-height:64px;resize:vertical}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.modal-actions .btn{flex:1;min-width:110px;padding:11px}
+.close-x{float:right;font-size:22px;background:none;border:none;color:var(--sub);cursor:pointer;line-height:1}
+.multi{display:flex;flex-wrap:wrap;gap:6px}
+.multi .opt{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:5px 11px;cursor:pointer;background:#fff;color:var(--sub)}
+.multi .opt.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;opacity:0;transition:opacity .2s;z-index:2000;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+<script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>担当部門</h1>
+    <span class="spacer"></span>
+    <button class="mgr-toggle" id="mgr-toggle">🔓 店長モード</button>
+  </header>
+
+  <div class="subtabs">
+    <div class="subtab active" data-view="list">担当一覧</div>
+    <div class="subtab" data-view="sheets">作戦シート</div>
+  </div>
+
+  <div id="view-list"></div>
+
+  <div id="view-sheets" style="display:none">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-pri" id="new-sheet-btn">＋ 新規作戦シート</button>
+      <span class="spacer" style="flex:1"></span>
+    </div>
+    <div class="filters">
+      <select id="f-group"><option value="">全グループ</option></select>
+      <select id="f-status">
+        <option value="">全状態</option>
+        <option value="draft">下書き</option>
+        <option value="submitted">提出済（承認待ち）</option>
+        <option value="returned">差し戻し</option>
+        <option value="doing">実行中</option>
+        <option value="done">達成</option>
+        <option value="retry">再挑戦</option>
+      </select>
+      <select id="f-assignee"><option value="">全担当</option></select>
+    </div>
+    <div id="sheet-list"></div>
+  </div>
+</div>
+
+<!-- 担当割当モーダル -->
+<div class="overlay" id="assign-overlay">
+  <div class="modal">
+    <button class="close-x" data-close="assign-overlay">×</button>
+    <h2>担当を割り当て</h2>
+    <div class="mhint" id="assign-area-name"></div>
+    <div class="field">
+      <label>担当者（ワークスケジュールの従業員から選択）</label>
+      <div class="ex" id="assign-staff-hint"></div>
+      <div class="multi" id="assign-staff-multi"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-pri" id="assign-save">保存</button>
+      <button class="btn btn-ghost" data-close="assign-overlay">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 作戦シート編集モーダル -->
+<div class="overlay" id="sheet-overlay">
+  <div class="modal">
+    <button class="close-x" data-close="sheet-overlay">×</button>
+    <h2 id="sheet-modal-title">作戦シート</h2>
+    <div class="mhint">事実ベースで具体的に。誰が読んでも同じ行動が取れるように書きます。</div>
+    <div class="field">
+      <label>担当部門</label>
+      <select id="s-area"></select>
+    </div>
+    <div class="field">
+      <label>担当者</label>
+      <select id="s-assignee"></select>
+    </div>
+    <div class="field">
+      <label>タイトル（一言で）</label>
+      <input type="text" id="s-title" placeholder="例：16時のアイス新商品の品切れをなくす">
+    </div>
+    <div class="field">
+      <label>① 現状の課題（客観的な事実は何か？）</label>
+      <div class="ex">× なんとなく汚い／〇 新商品◯◯の棚が16時のピーク時に毎日空になっている</div>
+      <textarea id="s-problem"></textarea>
+    </div>
+    <div class="field">
+      <label>② 目的とゴール（どんな状態にするか？）</label>
+      <div class="ex">× 売上を伸ばすため（大きすぎる）／〇 棚の最上段が毎日16時に「新商品で満タン」の状態</div>
+      <textarea id="s-goal"></textarea>
+    </div>
+    <div class="field">
+      <label>③ 明日からの仕組み（いつ・どのタイミングで・誰が・何を）</label>
+      <div class="ex">〇 毎日15時の検収直後に、必ず◯◯を5個補充するルールにする</div>
+      <textarea id="s-mechanism"></textarea>
+    </div>
+    <div id="result-block" style="display:none">
+      <div class="field">
+        <label>④ 結果（数値または状態）＋ なぜその結果になったか</label>
+        <textarea id="s-result" placeholder="★結果：達成／未達成、数値や状態。なぜそうなったか。"></textarea>
+      </div>
+      <div class="field">
+        <label>次の一手</label>
+        <div class="multi" id="s-next-multi">
+          <span class="opt" data-next="A">A：今の仕組みを継続・定着（達成）</span>
+          <span class="opt" data-next="B">B：仕組みを更新して再挑戦（未達）</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions" id="sheet-modal-actions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 担当部門システム（自走店舗作り）
+// ============================================================
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+
+// 部門ツリー（PDF「自走店舗作り」より）
+const SEED=[
+  {group:'売上利益拡大', items:[
+    {id:'order_aico',name:'商品発注・AICOカテゴリ',cond:'サブリーダークルー以上／FFファンタジスタ取得済'},
+    {id:'order_ff',name:'商品発注・ファストフード',cond:'サブリーダークルー以上／まちかど厨房ファンタジスタ取得済'},
+    {id:'order_kitchen',name:'商品発注・店内厨房',cond:'サブリーダークルー以上／マチカフェファンタジスタ取得済'},
+    {id:'order_machicafe',name:'商品発注・マチカフェ',cond:''},
+    {id:'order_drink',name:'商品発注・種類／飲料／チルド飲料',cond:''},
+    {id:'order_processed',name:'商品発注・加工食品',cond:''},
+    {id:'order_sweets',name:'商品発注・菓子',cond:''},
+    {id:'order_daily',name:'商品発注・日用品／たばこ',cond:''},
+  ]},
+  {group:'基準の維持', cond:'リーダークルー以上', items:[
+    {id:'clean',name:'清掃',cond:'リーダークルー以上／接客ファンタジスタ取得済'},
+    {id:'consumable',name:'消耗品',cond:''},
+    {id:'training',name:'新人教育',cond:''},
+    {id:'three',name:'3つの徹底',cond:''},
+  ]},
+  {group:'全体管理', items:[
+    {id:'pdca',name:'PDCAバックチェック',cond:''},
+    {id:'eval',name:'評価',cond:''},
+    {id:'numbers',name:'数字管理（定量的な変化の確認）',cond:''},
+  ]},
+];
+const GROUP_DOT={'売上利益拡大':'#2563eb','基準の維持':'#16a34a','全体管理':'#7c3aed'};
+function allAreas(){const a=[];SEED.forEach(g=>g.items.forEach(it=>a.push(Object.assign({group:g.group},it))));return a;}
+function areaById(id){return allAreas().find(a=>a.id===id);}
+
+// ---- ストア／保存 ----
+function storeId(){return localStorage.getItem('current_store_id')||localStorage.getItem('ffv6_current')||'';}
+function dataKey(){const s=storeId();return s?'bumon_v1_store_'+s:'bumon_v1';}
+let S={assignments:{},sheets:[]};
+function loadS(){
+  try{const raw=localStorage.getItem(dataKey());if(raw)S=JSON.parse(raw);}catch(e){console.error(e);}
+  if(!S.assignments)S.assignments={};
+  if(!Array.isArray(S.sheets))S.sheets=[];
+}
+function saveS(){
+  try{localStorage.setItem(dataKey(),JSON.stringify(S));}catch(e){console.error(e);alert('保存に失敗しました: '+e);}
+}
+// WSの従業員（state.staff）を読む
+function wsStaff(){
+  const s=storeId();const key=s?'ws_v1_store_'+s:'ws_v1';
+  try{const raw=localStorage.getItem(key);if(raw){const st=JSON.parse(raw);if(Array.isArray(st.staff))return st.staff.slice();}}catch(e){}
+  // フォールバック：これまで割り当てた名前
+  const set=new Set();Object.values(S.assignments).forEach(arr=>(arr||[]).forEach(n=>set.add(n)));
+  S.sheets.forEach(sh=>{if(sh.assignee)set.add(sh.assignee);});
+  return Array.from(set);
+}
+
+// ---- 店長モード ----
+function isMgr(){return localStorage.getItem('bumon_manager_mode')==='1';}
+function renderMgr(){const b=$('mgr-toggle');if(isMgr()){b.classList.add('on');b.textContent='🔐 店長モード ON';}else{b.classList.remove('on');b.textContent='🔓 店長モード';}}
+
+// ---- 担当一覧ビュー ----
+function avatarText(n){return (n||'?').slice(0,1);}
+function sheetsOfArea(id){return S.sheets.filter(s=>s.areaId===id);}
+function statusOf(sh){
+  if(sh.phase==='draft')return {k:'draft',label:'下書き',cls:'b-draft'};
+  if(sh.phase==='submitted')return {k:'submitted',label:'承認待ち',cls:'b-submitted'};
+  if(sh.phase==='returned')return {k:'returned',label:'差し戻し',cls:'b-returned'};
+  if(sh.phase==='done'){
+    if(sh.next==='A')return {k:'done',label:'達成（A継続）',cls:'b-done'};
+    if(sh.next==='B')return {k:'retry',label:'再挑戦（B更新）',cls:'b-retry'};
+    return {k:'done',label:'完了',cls:'b-done'};
+  }
+  return {k:'doing',label:'実行中',cls:'b-doing'};
+}
+function renderList(){
+  const wrap=$('view-list');let h='';
+  SEED.forEach(g=>{
+    h+='<div class="group-title"><span class="dot" style="background:'+GROUP_DOT[g.group]+'"></span>'+esc(g.group)+(g.cond?' <span class="g-cond">'+esc(g.cond)+'</span>':'')+'</div>';
+    h+='<div class="card">';
+    g.items.forEach(it=>{
+      const as=S.assignments[it.id]||[];
+      const shs=sheetsOfArea(it.id);
+      const doneCnt=shs.filter(s=>s.phase==='done').length;
+      h+='<div class="area-row">';
+      h+='<div class="area-main"><div class="area-name">'+esc(it.name)+'</div>'+(it.cond?'<div class="area-cond">条件: '+esc(it.cond)+'</div>':'')+'</div>';
+      h+='<div class="assignees">';
+      if(as.length){as.forEach(n=>{h+='<span class="chip"><span class="av">'+esc(avatarText(n))+'</span>'+esc(n)+'</span>';});}
+      else{h+='<span class="unassigned">未割当</span>';}
+      h+='</div>';
+      h+='<button class="btn btn-line btn-sm" data-assign="'+it.id+'">割当</button>';
+      h+='<span class="sheet-count">シート'+shs.length+'件'+(doneCnt?'・完了'+doneCnt:'')+'</span>';
+      h+='<button class="btn btn-ghost btn-sm" data-newsheet="'+it.id+'">＋作戦</button>';
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+  wrap.innerHTML=h;
+}
+
+// ---- 作戦シートビュー ----
+function fillFilterOptions(){
+  const fg=$('f-group');if(fg.options.length<=1){SEED.forEach(g=>{const o=document.createElement('option');o.value=g.group;o.textContent=g.group;fg.appendChild(o);});}
+  const fa=$('f-assignee');const cur=fa.value;fa.innerHTML='<option value="">全担当</option>'+wsStaff().map(n=>'<option>'+esc(n)+'</option>').join('');fa.value=cur;
+}
+function renderSheets(){
+  fillFilterOptions();
+  const fg=$('f-group').value, fs=$('f-status').value, fa=$('f-assignee').value;
+  let list=S.sheets.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  list=list.filter(sh=>{
+    const ar=areaById(sh.areaId)||{};
+    if(fg&&ar.group!==fg)return false;
+    if(fa&&sh.assignee!==fa)return false;
+    if(fs){const st=statusOf(sh);if(st.k!==fs)return false;}
+    return true;
+  });
+  const box=$('sheet-list');
+  if(!list.length){box.innerHTML='<div class="empty-note">作戦シートはまだありません。「＋ 新規作戦シート」から作成してください。</div>';return;}
+  box.innerHTML=list.map(sh=>{
+    const ar=areaById(sh.areaId)||{name:'(不明)',group:''};
+    const st=statusOf(sh);
+    let h='<div class="sheet" data-id="'+sh.id+'">';
+    h+='<div class="sheet-head" data-toggle="'+sh.id+'">';
+    h+='<span class="badge '+st.cls+'">'+st.label+'</span>';
+    h+='<span class="sheet-title">'+esc(sh.title||'(無題)')+'</span>';
+    h+='<span class="sheet-meta">'+esc(ar.group)+' / '+esc(ar.name)+(sh.assignee?' ・ '+esc(sh.assignee):'')+'</span>';
+    h+='</div><div class="sheet-body">';
+    h+=stepHtml(1,'現状の課題（客観的な事実）',sh.problem);
+    h+=stepHtml(2,'目的とゴール（あるべき状態）',sh.goal);
+    h+=stepHtml(3,'明日からの仕組み（いつ・誰が・何を）',sh.mechanism);
+    if(sh.result||sh.phase==='done')h+=stepHtml(4,'結果と次の一手',(sh.result||'')+(sh.next?'\n→ '+(sh.next==='A'?'A：継続・定着':'B：更新して再挑戦'):''));
+    h+='<div class="sheet-actions">'+actionsHtml(sh,st)+'</div>';
+    h+='</div></div>';
+    return h;
+  }).join('');
+}
+function stepHtml(n,label,val){
+  const empty=!val||!String(val).trim();
+  return '<div class="step"><span class="n'+(n===4?' n4':'')+'">'+n+'</span><div><div class="s-label">'+esc(label)+'</div><div class="s-val'+(empty?' empty':'')+'">'+(empty?'（未記入）':esc(val))+'</div></div></div>';
+}
+function actionsHtml(sh,st){
+  let h='';
+  h+='<button class="btn btn-line btn-sm" data-edit="'+sh.id+'">✎ 編集</button>';
+  if(sh.phase==='draft'||sh.phase==='returned')h+='<button class="btn btn-pri btn-sm" data-submit="'+sh.id+'">提出する</button>';
+  if(sh.phase==='submitted'){
+    if(isMgr()){
+      h+='<button class="btn btn-green btn-sm" data-approve="'+sh.id+'">承認（実行へ）</button>';
+      h+='<button class="btn btn-red btn-sm" data-return="'+sh.id+'">差し戻し</button>';
+    }else{h+='<span class="sheet-meta">店長の承認待ち</span>';}
+  }
+  if(sh.phase==='doing')h+='<button class="btn btn-amber btn-sm" data-result="'+sh.id+'">結果を記入して完了</button>';
+  if(sh.phase==='done'&&sh.next==='B')h+='<button class="btn btn-pri btn-sm" data-cycle="'+sh.id+'">次のサイクルを作成</button>';
+  h+='<button class="btn btn-line btn-sm" data-del="'+sh.id+'">削除</button>';
+  return h;
+}
+
+// ---- モーダル：担当割当 ----
+let assignAreaId=null, assignSel=[];
+function openAssign(areaId){
+  assignAreaId=areaId;const ar=areaById(areaId);
+  assignSel=(S.assignments[areaId]||[]).slice();
+  $('assign-area-name').textContent=ar.name+(ar.cond?'　（条件: '+ar.cond+'）':'');
+  const staff=wsStaff();
+  $('assign-staff-hint').textContent=staff.length?'タップで選択（複数可）':'※ワークスケジュールに従業員が未登録です。先にWSの「従業員管理」で登録すると、ここに出ます。';
+  $('assign-staff-multi').innerHTML=staff.map(n=>'<span class="opt'+(assignSel.includes(n)?' sel':'')+'" data-name="'+esc(n)+'">'+esc(n)+'</span>').join('')||'<span class="sheet-meta">（候補なし）</span>';
+  show('assign-overlay');
+}
+function toggleAssignName(n){const i=assignSel.indexOf(n);if(i>=0)assignSel.splice(i,1);else assignSel.push(n);
+  $('assign-staff-multi').querySelectorAll('.opt').forEach(o=>{o.classList.toggle('sel',assignSel.includes(o.dataset.name));});}
+
+// ---- モーダル：作戦シート ----
+let editId=null, sheetNext='';
+function newSheet(areaId){
+  editId=null;sheetNext='';
+  $('sheet-modal-title').textContent='新規作戦シート';
+  fillAreaSelect($('s-area'),areaId||'');
+  fillAssigneeSelect($('s-assignee'),'');
+  $('s-title').value='';$('s-problem').value='';$('s-goal').value='';$('s-mechanism').value='';$('s-result').value='';
+  $('result-block').style.display='none';
+  setNextSel('');
+  $('sheet-modal-actions').innerHTML='<button class="btn btn-ghost" id="m-draft">下書き保存</button><button class="btn btn-pri" id="m-submit">提出する</button>';
+  $('m-draft').onclick=()=>saveSheet('draft');
+  $('m-submit').onclick=()=>saveSheet('submitted');
+  show('sheet-overlay');
+}
+function editSheet(id){
+  const sh=S.sheets.find(s=>s.id===id);if(!sh)return;
+  editId=id;sheetNext=sh.next||'';
+  $('sheet-modal-title').textContent='作戦シートを編集';
+  fillAreaSelect($('s-area'),sh.areaId);
+  fillAssigneeSelect($('s-assignee'),sh.assignee||'');
+  $('s-title').value=sh.title||'';$('s-problem').value=sh.problem||'';$('s-goal').value=sh.goal||'';$('s-mechanism').value=sh.mechanism||'';$('s-result').value=sh.result||'';
+  const showResult=(sh.phase==='doing'||sh.phase==='done');
+  $('result-block').style.display=showResult?'block':'none';
+  setNextSel(sh.next||'');
+  let acts='<button class="btn btn-ghost" id="m-save">保存</button>';
+  if(sh.phase==='draft'||sh.phase==='returned')acts+='<button class="btn btn-pri" id="m-submit">提出する</button>';
+  if(sh.phase==='doing')acts+='<button class="btn btn-amber" id="m-complete">完了にする</button>';
+  $('sheet-modal-actions').innerHTML=acts;
+  $('m-save').onclick=()=>saveSheet(sh.phase);
+  if($('m-submit'))$('m-submit').onclick=()=>saveSheet('submitted');
+  if($('m-complete'))$('m-complete').onclick=()=>{ if(!sheetNext){toast('「次の一手」A/Bを選んでください');return;} saveSheet('done'); };
+  show('sheet-overlay');
+}
+function openResult(id){editSheet(id);$('result-block').style.display='block';$('s-result').focus();}
+function setNextSel(v){sheetNext=v;document.querySelectorAll('#s-next-multi .opt').forEach(o=>o.classList.toggle('sel',o.dataset.next===v));}
+function fillAreaSelect(sel,val){
+  sel.innerHTML=SEED.map(g=>'<optgroup label="'+esc(g.group)+'">'+g.items.map(it=>'<option value="'+it.id+'"'+(it.id===val?' selected':'')+'>'+esc(it.name)+'</option>').join('')+'</optgroup>').join('');
+}
+function fillAssigneeSelect(sel,val){
+  const staff=wsStaff();
+  sel.innerHTML='<option value="">（未設定）</option>'+staff.map(n=>'<option'+(n===val?' selected':'')+'>'+esc(n)+'</option>').join('');
+}
+function saveSheet(phase){
+  const areaId=$('s-area').value;
+  const title=$('s-title').value.trim();
+  if(!title){toast('タイトルを入力してください');return;}
+  if(phase==='submitted'){
+    if(!$('s-problem').value.trim()||!$('s-goal').value.trim()||!$('s-mechanism').value.trim()){toast('提出には①②③の記入が必要です');return;}
+  }
+  if(phase==='done'&&!sheetNext){toast('「次の一手」A/Bを選んでください');return;}
+  const now=Date.now();
+  let sh;
+  if(editId){sh=S.sheets.find(s=>s.id===editId);}
+  if(!sh){sh={id:'sh_'+now+'_'+Math.random().toString(36).slice(2,6),createdAt:now};S.sheets.push(sh);}
+  sh.areaId=areaId;sh.assignee=$('s-assignee').value;sh.title=title;
+  sh.problem=$('s-problem').value;sh.goal=$('s-goal').value;sh.mechanism=$('s-mechanism').value;
+  sh.result=$('s-result').value;sh.next=sheetNext;
+  sh.phase=phase;sh.updatedAt=now;
+  if(phase==='submitted')sh.submittedAt=now;
+  if(phase==='done')sh.doneAt=now;
+  saveS();hide('sheet-overlay');renderAll();
+  toast(phase==='submitted'?'提出しました（店長の承認待ち）':phase==='done'?'完了にしました':'保存しました');
+}
+
+// ---- ステータス遷移 ----
+function submitSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;
+  if(!sh.problem||!sh.goal||!sh.mechanism){toast('提出には①②③の記入が必要です。編集から記入してください');editSheet(id);return;}
+  sh.phase='submitted';sh.submittedAt=Date.now();sh.updatedAt=Date.now();saveS();renderAll();toast('提出しました（店長の承認待ち）');}
+function approveSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;sh.phase='doing';sh.approvedAt=Date.now();sh.updatedAt=Date.now();saveS();renderAll();toast('承認しました。実行中になりました');}
+function returnSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;const note=prompt('差し戻しの理由（任意）');sh.phase='returned';sh.approverNote=note||'';sh.updatedAt=Date.now();saveS();renderAll();toast('差し戻しました');}
+function delSheet(id){if(!confirm('この作戦シートを削除しますか？'))return;S.sheets=S.sheets.filter(s=>s.id!==id);saveS();renderAll();toast('削除しました');}
+function cycleSheet(id){
+  const sh=S.sheets.find(s=>s.id===id);if(!sh)return;
+  const now=Date.now();
+  const ns={id:'sh_'+now+'_'+Math.random().toString(36).slice(2,6),createdAt:now,updatedAt:now,
+    areaId:sh.areaId,assignee:sh.assignee,title:sh.title+'（再挑戦）',
+    problem:sh.problem,goal:sh.goal,mechanism:sh.mechanism,result:'',next:'',phase:'draft'};
+  S.sheets.push(ns);saveS();renderAll();toast('次のサイクルの下書きを作成しました。①②③を見直して提出してください');
+  $('f-status').value='';renderSheets();
+}
+
+// ---- 共通 ----
+function show(id){$(id).classList.add('show');}
+function hide(id){$(id).classList.remove('show');}
+function renderAll(){renderList();renderSheets();renderMgr();}
+
+// ---- イベント ----
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-assign],[data-newsheet],[data-toggle],[data-edit],[data-submit],[data-approve],[data-return],[data-result],[data-cycle],[data-del],[data-close],[data-name],[data-next]');
+  if(!t)return;
+  if(t.dataset.assign!=null)return openAssign(t.dataset.assign);
+  if(t.dataset.newsheet!=null){switchView('sheets');return newSheet(t.dataset.newsheet);}
+  if(t.dataset.toggle!=null){const s=t.closest('.sheet');if(s)s.classList.toggle('open');return;}
+  if(t.dataset.edit!=null)return editSheet(t.dataset.edit);
+  if(t.dataset.submit!=null)return submitSheet(t.dataset.submit);
+  if(t.dataset.approve!=null)return approveSheet(t.dataset.approve);
+  if(t.dataset.return!=null)return returnSheet(t.dataset.return);
+  if(t.dataset.result!=null)return openResult(t.dataset.result);
+  if(t.dataset.cycle!=null)return cycleSheet(t.dataset.cycle);
+  if(t.dataset.del!=null)return delSheet(t.dataset.del);
+  if(t.dataset.close!=null)return hide(t.dataset.close);
+  if(t.dataset.name!=null)return toggleAssignName(t.dataset.name);
+  if(t.dataset.next!=null)return setNextSel(t.dataset.next);
+});
+$('assign-save').onclick=()=>{
+  if(!assignAreaId)return;
+  S.assignments[assignAreaId]=assignSel.slice();
+  saveS();hide('assign-overlay');renderAll();toast('担当を保存しました');
+};
+$('new-sheet-btn').onclick=()=>newSheet('');
+$('mgr-toggle').onclick=()=>{localStorage.setItem('bumon_manager_mode',isMgr()?'0':'1');renderAll();toast(isMgr()?'店長モードON（承認できます）':'店長モードOFF');};
+['f-group','f-status','f-assignee'].forEach(id=>$(id).addEventListener('change',renderSheets));
+document.querySelectorAll('.subtab').forEach(tb=>tb.addEventListener('click',()=>switchView(tb.dataset.view)));
+function switchView(v){
+  document.querySelectorAll('.subtab').forEach(tb=>tb.classList.toggle('active',tb.dataset.view===v));
+  $('view-list').style.display=v==='list'?'block':'none';
+  $('view-sheets').style.display=v==='sheets'?'block':'none';
+}
+
+// 別タブ/別端末でstateが変わったら再読込（統合アプリのリアルタイム反映）
+window.addEventListener('storage',e=>{ if(e.key===dataKey()||e.key==='current_store_id'){loadS();renderAll();} });
+
+// 起動
+loadS();renderAll();
+</script>
+</body>
+</html>
