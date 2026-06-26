@@ -251,11 +251,8 @@ const SEED=[
     {id:'training',name:'新人教育',cond:''},
     {id:'three',name:'3つの徹底',cond:''},
   ]},
-  {group:'全体管理', managerOnly:true, items:[
-    {id:'pdca',name:'PDCAバックチェック',cond:''},
-    {id:'eval',name:'評価',cond:''},
-    {id:'numbers',name:'数字管理（定量的な変化の確認）',cond:''},
-  ]},
+  // 全体管理（PDCAバックチェック/評価/数字管理）は担当割当ではなく
+  // 「📋 全体管理」ダッシュボードで行うため、担当一覧の割当行からは外す。
 ];
 const GROUP_DOT={'売上利益拡大':'#2563eb','基準の維持':'#16a34a','全体管理':'#7c3aed'};
 function allAreas(){const a=[];SEED.forEach(g=>g.items.forEach(it=>a.push(Object.assign({group:g.group},it))));return a;}
