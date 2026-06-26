@@ -251,6 +251,13 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 </style>
 <!-- Google Identity Services (OAuth 2.0) -->
 <script async src="https://accounts.google.com/gsi/client"></script>
+<!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す（単体URLでは従来通り） -->
+<script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
+<style>
+html.embedded-in-hub .card:has(#gist-sync-panel){display:none!important}
+html.embedded-in-hub button[onclick="exportData()"],
+html.embedded-in-hub button[onclick="importData()"]{display:none!important}
+</style>
 </head>
 <body>
 
@@ -2019,7 +2026,7 @@ async function restoreFromRecovery(item){
 const GIST_FILE='ff-data.json';
 // プレビュー環境（localhost/127.0.0.1/file://）ではGist同期を完全停止。
 // 開発中の入力が本番Gistを上書きする事故を防ぐ。
-const IS_LOCAL_PREVIEW = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname) || location.protocol === 'file:';
+const IS_LOCAL_PREVIEW = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname) || location.protocol === 'file:' || window.__EMBEDDED===true;
 let _gistPushTimer=null;
 let _gistSyncing=false;
 function gistGetConfig(){

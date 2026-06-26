@@ -1762,6 +1762,13 @@ body.admin-mode #view-tabs #tab-db,body.admin-mode #view-tabs #tab-list{display:
   #header h1{font-size:14px}
 }
 </style>
+<!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す＋Gist同期を停止（単体URLでは従来通り） -->
+<script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
+<style>
+html.embedded-in-hub #sync-badge,
+html.embedded-in-hub #sync-label,
+html.embedded-in-hub button[onclick="exportDataToFile()"]{display:none!important}
+</style>
 </head>
 <body>
 
@@ -11525,6 +11532,7 @@ async function gistCreate(){
 }
 
 async function gistPush(){
+  if(window.__EMBEDDED===true) return; // 統合アプリ内ではDriveに一本化（Gist二重同期を停止）
   const {token, id} = gistCfg();
   if(!token || !id || gistPushing) return;
   gistPushing = true;
@@ -11604,6 +11612,7 @@ async function gistPush(){
 }
 
 function gistSyncDebouncedPush(){
+  if(window.__EMBEDDED===true) return; // 統合アプリ内ではDriveに一本化
   if(gistSuppressPush) return;
   const {token, id} = gistCfg();
   if(!token || !id) return;
@@ -11615,6 +11624,7 @@ function gistSyncDebouncedPush(){
 }
 
 async function gistPull(silent){
+  if(window.__EMBEDDED===true) return false; // 統合アプリ内ではGistから取得しない（Drive側が真実）
   const {token, id} = gistCfg();
   if(!token || !id) return false;
   if(gistPolling) return false;

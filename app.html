@@ -206,9 +206,11 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
 
 const SYSTEMS = {
   ff:   {url:'./ff/index.html',   label:'FF管理'},
-  ws:   {url:'./ws/index.html',   label:'シフト'},
+  ws:   {url:'./ws/index.html',   label:'ワークスケジュール'},
   next: {url:'./next/index.html', label:'次週計画'}
 };
+// 統合アプリ内で開くことを各システムに伝える（重複UI非表示＋Gist同期停止のため）
+function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1';}
 const DATA_FILENAME = '経営データ.json';
 // Driveファイルへ保存しないキー（端末ローカルの一時バックアップ類）
 const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_)/;
@@ -296,7 +298,7 @@ function showSystem(sys){
   if(!frames[sys]){
     const ifr=document.createElement('iframe');
     ifr.className='frame';
-    ifr.src=SYSTEMS[sys].url;
+    ifr.src=sysUrl(sys);
     document.getElementById('main').appendChild(ifr);
     frames[sys]=ifr;
   }
@@ -304,7 +306,7 @@ function showSystem(sys){
 }
 function reloadAllFrames(){
   Object.keys(frames).forEach(sys=>{
-    try{frames[sys].contentWindow.location.replace(SYSTEMS[sys].url);}catch(_){frames[sys].src=SYSTEMS[sys].url;}
+    try{frames[sys].contentWindow.location.replace(sysUrl(sys));}catch(_){frames[sys].src=sysUrl(sys);}
   });
 }
 
