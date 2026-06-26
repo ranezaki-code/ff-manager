@@ -545,8 +545,11 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
     <!-- Tab 3: 作成表 -->
     <div class="tab-panel" id="tab3">
       <div class="day-tabs" id="prod-day-tabs"></div>
-      <div id="prod-day-content"></div>
-      <div class="rules-list mt-3" id="make-rules-block">
+      <div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">
+        <button type="button" onclick="toggleMakeRules()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer">📋 作成ルール7か条</button>
+        <button type="button" onclick="toggleCellGuide()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer">💡 セルの見方</button>
+      </div>
+      <div class="rules-list" id="make-rules-block" style="display:none;margin-bottom:10px">
         <b data-i18n="make.rules">作成ルール7か条（毎週確認）</b>
         <ol class="mt-1" id="make-rules-list">
           <li data-i18n="make.rule1">次の作成開始時間までに定価在庫が売り切れた商品は1個追加作成（常温FF最終18時・ホットFF最終20時・中華まんは12時まで）</li>
@@ -558,6 +561,10 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
           <li data-i18n="make.rule7">運用ルールは変更する場合があるので毎週確認する</li>
         </ol>
       </div>
+      <div id="cell-guide-block" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:12px;color:#475569;margin-bottom:10px;line-height:1.7">
+        💡 <b>セルの見方</b>：大きい数字＝その時間帯に作成する個数／☑＝完了チェック／⊘＝在庫欠品で作れなかった／🔔＝完売時の追加作成
+      </div>
+      <div id="prod-day-content"></div>
     </div>
 
     <!-- Tab 4: 予算管理 -->
@@ -4742,6 +4749,8 @@ function renderProdDayTabs(){
 }
 
 function selectProdDay(i){currentProdDay=i;renderProdDayTabs();renderProdDayContent(i);}
+function toggleMakeRules(){const b=document.getElementById('make-rules-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
+function toggleCellGuide(){const b=document.getElementById('cell-guide-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 
 // 新商品判定
 function isNewProduct(p){
@@ -5038,9 +5047,6 @@ function renderProdDayContent(dayIdx){
     const hasInvest=S.PM.some(p=>p.enabled&&(p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)));
     return hasInvest?'<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:6px 12px;font-size:11px;color:#92400e;margin-bottom:6px">📈 <b>黄色セル</b> = 投資/新商品追加分（⑤予算管理で設定）　<a onclick="showTab(4)" style="color:var(--main);cursor:pointer;text-decoration:underline">→ 予算管理で編集</a></div>':''
   })()}
-  <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 12px;font-size:11px;color:#555;margin-bottom:8px;line-height:1.6">
-    ${t('make.cellHint')}
-  </div>
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
     <span style="font-size:12px;color:#555;font-weight:600">並び順：</span>
     <div style="display:inline-flex;background:#f3f4f6;padding:3px;border-radius:8px;gap:2px">
@@ -5170,25 +5176,33 @@ function renderProdDayContent(dayIdx){
         _badgeTxt=`📋 次 ${_st.slot}時`;
         break;
     }
-    html+=`<div class="section-title" style="cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none" onclick="toggleCatCollapse('${cat}')">
+    html+=`<div class="section-title" style="cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap" onclick="toggleCatCollapse('${cat}')">
       <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
       <span>${cat}</span>
       <span style="background:${_badgeBg};color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${_badgeTxt}</span>
+      <span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;line-height:1.4">🗑 賞味${cfg.ah}時間</span>
     </div>`;
     if(_isCollapsed){
       // 折りたたみ時はテーブル本体・効率順ヒント・カテゴリ合計をすべてスキップ
       html+=`</div>`;
       return;
     }
+    // 廃棄目安（カテゴリ別）：各スロットの作成→廃棄時刻
+    const _dispList=cfg.slots.map(h=>`${fmtHour(h)}作成→<b style="color:#b91c1c">${fmtHour(h+PREP_HOURS+cfg.ah)}廃棄</b>`).join('　・　');
+    html+=`<div style="font-size:11px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:5px 10px;margin:2px 0 8px;line-height:1.7">🗑 <b>廃棄目安</b>（完成${PREP_HOURS}h後＋賞味${cfg.ah}h）　${_dispList}</div>`;
     html+=effHint;
     html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
     html+=`<thead><tr><th style="width:110px;text-align:left">商品名</th>`;
     const discOn=isDiscountOn(cat,dayIdx);
     cfg.slots.forEach(h=>{
       const md=getMarkdownTime(cat,h);
-      html+=`<th style="width:90px;padding:4px 2px">
-        <div style="font-size:12px;font-weight:700">${SLOT_LABELS[h]}作成</div>
-        ${discOn?`<div style="font-size:10px;color:#d97706;font-weight:400;margin-top:1px">値引 ${fmtHour(md)}〜</div>`:`<div style="font-size:10px;color:#9ca3af;font-weight:400;margin-top:1px">値引なし</div>`}
+      const doneH=h+PREP_HOURS;
+      html+=`<th style="width:92px;padding:4px 2px">
+        <div style="display:flex;flex-direction:column;gap:1px;line-height:1.25;align-items:center">
+          <span style="font-size:12px;font-weight:700;color:#1d4ed8">🍳 作成 ${fmtHour(h)}</span>
+          <span style="font-size:11px;font-weight:600;color:#16a34a">✓ 完成 ${fmtHour(doneH)}</span>
+          ${discOn?`<span style="font-size:10px;color:#d97706;font-weight:400">値引 ${fmtHour(md)}〜</span>`:`<span style="font-size:10px;color:#9ca3af;font-weight:400">値引なし</span>`}
+        </div>
       </th>`;
     });
     html+=`</tr></thead><tbody>`;
