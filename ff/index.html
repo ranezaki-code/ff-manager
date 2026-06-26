@@ -2665,7 +2665,7 @@ const PREP_HOURS=1;
 
 function getMarkdownTime(cat,slotH){
   const cfg=S.catCfg[cat];if(!cfg)return null;
-  // 売場陳列完了(=slotH+PREP_HOURS)から賞味時間(cfg.ah)経過で廃棄
+  // 売場陳列完了(=slotH+PREP_HOURS)から販売許容時間(cfg.ah)経過で廃棄
   // 値引きは廃棄の2時間前 → slotH + PREP_HOURS + cfg.ah - 2
   return slotH+PREP_HOURS+cfg.ah-2;
 }
@@ -4802,7 +4802,7 @@ function renderStickerChart(){
     if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots||!cfg.slots.length)return;
     const cells=cfg.slots.map(h=>{const sc=slotColor(h);const disp=fmtHour(h+PREP_HOURS+cfg.ah);
       return `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0"><span style="width:14px;height:14px;border-radius:3px;background:${sc.bg};display:inline-block"></span><span style="font-size:11px;color:#374151">${sc.name}（${fmtHour(h)}作成）→<b style="color:#b91c1c">${disp}廃棄</b></span></span>`;}).join('');
-    rows+=`<div style="padding:5px 0;border-bottom:1px solid #f1f5f9"><div style="font-size:11px;font-weight:700;color:#92400e">${cat}（賞味${cfg.ah}h）</div><div style="display:flex;flex-wrap:wrap;margin-top:2px">${cells}</div></div>`;
+    rows+=`<div style="padding:5px 0;border-bottom:1px solid #f1f5f9"><div style="font-size:11px;font-weight:700;color:#92400e">${cat}（販売許容${cfg.ah}h）</div><div style="display:flex;flex-wrap:wrap;margin-top:2px">${cells}</div></div>`;
   });
   return `<div id="sticker-chart-block" style="display:${_stickerChartOpen?'block':'none'};background:#fff;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:10px">
     <div style="font-size:12px;font-weight:700;color:#9a3412;margin-bottom:4px">🏷 廃棄シール早見表（作成時刻＝色／同じ色は全カテゴリ共通）</div>
@@ -5313,7 +5313,7 @@ function renderProdDayContent(dayIdx){
       <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
       <span>${cat}</span>
       <span style="background:${_badgeBg};color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${_badgeTxt}</span>
-      <span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;line-height:1.4">🗑 賞味${cfg.ah}時間</span>
+      <span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;line-height:1.4">🗑 販売許容${cfg.ah}時間</span>
     </div>`;
     if(_isCollapsed){
       // 折りたたみ時はテーブル本体・効率順ヒント・カテゴリ合計をすべてスキップ
@@ -5322,7 +5322,7 @@ function renderProdDayContent(dayIdx){
     }
     // 廃棄目安（カテゴリ別）：各スロットの作成→廃棄時刻
     const _dispList=cfg.slots.map(h=>`${fmtHour(h)}作成→<b style="color:#b91c1c">${fmtHour(h+PREP_HOURS+cfg.ah)}廃棄</b>`).join('　・　');
-    html+=`<div style="font-size:11px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:5px 10px;margin:2px 0 8px;line-height:1.7">🗑 <b>廃棄目安</b>（完成${PREP_HOURS}h後＋賞味${cfg.ah}h）　${_dispList}</div>`;
+    html+=`<div style="font-size:11px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:5px 10px;margin:2px 0 8px;line-height:1.7">🗑 <b>廃棄目安</b>（完成${PREP_HOURS}h後＋販売許容${cfg.ah}h）　${_dispList}</div>`;
     html+=effHint;
     html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
     html+=`<thead><tr><th style="width:110px;text-align:left">商品名</th>`;
