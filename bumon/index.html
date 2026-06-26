@@ -70,6 +70,20 @@ header .spacer{flex:1}
 .step .s-val.empty{color:var(--faint)}
 .sheet-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .empty-note{color:var(--faint);font-size:13px;text-align:center;padding:24px}
+/* 全体管理ダッシュボード */
+.mgr-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin-bottom:6px}
+.metric{background:#fff;border:1px solid var(--border);border-radius:12px;padding:11px 12px;text-align:center}
+.metric .mv{font-size:24px;font-weight:700;line-height:1.1}
+.metric .ml{font-size:11px;color:var(--sub);margin-top:3px}
+.metric.warn .mv{color:var(--red)}.metric.amber .mv{color:var(--amber)}.metric.ok .mv{color:var(--green)}
+.mgr-sec{margin:18px 0 7px;font-size:14px;font-weight:700}
+.mini-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.mini-row:last-child{border-bottom:none}
+.eval-table{width:100%;border-collapse:collapse;font-size:13px}
+.eval-table th,.eval-table td{padding:7px 6px;border-bottom:1px solid #f1f5f9;text-align:center;white-space:nowrap}
+.eval-table th{color:var(--sub);font-size:12px;font-weight:600}
+.eval-table td.name,.eval-table th.name{text-align:left;font-weight:600}
+.rate{font-weight:700;color:var(--accent-dk)}
 /* モーダル */
 .overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:14px;overflow:auto}
 .overlay.show{display:flex}
@@ -104,9 +118,11 @@ header .spacer{flex:1}
   <div class="subtabs">
     <div class="subtab active" data-view="list">担当一覧</div>
     <div class="subtab" data-view="sheets">作戦シート</div>
+    <div class="subtab" data-view="mgr" id="subtab-mgr" style="display:none">📋 全体管理</div>
   </div>
 
   <div id="view-list"></div>
+  <div id="view-mgr" style="display:none"></div>
 
   <div id="view-sheets" style="display:none">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
@@ -270,7 +286,13 @@ function wsStaff(){
 // ---- 全体管理モード（パスワード保護） ----
 const MGR_PW='3963';
 function isMgr(){return localStorage.getItem('bumon_manager_mode')==='1';}
-function renderMgr(){const b=$('mgr-toggle');if(isMgr()){b.classList.add('on');b.textContent='🔐 全体管理 ON';}else{b.classList.remove('on');b.textContent='🔓 全体管理';}}
+function renderMgr(){
+  const b=$('mgr-toggle');const on=isMgr();
+  if(on){b.classList.add('on');b.textContent='🔐 全体管理 ON';}else{b.classList.remove('on');b.textContent='🔓 全体管理';}
+  const st=$('subtab-mgr');if(st)st.style.display=on?'block':'none';
+  // モードOFFにしたとき全体管理ビューにいたら担当一覧へ戻す
+  if(!on && $('view-mgr').style.display==='block')switchView('list');
+}
 
 // ---- 担当一覧ビュー ----
 function avatarText(n){return (n||'?').slice(0,1);}
@@ -399,6 +421,71 @@ function actionsHtml(sh,st){
   return h;
 }
 
+// ---- 全体管理ダッシュボード ----
+function metric(v,l,cls){return '<div class="metric '+(cls||'')+'"><div class="mv">'+v+'</div><div class="ml">'+esc(l)+'</div></div>';}
+function renderManager(){
+  const box=$('view-mgr'); if(!box)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const sheets=S.sheets;
+  const submitted=sheets.filter(s=>s.phase==='submitted');
+  const overdue=sheets.filter(s=>s.phase!=='done'&&s.due&&new Date(s.due+'T00:00:00')<today);
+  const returned=sheets.filter(s=>s.phase==='returned');
+  const doing=sheets.filter(s=>s.phase==='doing');
+  const doneA=sheets.filter(s=>s.phase==='done'&&s.next==='A');
+  const doneB=sheets.filter(s=>s.phase==='done'&&s.next==='B');
+  let h='';
+  // サマリー（メトリクス）
+  h+='<div class="mgr-metrics">';
+  h+=metric(submitted.length,'承認待ち',submitted.length?'amber':'');
+  h+=metric(overdue.length,'期限超過',overdue.length?'warn':'');
+  h+=metric(doing.length,'実行中','');
+  h+=metric(doneA.length,'達成','ok');
+  h+=metric(doneB.length,'再挑戦','');
+  h+='</div>';
+  // 承認待ち（PDCAバックチェックの入口）
+  h+='<div class="mgr-sec">✅ 承認待ち（あなたの承認が必要）</div><div class="card">';
+  if(!submitted.length)h+='<div class="empty-note">承認待ちはありません</div>';
+  else submitted.forEach(sh=>{const ar=areaById(sh.areaId)||{};
+    h+='<div class="mini-row"><div style="flex:1;min-width:140px"><b>'+esc(sh.title)+'</b><div class="sheet-meta">'+esc(ar.name||'')+(sh.assignee?' ・ '+esc(sh.assignee):'')+'</div></div>';
+    h+='<button class="btn btn-line btn-sm" data-edit="'+sh.id+'">内容</button>';
+    h+='<button class="btn btn-green btn-sm" data-approve="'+sh.id+'">承認</button>';
+    h+='<button class="btn btn-red btn-sm" data-return="'+sh.id+'">差し戻し</button></div>';});
+  h+='</div>';
+  // 要対応（期限超過・差し戻し）
+  const att=overdue.concat(returned.filter(s=>overdue.indexOf(s)<0));
+  h+='<div class="mgr-sec">⚠️ 要対応（期限超過・差し戻し）</div><div class="card">';
+  if(!att.length)h+='<div class="empty-note">ありません</div>';
+  else att.forEach(sh=>{const ar=areaById(sh.areaId)||{};const di=dueInfo(sh);const st=statusOf(sh);
+    h+='<div class="mini-row"><span class="badge '+st.cls+'">'+st.label+'</span>'+(di?'<span class="'+di.cls+'">'+esc(di.txt)+'</span>':'');
+    h+='<div style="flex:1;min-width:120px"><b>'+esc(sh.title)+'</b><div class="sheet-meta">'+esc(ar.name||'')+(sh.assignee?' ・ '+esc(sh.assignee):'')+'</div></div>';
+    h+='<button class="btn btn-line btn-sm" data-edit="'+sh.id+'">開く</button></div>';});
+  h+='</div>';
+  // 評価（担当者別 達成状況）
+  h+='<div class="mgr-sec">🏅 担当者別 達成状況（評価）</div><div class="card" style="padding:8px 12px;overflow:auto">';
+  const names=Array.from(new Set(sheets.map(s=>s.assignee).filter(Boolean)));
+  if(!names.length)h+='<div class="empty-note">作戦シートに担当者が設定されると集計されます</div>';
+  else{
+    h+='<table class="eval-table"><tr><th class="name">担当</th><th>実行中</th><th>達成</th><th>再挑戦</th><th>達成率</th></tr>';
+    names.forEach(n=>{const my=sheets.filter(s=>s.assignee===n);
+      const dn=my.filter(s=>s.phase==='doing').length;
+      const a=my.filter(s=>s.phase==='done'&&s.next==='A').length;
+      const b=my.filter(s=>s.phase==='done'&&s.next==='B').length;
+      const comp=a+b;const rate=comp?Math.round(a/comp*100)+'%':'—';
+      h+='<tr><td class="name">'+esc(n)+'</td><td>'+dn+'</td><td>'+a+'</td><td>'+b+'</td><td class="rate">'+rate+'</td></tr>';});
+    h+='</table>';
+  }
+  h+='</div>';
+  // 部門別 進捗
+  h+='<div class="mgr-sec">📊 部門別 進捗</div><div class="card">';
+  let any=false;
+  SEED.forEach(g=>{g.items.forEach(it=>{const shs=sheetsOfArea(it.id);if(!shs.length)return;any=true;
+    const done=shs.filter(s=>s.phase==='done').length;
+    h+='<div class="mini-row"><div style="flex:1">'+esc(it.name)+'</div><span class="sheet-meta">'+shs.length+'件中 完了'+done+'</span></div>';});});
+  if(!any)h+='<div class="empty-note">作戦シートが作られると、部門別の進捗が出ます</div>';
+  h+='</div>';
+  box.innerHTML=h;
+}
+
 // ---- モーダル：担当割当 ----
 let assignAreaId=null, assignSel=[];
 function openAssign(areaId){
@@ -498,7 +585,7 @@ function cycleSheet(id){
 // ---- 共通 ----
 function show(id){$(id).classList.add('show');}
 function hide(id){$(id).classList.remove('show');}
-function renderAll(){renderList();renderSheets();renderMgr();}
+function renderAll(){renderList();renderSheets();renderManager();renderMgr();}
 
 // ---- イベント ----
 document.addEventListener('click',e=>{
@@ -534,9 +621,12 @@ $('mgr-toggle').onclick=()=>{
 ['f-group','f-status','f-assignee','f-sort'].forEach(id=>$(id).addEventListener('change',renderSheets));
 document.querySelectorAll('.subtab').forEach(tb=>tb.addEventListener('click',()=>switchView(tb.dataset.view)));
 function switchView(v){
+  if(v==='mgr'&&!isMgr())v='list';
   document.querySelectorAll('.subtab').forEach(tb=>tb.classList.toggle('active',tb.dataset.view===v));
   $('view-list').style.display=v==='list'?'block':'none';
   $('view-sheets').style.display=v==='sheets'?'block':'none';
+  $('view-mgr').style.display=v==='mgr'?'block':'none';
+  if(v==='mgr')renderManager();
 }
 
 // 別タブ/別端末でstateが変わったら再読込（統合アプリのリアルタイム反映）
