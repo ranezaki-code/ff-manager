@@ -2733,7 +2733,8 @@ function getCorrTarget(pid,dayIdx){
   // 週次目標の下限：ONスロット数 × バッチ単位 × 7日
   // 例：batch=2, 4スロット中 6時&14時のみON → 1日2スロット×2個=4個/日 → 週28個
   const _batch=getBatchUnit(p);
-  const _onSlotCount=(_cfg?.slots||[]).filter(h=>getSlotForceOn(p,h)).length;
+  // 週次目標の下限は「品切れ防止ON」の商品だけ（作る時間帯×バッチ）。通常は需要のみ＝床なし
+  const _onSlotCount=p.noStockout?(_cfg?.slots||[]).filter(h=>getSlotMake(p,h)).length:0;
   const _dailyMin=_onSlotCount*_batch;
   const weekTarget=Math.max(teika+slack,_dailyMin*7);
   // Apply external correction
@@ -2775,9 +2776,10 @@ function getWithdraw(pid){
 function getBatchUnit(p){
   return Math.max(1, p.batchUnit||p.minCount||1);
 }
-function getSlotForceOn(p,slotH){
+function getSlotMake(p,slotH){
+  // この商品をこの時間帯に「作る」か（既定: 作る）。minSlots[slotH]=false で「作らない」
   if(p.minSlots && p.minSlots[slotH]!==undefined) return !!p.minSlots[slotH];
-  return true; // 未指定なら ON（既定）
+  return true;
 }
 
 // 作成数の内訳を返す: {total, natural, forced}
@@ -2790,23 +2792,18 @@ function getProdCntDetail(pid,dayIdx,slotH){
   if(!S.catOn[p.category])return ZERO;
   const cfg=S.catCfg[p.category];if(!cfg)return ZERO;
   if(!cfg.slots.includes(slotH))return ZERO;
+  if(!getSlotMake(p,slotH))return ZERO;   // 「作らない」時間帯 → 0
   const range=getCatSlotRange(p.category,slotH);if(!range)return ZERO;
   const[hs,he]=range;
-  const ts=p.timeStart??7,te=p.timeEnd??22;
   const batch=getBatchUnit(p);
-  const forceOn=getSlotForceOn(p,slotH);
-  if(hs>=te||he<=ts){
-    // 商品販売時間帯外。(A)ON なら最低batch を作る（=強制扱い）
-    if(forceOn) return {total:batch, natural:0, forced:batch};
-    return ZERO;
-  }
+  const noStockout=!!p.noStockout;        // 品切れ防止（算出0でも最低batch）
   const sc=getSlotCust(dayIdx,hs,he);
   const wt=getWeekTotal();if(!wt)return ZERO;
   const ct=getCorrTarget(pid,dayIdx);
   let natural=roundCnt(ct*sc/wt);
-  // 損益分岐ガード（段階化）：(A)forceOnならスキップ
+  // 損益分岐ガード（段階化）：品切れ防止ONならスキップ
   const wl=getWithdraw(pid);
-  if(wl>0 && !forceOn){
+  if(wl>0 && !noStockout){
     if(sc < wl*0.5){
       natural=0;
     } else if(sc < wl){
@@ -2814,10 +2811,8 @@ function getProdCntDetail(pid,dayIdx,slotH){
     }
   }
   let total=natural;
-  // (A) 自然算出0 で ON なら強制 batch
-  if(total===0 && forceOn) total=batch;
-  // (B) バッチ単位で切上（cnt>0 のとき）。切上で増えた分も forced 扱い
-  if(total>0 && batch>1) total=Math.ceil(total/batch)*batch;
+  if(total===0 && noStockout) total=batch;   // 品切れ防止：算出0でも最低batch
+  if(total>0 && batch>1) total=Math.ceil(total/batch)*batch;  // バッチ単位で切上
   const forced=Math.max(0, total-natural);
   return {total, natural, forced};
 }
@@ -3915,9 +3910,9 @@ function renderProductCard(p){
         </div>
       </div>
 
-      <!-- (A) 算出0個の時の挙動 -->
-      <div style="grid-column:span 2"><label>算出0個の時間帯にも作る？
-        <span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:6px">ON=最低でも1個作る（バッチ単位適用） / OFF=算出通り0個</span>
+      <!-- 作る時間帯（作る/作らない） -->
+      <div style="grid-column:span 2"><label>作る時間帯（チェックした時間帯だけ作成）
+        <span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:6px">✓=作る（需要どおり） / 無印=作らない（0）。売らない時間帯は外す</span>
       </label>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">
           ${(()=>{
@@ -3954,10 +3949,12 @@ function renderProductCard(p){
             title="${t('product.discCalcTip')}">${t('product.calcBtn')}</button>
         </div>
       </div>
-      <div><label>${t('product.timeStart')}</label>
-        <input type="text" inputmode="numeric" value="${p.timeStart??7}" onchange="setProdField('${p.id}','timeStart',parseInt(toHalf(this.value))||0)"></div>
-      <div><label>${t('product.timeEnd')}</label>
-        <input type="text" inputmode="numeric" value="${p.timeEnd??22}" onchange="setProdField('${p.id}','timeEnd',parseInt(toHalf(this.value))||24)"></div>
+      <div style="grid-column:span 2">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600">
+          <input type="checkbox" ${p.noStockout?'checked':''} onchange="setProdField('${p.id}','noStockout',this.checked)">
+          <span>品切れ防止（算出0でも最低1個作る）<span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:4px">主力商品向け・既定OFF。ONにすると廃棄が増える可能性</span></span>
+        </label>
+      </div>
       <!-- タグ（チェックボックス） -->
       <div style="grid-column:span 2">
         <label style="display:block;margin-bottom:4px">${t('product.tags')}</label>
