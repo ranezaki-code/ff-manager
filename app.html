@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>松本新村店 統合管理システム</title>
+<title>店舗運営管理システム</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -239,7 +239,7 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
 
 <script>
 // =====================================================================
-// 松本新村店 統合管理システム — シェル
+// 店舗運営管理システム — シェル
 // 既存3システム(ff/ws/next)をタブとして内包し、データをDrive上の
 // 1ファイル(経営データ.json)に集約保存する。
 // =====================================================================
@@ -310,7 +310,7 @@ function _ensureGlobalStores(){
   if(stores.length===0){
     try{const ff=JSON.parse(localStorage.getItem('ffv6_stores')||'[]');if(Array.isArray(ff)&&ff.length>0)stores=ff.map(s=>({id:s.id,name:s.name||'',createdAt:Date.now()}));}catch(_){}
   }
-  if(stores.length===0)stores=[{id:'store_'+Date.now(),name:'松本新村店',createdAt:Date.now()}];
+  if(stores.length===0)stores=[{id:'store_'+Date.now(),name:'店舗1',createdAt:Date.now()}];
   let mod=false;
   stores.forEach(s=>{if(!s.name||!s.name.trim()){s.name='松本新村店';mod=true;}});
   if(mod){try{localStorage.setItem('ffv6_stores',JSON.stringify(stores.map(s=>({id:s.id,name:s.name}))));}catch(_){}}
@@ -391,7 +391,7 @@ function collectData(){
 }
 function buildPayload(){
   return JSON.stringify({
-    app:'松本新村店 統合管理システム',
+    app:'店舗運営管理システム',
     version:1,
     savedAt:new Date().toISOString(),
     device:(navigator.userAgent||'').slice(0,120),
