@@ -4097,9 +4097,17 @@ function renderProductCard(p){
           </label>
         </div>
         <div style="margin-top:8px">
-          <label style="font-size:11px;color:#555;display:block;margin-bottom:2px">使用食材（カンマ区切り）</label>
-          <input type="text" value="${(p.mkIngredients||'').replace(/"/g,'&quot;')}" placeholder="例：鶏肉、衣、油、キャベツ、マヨネーズ" style="width:100%;font-size:12px;padding:4px 6px"
-            onchange="setProdField('${p.id}','mkIngredients',this.value)">
+          <label style="font-size:11px;color:#555;display:block;margin-bottom:4px">使用食材（食材ごとに調理方法を選択・複数可）</label>
+          ${getIngs(p).map((ing,i)=>`
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+              <input type="text" value="${(ing.n||'').replace(/"/g,'&quot;')}" placeholder="食材名" style="flex:1;min-width:90px;font-size:12px;padding:3px 6px"
+                onchange="mkIngName('${p.id}',${i},this.value)">
+              <div style="display:flex;gap:3px;flex-wrap:wrap">
+                ${ING_METHODS.map(mm=>{const on=(ing.m||[]).includes(mm[0]);return `<button type="button" onclick="mkIngMethod('${p.id}',${i},'${mm[0]}')" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${on?'#2563eb':'#d1d5db'};background:${on?'#2563eb':'#fff'};color:${on?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">${mm[1]}</button>`;}).join('')}
+              </div>
+              <button type="button" onclick="mkIngDel('${p.id}',${i})" title="この食材を削除" style="padding:2px 7px;font-size:12px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:6px;cursor:pointer">✕</button>
+            </div>`).join('')}
+          <button type="button" onclick="mkIngAdd('${p.id}')" style="padding:5px 11px;font-size:11px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer;font-weight:600">＋ 食材を追加</button>
         </div>
       </div>`:''}
     </div>`:''}
@@ -4136,6 +4144,23 @@ function setProdTimeMS(pid,key,minStr,secStr){
   const s=parseInt(toHalf(String(secStr||'0')))||0;
   const total=Math.max(0,m+s/60);
   setProdField(pid,key,total);
+}
+// ===== 使用食材（食材ごとに調理方法を複数設定。どっちもOK） =====
+const ING_METHODS=[['thaw','解凍'],['range','レンジ'],['fry','フライ'],['other','その他']];
+function getIngs(p){
+  const v=p.mkIngredients;
+  if(Array.isArray(v))return v;
+  if(typeof v==='string'&&v.trim())return v.split(/[、,]/).map(s=>({n:s.trim(),m:[]})).filter(x=>x.n); // 旧テキストを変換
+  return [];
+}
+function _ensureIngs(p){ if(!Array.isArray(p.mkIngredients))p.mkIngredients=getIngs(p); return p.mkIngredients; }
+function mkIngAdd(pid){ const p=getP(pid);if(!p)return; _ensureIngs(p).push({n:'',m:[]}); saveS();renderProductCards(); }
+function mkIngDel(pid,i){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); a.splice(i,1); if(a.length===0)delete p.mkIngredients; saveS();renderProductCards(); }
+function mkIngName(pid,i,val){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(a[i])a[i].n=val; saveS(); } // 再描画せずフォーカス維持
+function mkIngMethod(pid,i,method){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; if(!Array.isArray(a[i].m))a[i].m=[]; const idx=a[i].m.indexOf(method); if(idx>=0)a[i].m.splice(idx,1); else a[i].m.push(method); saveS();renderProductCards(); }
+function fmtIngs(arr){
+  if(!arr||!arr.length)return '';
+  return arr.map(g=>{const ms=(g.m||[]).map(mv=>{const f=ING_METHODS.find(x=>x[0]===mv);return f?f[1]:mv;}).join('/');return g.n+(ms?`[${ms}]`:'');}).join('　');
 }
 
 // 値入率（売価基準）= (店頭売価 − 原価) / 店頭売価 × 100
@@ -4830,7 +4855,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
       const m=(p.mkMethod==='thaw'||!p.mkMethod)?'other':p.mkMethod;
-      (groups[m]||groups.other).push({name:p.name,qty:cnt,ct:p.mkCoreTemp,ing:p.mkIngredients});
+      (groups[m]||groups.other).push({name:p.name,qty:cnt,ct:p.mkCoreTemp,ing:getIngs(p)});
       if(p.mkType)typeCount[p.mkType]=(typeCount[p.mkType]||0)+cnt;
     });
     if(!['fry','range','rice','other'].some(k=>groups[k].length))return;
@@ -4841,7 +4866,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       const bentoSum=its.reduce((s,i)=>s+i.qty,0);
       const total=(k==='rice')?bentoSum+1:bentoSum;       // 炊飯は弁当の数＋1食
       const totLabel=(k==='rice')?`合計${total}食（弁当${bentoSum}＋1）`:`合計${total}`;
-      const list=its.map(i=>`${i.name} ×${i.qty}${i.ct?' <span style="color:#dc2626;font-size:10px">🌡中心温度</span>':''}${i.ing?`<br><span style="font-size:10px;color:#888">　食材: ${i.ing}</span>`:''}`).join('<br>');
+      const list=its.map(i=>`${i.name} ×${i.qty}${i.ct?' <span style="color:#dc2626;font-size:10px">🌡中心温度</span>':''}${(i.ing&&i.ing.length)?`<br><span style="font-size:10px;color:#888">　食材: ${fmtIngs(i.ing)}</span>`:''}`).join('<br>');
       cards+=`<div style="background:${g[3]};border-radius:8px;padding:8px 10px;border:1px solid #e5e7eb">
         <div style="color:${g[2]};font-weight:700;font-size:12px;margin-bottom:3px">${g[1]}　${totLabel}</div>
         <div style="font-size:11px;color:#555;line-height:1.6">${list}${k==='rice'?'<br><span style="font-size:10px;color:#854f0b">⏱ 30分以上浸水→1時間炊飯（浸水タイマー）</span>':''}</div>
