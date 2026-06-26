@@ -548,6 +548,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
       <div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">
         <button type="button" onclick="toggleMakeRules()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer">📋 作成ルール7か条</button>
         <button type="button" onclick="toggleCellGuide()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer">💡 セルの見方</button>
+        <button type="button" onclick="toggleStickerChart()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:8px;cursor:pointer">🏷 廃棄シール早見表</button>
       </div>
       <div class="rules-list" id="make-rules-block" style="display:none;margin-bottom:10px">
         <b data-i18n="make.rules">作成ルール7か条（毎週確認）</b>
@@ -4078,6 +4079,11 @@ function renderProductCard(p){
       <div style="grid-column:span 2;background:#fffbeb;border-radius:6px;padding:8px 10px;border:1px solid #fde68a">
         <div style="font-size:11px;color:#92400e;margin-bottom:6px;font-weight:600">🍱 まちかど厨房 準備設定</div>
         <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+          <label style="font-size:11px;color:#555">小分類
+            <select onchange="setProdField('${p.id}','mkType',this.value)" style="font-size:12px;margin-left:4px;padding:2px 4px">
+              ${[['','—'],['弁当','弁当'],['調理パン','調理パン'],['総菜','総菜']].map(([v,l])=>`<option value="${v}" ${(p.mkType||'')===v?'selected':''}>${l}</option>`).join('')}
+            </select>
+          </label>
           <label style="font-size:11px;color:#555">調理方法
             <select onchange="setProdField('${p.id}','mkMethod',this.value)" style="font-size:12px;margin-left:4px;padding:2px 4px">
               ${[['','—'],['fry','フライ'],['range','レンジ'],['rice','炊飯'],['thaw','解凍'],['other','その他']].map(([v,l])=>`<option value="${v}" ${(p.mkMethod||'')===v?'selected':''}>${l}</option>`).join('')}
@@ -4770,6 +4776,37 @@ function renderProdDayTabs(){
 function selectProdDay(i){currentProdDay=i;renderProdDayTabs();renderProdDayContent(i);}
 function toggleMakeRules(){const b=document.getElementById('make-rules-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 function toggleCellGuide(){const b=document.getElementById('cell-guide-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
+// ===== 廃棄シール色分け（作成時刻ベース：同じ作成時刻＝同じ色・全カテゴリ共通） =====
+const STICKER_PALETTE=[
+  {bg:'#ef4444',name:'赤'},{bg:'#f59e0b',name:'黄'},{bg:'#22c55e',name:'緑'},
+  {bg:'#3b82f6',name:'青'},{bg:'#a855f7',name:'紫'},{bg:'#ec4899',name:'桃'},
+  {bg:'#14b8a6',name:'青緑'},{bg:'#f97316',name:'橙'},{bg:'#64748b',name:'灰'},{bg:'#854d0e',name:'茶'}
+];
+let _slotColorMap={};
+function buildSlotColorMap(){
+  const set=new Set();
+  CATS.forEach(c=>{ if(S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots) S.catCfg[c].slots.forEach(h=>set.add(h)); });
+  const arr=[...set].sort((a,b)=>a-b); const m={};
+  arr.forEach((h,i)=>m[h]=STICKER_PALETTE[i%STICKER_PALETTE.length]);
+  _slotColorMap=m; return m;
+}
+function slotColor(h){return _slotColorMap[h]||{bg:'#9ca3af',name:'—'};}
+let _stickerChartOpen=false;
+function toggleStickerChart(){_stickerChartOpen=!_stickerChartOpen;renderProdDayContent(currentProdDay||0);}
+// 色→廃棄時刻 早見表（カテゴリ別）
+function renderStickerChart(){
+  let rows='';
+  CATS.forEach(cat=>{
+    if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots||!cfg.slots.length)return;
+    const cells=cfg.slots.map(h=>{const sc=slotColor(h);const disp=fmtHour(h+PREP_HOURS+cfg.ah);
+      return `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0"><span style="width:14px;height:14px;border-radius:3px;background:${sc.bg};display:inline-block"></span><span style="font-size:11px;color:#374151">${sc.name}（${fmtHour(h)}作成）→<b style="color:#b91c1c">${disp}廃棄</b></span></span>`;}).join('');
+    rows+=`<div style="padding:5px 0;border-bottom:1px solid #f1f5f9"><div style="font-size:11px;font-weight:700;color:#92400e">${cat}（賞味${cfg.ah}h）</div><div style="display:flex;flex-wrap:wrap;margin-top:2px">${cells}</div></div>`;
+  });
+  return `<div id="sticker-chart-block" style="display:${_stickerChartOpen?'block':'none'};background:#fff;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+    <div style="font-size:12px;font-weight:700;color:#9a3412;margin-bottom:4px">🏷 廃棄シール早見表（作成時刻＝色／同じ色は全カテゴリ共通）</div>
+    ${rows||'<div style="font-size:11px;color:#9ca3af">カテゴリが未設定です</div>'}
+  </div>`;
+}
 // ===== まちかど厨房 事前準備サマリー＋工程フロー =====
 let _mkPrepOpen=true;
 function toggleMkPrep(){_mkPrepOpen=!_mkPrepOpen;renderProdDayContent(currentProdDay||0);}
@@ -4785,13 +4822,16 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   let slotsHtml='';
   cfg.slots.forEach(slotH=>{
     const groups={fry:[],range:[],rice:[],other:[]};
+    const typeCount={};
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
       const m=(p.mkMethod==='thaw'||!p.mkMethod)?'other':p.mkMethod;
       (groups[m]||groups.other).push({name:p.name,qty:cnt,ct:p.mkCoreTemp});
+      if(p.mkType)typeCount[p.mkType]=(typeCount[p.mkType]||0)+cnt;
     });
     if(!['fry','range','rice','other'].some(k=>groups[k].length))return;
+    const typeLine=['弁当','調理パン','総菜'].filter(t=>typeCount[t]).map(t=>`${t} ${typeCount[t]}`).join('　・　');
     let cards='';
     [['fry','🍤 フライ','#9a3412','#fff7ed'],['range','📡 レンジ','#1d4ed8','#eff6ff'],['rice','🍚 炊飯','#854f0b','#fffbeb'],['other','🔧 その他','#475569','#f8fafc']].forEach(g=>{
       const k=g[0],its=groups[k];if(!its.length)return;
@@ -4806,6 +4846,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     });
     slotsHtml+=`<div style="margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px">${fmtHour(slotH)}作成分（完成${fmtHour(slotH+PREP_HOURS)}）</div>
+      ${typeLine?`<div style="font-size:11px;color:#92400e;margin-bottom:4px;background:#fffbeb;border-radius:6px;padding:3px 8px;display:inline-block">小分類　${typeLine}</div>`:''}
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:6px">${cards}</div>
     </div>`;
   });
@@ -5129,6 +5170,8 @@ function renderProdDayContent(dayIdx){
   let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
     <div class="selected-day-badge">📅 ${dateStr} を表示中</div>
   </div>`;
+  buildSlotColorMap();            // 廃棄シール色（作成時刻ベース）を構築
+  html+=renderStickerChart();     // 🏷 廃棄シール早見表（トグルで開閉）
   // 外部ファクト関連の天気/温度/イベント/補正%、週総客数は非表示
   // （外部ファクトタブを使わない運用に合わせて削除）
   html+=`${(()=>{
@@ -5285,8 +5328,10 @@ function renderProdDayContent(dayIdx){
     cfg.slots.forEach(h=>{
       const md=getMarkdownTime(cat,h);
       const doneH=h+PREP_HOURS;
+      const sc=slotColor(h);
       html+=`<th style="width:92px;padding:4px 2px">
         <div style="display:flex;flex-direction:column;gap:1px;line-height:1.25;align-items:center">
+          <span style="background:${sc.bg};color:#fff;border-radius:6px;padding:0 6px;font-size:10px;font-weight:700">🏷 ${sc.name}シール</span>
           <span style="font-size:12px;font-weight:700;color:#1d4ed8">🍳 作成 ${fmtHour(h)}</span>
           <span style="font-size:11px;font-weight:600;color:#16a34a">✓ 完成 ${fmtHour(doneH)}</span>
           ${discOn?`<span style="font-size:10px;color:#d97706;font-weight:400">値引 ${fmtHour(md)}〜</span>`:`<span style="font-size:10px;color:#9ca3af;font-weight:400">値引なし</span>`}
