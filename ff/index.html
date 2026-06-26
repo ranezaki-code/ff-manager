@@ -4074,6 +4074,25 @@ function renderProductCard(p){
         </div>`;
         })():''}
       </div>
+      ${(p.category==='まちかど厨房'||p.category==='まちかど厨房新商品')?`
+      <div style="grid-column:span 2;background:#fffbeb;border-radius:6px;padding:8px 10px;border:1px solid #fde68a">
+        <div style="font-size:11px;color:#92400e;margin-bottom:6px;font-weight:600">🍱 まちかど厨房 準備設定</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+          <label style="font-size:11px;color:#555">調理方法
+            <select onchange="setProdField('${p.id}','mkMethod',this.value)" style="font-size:12px;margin-left:4px;padding:2px 4px">
+              ${[['','—'],['fry','フライ'],['range','レンジ'],['rice','炊飯'],['thaw','解凍'],['other','その他']].map(([v,l])=>`<option value="${v}" ${(p.mkMethod||'')===v?'selected':''}>${l}</option>`).join('')}
+            </select>
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:#555">
+            <input type="checkbox" ${p.mkCoreTemp?'checked':''} onchange="setProdField('${p.id}','mkCoreTemp',this.checked)">
+            <span>中心温度測定が必要</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:#555">
+            <input type="checkbox" ${p.mkPreThaw?'checked':''} onchange="setProdField('${p.id}','mkPreThaw',this.checked)">
+            <span>前日に解凍が必要</span>
+          </label>
+        </div>
+      </div>`:''}
     </div>`:''}
   </div>`;
 }
@@ -4751,6 +4770,73 @@ function renderProdDayTabs(){
 function selectProdDay(i){currentProdDay=i;renderProdDayTabs();renderProdDayContent(i);}
 function toggleMakeRules(){const b=document.getElementById('make-rules-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 function toggleCellGuide(){const b=document.getElementById('cell-guide-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
+// ===== まちかど厨房 事前準備サマリー＋工程フロー =====
+let _mkPrepOpen=true;
+function toggleMkPrep(){_mkPrepOpen=!_mkPrepOpen;renderProdDayContent(currentProdDay||0);}
+const MK_FLOW=[
+  '炊飯（30分以上浸水→1時間炊飯→半製品タブレット登録）',
+  '食材準備（フライ/レンジ/調味料・容器取付の調味料・盛付用マヨ/キャベツ/ソース）',
+  '盛り付け・梱包・調味料・シール取付',
+  'サーマルシール発行/貼付＋タブレットに作成登録',
+  'POTでサーマルシール内容（プライスカード）確認',
+  '売り場陳列（セールストーク）'
+];
+function renderMachikadoPrep(dayIdx,cfg,prods){
+  let slotsHtml='';
+  cfg.slots.forEach(slotH=>{
+    const groups={fry:[],range:[],rice:[],other:[]};
+    prods.forEach(p=>{
+      const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
+      if(cnt<=0)return;
+      const m=(p.mkMethod==='thaw'||!p.mkMethod)?'other':p.mkMethod;
+      (groups[m]||groups.other).push({name:p.name,qty:cnt,ct:p.mkCoreTemp});
+    });
+    if(!['fry','range','rice','other'].some(k=>groups[k].length))return;
+    let cards='';
+    [['fry','🍤 フライ','#9a3412','#fff7ed'],['range','📡 レンジ','#1d4ed8','#eff6ff'],['rice','🍚 炊飯','#854f0b','#fffbeb'],['other','🔧 その他','#475569','#f8fafc']].forEach(g=>{
+      const k=g[0],its=groups[k];if(!its.length)return;
+      const total=its.reduce((s,i)=>s+i.qty,0);
+      const list=its.map(i=>`${i.name} ×${i.qty}${i.ct?' <span style="color:#dc2626;font-size:10px">🌡中心温度</span>':''}`).join('<br>');
+      cards+=`<div style="background:${g[3]};border-radius:8px;padding:8px 10px;border:1px solid #e5e7eb">
+        <div style="color:${g[2]};font-weight:700;font-size:12px;margin-bottom:3px">${g[1]}　合計${total}</div>
+        <div style="font-size:11px;color:#555;line-height:1.6">${list}${k==='rice'?'<br><span style="font-size:10px;color:#854f0b">⏱ 30分以上浸水→1時間炊飯（浸水タイマー）</span>':''}</div>
+      </div>`;
+    });
+    slotsHtml+=`<div style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px">${fmtHour(slotH)}作成分（完成${fmtHour(slotH+PREP_HOURS)}）</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:6px">${cards}</div>
+    </div>`;
+  });
+  let thawHtml='';
+  if(dayIdx<6){
+    const nd=dayIdx+1,thawItems=[];
+    prods.forEach(p=>{if(!p.mkPreThaw)return;let tot=0;cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));if(tot>0)thawItems.push(`${p.name} ×${tot}`);});
+    if(thawItems.length)thawHtml=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px;margin-bottom:8px">
+      <div style="color:#1e40af;font-weight:700;font-size:12px">❄️ 前日解凍（明日の分を今日のうちに）</div>
+      <div style="font-size:11px;color:#1d4ed8;line-height:1.6">${thawItems.join(' ・ ')}</div></div>`;
+  }
+  const contHtml=`<div style="background:#f1f5f9;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#475569;line-height:1.7">📦 <b>容器・調味料の準備</b>：容器に取り付ける調味料（シール・からし等をテープ止め）／盛付用（マヨ・キャベツ・ソース）を先に用意</div>`;
+  const flowHtml=MK_FLOW.map((step,i)=>{
+    const k=`mkflow_${dayIdx}_${i}`,ck=!!S.checks[k];
+    return `<label style="display:flex;align-items:flex-start;gap:7px;padding:5px 0;font-size:12px;cursor:pointer;color:#374151;${ck?'opacity:.55;text-decoration:line-through':''}">
+      <input type="checkbox" ${ck?'checked':''} onchange="setCheck('${k}',this.checked)" style="margin-top:2px">
+      <span><b style="color:#92400e">${i}.</b> ${step}</span></label>`;
+  }).join('');
+  return `<div style="margin-top:10px;border-top:2px dashed #fed7aa;padding-top:10px">
+    <div style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none" onclick="toggleMkPrep()">
+      <span style="font-size:16px;color:#9a3412">${_mkPrepOpen?'▼':'▶'}</span>
+      <span style="font-size:14px;font-weight:700;color:#9a3412">🍱 事前準備（フライ／レンジ／炊飯の総数・解凍・工程）</span>
+    </div>
+    ${_mkPrepOpen?`<div style="margin-top:8px">
+      ${slotsHtml||'<div style="font-size:12px;color:#9ca3af;margin-bottom:8px">この日は作成数がありません</div>'}
+      ${thawHtml}${contHtml}
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:2px">📋 作業フロー（チェックしながら進める）</div>
+        ${flowHtml}
+      </div>
+    </div>`:''}
+  </div>`;
+}
 
 // 新商品判定
 function isNewProduct(p){
@@ -5287,6 +5373,8 @@ function renderProdDayContent(dayIdx){
       });
     });
     html+=`<div style="text-align:right;font-size:12px;margin-top:6px;color:var(--gray)">作成高: <b>${fmt(catDayHigh)}円</b></div>`;
+    // まちかど厨房は事前準備サマリー＋工程フローを表示
+    if(cat==='まちかど厨房'||cat==='まちかど厨房新商品'){ html+=renderMachikadoPrep(dayIdx,cfg,prods); }
     html+=`</div>`;
   });
 
