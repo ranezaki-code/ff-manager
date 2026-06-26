@@ -2798,9 +2798,10 @@ function getProdCntDetail(pid,dayIdx,slotH){
   const batch=getBatchUnit(p);
   const noStockout=!!p.noStockout;        // 品切れ防止（算出0でも最低batch）
   const sc=getSlotCust(dayIdx,hs,he);
-  const wt=getWeekTotal();if(!wt)return ZERO;
+  const wt=getWeekTotal();
   const ct=getCorrTarget(pid,dayIdx);
-  let natural=roundCnt(ct*sc/wt);
+  // 週客数が無い(wt=0)時は自然算出0として続行（早期returnしない）→品切れ防止を効かせる
+  let natural=(wt>0)?roundCnt(ct*sc/wt):0;
   // 損益分岐ガード（段階化）：品切れ防止ONならスキップ
   const wl=getWithdraw(pid);
   if(wl>0 && !noStockout){
