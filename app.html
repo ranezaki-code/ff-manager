@@ -483,6 +483,35 @@ function fbInit(){
   try{ fbApp=firebase.initializeApp(FIREBASE_CONFIG); fbDb=firebase.firestore(); return true; }
   catch(e){console.error('fbInit',e);return false;}
 }
+let fbLastChunks=0; // 直近で書いたチャンク数（古い余剰チャンク削除用）
+// 文字列をUTF-8バイト境界で安全に分割（1ドキュメント=最大~1MB制限の回避）
+function _chunkByBytes(str,maxBytes){
+  const bytes=new TextEncoder().encode(str);
+  if(bytes.length<=maxBytes)return [str];
+  const dec=new TextDecoder();
+  const out=[]; let i=0;
+  while(i<bytes.length){
+    let end=Math.min(bytes.length, i+maxBytes);
+    if(end<bytes.length){ while(end>i && (bytes[end]&0xC0)===0x80) end--; } // 文字途中で切らない
+    out.push(dec.decode(bytes.subarray(i,end)));
+    i=end;
+  }
+  return out;
+}
+// meta(チャンク数等) + parts/{i} を読み、payload文字列を結合して返す（旧単一payloadも互換）
+async function _fbReadAll(){
+  const metaSnap=await fbDocRef.get();
+  if(!metaSnap.exists)return null;
+  const m=metaSnap.data()||{};
+  if(typeof m.payload==='string'){ fbLastChunks=0; return {payload:m.payload, ts:m.updatedAt||0, writer:m.writer}; } // 旧v1
+  const n=m.chunks||0;
+  if(!n)return {payload:'', ts:m.updatedAt||0, writer:m.writer};
+  const parts=await Promise.all(Array.from({length:n},(_,i)=>fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i).get()));
+  let payload='';
+  for(const p of parts){ if(p.exists)payload+=(p.data()||{}).d||''; }
+  fbLastChunks=n;
+  return {payload, ts:m.updatedAt||0, writer:m.writer};
+}
 async function fbStart(passphrase){
   if(!fbInit()){setSync('err','設定未完了');return false;}
   setSync('saving','接続中…');
@@ -491,34 +520,38 @@ async function fbStart(passphrase){
   const docId=await _sha256hex('keiei::'+passphrase);
   fbDocRef=fbDb.collection(FB_COLLECTION).doc(docId);
   try{
-    const snap=await fbDocRef.get();
-    if(snap.exists){ _fbApplyRemote(snap.data()||{},true); }
+    const r=await _fbReadAll();
+    if(r&&r.payload){ _fbApplyPayload(r.payload, r.ts, r.writer, true); }
     else if(!_localLooksEmpty()){ await _fbWrite(); } // クラウド未作成かつ手元にデータ→作成
   }catch(e){console.error('initial get',e);setSync('err','取得失敗');alert('データ取得に失敗しました。\nFirestoreのルール設定をご確認ください。\n'+(e&&e.message||e));return false;}
   if(fbUnsub){try{fbUnsub();}catch(_){}}
-  fbUnsub=fbDocRef.onSnapshot(snap=>{
+  // metaドキュメントの変化を監視→partsを読み直して適用
+  fbUnsub=fbDocRef.onSnapshot(async snap=>{
     if(!snap.exists)return;
     if(snap.metadata.hasPendingWrites)return; // 自端末の書込みのecho
-    _fbApplyRemote(snap.data()||{},false);
+    const m=snap.data()||{};
+    if(m.writer===_deviceId())return;          // 自分の更新は無視
+    try{ const r=await _fbReadAll(); if(r) _fbApplyPayload(r.payload, r.ts, r.writer, false); }
+    catch(e){console.error('snapshot read',e);}
   },err=>{console.error('snapshot',err);setSync('err','同期エラー');});
   fbReady=true;
   setSync('ok','リアルタイム同期中');
   return true;
 }
-function _fbApplyRemote(d,initial){
+function _fbApplyPayload(payload, ts, writer, initial){
   try{
-    if(!d||typeof d.payload!=='string')return;
-    const ts=d.updatedAt||0;
-    if(d.writer===_deviceId()){lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);lastSyncedPayload=d.payload;return;}
+    if(typeof payload!=='string'||!payload)return;
+    ts=ts||0;
+    if(writer===_deviceId()){lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);lastSyncedPayload=payload;return;}
     if(!initial && ts && ts<=lastAppliedRemoteAt)return;
-    if(d.payload===lastSyncedPayload)return;
-    applyData(JSON.parse(d.payload));
-    lastSyncedPayload=d.payload;
+    if(payload===lastSyncedPayload)return;
+    applyData(JSON.parse(payload));
+    lastSyncedPayload=payload;
     lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);
     renderSwitcher();
     reloadAllFrames();
     setSync('ok','リアルタイム同期中');
-  }catch(e){console.error('applyRemote',e);}
+  }catch(e){console.error('applyPayload',e);}
 }
 function _localLooksEmpty(){
   const data=collectData();
@@ -534,7 +567,13 @@ async function _fbWrite(){
   const now=Date.now();
   try{
     setSync('saving','保存中…');
-    await fbDocRef.set({payload, updatedAt:now, writer:_deviceId(), ua:(navigator.userAgent||'').slice(0,80)},{merge:true});
+    const chunks=_chunkByBytes(payload,700000);   // ~700KB/件に分割（1MB制限回避）
+    const batch=fbDb.batch();
+    // チャンクは同一コレクション内の隣接ドキュメント <docId>_p<i> に置く（既存ルールで許可される／削除はしない）
+    chunks.forEach((c,i)=>batch.set(fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i),{d:c}));
+    batch.set(fbDocRef,{chunks:chunks.length, payload:firebase.firestore.FieldValue.delete(), updatedAt:now, writer:_deviceId(), ua:(navigator.userAgent||'').slice(0,80), ver:2},{merge:true});
+    await batch.commit();
+    fbLastChunks=chunks.length;
     lastSyncedPayload=payload; lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,now);
     setSync('ok','リアルタイム同期中');
     return true;
