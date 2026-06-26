@@ -1767,7 +1767,10 @@ body.admin-mode #view-tabs #tab-db,body.admin-mode #view-tabs #tab-list{display:
 <style>
 html.embedded-in-hub #sync-badge,
 html.embedded-in-hub #sync-label,
-html.embedded-in-hub button[onclick="exportDataToFile()"]{display:none!important}
+html.embedded-in-hub button[onclick="exportDataToFile()"],
+html.embedded-in-hub button[onclick="openRecoveryCenter()"],
+html.embedded-in-hub button[onclick="restoreLastAutobackup()"],
+html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
 </style>
 </head>
 <body>
@@ -2778,7 +2781,7 @@ function _ensureGlobalStores(){
     }catch(_){}
   }
   if(stores.length===0){
-    stores=[{id:'store_'+Date.now(),name:'松本新村店',createdAt:Date.now()}];
+    stores=[{id:'store_'+Date.now(),name:'店舗1',createdAt:Date.now()}];
   }
   let _modified=false;
   stores.forEach(s=>{if(!s.name||!s.name.trim()){s.name='松本新村店';_modified=true;}});
