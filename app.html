@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>松本新村店 統合管理システム</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f1f5f9; --panel:#ffffff; --text:#0f172a; --sub:#64748b; --border:#e2e8f0;
+  --accent:#2563eb; --accent-dk:#1d4ed8; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic",sans-serif;
+  background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column;
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+/* ===== ヘッダー ===== */
+header{
+  background:var(--panel); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:14px; padding:8px 14px;
+  padding-top:max(8px,env(safe-area-inset-top)); flex-shrink:0; flex-wrap:wrap;
+}
+.store-switcher{position:relative}
+.store-trigger{
+  display:inline-flex; align-items:center; gap:8px; font-size:18px; font-weight:600;
+  background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:7px 12px; cursor:pointer;
+  font-family:inherit; color:var(--text);
+}
+.store-trigger:hover{background:#f1f5f9}
+.store-trigger .chev{font-size:11px;color:var(--sub)}
+.store-menu{
+  display:none; position:absolute; top:100%; left:0; margin-top:6px; min-width:240px;
+  background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 32px rgba(15,23,42,.16); padding:6px; z-index:200;
+}
+.store-switcher.open .store-menu{display:block}
+.store-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+.store-item:hover{background:#f1f5f9}
+.store-item.current{background:#eff6ff;color:var(--accent-dk);font-weight:600}
+.store-item .check{width:16px;text-align:center;color:var(--accent-dk)}
+.store-divider{height:1px;background:var(--border);margin:6px 4px}
+.store-action{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--sub);display:flex;gap:8px;align-items:center}
+.store-action:hover{background:#f1f5f9;color:var(--text)}
+
+.spacer{flex:1}
+
+/* 同期インジケーター */
+.sync{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--sub);background:#f8fafc;border:1px solid var(--border);border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.sync .dot{width:9px;height:9px;border-radius:50%;background:#cbd5e1;flex-shrink:0}
+.sync.ok .dot{background:var(--green)}
+.sync.saving .dot{background:var(--amber);animation:pulse 1s infinite}
+.sync.off .dot{background:#cbd5e1}
+.sync.err .dot{background:var(--red)}
+@keyframes pulse{50%{opacity:.3}}
+
+.icon-btn{background:#f8fafc;border:1px solid var(--border);border-radius:10px;width:38px;height:38px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:#f1f5f9}
+
+/* ===== タブバー ===== */
+nav.tabs{
+  background:var(--panel); border-bottom:1px solid var(--border); display:flex; gap:4px; padding:0 10px; flex-shrink:0; overflow-x:auto;
+}
+.tab{
+  appearance:none; border:none; background:transparent; font-family:inherit; font-size:14px; font-weight:600; color:var(--sub);
+  padding:12px 18px; cursor:pointer; border-bottom:2.5px solid transparent; white-space:nowrap; display:flex; align-items:center; gap:7px;
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab .emoji{font-size:16px}
+
+/* ===== コンテンツ ===== */
+main{flex:1;position:relative;background:#fff;overflow:hidden}
+.frame{position:absolute;inset:0;width:100%;height:100%;border:none;display:none;background:#fff}
+.frame.active{display:block}
+.frame-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:14px;z-index:1;background:#fff}
+
+/* ===== オーバーレイ（初期設定 / 設定パネル） ===== */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:18px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:26px}
+.modal h2{font-size:20px;margin-bottom:8px}
+.modal p{font-size:14px;color:var(--sub);line-height:1.7;margin-bottom:14px}
+.modal .step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+.modal .step .n{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.modal .step .t{font-size:14px;line-height:1.6}
+.btn{appearance:none;border:none;font-family:inherit;font-size:15px;font-weight:600;border-radius:10px;padding:13px 18px;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff;width:100%}
+.btn-primary:hover{background:var(--accent-dk)}
+.btn-ghost{background:#f1f5f9;color:var(--text)}
+.btn-ghost:hover{background:#e2e8f0}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.btn-row .btn{flex:1;min-width:130px}
+.note{background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;font-size:13px;color:#075985;line-height:1.6;margin:12px 0}
+.warn-box{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;font-size:13px;color:#92400e;line-height:1.6;margin:12px 0}
+.muted{font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);gap:10px}
+.settings-row:last-child{border-bottom:none}
+.settings-row .label{font-size:14px;font-weight:600}
+.settings-row .desc{font-size:12px;color:var(--sub);margin-top:2px}
+.close-x{position:absolute;top:14px;right:16px;font-size:22px;color:var(--sub);cursor:pointer;background:none;border:none}
+.modal{position:relative}
+@media (max-width:520px){
+  .store-trigger{font-size:16px}
+  .tab{padding:11px 13px;font-size:13px}
+  .sync span.txt{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="store-switcher" id="store-switcher">
+    <button class="store-trigger" id="store-trigger" type="button">
+      <span id="store-name">読み込み中…</span><span class="chev">▼</span>
+    </button>
+    <div class="store-menu" id="store-menu"></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="sync off" id="sync" title="クリックで設定を開く">
+    <span class="dot"></span><span class="txt" id="sync-text">未接続</span>
+  </div>
+  <button class="icon-btn" id="settings-btn" title="設定">⚙️</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-sys="ff"><span class="emoji">🍗</span>FF管理</button>
+  <button class="tab" data-sys="ws"><span class="emoji">📋</span>シフト</button>
+  <button class="tab" data-sys="next"><span class="emoji">📅</span>次週計画</button>
+</nav>
+
+<main id="main">
+  <div class="frame-loading" id="frame-loading">読み込み中…</div>
+</main>
+
+<!-- 初期設定オーバーレイ -->
+<div class="overlay" id="setup-overlay">
+  <div class="modal">
+    <h2>📁 データの保存先を決めます</h2>
+    <p>このシステムは、入力したデータを <b>Google Drive 内の1つのファイル</b>に保存します。これにより、どのPCで開いても同じデータになり、Driveの履歴からいつでも元に戻せます。<b>設定は最初の1回だけ</b>です。</p>
+    <div class="step"><div class="n">1</div><div class="t">下のボタンを押すと、フォルダを選ぶ画面が出ます</div></div>
+    <div class="step"><div class="n">2</div><div class="t"><b>マイドライブ → 松本新村店</b> の中に進み、<b>「データ」フォルダ</b>を選んでください（無ければ新規作成）</div></div>
+    <div class="step"><div class="n">3</div><div class="t">「フォルダの選択」→「許可」を押せば完了です</div></div>
+    <div class="note">📌 ここで選んだフォルダの中に <code>経営データ.json</code> が作られ、自動で保存され続けます。Drive Desktop がクラウドへ同期します。</div>
+    <button class="btn btn-primary" id="pick-folder-btn">📁 保存先フォルダを選ぶ</button>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="setup-skip-btn">今はこの端末だけで使う（後で設定）</button>
+    </div>
+    <div class="muted" id="fsa-unsupported" style="display:none;color:var(--red)">
+      ⚠️ このブラウザはフォルダ保存に対応していません（iPad/iPhoneのSafariなど）。<br>
+      PCのChrome/Edgeで開くと自動保存できます。この端末では「⚙️設定」からファイルの手動読込/書出しをご利用ください。
+    </div>
+  </div>
+</div>
+
+<!-- 設定オーバーレイ -->
+<div class="overlay" id="settings-overlay">
+  <div class="modal">
+    <button class="close-x" id="settings-close">×</button>
+    <h2>⚙️ 設定</h2>
+    <div class="settings-row">
+      <div>
+        <div class="label">Drive保存先</div>
+        <div class="desc" id="folder-status">未設定</div>
+      </div>
+      <button class="btn btn-ghost" id="change-folder-btn" style="font-size:13px;padding:9px 14px">変更</button>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="label">今すぐ保存</div>
+        <div class="desc">現在のデータをDriveのファイルに書き込みます</div>
+      </div>
+      <button class="btn btn-ghost" id="save-now-btn" style="font-size:13px;padding:9px 14px">💾 保存</button>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="label">Driveから読み込み</div>
+        <div class="desc">Driveのファイルの内容をこの端末に反映します</div>
+      </div>
+      <button class="btn btn-ghost" id="load-now-btn" style="font-size:13px;padding:9px 14px">⬇️ 読込</button>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="label">バックアップを書き出す</div>
+        <div class="desc">全データを1つのJSONファイルとしてダウンロード</div>
+      </div>
+      <button class="btn btn-ghost" id="export-btn" style="font-size:13px;padding:9px 14px">📤 書出</button>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="label">バックアップを取り込む</div>
+        <div class="desc">書き出したJSON / 旧システムのエクスポートを読み込む</div>
+      </div>
+      <button class="btn btn-ghost" id="import-btn" style="font-size:13px;padding:9px 14px">📥 取込</button>
+    </div>
+    <div class="warn-box" id="settings-status" style="display:none"></div>
+    <input type="file" id="import-file" accept="application/json,.json" style="display:none">
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// 松本新村店 統合管理システム — シェル
+// 既存3システム(ff/ws/next)をタブとして内包し、データをDrive上の
+// 1ファイル(経営データ.json)に集約保存する。
+// =====================================================================
+
+const SYSTEMS = {
+  ff:   {url:'./ff/index.html',   label:'FF管理'},
+  ws:   {url:'./ws/index.html',   label:'シフト'},
+  next: {url:'./next/index.html', label:'次週計画'}
+};
+const DATA_FILENAME = '経営データ.json';
+// Driveファイルへ保存しないキー（端末ローカルの一時バックアップ類）
+const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_)/;
+
+let dirHandle = null;      // 保存先フォルダ
+let fileHandle = null;     // 経営データ.json のハンドル
+let saveTimer = null;
+let lastLoadedAt = 0;
+let suppressSave = false;  // Drive→localStorage 反映中はsaveを抑止
+let booting = true;        // 起動完了までは自動保存を抑止（空データ誤上書き防止）
+const frames = {};         // 生成済みiframe
+
+// ---------- IndexedDB（フォルダハンドルの永続化） ----------
+const HDB='unified_app',HSTORE='handles';
+function hdbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(HDB,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(HSTORE))db.createObjectStore(HSTORE);};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function hdbSet(k,v){const db=await hdbOpen();return new Promise((res,rej)=>{const tx=db.transaction(HSTORE,'readwrite');tx.objectStore(HSTORE).put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+async function hdbGet(k){const db=await hdbOpen();return new Promise((res,rej)=>{const tx=db.transaction(HSTORE,'readonly');const r=tx.objectStore(HSTORE).get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+
+// ---------- 同期インジケーター ----------
+function setSync(state,text){
+  const el=document.getElementById('sync');
+  el.className='sync '+state;
+  document.getElementById('sync-text').textContent=text;
+}
+
+// ---------- 店舗管理（ハブと同じロジック） ----------
+function _ensureGlobalStores(){
+  let stores=[];
+  try{stores=JSON.parse(localStorage.getItem('global_stores')||'[]');}catch(_){}
+  if(stores.length===0){
+    try{const ff=JSON.parse(localStorage.getItem('ffv6_stores')||'[]');if(Array.isArray(ff)&&ff.length>0)stores=ff.map(s=>({id:s.id,name:s.name||'',createdAt:Date.now()}));}catch(_){}
+  }
+  if(stores.length===0)stores=[{id:'store_'+Date.now(),name:'松本新村店',createdAt:Date.now()}];
+  let mod=false;
+  stores.forEach(s=>{if(!s.name||!s.name.trim()){s.name='松本新村店';mod=true;}});
+  if(mod){try{localStorage.setItem('ffv6_stores',JSON.stringify(stores.map(s=>({id:s.id,name:s.name}))));}catch(_){}}
+  try{localStorage.setItem('global_stores',JSON.stringify(stores));}catch(_){}
+  let cur=localStorage.getItem('current_store_id')||localStorage.getItem('ffv6_current')||'';
+  if(!cur||!stores.find(s=>s.id===cur))cur=stores[0].id;
+  try{localStorage.setItem('current_store_id',cur);}catch(_){}
+  return{stores,currentId:cur};
+}
+function getStores(){return _ensureGlobalStores().stores;}
+function setCurrentId(id){
+  const stores=getStores();
+  if(!stores.find(s=>s.id===id))return;
+  localStorage.setItem('current_store_id',id);
+  localStorage.setItem('ffv6_current',id);
+  renderSwitcher();
+  // 全iframeを作り直して新店舗データを反映
+  reloadAllFrames();
+  scheduleSave();
+}
+function addStore(name){
+  const stores=getStores();
+  const id='store_'+Date.now();
+  stores.push({id,name:(name||'').trim()||'新店舗',createdAt:Date.now()});
+  localStorage.setItem('global_stores',JSON.stringify(stores));
+  setCurrentId(id);
+}
+function renameStore(id,n){
+  const stores=getStores();const s=stores.find(x=>x.id===id);if(!s)return;
+  s.name=(n||'').trim()||s.name;localStorage.setItem('global_stores',JSON.stringify(stores));renderSwitcher();scheduleSave();
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function renderSwitcher(){
+  const{stores,currentId}=_ensureGlobalStores();
+  document.getElementById('store-name').textContent=(stores.find(s=>s.id===currentId)||{}).name||'(未設定)';
+  document.getElementById('store-menu').innerHTML=
+    stores.map(s=>`<div class="store-item ${s.id===currentId?'current':''}" data-id="${s.id}">
+      <span class="check">${s.id===currentId?'✓':''}</span>
+      <span style="flex:1">${escapeHtml(s.name)}</span>
+      <span class="ico-rename" data-id="${s.id}" style="opacity:.5;cursor:pointer;font-size:13px;padding:2px 6px">✏️</span></div>`).join('')+
+    `<div class="store-divider"></div><div class="store-action" id="add-store-btn"><span>＋</span>店舗を追加</div>`;
+}
+
+// ---------- タブ / iframe ----------
+let activeSys='ff';
+function showSystem(sys){
+  activeSys=sys;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.sys===sys));
+  document.getElementById('frame-loading').style.display='none';
+  // 既存frameを隠す
+  Object.values(frames).forEach(f=>f.classList.remove('active'));
+  if(!frames[sys]){
+    const ifr=document.createElement('iframe');
+    ifr.className='frame';
+    ifr.src=SYSTEMS[sys].url;
+    document.getElementById('main').appendChild(ifr);
+    frames[sys]=ifr;
+  }
+  frames[sys].classList.add('active');
+}
+function reloadAllFrames(){
+  Object.keys(frames).forEach(sys=>{
+    try{frames[sys].contentWindow.location.replace(SYSTEMS[sys].url);}catch(_){frames[sys].src=SYSTEMS[sys].url;}
+  });
+}
+
+// ---------- Drive データ層 ----------
+function fsaSupported(){return 'showDirectoryPicker' in window;}
+
+function collectData(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(EXCLUDE_RE.test(k))continue;
+    data[k]=localStorage.getItem(k);
+  }
+  return data;
+}
+function buildPayload(){
+  return JSON.stringify({
+    app:'松本新村店 統合管理システム',
+    version:1,
+    savedAt:new Date().toISOString(),
+    device:(navigator.userAgent||'').slice(0,120),
+    data:collectData()
+  },null,1);
+}
+function applyData(obj){
+  if(!obj||!obj.data)return false;
+  suppressSave=true;
+  try{
+    Object.keys(obj.data).forEach(k=>{
+      try{localStorage.setItem(k,obj.data[k]);}catch(e){}
+    });
+  }finally{suppressSave=false;}
+  return true;
+}
+
+async function ensureFileHandle(create){
+  if(!dirHandle)return null;
+  if(fileHandle)return fileHandle;
+  try{
+    fileHandle=await dirHandle.getFileHandle(DATA_FILENAME,{create:!!create});
+    return fileHandle;
+  }catch(e){return null;}
+}
+async function verifyPermission(handle,readwrite){
+  if(!handle)return false;
+  const opts={};if(readwrite)opts.mode='readwrite';
+  if((await handle.queryPermission(opts))==='granted')return true;
+  if((await handle.requestPermission(opts))==='granted')return true;
+  return false;
+}
+
+async function loadFromDrive(){
+  if(!dirHandle){setSync('off','未接続');return false;}
+  if(!(await verifyPermission(dirHandle,true))){setSync('err','権限なし');return false;}
+  const fh=await ensureFileHandle(false);
+  if(!fh){setSync('ok','新規（保存待ち）');return false;}
+  try{
+    const file=await fh.getFile();
+    const text=await file.text();
+    if(!text.trim()){setSync('ok','空ファイル');return false;}
+    const obj=JSON.parse(text);
+    applyData(obj);
+    lastLoadedAt=Date.now();
+    setSync('ok','同期済み');
+    return true;
+  }catch(e){
+    console.error('load error',e);setSync('err','読込失敗');return false;
+  }
+}
+
+async function saveToDrive(){
+  if(!dirHandle){return false;}
+  if(!(await verifyPermission(dirHandle,true))){setSync('err','権限なし');return false;}
+  const fh=await ensureFileHandle(true);
+  if(!fh){setSync('err','保存先なし');return false;}
+  try{
+    setSync('saving','保存中…');
+    const w=await fh.createWritable();
+    await w.write(buildPayload());
+    await w.close();
+    setSync('ok','同期済み');
+    return true;
+  }catch(e){
+    console.error('save error',e);setSync('err','保存失敗');return false;
+  }
+}
+function scheduleSave(){
+  if(suppressSave)return;
+  if(booting)return;
+  if(!dirHandle)return;
+  setSync('saving','変更あり…');
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{saveToDrive();},1500);
+}
+
+// iframe(同一オリジン)からのlocalStorage変更を検知
+window.addEventListener('storage',()=>{scheduleSave();});
+// 念のため：iframe内からpostMessageで保存要求が来た場合
+window.addEventListener('message',(e)=>{if(e.data&&e.data.__unifiedSave)scheduleSave();});
+// 離脱前に保存試行
+window.addEventListener('beforeunload',()=>{if(dirHandle){try{navigator.sendBeacon&&0;}catch(_){}}});
+
+// ---------- フォルダ選択 ----------
+async function pickFolder(){
+  if(!fsaSupported()){document.getElementById('fsa-unsupported').style.display='block';return;}
+  try{
+    const h=await window.showDirectoryPicker({mode:'readwrite'});
+    dirHandle=h;fileHandle=null;
+    await hdbSet('dir',h);
+    await verifyPermission(h,true);
+    closeOverlay('setup-overlay');
+    updateFolderStatus();
+    // 既存ファイルがあれば読み込み、無ければ現状を保存
+    const loaded=await loadFromDrive();
+    if(loaded){renderSwitcher();reloadAllFrames();}
+    else{await saveToDrive();}
+  }catch(e){if(e&&e.name==='AbortError')return;console.error(e);alert('フォルダ選択に失敗しました: '+e);}
+}
+
+function updateFolderStatus(){
+  const el=document.getElementById('folder-status');
+  if(dirHandle){el.textContent='設定済み（'+(dirHandle.name||'フォルダ')+' / '+DATA_FILENAME+'）';}
+  else{el.textContent='未設定（この端末のみ保存）';}
+}
+
+// ---------- オーバーレイ操作 ----------
+function openOverlay(id){document.getElementById(id).classList.add('show');}
+function closeOverlay(id){document.getElementById(id).classList.remove('show');}
+
+// ---------- import / export ----------
+function doExport(){
+  const blob=new Blob([buildPayload()],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='経営データ_'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
+  a.click();
+  showSettingsStatus('書き出しました。Downloadsを確認してください。');
+}
+function showSettingsStatus(msg){const el=document.getElementById('settings-status');el.style.display='block';el.textContent=msg;}
+function handleImportFile(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const obj=JSON.parse(r.result);
+      // 新形式 {data:{...}} か、旧FF/WSエクスポート形式かを判定
+      if(obj&&obj.data&&typeof obj.data==='object'){
+        applyData(obj);
+      }else if(obj&&obj.localStorage&&typeof obj.localStorage==='object'){
+        // 復旧ページの全データダンプ形式
+        applyData({data:obj.localStorage});
+      }else{
+        // 旧システム単体のエクスポート（そのままだと取り込み形式が不明）
+        if(!confirm('このファイルは旧システム単体のエクスポートのようです。各システムの「インポート」から読み込むことをおすすめします。\nこのまま強制的に取り込みますか？'))return;
+        // 可能な範囲でキーを推定保存は難しいので警告のみ
+        alert('この形式は各システム内のインポート機能をご利用ください。');
+        return;
+      }
+      showSettingsStatus('取り込みました。画面を更新します。');
+      renderSwitcher();reloadAllFrames();scheduleSave();
+    }catch(e){alert('読み込み失敗: '+e);}
+  };
+  r.readAsText(file);
+}
+
+// =====================================================================
+// 起動
+// =====================================================================
+async function boot(){
+  renderSwitcher();
+  showSystem('ff');
+
+  // 保存先ハンドルの復元を試みる
+  try{
+    const saved=await hdbGet('dir');
+    if(saved){
+      dirHandle=saved;
+      updateFolderStatus();
+      const ok=await verifyPermission(dirHandle,true);
+      if(ok){
+        const loaded=await loadFromDrive();
+        if(loaded){renderSwitcher();reloadAllFrames();}
+      }else{
+        setSync('off','タップで再接続');
+      }
+    }else{
+      // 未設定 → 初期設定を表示（FSA非対応端末ならスキップ案内）
+      updateFolderStatus();
+      if(!localStorage.getItem('unified_setup_skipped')){
+        openOverlay('setup-overlay');
+        if(!fsaSupported())document.getElementById('fsa-unsupported').style.display='block';
+      }
+    }
+  }catch(e){console.error('boot',e);}
+  finally{booting=false;}
+}
+
+// ---------- イベント結線 ----------
+document.addEventListener('DOMContentLoaded',()=>{
+  // タブ
+  document.getElementById('tabs').addEventListener('click',e=>{
+    const t=e.target.closest('.tab');if(!t)return;showSystem(t.dataset.sys);
+  });
+  // 店舗スイッチャ
+  const sw=document.getElementById('store-switcher');
+  document.getElementById('store-trigger').addEventListener('click',e=>{e.stopPropagation();sw.classList.toggle('open');});
+  document.addEventListener('click',e=>{if(!sw.contains(e.target))sw.classList.remove('open');});
+  document.getElementById('store-menu').addEventListener('click',e=>{
+    e.stopPropagation();
+    const rn=e.target.closest('.ico-rename');
+    if(rn){const id=rn.dataset.id;const cur=getStores().find(s=>s.id===id);const nn=prompt('店舗名を変更',cur?cur.name:'');if(nn!==null&&nn.trim())renameStore(id,nn);return;}
+    const item=e.target.closest('.store-item');
+    if(item){setCurrentId(item.dataset.id);sw.classList.remove('open');return;}
+    if(e.target.closest('#add-store-btn')){const n=prompt('追加する店舗名を入力');if(n&&n.trim())addStore(n);sw.classList.remove('open');}
+  });
+  // 同期インジケーター → 設定
+  document.getElementById('sync').addEventListener('click',()=>{updateFolderStatus();openOverlay('settings-overlay');});
+  document.getElementById('settings-btn').addEventListener('click',()=>{updateFolderStatus();openOverlay('settings-overlay');});
+  document.getElementById('settings-close').addEventListener('click',()=>closeOverlay('settings-overlay'));
+  // 初期設定
+  document.getElementById('pick-folder-btn').addEventListener('click',pickFolder);
+  document.getElementById('setup-skip-btn').addEventListener('click',()=>{localStorage.setItem('unified_setup_skipped','1');closeOverlay('setup-overlay');});
+  // 設定パネル
+  document.getElementById('change-folder-btn').addEventListener('click',pickFolder);
+  document.getElementById('save-now-btn').addEventListener('click',async()=>{if(!dirHandle){alert('先に保存先フォルダを設定してください');return;}await saveToDrive();showSettingsStatus('保存しました。');});
+  document.getElementById('load-now-btn').addEventListener('click',async()=>{if(!dirHandle){alert('先に保存先フォルダを設定してください');return;}const ok=await loadFromDrive();if(ok){renderSwitcher();reloadAllFrames();showSettingsStatus('Driveから読み込みました。');}else{showSettingsStatus('読み込めるデータがありませんでした。');}});
+  document.getElementById('export-btn').addEventListener('click',doExport);
+  document.getElementById('import-btn').addEventListener('click',()=>document.getElementById('import-file').click());
+  document.getElementById('import-file').addEventListener('change',e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value='';});
+
+  boot();
+});
+</script>
+</body>
+</html>
