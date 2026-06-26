@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>新村店次週計画</title>
+<title>次週計画</title>
 <style>
   :root{
     --bg:#fafafa; --panel:#fff; --border:#d0d7de; --border-strong:#8c959f;
@@ -301,7 +301,10 @@
 <style>
 html.embedded-in-hub button[onclick="exportJSON()"],
 html.embedded-in-hub button[onclick="document.getElementById('importFile').click()"],
-html.embedded-in-hub button[onclick="saveNow()"]{display:none!important}
+html.embedded-in-hub button[onclick="saveNow()"],
+html.embedded-in-hub button[onclick="openSnpRecoveryModal()"],
+html.embedded-in-hub button[onclick="resetData()"]{display:none!important}
+html.embedded-in-hub footer{display:none!important}
 </style>
 </head>
 <body>
@@ -327,7 +330,7 @@ html.embedded-in-hub button[onclick="saveNow()"]{display:none!important}
 })();</script>
 
 <header>
-  <h1>新村店次週計画</h1>
+  <h1>次週計画</h1>
   <span class="save-status" id="saveStatus">読み込み中…</span>
   <div class="toolbar">
     <button onclick="exportJSON()">JSONエクスポート</button>
@@ -340,7 +343,7 @@ html.embedded-in-hub button[onclick="saveNow()"]{display:none!important}
 </header>
 <nav class="tabs" id="tabNav"></nav>
 <main id="main"></main>
-<footer>新村店次週計画システム / ローカル保存（このブラウザのみ）</footer>
+<footer>次週計画システム / ローカル保存（このブラウザのみ）</footer>
 
 <script>
 /* ============================================================
@@ -358,7 +361,7 @@ function _ensureGlobalStores(){
     }catch(_){}
   }
   if(stores.length===0){
-    stores=[{id:'store_'+Date.now(),name:'松本新村店',createdAt:Date.now()}];
+    stores=[{id:'store_'+Date.now(),name:'店舗1',createdAt:Date.now()}];
   }
   let _modified=false;
   stores.forEach(s=>{if(!s.name||!s.name.trim()){s.name='松本新村店';_modified=true;}});
@@ -794,7 +797,7 @@ function exportJSON(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `新村店次週計画_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `次週計画_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
