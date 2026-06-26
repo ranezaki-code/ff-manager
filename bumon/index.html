@@ -55,6 +55,9 @@ header .spacer{flex:1}
 .b-doing{background:var(--accent-lt);color:var(--accent-dk)}
 .b-done{background:var(--green-lt);color:var(--green)}
 .b-retry{background:var(--purple-lt);color:var(--purple)}
+.due-badge{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap;background:#f1f5f9;color:var(--sub)}
+.due-soon{background:var(--amber-lt);color:var(--amber)}
+.due-over{background:var(--red-lt);color:var(--red)}
 .sheet-meta{font-size:11px;color:var(--faint)}
 .sheet-body{padding:6px 14px 14px;display:none}
 .sheet.open .sheet-body{display:block}
@@ -122,6 +125,10 @@ header .spacer{flex:1}
         <option value="retry">再挑戦</option>
       </select>
       <select id="f-assignee"><option value="">全担当</option></select>
+      <select id="f-sort">
+        <option value="updated">更新が新しい順</option>
+        <option value="due">期限が近い順</option>
+      </select>
     </div>
     <div id="sheet-list"></div>
   </div>
@@ -162,6 +169,11 @@ header .spacer{flex:1}
     <div class="field">
       <label>タイトル（一言で）</label>
       <input type="text" id="s-title" placeholder="例：16時のアイス新商品の品切れをなくす">
+    </div>
+    <div class="field">
+      <label>期限（達成・検証する日）</label>
+      <div class="ex">いつまでにやり切るかを決めると、PDCAが回りやすくなります。</div>
+      <input type="date" id="s-due">
     </div>
     <div class="field">
       <label>① 現状の課題（客観的な事実は何か？）</label>
@@ -273,6 +285,22 @@ function statusOf(sh){
   }
   return {k:'doing',label:'実行中',cls:'b-doing'};
 }
+function fmtDate(s){if(!s)return '';const p=s.split('-');return p.length===3?(parseInt(p[1],10)+'/'+parseInt(p[2],10)):s;}
+function dueInfo(sh){
+  if(!sh.due)return null;
+  const today=new Date();today.setHours(0,0,0,0);
+  const d=new Date(sh.due+'T00:00:00');
+  const diff=Math.round((d-today)/86400000);
+  const done=(sh.phase==='done');
+  let cls='due-badge',txt='期限 '+fmtDate(sh.due);
+  if(!done){
+    if(diff<0){cls='due-badge due-over';txt='期限 '+fmtDate(sh.due)+'・'+(-diff)+'日超過';}
+    else if(diff===0){cls='due-badge due-soon';txt='期限 今日まで';}
+    else if(diff<=3){cls='due-badge due-soon';txt='期限 '+fmtDate(sh.due)+'・あと'+diff+'日';}
+    else{cls='due-badge';txt='期限 '+fmtDate(sh.due)+'・あと'+diff+'日';}
+  }
+  return {cls,txt,diff};
+}
 function renderList(){
   const wrap=$('view-list');let h='';
   SEED.forEach(g=>{
@@ -305,8 +333,20 @@ function fillFilterOptions(){
 }
 function renderSheets(){
   fillFilterOptions();
-  const fg=$('f-group').value, fs=$('f-status').value, fa=$('f-assignee').value;
-  let list=S.sheets.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const fg=$('f-group').value, fs=$('f-status').value, fa=$('f-assignee').value, fsort=$('f-sort').value;
+  let list=S.sheets.slice();
+  if(fsort==='due'){
+    // 期限が近い順（未完了で期限あり→近い順、次に期限なし、最後に完了）
+    list.sort((a,b)=>{
+      const ad=(a.phase!=='done'&&a.due)?a.due:'';
+      const bd=(b.phase!=='done'&&b.due)?b.due:'';
+      if(ad&&bd)return ad<bd?-1:ad>bd?1:0;
+      if(ad)return -1; if(bd)return 1;
+      return (b.updatedAt||0)-(a.updatedAt||0);
+    });
+  }else{
+    list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  }
   list=list.filter(sh=>{
     const ar=areaById(sh.areaId)||{};
     if(fg&&ar.group!==fg)return false;
@@ -322,6 +362,7 @@ function renderSheets(){
     let h='<div class="sheet" data-id="'+sh.id+'">';
     h+='<div class="sheet-head" data-toggle="'+sh.id+'">';
     h+='<span class="badge '+st.cls+'">'+st.label+'</span>';
+    const di=dueInfo(sh); if(di)h+='<span class="'+di.cls+'">'+esc(di.txt)+'</span>';
     h+='<span class="sheet-title">'+esc(sh.title||'(無題)')+'</span>';
     h+='<span class="sheet-meta">'+esc(ar.group)+' / '+esc(ar.name)+(sh.assignee?' ・ '+esc(sh.assignee):'')+'</span>';
     h+='</div><div class="sheet-body">';
@@ -375,7 +416,7 @@ function newSheet(areaId){
   $('sheet-modal-title').textContent='新規作戦シート';
   fillAreaSelect($('s-area'),areaId||'');
   fillAssigneeSelect($('s-assignee'),'');
-  $('s-title').value='';$('s-problem').value='';$('s-goal').value='';$('s-mechanism').value='';$('s-result').value='';
+  $('s-title').value='';$('s-due').value='';$('s-problem').value='';$('s-goal').value='';$('s-mechanism').value='';$('s-result').value='';
   $('result-block').style.display='none';
   setNextSel('');
   $('sheet-modal-actions').innerHTML='<button class="btn btn-ghost" id="m-draft">下書き保存</button><button class="btn btn-pri" id="m-submit">提出する</button>';
@@ -389,7 +430,7 @@ function editSheet(id){
   $('sheet-modal-title').textContent='作戦シートを編集';
   fillAreaSelect($('s-area'),sh.areaId);
   fillAssigneeSelect($('s-assignee'),sh.assignee||'');
-  $('s-title').value=sh.title||'';$('s-problem').value=sh.problem||'';$('s-goal').value=sh.goal||'';$('s-mechanism').value=sh.mechanism||'';$('s-result').value=sh.result||'';
+  $('s-title').value=sh.title||'';$('s-due').value=sh.due||'';$('s-problem').value=sh.problem||'';$('s-goal').value=sh.goal||'';$('s-mechanism').value=sh.mechanism||'';$('s-result').value=sh.result||'';
   const showResult=(sh.phase==='doing'||sh.phase==='done');
   $('result-block').style.display=showResult?'block':'none';
   setNextSel(sh.next||'');
@@ -423,7 +464,7 @@ function saveSheet(phase){
   let sh;
   if(editId){sh=S.sheets.find(s=>s.id===editId);}
   if(!sh){sh={id:'sh_'+now+'_'+Math.random().toString(36).slice(2,6),createdAt:now};S.sheets.push(sh);}
-  sh.areaId=areaId;sh.assignee=$('s-assignee').value;sh.title=title;
+  sh.areaId=areaId;sh.assignee=$('s-assignee').value;sh.title=title;sh.due=$('s-due').value;
   sh.problem=$('s-problem').value;sh.goal=$('s-goal').value;sh.mechanism=$('s-mechanism').value;
   sh.result=$('s-result').value;sh.next=sheetNext;
   sh.phase=phase;sh.updatedAt=now;
@@ -444,7 +485,7 @@ function cycleSheet(id){
   const sh=S.sheets.find(s=>s.id===id);if(!sh)return;
   const now=Date.now();
   const ns={id:'sh_'+now+'_'+Math.random().toString(36).slice(2,6),createdAt:now,updatedAt:now,
-    areaId:sh.areaId,assignee:sh.assignee,title:sh.title+'（再挑戦）',
+    areaId:sh.areaId,assignee:sh.assignee,title:sh.title+'（再挑戦）',due:'',
     problem:sh.problem,goal:sh.goal,mechanism:sh.mechanism,result:'',next:'',phase:'draft'};
   S.sheets.push(ns);saveS();renderAll();toast('次のサイクルの下書きを作成しました。①②③を見直して提出してください');
   $('f-status').value='';renderSheets();
@@ -480,7 +521,7 @@ $('assign-save').onclick=()=>{
 };
 $('new-sheet-btn').onclick=()=>newSheet('');
 $('mgr-toggle').onclick=()=>{localStorage.setItem('bumon_manager_mode',isMgr()?'0':'1');renderAll();toast(isMgr()?'店長モードON（承認できます）':'店長モードOFF');};
-['f-group','f-status','f-assignee'].forEach(id=>$(id).addEventListener('change',renderSheets));
+['f-group','f-status','f-assignee','f-sort'].forEach(id=>$(id).addEventListener('change',renderSheets));
 document.querySelectorAll('.subtab').forEach(tb=>tb.addEventListener('click',()=>switchView(tb.dataset.view)));
 function switchView(v){
   document.querySelectorAll('.subtab').forEach(tb=>tb.classList.toggle('active',tb.dataset.view===v));
