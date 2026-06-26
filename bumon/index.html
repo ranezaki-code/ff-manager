@@ -98,7 +98,7 @@ header .spacer{flex:1}
   <header>
     <h1>担当部門</h1>
     <span class="spacer"></span>
-    <button class="mgr-toggle" id="mgr-toggle">🔓 店長モード</button>
+    <button class="mgr-toggle" id="mgr-toggle">🔓 全体管理</button>
   </header>
 
   <div class="subtabs">
@@ -235,7 +235,7 @@ const SEED=[
     {id:'training',name:'新人教育',cond:''},
     {id:'three',name:'3つの徹底',cond:''},
   ]},
-  {group:'全体管理', items:[
+  {group:'全体管理', managerOnly:true, items:[
     {id:'pdca',name:'PDCAバックチェック',cond:''},
     {id:'eval',name:'評価',cond:''},
     {id:'numbers',name:'数字管理（定量的な変化の確認）',cond:''},
@@ -267,9 +267,10 @@ function wsStaff(){
   return Array.from(set);
 }
 
-// ---- 店長モード ----
+// ---- 全体管理モード（パスワード保護） ----
+const MGR_PW='3963';
 function isMgr(){return localStorage.getItem('bumon_manager_mode')==='1';}
-function renderMgr(){const b=$('mgr-toggle');if(isMgr()){b.classList.add('on');b.textContent='🔐 店長モード ON';}else{b.classList.remove('on');b.textContent='🔓 店長モード';}}
+function renderMgr(){const b=$('mgr-toggle');if(isMgr()){b.classList.add('on');b.textContent='🔐 全体管理 ON';}else{b.classList.remove('on');b.textContent='🔓 全体管理';}}
 
 // ---- 担当一覧ビュー ----
 function avatarText(n){return (n||'?').slice(0,1);}
@@ -304,6 +305,7 @@ function dueInfo(sh){
 function renderList(){
   const wrap=$('view-list');let h='';
   SEED.forEach(g=>{
+    if(g.managerOnly && !isMgr())return; // 全体管理グループは全体管理モード時のみ表示
     h+='<div class="group-title"><span class="dot" style="background:'+GROUP_DOT[g.group]+'"></span>'+esc(g.group)+(g.cond?' <span class="g-cond">'+esc(g.cond)+'</span>':'')+'</div>';
     h+='<div class="card">';
     g.items.forEach(it=>{
@@ -328,7 +330,9 @@ function renderList(){
 
 // ---- 作戦シートビュー ----
 function fillFilterOptions(){
-  const fg=$('f-group');if(fg.options.length<=1){SEED.forEach(g=>{const o=document.createElement('option');o.value=g.group;o.textContent=g.group;fg.appendChild(o);});}
+  const fg=$('f-group');const curG=fg.value;
+  fg.innerHTML='<option value="">全グループ</option>'+SEED.filter(g=>!g.managerOnly||isMgr()).map(g=>'<option value="'+esc(g.group)+'">'+esc(g.group)+'</option>').join('');
+  fg.value=curG;
   const fa=$('f-assignee');const cur=fa.value;fa.innerHTML='<option value="">全担当</option>'+wsStaff().map(n=>'<option>'+esc(n)+'</option>').join('');fa.value=cur;
 }
 function renderSheets(){
@@ -387,7 +391,7 @@ function actionsHtml(sh,st){
     if(isMgr()){
       h+='<button class="btn btn-green btn-sm" data-approve="'+sh.id+'">承認（実行へ）</button>';
       h+='<button class="btn btn-red btn-sm" data-return="'+sh.id+'">差し戻し</button>';
-    }else{h+='<span class="sheet-meta">店長の承認待ち</span>';}
+    }else{h+='<span class="sheet-meta">全体管理の承認待ち</span>';}
   }
   if(sh.phase==='doing')h+='<button class="btn btn-amber btn-sm" data-result="'+sh.id+'">結果を記入して完了</button>';
   if(sh.phase==='done'&&sh.next==='B')h+='<button class="btn btn-pri btn-sm" data-cycle="'+sh.id+'">次のサイクルを作成</button>';
@@ -446,7 +450,7 @@ function editSheet(id){
 function openResult(id){editSheet(id);$('result-block').style.display='block';$('s-result').focus();}
 function setNextSel(v){sheetNext=v;document.querySelectorAll('#s-next-multi .opt').forEach(o=>o.classList.toggle('sel',o.dataset.next===v));}
 function fillAreaSelect(sel,val){
-  sel.innerHTML=SEED.map(g=>'<optgroup label="'+esc(g.group)+'">'+g.items.map(it=>'<option value="'+it.id+'"'+(it.id===val?' selected':'')+'>'+esc(it.name)+'</option>').join('')+'</optgroup>').join('');
+  sel.innerHTML=SEED.filter(g=>!g.managerOnly||isMgr()||g.items.some(it=>it.id===val)).map(g=>'<optgroup label="'+esc(g.group)+'">'+g.items.map(it=>'<option value="'+it.id+'"'+(it.id===val?' selected':'')+'>'+esc(it.name)+'</option>').join('')+'</optgroup>').join('');
 }
 function fillAssigneeSelect(sel,val){
   const staff=wsStaff();
@@ -471,13 +475,13 @@ function saveSheet(phase){
   if(phase==='submitted')sh.submittedAt=now;
   if(phase==='done')sh.doneAt=now;
   saveS();hide('sheet-overlay');renderAll();
-  toast(phase==='submitted'?'提出しました（店長の承認待ち）':phase==='done'?'完了にしました':'保存しました');
+  toast(phase==='submitted'?'提出しました（承認待ち）':phase==='done'?'完了にしました':'保存しました');
 }
 
 // ---- ステータス遷移 ----
 function submitSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;
   if(!sh.problem||!sh.goal||!sh.mechanism){toast('提出には①②③の記入が必要です。編集から記入してください');editSheet(id);return;}
-  sh.phase='submitted';sh.submittedAt=Date.now();sh.updatedAt=Date.now();saveS();renderAll();toast('提出しました（店長の承認待ち）');}
+  sh.phase='submitted';sh.submittedAt=Date.now();sh.updatedAt=Date.now();saveS();renderAll();toast('提出しました（承認待ち）');}
 function approveSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;sh.phase='doing';sh.approvedAt=Date.now();sh.updatedAt=Date.now();saveS();renderAll();toast('承認しました。実行中になりました');}
 function returnSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;const note=prompt('差し戻しの理由（任意）');sh.phase='returned';sh.approverNote=note||'';sh.updatedAt=Date.now();saveS();renderAll();toast('差し戻しました');}
 function delSheet(id){if(!confirm('この作戦シートを削除しますか？'))return;S.sheets=S.sheets.filter(s=>s.id!==id);saveS();renderAll();toast('削除しました');}
@@ -520,7 +524,13 @@ $('assign-save').onclick=()=>{
   saveS();hide('assign-overlay');renderAll();toast('担当を保存しました');
 };
 $('new-sheet-btn').onclick=()=>newSheet('');
-$('mgr-toggle').onclick=()=>{localStorage.setItem('bumon_manager_mode',isMgr()?'0':'1');renderAll();toast(isMgr()?'店長モードON（承認できます）':'店長モードOFF');};
+$('mgr-toggle').onclick=()=>{
+  if(isMgr()){localStorage.setItem('bumon_manager_mode','0');renderAll();toast('全体管理モードOFF');return;}
+  const pw=prompt('全体管理モードのパスワードを入力してください');
+  if(pw===null)return;
+  if(pw!==MGR_PW){toast('パスワードが違います');return;}
+  localStorage.setItem('bumon_manager_mode','1');renderAll();toast('全体管理モードON（承認・全体管理の項目）');
+};
 ['f-group','f-status','f-assignee','f-sort'].forEach(id=>$(id).addEventListener('change',renderSheets));
 document.querySelectorAll('.subtab').forEach(tb=>tb.addEventListener('click',()=>switchView(tb.dataset.view)));
 function switchView(v){
