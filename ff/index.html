@@ -4098,13 +4098,18 @@ function renderProductCard(p){
             <span>前日に解凍が必要</span>
           </label>
         </div>
+        <div style="margin-top:8px">
+          <label style="font-size:11px;color:#555;display:block;margin-bottom:2px">使用食材（カンマ区切り）</label>
+          <input type="text" value="${(p.mkIngredients||'').replace(/"/g,'&quot;')}" placeholder="例：鶏肉、衣、油、キャベツ、マヨネーズ" style="width:100%;font-size:12px;padding:4px 6px"
+            onchange="setProdField('${p.id}','mkIngredients',this.value)">
+        </div>
       </div>`:''}
     </div>`:''}
   </div>`;
 }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
-const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap']);
+const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap','mkIngredients']);
 
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
@@ -4827,7 +4832,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
       const m=(p.mkMethod==='thaw'||!p.mkMethod)?'other':p.mkMethod;
-      (groups[m]||groups.other).push({name:p.name,qty:cnt,ct:p.mkCoreTemp});
+      (groups[m]||groups.other).push({name:p.name,qty:cnt,ct:p.mkCoreTemp,ing:p.mkIngredients});
       if(p.mkType)typeCount[p.mkType]=(typeCount[p.mkType]||0)+cnt;
     });
     if(!['fry','range','rice','other'].some(k=>groups[k].length))return;
@@ -4838,7 +4843,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       const bentoSum=its.reduce((s,i)=>s+i.qty,0);
       const total=(k==='rice')?bentoSum+1:bentoSum;       // 炊飯は弁当の数＋1食
       const totLabel=(k==='rice')?`合計${total}食（弁当${bentoSum}＋1）`:`合計${total}`;
-      const list=its.map(i=>`${i.name} ×${i.qty}${i.ct?' <span style="color:#dc2626;font-size:10px">🌡中心温度</span>':''}`).join('<br>');
+      const list=its.map(i=>`${i.name} ×${i.qty}${i.ct?' <span style="color:#dc2626;font-size:10px">🌡中心温度</span>':''}${i.ing?`<br><span style="font-size:10px;color:#888">　食材: ${i.ing}</span>`:''}`).join('<br>');
       cards+=`<div style="background:${g[3]};border-radius:8px;padding:8px 10px;border:1px solid #e5e7eb">
         <div style="color:${g[2]};font-weight:700;font-size:12px;margin-bottom:3px">${g[1]}　${totLabel}</div>
         <div style="font-size:11px;color:#555;line-height:1.6">${list}${k==='rice'?'<br><span style="font-size:10px;color:#854f0b">⏱ 30分以上浸水→1時間炊飯（浸水タイマー）</span>':''}</div>
