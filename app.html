@@ -105,7 +105,14 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
   .tab{padding:11px 13px;font-size:13px}
   .sync span.txt{display:none}
 }
+.pass-card{max-width:440px}
+.pass-input{width:100%;font-size:18px;padding:13px 14px;border:1.5px solid var(--border);border-radius:10px;text-align:center;letter-spacing:2px;margin:6px 0 4px}
+.pass-input:focus{outline:none;border-color:var(--accent)}
 </style>
+<!-- Firebase（リアルタイム共有用） compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <header>
@@ -132,6 +139,22 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
   <div class="frame-loading" id="frame-loading">読み込み中…</div>
 </main>
 
+<!-- 合言葉ゲート（リアルタイム共有モード） -->
+<div class="overlay" id="pass-overlay">
+  <div class="modal pass-card">
+    <h2>🔐 合言葉を入力</h2>
+    <p>このシステムは<b>合言葉を知っている人だけ</b>が同じデータをリアルタイムで共有します。<br>
+    初めての方は<b>新しい合言葉を決めて</b>入力、共有された方は<b>教わった合言葉</b>を入力してください。</p>
+    <input type="text" class="pass-input" id="pass-input" placeholder="あいことば" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub);margin:4px 0 14px">
+      <input type="checkbox" id="pass-remember" checked> この端末では次回から自動で入る
+    </label>
+    <button class="btn btn-primary" id="pass-go-btn">✅ 開始</button>
+    <div class="warn-box" id="pass-status" style="display:none"></div>
+    <div class="muted">💡 合言葉はお店の中だけで共有してください。リンクと合言葉の両方を知っている人だけがアクセスできます。</div>
+  </div>
+</div>
+
 <!-- 初期設定オーバーレイ -->
 <div class="overlay" id="setup-overlay">
   <div class="modal">
@@ -157,9 +180,25 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
   <div class="modal">
     <button class="close-x" id="settings-close">×</button>
     <h2>⚙️ 設定</h2>
+    <div id="rt-settings" style="display:none">
+      <div class="settings-row">
+        <div>
+          <div class="label">🔗 共有リンクをコピー</div>
+          <div class="desc">相手にはリンクと合言葉の両方を伝えてください</div>
+        </div>
+        <button class="btn btn-ghost" id="copy-link-btn" style="font-size:13px;padding:9px 14px">コピー</button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="label">🔐 合言葉を変更</div>
+          <div class="desc">別の合言葉グループに切り替えます</div>
+        </div>
+        <button class="btn btn-ghost" id="change-pass-btn" style="font-size:13px;padding:9px 14px">変更</button>
+      </div>
+    </div>
     <div class="settings-row">
       <div>
-        <div class="label">Drive保存先</div>
+        <div class="label">Drive保存先（任意のバックアップ）</div>
         <div class="desc" id="folder-status">未設定</div>
       </div>
       <button class="btn btn-ghost" id="change-folder-btn" style="font-size:13px;padding:9px 14px">変更</button>
@@ -221,6 +260,32 @@ let saveTimer = null;
 let lastLoadedAt = 0;
 let suppressSave = false;  // Drive→localStorage 反映中はsaveを抑止
 let booting = true;        // 起動完了までは自動保存を抑止（空データ誤上書き防止）
+
+// =====================================================================
+// 【リアルタイム共有】Firebase 設定
+// ↓ ここにFirebaseコンソールでコピーしたconfigをそのままObjectで貼り替える。
+//   apiKey が 'AIza...' の本物に変わると「合言葉でリアルタイム共有」モードが有効になる。
+//   未設定（プレースホルダ）のままなら、従来のDrive/ローカル保存で動作する。
+// =====================================================================
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_FIREBASE_APIKEY_HERE",
+  authDomain: "PASTE.firebaseapp.com",
+  projectId: "PASTE",
+  storageBucket: "PASTE.appspot.com",
+  messagingSenderId: "PASTE",
+  appId: "PASTE"
+};
+const FB_COLLECTION = 'keiei_stores';   // Firestoreのコレクション名
+let fbApp=null, fbDb=null, fbReady=false, fbUnsub=null, fbDocRef=null;
+let lastSyncedPayload='';               // 直近で同期した内容（echo再送・無駄書き込み防止）
+let lastAppliedRemoteAt=0;              // 直近で適用したリモートのupdatedAt
+let fbPushTimer=null;
+function _deviceId(){
+  let d=localStorage.getItem('unified_device');
+  if(!d){d='dev_'+Math.random().toString(36).slice(2)+'_'+(navigator.userAgent||'').replace(/\D+/g,'').slice(0,6);localStorage.setItem('unified_device',d);}
+  return d;
+}
+function firebaseConfigured(){return typeof FIREBASE_CONFIG.apiKey==='string' && FIREBASE_CONFIG.apiKey.indexOf('AIza')===0;}
 const frames = {};         // 生成済みiframe
 
 // ---------- IndexedDB（フォルダハンドルの永続化） ----------
@@ -396,10 +461,100 @@ async function saveToDrive(){
 function scheduleSave(){
   if(suppressSave)return;
   if(booting)return;
-  if(!dirHandle)return;
+  if(!fbReady && !dirHandle)return; // 同期先（クラウド or Drive）が無ければ何もしない
   setSync('saving','変更あり…');
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>{saveToDrive();},1500);
+  saveTimer=setTimeout(()=>{
+    if(fbReady)fbPush();         // リアルタイム共有（主）
+    if(dirHandle)saveToDrive();  // Driveバックアップ（任意・併用可）
+  },1200);
+}
+
+// =====================================================================
+// Firebase リアルタイム同期（合言葉でドキュメントを共有）
+// =====================================================================
+async function _sha256hex(str){
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function fbInit(){
+  if(fbApp)return true;
+  if(!firebaseConfigured())return false;
+  try{ fbApp=firebase.initializeApp(FIREBASE_CONFIG); fbDb=firebase.firestore(); return true; }
+  catch(e){console.error('fbInit',e);return false;}
+}
+async function fbStart(passphrase){
+  if(!fbInit()){setSync('err','設定未完了');return false;}
+  setSync('saving','接続中…');
+  try{ await firebase.auth().signInAnonymously(); }
+  catch(e){console.error('auth',e);setSync('err','認証失敗');alert('リアルタイム接続の認証に失敗しました。\nFirebaseで「Anonymous（匿名）」サインインが有効か確認してください。\n'+(e&&e.message||e));return false;}
+  const docId=await _sha256hex('keiei::'+passphrase);
+  fbDocRef=fbDb.collection(FB_COLLECTION).doc(docId);
+  try{
+    const snap=await fbDocRef.get();
+    if(snap.exists){ _fbApplyRemote(snap.data()||{},true); }
+    else if(!_localLooksEmpty()){ await _fbWrite(); } // クラウド未作成かつ手元にデータ→作成
+  }catch(e){console.error('initial get',e);setSync('err','取得失敗');alert('データ取得に失敗しました。\nFirestoreのルール設定をご確認ください。\n'+(e&&e.message||e));return false;}
+  if(fbUnsub){try{fbUnsub();}catch(_){}}
+  fbUnsub=fbDocRef.onSnapshot(snap=>{
+    if(!snap.exists)return;
+    if(snap.metadata.hasPendingWrites)return; // 自端末の書込みのecho
+    _fbApplyRemote(snap.data()||{},false);
+  },err=>{console.error('snapshot',err);setSync('err','同期エラー');});
+  fbReady=true;
+  setSync('ok','リアルタイム同期中');
+  return true;
+}
+function _fbApplyRemote(d,initial){
+  try{
+    if(!d||typeof d.payload!=='string')return;
+    const ts=d.updatedAt||0;
+    if(d.writer===_deviceId()){lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);lastSyncedPayload=d.payload;return;}
+    if(!initial && ts && ts<=lastAppliedRemoteAt)return;
+    if(d.payload===lastSyncedPayload)return;
+    applyData(JSON.parse(d.payload));
+    lastSyncedPayload=d.payload;
+    lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);
+    renderSwitcher();
+    reloadAllFrames();
+    setSync('ok','リアルタイム同期中');
+  }catch(e){console.error('applyRemote',e);}
+}
+function _localLooksEmpty(){
+  const data=collectData();
+  let big=false;
+  Object.keys(data).forEach(k=>{ if(/(ffv6_store_|shinmuraten-plan-v1|ws_v1)/.test(k) && (data[k]||'').length>120)big=true; });
+  return !big;
+}
+async function _fbWrite(){
+  if(!fbDocRef)return false;
+  const payload=buildPayload();
+  if(payload===lastSyncedPayload)return true;     // 変化なし
+  if(_localLooksEmpty())return false;             // 空でクラウドを上書きしない
+  const now=Date.now();
+  try{
+    setSync('saving','保存中…');
+    await fbDocRef.set({payload, updatedAt:now, writer:_deviceId(), ua:(navigator.userAgent||'').slice(0,80)},{merge:true});
+    lastSyncedPayload=payload; lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,now);
+    setSync('ok','リアルタイム同期中');
+    return true;
+  }catch(e){console.error('fbWrite',e);setSync('err','保存失敗');return false;}
+}
+function fbPush(){ if(fbReady)_fbWrite(); }
+function copyShareLink(){
+  const url=location.origin+location.pathname;
+  try{navigator.clipboard.writeText(url);showSettingsStatus('共有リンクをコピーしました。相手にはリンクと合言葉の両方を伝えてください。');}
+  catch(_){showSettingsStatus('リンク: '+url);}
+}
+function changePassphrase(){
+  const cur=localStorage.getItem('unified_pass')||'';
+  const nv=prompt('別の合言葉に切り替えます（同じ合言葉のグループのデータが表示されます）。\n新しい合言葉を入力:',cur);
+  if(nv===null)return;
+  const v=nv.trim(); if(!v)return;
+  localStorage.setItem('unified_pass',v);
+  closeOverlay('settings-overlay');
+  alert('合言葉を切り替えました。画面を再読み込みします。');
+  location.reload();
 }
 
 // iframe(同一オリジン)からのlocalStorage変更を検知
@@ -478,7 +633,21 @@ async function boot(){
   renderSwitcher();
   showSystem('ff');
 
-  // 保存先ハンドルの復元を試みる
+  // 【リアルタイム共有モード】Firebase設定済みなら合言葉ゲートで開始
+  if(firebaseConfigured()){
+    const saved=localStorage.getItem('unified_pass');
+    if(saved){
+      const ok=await fbStart(saved);
+      if(!ok)openOverlay('pass-overlay');
+    }else{
+      openOverlay('pass-overlay');
+      setTimeout(()=>{try{document.getElementById('pass-input').focus();}catch(_){}}, 200);
+    }
+    booting=false;
+    return;
+  }
+
+  // 保存先ハンドルの復元を試みる（従来のDrive/ローカルモード）
   try{
     const saved=await hdbGet('dir');
     if(saved){
@@ -522,8 +691,23 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.target.closest('#add-store-btn')){const n=prompt('追加する店舗名を入力');if(n&&n.trim())addStore(n);sw.classList.remove('open');}
   });
   // 同期インジケーター → 設定
-  document.getElementById('sync').addEventListener('click',()=>{updateFolderStatus();openOverlay('settings-overlay');});
-  document.getElementById('settings-btn').addEventListener('click',()=>{updateFolderStatus();openOverlay('settings-overlay');});
+  function openSettings(){updateFolderStatus();document.getElementById('rt-settings').style.display=firebaseConfigured()?'block':'none';openOverlay('settings-overlay');}
+  document.getElementById('sync').addEventListener('click',openSettings);
+  document.getElementById('settings-btn').addEventListener('click',openSettings);
+  // 合言葉ゲート
+  document.getElementById('pass-go-btn').addEventListener('click',async()=>{
+    const v=(document.getElementById('pass-input').value||'').trim();
+    const st=document.getElementById('pass-status');
+    if(!v){st.style.display='block';st.textContent='合言葉を入力してください';return;}
+    if(document.getElementById('pass-remember').checked)localStorage.setItem('unified_pass',v); else localStorage.removeItem('unified_pass');
+    st.style.display='block';st.textContent='接続中…';
+    const ok=await fbStart(v);
+    if(ok){closeOverlay('pass-overlay');}
+    else{st.style.display='block';st.textContent='接続できませんでした。合言葉・ネット接続・Firebase設定を確認してください。';}
+  });
+  document.getElementById('pass-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pass-go-btn').click();});
+  document.getElementById('copy-link-btn').addEventListener('click',copyShareLink);
+  document.getElementById('change-pass-btn').addEventListener('click',changePassphrase);
   document.getElementById('settings-close').addEventListener('click',()=>closeOverlay('settings-overlay'));
   // 初期設定
   document.getElementById('pick-folder-btn').addEventListener('click',pickFolder);
