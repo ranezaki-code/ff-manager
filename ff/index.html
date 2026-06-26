@@ -4104,13 +4104,24 @@ function renderProductCard(p){
             </div>`).join('')}
           <button type="button" onclick="mkIngAdd('${p.id}')" style="padding:5px 11px;font-size:11px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer;font-weight:600">＋ 食材を追加</button>
         </div>
+        <div style="margin-top:8px;display:grid;gap:6px">
+          <label style="font-size:11px;color:#555;display:block">容器取り付け調味料（カンマ区切り）
+            <input type="text" value="${(p.mkContSeason||'').replace(/"/g,'&quot;')}" placeholder="例：からし、タレ小袋" style="width:100%;font-size:12px;padding:3px 6px;margin-top:2px" onchange="setProdField('${p.id}','mkContSeason',this.value)">
+          </label>
+          <label style="font-size:11px;color:#555;display:block">必要シール（カンマ区切り）
+            <input type="text" value="${(p.mkSeals||'').replace(/"/g,'&quot;')}" placeholder="例：からあげ弁当シール" style="width:100%;font-size:12px;padding:3px 6px;margin-top:2px" onchange="setProdField('${p.id}','mkSeals',this.value)">
+          </label>
+          <label style="font-size:11px;color:#555;display:block">盛り付け用調味料（カンマ区切り）
+            <input type="text" value="${(p.mkPlateSeason||'').replace(/"/g,'&quot;')}" placeholder="例：マヨネーズ、キャベツ、ソース" style="width:100%;font-size:12px;padding:3px 6px;margin-top:2px" onchange="setProdField('${p.id}','mkPlateSeason',this.value)">
+          </label>
+        </div>
       </div>`:''}
     </div>`:''}
   </div>`;
 }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
-const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap','mkIngredients']);
+const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason']);
 
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
@@ -4156,6 +4167,12 @@ function mkIngMethod(pid,i,method){ const p=getP(pid);if(!p)return; const a=_ens
 function fmtIngs(arr){
   if(!arr||!arr.length)return '';
   return arr.map(g=>{const ms=(g.m||[]).map(mv=>{const f=ING_METHODS.find(x=>x[0]===mv);return f?f[1]:mv;}).join('/');return g.n+(ms?`[${ms}]`:'');}).join('　');
+}
+// カンマ区切りテキスト項目を、時間帯の作成商品全体で「品目×使用商品数」に集計
+function aggField(slotProds,field){
+  const m={};
+  slotProds.forEach(o=>{const v=o.p[field];if(!v)return;String(v).split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(it=>{m[it]=(m[it]||0)+o.cnt;});});
+  return Object.keys(m).map(k=>`${k} ×${m[k]}`).join('、');
 }
 
 // 値入率（売価基準）= (店頭売価 − 原価) / 店頭売価 × 100
@@ -4876,11 +4893,16 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       <div style="font-size:10px;color:#854f0b">⏱ 30分以上浸水→1時間炊飯（浸水タイマー）</div>
     </div>`;
     const plist=slotProds.map(o=>`${o.p.name} ×${o.cnt}${o.p.mkCoreTemp?' <span style="color:#dc2626;font-size:10px">🌡中心温度</span>':''}${getIngs(o.p).length?`<br><span style="font-size:10px;color:#888">　食材: ${fmtIngs(getIngs(o.p))}</span>`:''}`).join('<br>');
+    const aCont=aggField(slotProds,'mkContSeason'),aSeal=aggField(slotProds,'mkSeals'),aPlate=aggField(slotProds,'mkPlateSeason');
+    const prepBlock=(aCont||aSeal||aPlate)?`<div style="font-size:11px;color:#475569;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.8">
+      ${aCont?`📦 <b>容器取付調味料</b>：${aCont}<br>`:''}${aSeal?`🏷 <b>必要シール</b>：${aSeal}<br>`:''}${aPlate?`🥗 <b>盛付用調味料</b>：${aPlate}`:''}
+    </div>`:'';
     slotsHtml+=`<div style="margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px">${fmtHour(slotH)}作成分（完成${fmtHour(slotH+PREP_HOURS)}）</div>
       ${typeLine?`<div style="font-size:11px;color:#92400e;margin-bottom:4px;background:#fffbeb;border-radius:6px;padding:3px 8px;display:inline-block">小分類　${typeLine}</div>`:''}
       <div style="font-size:11px;font-weight:700;color:#9a3412;margin:4px 0 3px">下ごしらえ（方法ごと）</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:6px">${cards||'<span style="font-size:11px;color:#9ca3af">食材の調理方法が未設定です</span>'}</div>
+      ${prepBlock}
       <div style="font-size:11px;font-weight:700;color:#9a3412;margin:8px 0 3px">作る商品</div>
       <div style="font-size:11px;color:#555;line-height:1.6;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px">${plist}</div>
     </div>`;
@@ -4893,7 +4915,6 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       <div style="color:#1e40af;font-weight:700;font-size:12px">❄️ 前日解凍（明日の分を今日のうちに）</div>
       <div style="font-size:11px;color:#1d4ed8;line-height:1.6">${thawItems.join(' ・ ')}</div></div>`;
   }
-  const contHtml=`<div style="background:#f1f5f9;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#475569;line-height:1.7">📦 <b>容器・調味料の準備</b>：容器に取り付ける調味料（シール・からし等をテープ止め）／盛付用（マヨ・キャベツ・ソース）を先に用意</div>`;
   const flowHtml=MK_FLOW.map((step,i)=>{
     const k=`mkflow_${dayIdx}_${i}`,ck=!!S.checks[k];
     return `<label style="display:flex;align-items:flex-start;gap:7px;padding:5px 0;font-size:12px;cursor:pointer;color:#374151;${ck?'opacity:.55;text-decoration:line-through':''}">
@@ -4907,7 +4928,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     </div>
     ${_mkPrepOpen?`<div style="margin-top:8px">
       ${slotsHtml||'<div style="font-size:12px;color:#9ca3af;margin-bottom:8px">この日は作成数がありません</div>'}
-      ${thawHtml}${contHtml}
+      ${thawHtml}
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px">
         <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:2px">📋 作業フロー（チェックしながら進める）</div>
         ${flowHtml}
