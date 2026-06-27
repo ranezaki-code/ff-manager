@@ -4891,9 +4891,9 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     const bento=typeCount['弁当']||0;
     if(bento>0){
       const riceStart=fmtHM(slotH-1.5);
-      prepRows+=`<div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;font-size:12px;line-height:1.5;flex-wrap:wrap"><span style="font-weight:700;color:#854f0b;white-space:nowrap">🍚 炊飯 <span style="font-size:15px">${bento+1}食</span></span><span style="flex:1;color:#333">（弁当${bento}＋1）　<b style="color:#b45309">▶ 炊飯開始 ${riceStart}</b><br><span style="color:#9ca3af;font-size:11px">${fmtHour(slotH)}作成の1時間半前（30分浸水→1時間炊飯）</span></span></div>`;
+      prepRows+=`<div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;font-size:12px;line-height:1.5;flex-wrap:wrap"><span style="font-weight:700;color:#854f0b;white-space:nowrap">🍚 炊飯 <span style="font-size:15px">${bento+1}食</span></span><span style="flex:1;color:#333">（弁当${bento}＋1）　<b style="color:#b45309">▶ 炊飯開始 ${riceStart}</b></span></div>`;
     }
-    const plist=slotProds.map(o=>`${o.p.name} ×${o.cnt}${getIngs(o.p).length?`<br><span style="font-size:10px;color:#888">　食材: ${fmtIngs(getIngs(o.p))}</span>`:''}`).join('<br>');
+    const plist=slotProds.map(o=>`${o.p.name}×${o.cnt}`).join('　');
     const aCont=aggField(slotProds,'mkContSeason'),aSeal=aggField(slotProds,'mkSeals'),aPlate=aggField(slotProds,'mkPlateSeason');
     const prepBlock=(aCont||aSeal||aPlate)?`<div style="font-size:11px;color:#475569;line-height:1.9;margin-top:6px">
       ${aCont?`📦 <b>容器取付調味料</b>：${aCont}<br>`:''}${aSeal?`🏷 <b>必要シール</b>：${aSeal}<br>`:''}${aPlate?`🥗 <b>盛付用調味料</b>：${aPlate}`:''}
