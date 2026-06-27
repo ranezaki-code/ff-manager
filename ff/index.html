@@ -4102,6 +4102,9 @@ function renderProductCard(p){
                 <button type="button" onclick="mkIngFlag('${p.id}',${i},'ct')" title="中心温度測定が必要" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.ct?'#dc2626':'#d1d5db'};background:${ing.ct?'#dc2626':'#fff'};color:${ing.ct?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">🌡中心温度</button>
                 <button type="button" onclick="mkIngFlag('${p.id}',${i},'pt')" title="前日に解凍が必要" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.pt?'#2563eb':'#d1d5db'};background:${ing.pt?'#2563eb':'#fff'};color:${ing.pt?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">❄️前日解凍</button>
               </div>
+              <label style="font-size:11px;color:#555;white-space:nowrap" title="この食材1つで何個分つくれるか（例：2個で1袋なら 2）。半分使い・小分けに対応">
+                <input type="number" min="1" step="1" value="${ing.per||1}" onchange="mkIngPer('${p.id}',${i},this.value)" style="width:40px;font-size:11px;padding:2px 4px;margin-right:2px">個で1
+              </label>
               <button type="button" onclick="mkIngDel('${p.id}',${i})" title="この食材を削除" style="padding:2px 7px;font-size:12px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:6px;cursor:pointer">✕</button>
             </div>`).join('')}
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:2px">
@@ -4168,6 +4171,7 @@ function mkIngDel(pid,i){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p)
 function mkIngName(pid,i,val){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(a[i])a[i].n=val; saveS(); } // 再描画せずフォーカス維持
 function mkIngMethod(pid,i,method){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; if(!Array.isArray(a[i].m))a[i].m=[]; const idx=a[i].m.indexOf(method); if(idx>=0)a[i].m.splice(idx,1); else a[i].m.push(method); saveS();renderProductCards(); }
 function mkIngFlag(pid,i,flag){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; a[i][flag]=!a[i][flag]; saveS();renderProductCards(); }
+function mkIngPer(pid,i,val){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; const n=Math.max(1,Math.round(Number(val)||1)); if(n<=1)delete a[i].per; else a[i].per=n; saveS(); } // 再描画せずフォーカス維持
 function _escMk(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 // 全商品で使った食材を名前で一意化（=一度登録すれば他商品でも選んで使い回せる）
 function getIngMaster(){
@@ -4175,16 +4179,18 @@ function getIngMaster(){
   (S.PM||[]).forEach(p=>{
     getIngs(p).forEach(ing=>{
       const n=(ing.n||'').trim(); if(!n)return;
-      if(!m[n]) m[n]={n, m:[...(ing.m||[])], ct:!!ing.ct, pt:!!ing.pt};
+      if(!m[n]) m[n]={n, m:[...(ing.m||[])], ct:!!ing.ct, pt:!!ing.pt, per:ing.per||1};
     });
   });
   return Object.values(m).sort((a,b)=>a.n.localeCompare(b.n,'ja'));
 }
-// 登録済み食材を現在の商品に追加（調理方法・フラグごとコピー）
+// 登録済み食材を現在の商品に追加（調理方法・フラグ・使用量ごとコピー）
 function mkIngAddFromMaster(pid,name){
   if(!name)return; const p=getP(pid); if(!p)return;
   const src=getIngMaster().find(x=>x.n===name);
-  _ensureIngs(p).push(src?{n:src.n, m:[...src.m], ct:src.ct, pt:src.pt}:{n:name,m:[]});
+  const ni=src?{n:src.n, m:[...src.m], ct:src.ct, pt:src.pt}:{n:name,m:[]};
+  if(src&&src.per>1)ni.per=src.per;
+  _ensureIngs(p).push(ni);
   saveS();renderProductCards();
 }
 function fmtIngs(arr){
@@ -4896,15 +4902,17 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   // 時間帯ごとに「炊飯・フライ・レンジ・後付け調味料・シール」だけをまとめて表示（シンプル）
   let slotsHtml='';
   const _items=(bucket)=>Object.keys(bucket).map(nm=>{
-    const it=bucket[nm];
+    const it=bucket[nm], per=it.per||1;
+    const units=per>1?Math.ceil(it.qty/per):it.qty;
+    const sub=per>1?`<span style="color:#94a3b8;font-size:10px">(${it.qty}個分)</span>`:'';
     const ct=it.ct?'<span style="color:#dc2626;font-size:11px"> 🌡</span>':'';
-    return `${nm}<span style="color:#1d4ed8;font-weight:700">×${it.qty}</span>${ct}`;
+    return `${nm}<span style="color:#1d4ed8;font-weight:700">×${units}</span>${sub}${ct}`;
   }).join('、');
   cfg.slots.forEach(slotH=>{
     const typeCount={}; const slotProds=[];
     const cook={thaw:{},wash:{},fry:{},range:{},other:{}};   // 調理（方法別・全体集約）
     const conts={};   // 容器名 -> {prods:[], post:{}, none:{}, seals:{}}
-    const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false}; b[k].qty+=cnt; if(ing&&ing.ct)b[k].ct=true; };
+    const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false,per:1}; b[k].qty+=cnt; if(ing&&ing.ct)b[k].ct=true; if(ing&&ing.per>1)b[k].per=ing.per; };
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
