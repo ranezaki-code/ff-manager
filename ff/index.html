@@ -4107,9 +4107,6 @@ function renderProductCard(p){
           <label style="font-size:11px;color:#555;display:block">必要シール（カンマ区切り）
             <input type="text" value="${(p.mkSeals||'').replace(/"/g,'&quot;')}" placeholder="例：からあげ弁当シール" style="width:100%;font-size:12px;padding:3px 6px;margin-top:2px" onchange="setProdField('${p.id}','mkSeals',this.value)">
           </label>
-          <label style="font-size:11px;color:#555;display:block">盛り付け用調味料（カンマ区切り）
-            <input type="text" value="${(p.mkPlateSeason||'').replace(/"/g,'&quot;')}" placeholder="例：マヨネーズ、キャベツ、ソース" style="width:100%;font-size:12px;padding:3px 6px;margin-top:2px" onchange="setProdField('${p.id}','mkPlateSeason',this.value)">
-          </label>
         </div>
       </div>`:''}
     </div>`:''}
@@ -4148,7 +4145,7 @@ function setProdTimeMS(pid,key,minStr,secStr){
   setProdField(pid,key,total);
 }
 // ===== 使用食材（食材ごとに調理方法を複数設定。どっちもOK） =====
-const ING_METHODS=[['thaw','解凍'],['range','レンジ'],['fry','フライ'],['other','その他']];
+const ING_METHODS=[['thaw','解凍'],['range','レンジ'],['fry','フライ'],['other','その他'],['none','なし']];
 function getIngs(p){
   const v=p.mkIngredients;
   if(Array.isArray(v))return v;
@@ -4855,6 +4852,17 @@ const MK_FLOW=[
   'POTでサーマルシール内容（プライスカード）確認',
   '売り場陳列（セールストーク）'
 ];
+// 作成後チェック：チェックON時に確認を表示（まちかど厨房は2項目、それ以外は作成登録のみ）
+function confirmCreate(chkKey,pid,el){
+  if(!el.checked){ setCheck(chkKey,false); return; }   // 解除時は確認なし
+  const p=getP(pid);
+  const isMk=p&&/まちかど厨房/.test(p.category||'');
+  const msg=isMk
+    ? '【作成後の確認】\n\n① プライスカードのチェックは行いましたか？\n② タブレットに作成登録はしましたか？\n\n両方できていれば「OK」を押してください。'
+    : '【作成後の確認】\n\nタブレットに作成登録はしましたか？\n\n登録済みなら「OK」を押してください。';
+  if(confirm(msg)){ setCheck(chkKey,true); }
+  else { el.checked=false; }                            // キャンセル＝チェックを戻す
+}
 function renderMachikadoPrep(dayIdx,cfg,prods){
   // 時間帯ごとに「炊飯・フライ・レンジ・後付け調味料・シール」だけをまとめて表示（シンプル）
   let slotsHtml='';
@@ -4865,7 +4873,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   }).join('、');
   cfg.slots.forEach(slotH=>{
     const typeCount={}; const slotProds=[];
-    const mAgg={fry:{},range:{},thaw:{},other:{}};   // 工程ごとに食材を集約（食材は主工程に1回だけ）
+    const mAgg={fry:{},range:{},thaw:{},other:{},none:{}};   // 工程ごとに食材を集約（食材は主工程に1回だけ）
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
@@ -4874,7 +4882,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       getIngs(p).forEach(ing=>{
         if(!ing.n||!ing.n.trim())return;
         const ms=ing.m||[];
-        const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('thaw')?'thaw':'other';
+        const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('thaw')?'thaw':ms.includes('other')?'other':'none';
         const key=ing.n.trim(), b=mAgg[prim];
         if(!b[key])b[key]={qty:0,ct:false};
         b[key].qty+=cnt;
@@ -4884,8 +4892,8 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     if(!slotProds.length)return;
     const typeLine=['弁当','調理パン','総菜'].filter(t=>typeCount[t]).map(t=>`${t}${typeCount[t]}`).join('・');
     const bento=typeCount['弁当']||0;
-    const aPlate=aggField(slotProds,'mkPlateSeason'), aCont=aggField(slotProds,'mkContSeason'), aSeal=aggField(slotProds,'mkSeals');
-    const season=[aPlate,aCont].filter(Boolean).join('、');
+    const aCont=aggField(slotProds,'mkContSeason'), aSeal=aggField(slotProds,'mkSeals');
+    const season=[_items(mAgg.none),aCont].filter(Boolean).join('、');
     const row=(label,val)=> val?`<div style="display:flex;gap:10px;padding:3px 0;font-size:13px;line-height:1.6"><span style="color:#9a3412;font-weight:700;min-width:88px;flex-shrink:0">${label}</span><span style="flex:1">${val}</span></div>`:'';
     let rows='';
     if(bento>0) rows+=row('炊飯',`${bento+1}食　<span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)} 開始</span>`);
@@ -5435,7 +5443,7 @@ function renderProdDayContent(dayIdx){
             ${soBadges?`<span style="display:flex;flex-wrap:wrap;justify-content:center;gap:1px">${soBadges}</span>`:''}
             <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
               <input type="checkbox" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}
-                onchange="setCheck('${chkKey}',this.checked)" style="margin:0">
+                onchange="confirmCreate('${chkKey}','${p.id}',this)" style="margin:0">
               ${skipBtn}
               <button type="button" onclick="openSoldOutModal('${p.id}',${dayIdx},${slotH})" title="完売した時刻を入力して追加作成数を提案"
                 style="padding:0;width:18px;height:18px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;line-height:1">🔔</button>
