@@ -24,14 +24,15 @@ th,td{border:1px solid var(--border);padding:4px 6px;font-size:12px;text-align:c
 th{background:var(--main-lt);font-weight:600;color:var(--main)}
 
 /* Layout */
-#app{display:flex;flex-direction:column;min-height:100vh}
+#app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
 #header{background:var(--main);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px}
 #header h1{font-size:16px;flex:1}
 #header .store-name{font-size:12px;opacity:.8}
 #tabs{display:flex;overflow-x:auto;background:var(--main-dk);border-bottom:2px solid var(--accent)}
 .tab-btn{flex:none;padding:10px 14px;color:#fff;background:transparent;border:none;border-radius:0;font-size:13px;opacity:.7;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer}
 .tab-btn.active{opacity:1;border-bottom:3px solid var(--accent);background:rgba(33,150,243,.15)}
-#content{flex:1;padding:12px;overflow-x:hidden}
+#content{flex:1;padding:12px;overflow-x:hidden;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 
@@ -218,7 +219,7 @@ th{background:var(--main-lt);font-weight:600;color:var(--main)}
 .wizard-nav{display:flex;justify-content:space-between;margin-top:16px}
 
 /* Bottom bar */
-#bottom-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:8px 12px;display:flex;gap:8px;z-index:50}
+#bottom-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:8px 12px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;z-index:50}
 
 /* Alert */
 .alert{border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px}
@@ -2613,6 +2614,7 @@ function showTab(n){
   currentTab=n;
   document.getElementById('fab-bot').classList.toggle('show',n===3);
   document.getElementById('bottom-bar').style.display=n===3?'flex':'none';
+  document.body.classList.toggle('has-bottombar',n===3);  // 固定下部バーの分だけ本文に余白を確保
   if(n===3) renderProdDayContent(currentProdDay);
   if(n===4) renderBudgetTab();
   if(n===5) renderOrderTable();
