@@ -4084,6 +4084,12 @@ function renderProductCard(p){
               ${[['','—'],['弁当','弁当'],['調理パン','調理パン'],['総菜','総菜']].map(([v,l])=>`<option value="${v}" ${(p.mkType||'')===v?'selected':''}>${l}</option>`).join('')}
             </select>
           </label>
+          <label style="font-size:11px;color:#555">容器
+            <select onchange="setProdField('${p.id}','mkContainer',this.value)" style="font-size:12px;margin-left:4px;padding:2px 4px">
+              <option value="">—</option>
+              ${MK_CONTAINERS.map(c=>`<option ${(p.mkContainer||'')===c?'selected':''}>${_escMk(c)}</option>`).join('')}
+            </select>
+          </label>
         </div>
         <div style="margin-top:8px">
           <label style="font-size:11px;color:#555;display:block;margin-bottom:4px">使用食材（食材ごとに調理方法を選択・複数可）</label>
@@ -4117,7 +4123,7 @@ function renderProductCard(p){
 }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
-const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason']);
+const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason','mkContainer']);
 
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
@@ -4149,6 +4155,7 @@ function setProdTimeMS(pid,key,minStr,secStr){
 }
 // ===== 使用食材（食材ごとに調理方法を複数設定。どっちもOK） =====
 const ING_METHODS=[['thaw','解凍'],['wash','水洗い'],['range','レンジ'],['fry','フライ'],['other','その他'],['post','後付け'],['none','なし']];
+const MK_CONTAINERS=['調理パン用フードパック','調理パン用兼用袋','調理パン用ドッグロール袋','紙容器','惣菜容器','仕切り付き弁当容器','プレート容器'];
 function getIngs(p){
   const v=p.mkIngredients;
   if(Array.isArray(v))return v;
@@ -4895,40 +4902,65 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   }).join('、');
   cfg.slots.forEach(slotH=>{
     const typeCount={}; const slotProds=[];
-    const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}};   // 調理方法ごとに食材を集約（食材は主方法に1回だけ）
+    const cook={thaw:{},wash:{},fry:{},range:{},other:{}};   // 調理（方法別・全体集約）
+    const conts={};   // 容器名 -> {prods:[], post:{}, none:{}, seals:{}}
+    const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false}; b[k].qty+=cnt; if(ing&&ing.ct)b[k].ct=true; };
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
       if(p.mkType)typeCount[p.mkType]=(typeCount[p.mkType]||0)+cnt;
       slotProds.push({p,cnt});
+      const cName=(p.mkContainer||'').trim()||'容器未設定';
+      if(!conts[cName])conts[cName]={prods:[],post:{},none:{},seals:{}};
+      const g=conts[cName];
+      g.prods.push({name:p.name,cnt});
+      String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>{ g.seals[s]=(g.seals[s]||0)+cnt; });
       getIngs(p).forEach(ing=>{
         if(!ing.n||!ing.n.trim())return;
-        const ms=ing.m||[];
-        const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('wash')?'wash':ms.includes('thaw')?'thaw':ms.includes('other')?'other':ms.includes('post')?'post':'none';
-        const key=ing.n.trim(), b=mAgg[prim];
-        if(!b[key])b[key]={qty:0,ct:false};
-        b[key].qty+=cnt;
-        if(ing.ct)b[key].ct=true;
+        const ms=ing.m||[], key=ing.n.trim();
+        if(ms.includes('fry'))addTo(cook.fry,key,cnt,ing);
+        else if(ms.includes('range'))addTo(cook.range,key,cnt,ing);
+        else if(ms.includes('wash'))addTo(cook.wash,key,cnt,ing);
+        else if(ms.includes('thaw'))addTo(cook.thaw,key,cnt,ing);
+        else if(ms.includes('other'))addTo(cook.other,key,cnt,ing);
+        else if(ms.includes('post'))addTo(g.post,key,cnt,ing);
+        else addTo(g.none,key,cnt,ing);
       });
     });
     if(!slotProds.length)return;
     const typeLine=['弁当','調理パン','総菜'].filter(t=>typeCount[t]).map(t=>`${t}${typeCount[t]}`).join('・');
     const bento=typeCount['弁当']||0;
-    const aSeal=aggField(slotProds,'mkSeals');
-    const row=(label,val)=> val?`<div style="display:flex;gap:10px;padding:3px 0;font-size:13px;line-height:1.6"><span style="color:#9a3412;font-weight:700;min-width:72px;flex-shrink:0">${label}</span><span style="flex:1">${val}</span></div>`:'';
-    let rows='';
-    if(bento>0) rows+=row('炊飯',`${bento+1}食　<span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)} 開始</span>`);
-    if(Object.keys(mAgg.thaw).length)  rows+=row('解凍',_items(mAgg.thaw));
-    if(Object.keys(mAgg.wash).length)  rows+=row('水洗い',_items(mAgg.wash));
-    if(Object.keys(mAgg.fry).length)   rows+=row('フライ',_items(mAgg.fry));
-    if(Object.keys(mAgg.range).length) rows+=row('レンジ',_items(mAgg.range));
-    if(Object.keys(mAgg.other).length) rows+=row('その他',_items(mAgg.other));
-    if(Object.keys(mAgg.post).length)  rows+=row('後付け',_items(mAgg.post));
-    if(Object.keys(mAgg.none).length)  rows+=row('そのまま',_items(mAgg.none));
-    rows+=row('シール',aSeal);
-    slotsHtml+=`<div style="margin-bottom:10px;border:1px solid #fde68a;border-radius:10px;padding:9px 12px;background:#fffdf7">
-      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">🕐 ${fmtHour(slotH)}作成 → 完成 ${fmtHour(slotH+PREP_HOURS)}${typeLine?`　<span style="font-size:11px;font-weight:600;background:#fef3c7;border-radius:6px;padding:2px 8px">${typeLine}</span>`:''}</div>
-      ${rows}
+    const _kv=(o)=>Object.keys(o).map(k=>`${k}<span style="color:#1d4ed8;font-weight:700">×${o[k]}</span>`).join('、');
+    const row=(label,val,color)=> val?`<div style="display:flex;gap:10px;padding:2px 0;font-size:13px;line-height:1.55"><span style="color:${color||'#9a3412'};font-weight:700;min-width:60px;flex-shrink:0">${label}</span><span style="flex:1">${val}</span></div>`:'';
+    const subHead=(t)=>`<div style="font-size:11px;font-weight:700;color:#7c2d12;background:#fde8c8;border-radius:6px;padding:3px 9px;margin:8px 0 4px">${t}</div>`;
+    // ── 下準備・調理（方法別・全体集約） ──
+    let cookRows='';
+    if(bento>0) cookRows+=row('炊飯',`${bento+1}食　<span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)} 開始</span>`);
+    if(Object.keys(cook.thaw).length)  cookRows+=row('解凍',_items(cook.thaw));
+    if(Object.keys(cook.wash).length)  cookRows+=row('水洗い',_items(cook.wash));
+    if(Object.keys(cook.fry).length)   cookRows+=row('フライ',_items(cook.fry));
+    if(Object.keys(cook.range).length) cookRows+=row('レンジ',_items(cook.range));
+    if(Object.keys(cook.other).length) cookRows+=row('その他',_items(cook.other));
+    // ── 容器・仕上げ（容器ごとに 対象商品＋後付け＋盛付＋シール） ──
+    const contOrder=Object.keys(conts).sort((a,b)=> (a==='容器未設定')-(b==='容器未設定') || a.localeCompare(b,'ja'));
+    let contBlocks='';
+    contOrder.forEach(cn=>{
+      const g=conts[cn], isUnset=cn==='容器未設定';
+      const prodList=g.prods.map(o=>`${o.name}<span style="color:#1d4ed8;font-weight:700">×${o.cnt}</span>`).join('、');
+      let sub='';
+      if(Object.keys(g.post).length)  sub+=row('後付け',_items(g.post));
+      if(Object.keys(g.none).length)  sub+=row('盛付',_items(g.none));
+      if(Object.keys(g.seals).length) sub+=row('シール',_kv(g.seals));
+      contBlocks+=`<div style="border:1px solid ${isUnset?'#fecaca':'#fed7aa'};border-radius:8px;padding:6px 9px;margin-bottom:6px;background:${isUnset?'#fef2f2':'#fff'}">
+        <div style="font-size:12px;font-weight:700;color:${isUnset?'#b91c1c':'#7c2d12'};margin-bottom:2px">${isUnset?'⚠️ ':'📦 '}${cn}　<span style="color:#334155;font-weight:600">${prodList}</span></div>
+        ${sub||'<div style="font-size:11px;color:#9ca3af">後付け・シールなし</div>'}
+      </div>`;
+    });
+    slotsHtml+=`<div style="margin-bottom:12px;border:1px solid #fde68a;border-radius:10px;padding:9px 12px;background:#fffdf7">
+      <div style="font-size:13px;font-weight:700;color:#92400e">🕐 ${fmtHour(slotH)}作成 → 完成 ${fmtHour(slotH+PREP_HOURS)}${typeLine?`　<span style="font-size:11px;font-weight:600;background:#fef3c7;border-radius:6px;padding:2px 8px">${typeLine}</span>`:''}</div>
+      ${cookRows?subHead('🔥 下準備・調理')+cookRows:''}
+      ${subHead('📦 容器・仕上げ（容器ごとにシール・後付けを確認）')}
+      ${contBlocks}
     </div>`;
   });
   let thawHtml='';
