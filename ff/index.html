@@ -4856,15 +4856,13 @@ const MK_FLOW=[
   '売り場陳列（セールストーク）'
 ];
 function renderMachikadoPrep(dayIdx,cfg,prods){
-  // 各時間帯を「工程フロー（炊飯→フライまとめて→レンジ→盛付→シール→POT→陳列）＋各工程の総数」で表示
+  // 時間帯ごとに「炊飯・フライ・レンジ・後付け調味料・シール」だけをまとめて表示（シンプル）
   let slotsHtml='';
-  const _prefix=(it)=> it.pt?'<span style="color:#2563eb;font-size:11px">前日解凍済→</span>'
-                     : it.thaw?'<span style="color:#2563eb;font-size:11px">解凍→</span>':'';
-  const _listItems=(bucket)=>Object.keys(bucket).map(nm=>{
+  const _items=(bucket)=>Object.keys(bucket).map(nm=>{
     const it=bucket[nm];
-    const ct=it.ct?' <span style="color:#dc2626;font-size:11px">🌡中心温度</span>':'';
-    return `${_prefix(it)}${nm} <span style="font-size:15px;color:#1d4ed8;font-weight:700">×${it.qty}</span>${ct}`;
-  }).join('　／　');
+    const ct=it.ct?'<span style="color:#dc2626;font-size:11px"> 🌡</span>':'';
+    return `${nm}<span style="color:#1d4ed8;font-weight:700">×${it.qty}</span>${ct}`;
+  }).join('、');
   cfg.slots.forEach(slotH=>{
     const typeCount={}; const slotProds=[];
     const mAgg={fry:{},range:{},thaw:{},other:{}};   // 工程ごとに食材を集約（食材は主工程に1回だけ）
@@ -4878,43 +4876,28 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
         const ms=ing.m||[];
         const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('thaw')?'thaw':'other';
         const key=ing.n.trim(), b=mAgg[prim];
-        if(!b[key])b[key]={qty:0,thaw:false,pt:false,ct:false};
+        if(!b[key])b[key]={qty:0,ct:false};
         b[key].qty+=cnt;
-        if(ms.includes('thaw'))b[key].thaw=true;
-        if(ing.pt)b[key].pt=true;
         if(ing.ct)b[key].ct=true;
       });
     });
     if(!slotProds.length)return;
     const typeLine=['弁当','調理パン','総菜'].filter(t=>typeCount[t]).map(t=>`${t}${typeCount[t]}`).join('・');
-    // ── 工程フロー（存在する工程だけ連番）──
-    let n=0, steps='';
-    const step=(id,icon,title,body,hint)=>{
-      n++;
-      const k=`mkstep_${dayIdx}_${slotH}_${id}`, ck=!!S.checks[k];
-      steps+=`<label style="display:flex;gap:9px;align-items:flex-start;padding:7px 2px;border-bottom:1px solid #f3f4f6;cursor:pointer">
-        <input type="checkbox" ${ck?'checked':''} onchange="setCheck('${k}',this.checked)" style="margin-top:3px;flex-shrink:0">
-        <div style="flex:1;min-width:0;${ck?'opacity:.45':''}">
-          <div style="font-size:13px;line-height:1.55;${ck?'text-decoration:line-through':''}"><span style="display:inline-block;min-width:16px;color:#c2410c;font-weight:700">${n}.</span>${icon} <b style="color:#9a3412">${title}</b>${body?`　${body}`:''}</div>
-          ${hint?`<div style="font-size:11px;color:#9ca3af;margin:2px 0 0 16px;line-height:1.5">${hint}</div>`:''}
-        </div>
-      </label>`;
-    };
     const bento=typeCount['弁当']||0;
-    if(bento>0) step('rice','🍚','炊飯',`<span style="font-size:15px;font-weight:700">${bento+1}食</span> <span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)} 浸水開始</span>`,'30分以上浸水 → 1時間炊飯 → 半製品タブレット登録 → かき混ぜ（焦げ防止）');
-    if(Object.keys(mAgg.fry).length)   step('fry','🍤','フライ',`<span style="color:#9a3412;font-size:12px">まとめて揚げる</span><br>${_listItems(mAgg.fry)}`,'');
-    if(Object.keys(mAgg.range).length) step('range','📡','レンジアップ',_listItems(mAgg.range),'');
-    if(Object.keys(mAgg.thaw).length)  step('thaw','❄️','解凍',_listItems(mAgg.thaw),'');
-    if(Object.keys(mAgg.other).length) step('other','🔧','その他の下準備',_listItems(mAgg.other),'');
     const aPlate=aggField(slotProds,'mkPlateSeason'), aCont=aggField(slotProds,'mkContSeason'), aSeal=aggField(slotProds,'mkSeals');
-    const plateHint=[aPlate?`盛付調味料：${aPlate}`:'',aCont?`容器取付：${aCont}`:''].filter(Boolean).join('　／　');
-    step('plate','🥗','盛り付け・梱包','',plateHint);
-    step('seal','🏷','サーマルシール発行＋作成登録','',aSeal?`必要シール：${aSeal}`:'');
-    step('pot','📦','POTでプライスカード確認','','');
-    step('disp','🛒','売り場へ陳列','','');
-    slotsHtml+=`<div style="margin-bottom:12px;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;background:#fffdf7">
-      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:3px">🕐 ${fmtHour(slotH)}作成 → 完成 ${fmtHour(slotH+PREP_HOURS)}${typeLine?`　<span style="font-size:11px;font-weight:600;background:#fef3c7;border-radius:6px;padding:2px 8px">${typeLine}</span>`:''}</div>
-      <div>${steps}</div>
+    const season=[aPlate,aCont].filter(Boolean).join('、');
+    const row=(label,val)=> val?`<div style="display:flex;gap:10px;padding:3px 0;font-size:13px;line-height:1.6"><span style="color:#9a3412;font-weight:700;min-width:88px;flex-shrink:0">${label}</span><span style="flex:1">${val}</span></div>`:'';
+    let rows='';
+    if(bento>0) rows+=row('炊飯',`${bento+1}食　<span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)} 開始</span>`);
+    if(Object.keys(mAgg.thaw).length)  rows+=row('解凍',_items(mAgg.thaw));
+    if(Object.keys(mAgg.fry).length)   rows+=row('フライ',_items(mAgg.fry));
+    if(Object.keys(mAgg.range).length) rows+=row('レンジ',_items(mAgg.range));
+    if(Object.keys(mAgg.other).length) rows+=row('その他',_items(mAgg.other));
+    rows+=row('後付け調味料',season);
+    rows+=row('シール',aSeal);
+    slotsHtml+=`<div style="margin-bottom:10px;border:1px solid #fde68a;border-radius:10px;padding:9px 12px;background:#fffdf7">
+      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">🕐 ${fmtHour(slotH)}作成 → 完成 ${fmtHour(slotH+PREP_HOURS)}${typeLine?`　<span style="font-size:11px;font-weight:600;background:#fef3c7;border-radius:6px;padding:2px 8px">${typeLine}</span>`:''}</div>
+      ${rows}
     </div>`;
   });
   let thawHtml='';
@@ -4929,7 +4912,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   return `<div style="margin-top:10px;border-top:2px dashed #fed7aa;padding-top:10px">
     <div style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none" onclick="toggleMkPrep()">
       <span style="font-size:16px;color:#9a3412">${_mkPrepOpen?'▼':'▶'}</span>
-      <span style="font-size:14px;font-weight:700;color:#9a3412">🍱 作成フロー（時間帯ごとに上から順に進める）</span>
+      <span style="font-size:14px;font-weight:700;color:#9a3412">🍱 まちかど 事前準備</span>
     </div>
     ${_mkPrepOpen?`<div style="margin-top:8px">
       ${slotsHtml||'<div style="font-size:12px;color:#9ca3af;margin-bottom:8px">この日は作成数がありません</div>'}
