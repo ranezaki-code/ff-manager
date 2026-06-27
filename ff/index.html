@@ -4101,6 +4101,7 @@ function renderProductCard(p){
                 ${ING_METHODS.map(mm=>{const on=(ing.m||[]).includes(mm[0]);return `<button type="button" onclick="mkIngMethod('${p.id}',${i},'${mm[0]}')" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${on?'#2563eb':'#d1d5db'};background:${on?'#2563eb':'#fff'};color:${on?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">${mm[1]}</button>`;}).join('')}
                 <button type="button" onclick="mkIngFlag('${p.id}',${i},'ct')" title="中心温度測定が必要" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.ct?'#dc2626':'#d1d5db'};background:${ing.ct?'#dc2626':'#fff'};color:${ing.ct?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">🌡中心温度</button>
                 <button type="button" onclick="mkIngFlag('${p.id}',${i},'pt')" title="前日に解凍が必要" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.pt?'#2563eb':'#d1d5db'};background:${ing.pt?'#2563eb':'#fff'};color:${ing.pt?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">❄️前日解凍</button>
+                <button type="button" onclick="mkIngFlag('${p.id}',${i},'nc')" title="ブラックペッパー等、数で数えない食材は数量を非表示（適量と表示）" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.nc?'#7c3aed':'#d1d5db'};background:${ing.nc?'#7c3aed':'#fff'};color:${ing.nc?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">適量(数量なし)</button>
               </div>
               <label style="font-size:11px;color:#555;white-space:nowrap" title="この食材1つで何個分つくれるか（例：2個で1袋なら 2）。半分使い・小分けに対応">
                 <input type="number" min="1" step="1" value="${ing.per||1}" onchange="mkIngPer('${p.id}',${i},this.value)" style="width:40px;font-size:11px;padding:2px 4px;margin-right:2px">個で1
@@ -4901,74 +4902,60 @@ function confirmCreate(chkKey,pid,el){
 function renderMachikadoPrep(dayIdx,cfg,prods){
   // 時間帯ごとに「炊飯・フライ・レンジ・後付け調味料・シール」だけをまとめて表示（シンプル）
   let slotsHtml='';
+  // 調理方法ごとの色（フライ/レンジ等を一目で区別）
+  const MSTYLE={
+    rice:['🍚 炊飯','#fef3c7','#92400e'],
+    thaw:['❄️ 解凍','#dbeafe','#1e40af'],
+    wash:['💧 水洗い','#d1fae5','#065f46'],
+    fry:['🍤 フライ','#ffedd5','#9a3412'],
+    range:['📡 レンジ','#e0e7ff','#3730a3'],
+    other:['🔧 その他','#f1f5f9','#475569'],
+    post:['➕ 後付け','#f3e8ff','#6b21a8'],
+    plate:['🥄 盛付','#fce7f3','#9d174d'],
+    seal:['🏷 シール','#fef9c3','#854d0e']
+  };
   const _items=(bucket)=>Object.keys(bucket).map(nm=>{
-    const it=bucket[nm], per=it.per||1;
-    const units=per>1?Math.ceil(it.qty/per):it.qty;
-    const sub=per>1?`<span style="color:#94a3b8;font-size:10px">(${it.qty}個分)</span>`:'';
+    const it=bucket[nm];
     const ct=it.ct?'<span style="color:#dc2626;font-size:11px"> 🌡</span>':'';
+    if(it.nc) return `${nm}<span style="color:#94a3b8;font-size:11px"> 適量</span>${ct}`;   // 数量非表示の食材
+    const per=it.per||1, units=per>1?Math.ceil(it.qty/per):it.qty;
+    const sub=per>1?`<span style="color:#94a3b8;font-size:10px">(${it.qty}個分)</span>`:'';
     return `${nm}<span style="color:#1d4ed8;font-weight:700">×${units}</span>${sub}${ct}`;
   }).join('、');
   cfg.slots.forEach(slotH=>{
     const typeCount={}; const slotProds=[];
-    const cook={thaw:{},wash:{},fry:{},range:{},other:{}};   // 調理（方法別・全体集約）
-    const conts={};   // 容器名 -> {prods:[], post:{}, none:{}, seals:{}}
-    const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false,per:1}; b[k].qty+=cnt; if(ing&&ing.ct)b[k].ct=true; if(ing&&ing.per>1)b[k].per=ing.per; };
+    const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}};   // 調理方法ごとに食材を集約（食材は主方法に1回だけ）
+    const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false,per:1,nc:false}; b[k].qty+=cnt; if(ing){ if(ing.ct)b[k].ct=true; if(ing.per>1)b[k].per=ing.per; if(ing.nc)b[k].nc=true; } };
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
       if(p.mkType)typeCount[p.mkType]=(typeCount[p.mkType]||0)+cnt;
       slotProds.push({p,cnt});
-      const cName=(p.mkContainer||'').trim()||'容器未設定';
-      if(!conts[cName])conts[cName]={prods:[],post:{},none:{},seals:{}};
-      const g=conts[cName];
-      g.prods.push({name:p.name,cnt});
-      String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>{ g.seals[s]=(g.seals[s]||0)+cnt; });
       getIngs(p).forEach(ing=>{
         if(!ing.n||!ing.n.trim())return;
         const ms=ing.m||[], key=ing.n.trim();
-        if(ms.includes('fry'))addTo(cook.fry,key,cnt,ing);
-        else if(ms.includes('range'))addTo(cook.range,key,cnt,ing);
-        else if(ms.includes('wash'))addTo(cook.wash,key,cnt,ing);
-        else if(ms.includes('thaw'))addTo(cook.thaw,key,cnt,ing);
-        else if(ms.includes('other'))addTo(cook.other,key,cnt,ing);
-        else if(ms.includes('post'))addTo(g.post,key,cnt,ing);
-        else addTo(g.none,key,cnt,ing);
+        const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('wash')?'wash':ms.includes('thaw')?'thaw':ms.includes('other')?'other':ms.includes('post')?'post':'none';
+        addTo(mAgg[prim],key,cnt,ing);
       });
     });
     if(!slotProds.length)return;
     const typeLine=['弁当','調理パン','総菜'].filter(t=>typeCount[t]).map(t=>`${t}${typeCount[t]}`).join('・');
     const bento=typeCount['弁当']||0;
-    const _kv=(o)=>Object.keys(o).map(k=>`${k}<span style="color:#1d4ed8;font-weight:700">×${o[k]}</span>`).join('、');
-    const row=(label,val)=> val?`<div style="display:flex;gap:8px;padding:1px 0;font-size:12px;line-height:1.5"><span style="color:#9a3412;font-weight:700;min-width:46px;flex-shrink:0">${label}</span><span style="flex:1">${val}</span></div>`:'';
-    const subHead=(t)=>`<div style="font-size:11px;font-weight:700;color:#9a3412;margin:6px 0 2px;border-bottom:1px solid #fde68a">${t}</div>`;
-    // ── 下準備・調理（方法別・全体集約） ──
-    let cookRows='';
-    if(bento>0) cookRows+=row('炊飯',`${bento+1}食 <span style="color:#b45309;font-weight:700">▶${fmtHM(slotH-1.5)}</span>`);
-    if(Object.keys(cook.thaw).length)  cookRows+=row('解凍',_items(cook.thaw));
-    if(Object.keys(cook.wash).length)  cookRows+=row('水洗い',_items(cook.wash));
-    if(Object.keys(cook.fry).length)   cookRows+=row('フライ',_items(cook.fry));
-    if(Object.keys(cook.range).length) cookRows+=row('レンジ',_items(cook.range));
-    if(Object.keys(cook.other).length) cookRows+=row('その他',_items(cook.other));
-    // ── 容器別 仕上げ（容器ごとに 後付け・盛付・シールを1行で） ──
-    const contOrder=Object.keys(conts).sort((a,b)=> (a==='容器未設定')-(b==='容器未設定') || a.localeCompare(b,'ja'));
-    let contBlocks='';
-    contOrder.forEach(cn=>{
-      const g=conts[cn], isUnset=cn==='容器未設定';
-      const prodList=g.prods.map(o=>`${o.name}<span style="color:#1d4ed8;font-weight:700">×${o.cnt}</span>`).join('、');
-      const parts=[];
-      if(Object.keys(g.seals).length) parts.push(`🏷${_kv(g.seals)}`);
-      if(Object.keys(g.post).length)  parts.push(`後付 ${_items(g.post)}`);
-      if(Object.keys(g.none).length)  parts.push(`盛付 ${_items(g.none)}`);
-      contBlocks+=`<div style="padding:2px 0;font-size:12px;line-height:1.5">
-        <div style="font-weight:700;color:${isUnset?'#b91c1c':'#7c2d12'}">${isUnset?'⚠️':'📦'} ${cn}　<span style="color:#334155">${prodList}</span></div>
-        ${parts.length?`<div style="color:#475569;padding-left:18px">${parts.join('　／　')}</div>`:''}
-      </div>`;
-    });
+    const aSeal=aggField(slotProds,'mkSeals');
+    const mrow=(sk,items)=>{ const s=MSTYLE[sk]; return `<div style="display:flex;gap:9px;align-items:baseline;padding:4px 0;border-top:1px solid #f1f5f9"><span style="flex-shrink:0;width:66px;font-size:11px;font-weight:700;background:${s[1]};color:${s[2]};border-radius:6px;padding:3px 0;text-align:center">${s[0]}</span><span style="flex:1;font-size:13px;line-height:1.5">${items}</span></div>`; };
+    let rows='';
+    if(bento>0) rows+=mrow('rice',`${bento+1}食　<span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)}</span>`);
+    if(Object.keys(mAgg.thaw).length)  rows+=mrow('thaw',_items(mAgg.thaw));
+    if(Object.keys(mAgg.wash).length)  rows+=mrow('wash',_items(mAgg.wash));
+    if(Object.keys(mAgg.fry).length)   rows+=mrow('fry',_items(mAgg.fry));
+    if(Object.keys(mAgg.range).length) rows+=mrow('range',_items(mAgg.range));
+    if(Object.keys(mAgg.other).length) rows+=mrow('other',_items(mAgg.other));
+    if(Object.keys(mAgg.post).length)  rows+=mrow('post',_items(mAgg.post));
+    if(Object.keys(mAgg.none).length)  rows+=mrow('plate',_items(mAgg.none));
+    if(aSeal) rows+=mrow('seal',aSeal);
     slotsHtml+=`<div style="margin-bottom:10px;border:1px solid #fde68a;border-radius:10px;padding:8px 11px;background:#fffdf7">
-      <div style="font-size:13px;font-weight:700;color:#92400e">🕐 ${fmtHour(slotH)}作成 → 完成 ${fmtHour(slotH+PREP_HOURS)}${typeLine?`　<span style="font-size:11px;font-weight:600;color:#b45309">${typeLine}</span>`:''}</div>
-      ${cookRows?subHead('下準備・調理')+cookRows:''}
-      ${subHead('容器別 仕上げ')}
-      ${contBlocks}
+      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:3px">🕐 ${fmtHour(slotH)}作成 → 完成 ${fmtHour(slotH+PREP_HOURS)}${typeLine?`　<span style="font-size:11px;font-weight:600;color:#b45309">${typeLine}</span>`:''}</div>
+      ${rows}
     </div>`;
   });
   let thawHtml='';
