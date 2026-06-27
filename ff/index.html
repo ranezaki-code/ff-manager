@@ -4117,10 +4117,12 @@ function renderProductCard(p){
                 ${ING_METHODS.map(mm=>{const on=(ing.m||[]).includes(mm[0]);return `<button type="button" onclick="mkIngMethod('${p.id}',${i},'${mm[0]}')" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${on?'#2563eb':'#d1d5db'};background:${on?'#2563eb':'#fff'};color:${on?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">${mm[1]}</button>`;}).join('')}
                 <button type="button" onclick="mkIngFlag('${p.id}',${i},'ct')" title="中心温度測定が必要" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.ct?'#dc2626':'#d1d5db'};background:${ing.ct?'#dc2626':'#fff'};color:${ing.ct?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">🌡中心温度</button>
                 <button type="button" onclick="mkIngFlag('${p.id}',${i},'pt')" title="前日に解凍が必要" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.pt?'#2563eb':'#d1d5db'};background:${ing.pt?'#2563eb':'#fff'};color:${ing.pt?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">❄️前日解凍</button>
-                <button type="button" onclick="mkIngFlag('${p.id}',${i},'nc')" title="ブラックペッパー等、数で数えない食材は数量を非表示（適量と表示）" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.nc?'#7c3aed':'#d1d5db'};background:${ing.nc?'#7c3aed':'#fff'};color:${ing.nc?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">適量(数量なし)</button>
               </div>
-              <label style="font-size:11px;color:#555;white-space:nowrap" title="この食材1つで何個分つくれるか（例：2個で1袋なら 2）。半分使い・小分けに対応">
-                <input type="number" min="1" step="1" value="${ing.per||1}" onchange="mkIngPer('${p.id}',${i},this.value)" style="width:40px;font-size:11px;padding:2px 4px;margin-right:2px">個で1
+              <label style="font-size:11px;color:#555;white-space:nowrap" title="この商品1個あたりの使用量（½＝2個で1つ・適量＝数えない）。商品ごとに個別計算されます">
+                使用量
+                <select onchange="mkIngUse('${p.id}',${i},this.value)" style="font-size:11px;padding:2px 4px;margin-left:2px">
+                  ${ING_USES.map(([v,l])=>`<option value="${v}" ${ingUse(ing)===v?'selected':''}>${l}</option>`).join('')}
+                </select>
               </label>
               <button type="button" onclick="mkIngDel('${p.id}',${i})" title="この食材を削除" style="padding:2px 7px;font-size:12px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:6px;cursor:pointer">✕</button>
             </div>`).join('')}
@@ -4202,6 +4204,17 @@ function mkIngName(pid,i,val){ const p=getP(pid);if(!p)return; const a=_ensureIn
 function mkIngMethod(pid,i,method){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; if(!Array.isArray(a[i].m))a[i].m=[]; const idx=a[i].m.indexOf(method); if(idx>=0)a[i].m.splice(idx,1); else a[i].m.push(method); saveS();renderProductCards(); }
 function mkIngFlag(pid,i,flag){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; a[i][flag]=!a[i][flag]; saveS();renderProductCards(); }
 function mkIngPer(pid,i,val){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; const n=Math.max(1,Math.round(Number(val)||1)); if(n<=1)delete a[i].per; else a[i].per=n; saveS(); } // 再描画せずフォーカス維持
+// 1商品あたりの使用量（1個/½個/⅓個/¼個/適量）。旧 per(何個で1) / nc(適量) からも判定
+const ING_USES=[['1','1個'],['1/2','½個'],['1/3','⅓個'],['1/4','¼個'],['tekiryo','適量']];
+const _USE_FACTOR={'1':1,'1/2':0.5,'1/3':1/3,'1/4':0.25};
+function ingUse(ing){
+  if(ing&&ing.use)return ing.use;
+  if(ing&&ing.nc)return 'tekiryo';
+  const p=(ing&&ing.per)||1;
+  if(p>=4)return '1/4'; if(p===3)return '1/3'; if(p===2)return '1/2';
+  return '1';
+}
+function mkIngUse(pid,i,val){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; delete a[i].per; delete a[i].nc; if(val==='1')delete a[i].use; else a[i].use=val; saveS(); } // 再描画せずフォーカス維持
 function _escMk(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 // 全商品で使った食材を名前で一意化（=一度登録すれば他商品でも選んで使い回せる）
 function getIngMaster(){
@@ -4209,7 +4222,7 @@ function getIngMaster(){
   (S.PM||[]).forEach(p=>{
     getIngs(p).forEach(ing=>{
       const n=(ing.n||'').trim(); if(!n)return;
-      if(!m[n]) m[n]={n, m:[...(ing.m||[])], ct:!!ing.ct, pt:!!ing.pt, per:ing.per||1};
+      if(!m[n]) m[n]={n, m:[...(ing.m||[])], ct:!!ing.ct, pt:!!ing.pt, use:ingUse(ing)};
     });
   });
   return Object.values(m).sort((a,b)=>a.n.localeCompare(b.n,'ja'));
@@ -4219,7 +4232,7 @@ function mkIngAddFromMaster(pid,name){
   if(!name)return; const p=getP(pid); if(!p)return;
   const src=getIngMaster().find(x=>x.n===name);
   const ni=src?{n:src.n, m:[...src.m], ct:src.ct, pt:src.pt}:{n:name,m:[]};
-  if(src&&src.per>1)ni.per=src.per;
+  if(src&&src.use&&src.use!=='1')ni.use=src.use;
   _ensureIngs(p).push(ni);
   saveS();renderProductCards();
 }
@@ -4944,18 +4957,17 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     cont:['📦 容器','#fae8d6','#7c2d12'],
     seal:['🏷 シール','#fef9c3','#854d0e']
   };
+  const _fmtQ=(q)=>{ const r=Math.round(q*100)/100; return String(r); };   // 小数を綺麗に（1.5 等）
   const _items=(bucket)=>Object.keys(bucket).map(nm=>{
     const it=bucket[nm];
     const ct=it.ct?'<span style="color:#dc2626;font-size:11px"> 🌡</span>':'';
-    if(it.nc) return `${nm}<span style="color:#94a3b8;font-size:11px"> 適量</span>${ct}`;   // 数量非表示の食材
-    const per=it.per||1, units=per>1?Math.ceil(it.qty/per):it.qty;
-    const sub=per>1?`<span style="color:#94a3b8;font-size:10px">(${it.qty}個分)</span>`:'';
-    return `${nm}<span style="color:#1d4ed8;font-weight:700">×${units}</span>${sub}${ct}`;
+    if(it.qty<=0&&it.tekiryo) return `${nm}<span style="color:#94a3b8;font-size:11px"> 適量</span>${ct}`;
+    return `${nm}<span style="color:#1d4ed8;font-weight:700">×${_fmtQ(it.qty)}</span>${it.tekiryo?'<span style="color:#94a3b8;font-size:10px"> +適量</span>':''}${ct}`;
   }).join('、');
   cfg.slots.forEach(slotH=>{
     const typeCount={}; const slotProds=[]; const contCnt={};
     const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}};   // 調理方法ごとに食材を集約（食材は主方法に1回だけ）
-    const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false,per:1,nc:false}; b[k].qty+=cnt; if(ing){ if(ing.ct)b[k].ct=true; if(ing.per>1)b[k].per=ing.per; if(ing.nc)b[k].nc=true; } };
+    const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false,tekiryo:false}; const u=ingUse(ing||{}); if(u==='tekiryo')b[k].tekiryo=true; else b[k].qty+=cnt*(_USE_FACTOR[u]||1); if(ing&&ing.ct)b[k].ct=true; };
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
@@ -4995,8 +5007,8 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   let thawHtml='';
   if(dayIdx<6){
     const nd=dayIdx+1,thawAgg={};
-    prods.forEach(p=>{let tot=0;cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));if(tot<=0)return;getIngs(p).forEach(ing=>{if(ing.pt)thawAgg[ing.n]=(thawAgg[ing.n]||0)+tot;});});
-    const thawItems=Object.keys(thawAgg).map(n=>`${n}<span style="color:#1d4ed8;font-weight:700"> ×${thawAgg[n]}</span>`);
+    prods.forEach(p=>{let tot=0;cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));if(tot<=0)return;getIngs(p).forEach(ing=>{if(ing.pt){const u=ingUse(ing);if(u!=='tekiryo')thawAgg[ing.n]=(thawAgg[ing.n]||0)+tot*(_USE_FACTOR[u]||1);}});});
+    const thawItems=Object.keys(thawAgg).map(n=>`${n}<span style="color:#1d4ed8;font-weight:700"> ×${_fmtQ(thawAgg[n])}</span>`);
     if(thawItems.length)thawHtml=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 11px;margin-top:10px">
       <div style="color:#1e40af;font-weight:700;font-size:13px">❄️ 明日（${DAYS[nd]||''}）の事前解凍　<span style="font-size:11px;font-weight:600;color:#3b82f6">今日のうちに解凍しておく分</span></div>
       <div style="font-size:13px;color:#1e3a8a;line-height:1.7;margin-top:2px">${thawItems.join('、')}</div></div>`;
@@ -5442,7 +5454,7 @@ function renderProdDayContent(dayIdx){
     html+=`<div class="section-title" style="cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap" onclick="toggleCatCollapse('${cat}')">
       <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
       <span>${cat}</span>
-      ${_st.state==='none'?'':`<span style="background:${_badgeBg};color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${_badgeTxt}</span>`}
+      ${(_st.state==='none'||_st.state==='future')?'':`<span style="background:${_badgeBg};color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${_badgeTxt}</span>`}
       <span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;line-height:1.4">🗑 販売許容${cfg.ah}時間</span>
     </div>`;
     if(_isCollapsed){
