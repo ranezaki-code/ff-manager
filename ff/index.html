@@ -4941,6 +4941,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     other:['🔧 その他','#f1f5f9','#475569'],
     post:['➕ 後付け','#f3e8ff','#6b21a8'],
     plate:['🥄 盛付','#fce7f3','#9d174d'],
+    cont:['📦 容器','#fae8d6','#7c2d12'],
     seal:['🏷 シール','#fef9c3','#854d0e']
   };
   const _items=(bucket)=>Object.keys(bucket).map(nm=>{
@@ -4952,13 +4953,14 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     return `${nm}<span style="color:#1d4ed8;font-weight:700">×${units}</span>${sub}${ct}`;
   }).join('、');
   cfg.slots.forEach(slotH=>{
-    const typeCount={}; const slotProds=[];
+    const typeCount={}; const slotProds=[]; const contCnt={};
     const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}};   // 調理方法ごとに食材を集約（食材は主方法に1回だけ）
     const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false,per:1,nc:false}; b[k].qty+=cnt; if(ing){ if(ing.ct)b[k].ct=true; if(ing.per>1)b[k].per=ing.per; if(ing.nc)b[k].nc=true; } };
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
       if(p.mkType)typeCount[p.mkType]=(typeCount[p.mkType]||0)+cnt;
+      const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
       slotProds.push({p,cnt});
       getIngs(p).forEach(ing=>{
         if(!ing.n||!ing.n.trim())return;
@@ -4981,20 +4983,23 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     if(Object.keys(mAgg.other).length) rows+=mrow('other',_items(mAgg.other));
     if(Object.keys(mAgg.post).length)  rows+=mrow('post',_items(mAgg.post));
     if(Object.keys(mAgg.none).length)  rows+=mrow('plate',_items(mAgg.none));
+    const contStr=Object.keys(contCnt).map(k=>`${k}<span style="color:#1d4ed8;font-weight:700">×${contCnt[k]}</span>`).join('、');
+    if(contStr) rows+=mrow('cont',contStr);
     if(aSeal) rows+=mrow('seal',aSeal);
     slotsHtml+=`<div style="margin-bottom:10px;border:1px solid #fde68a;border-radius:10px;padding:8px 11px;background:#fffdf7">
       <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:3px">🕐 ${fmtHour(slotH)}作成 → 完成 ${fmtHour(slotH+PREP_HOURS)}${typeLine?`　<span style="font-size:11px;font-weight:600;color:#b45309">${typeLine}</span>`:''}</div>
       ${rows}
     </div>`;
   });
+  // 明日分の事前解凍（pt=前日解凍 の食材を翌日作成数で集計）→ 事前準備の「下」に独立表示
   let thawHtml='';
   if(dayIdx<6){
     const nd=dayIdx+1,thawAgg={};
     prods.forEach(p=>{let tot=0;cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));if(tot<=0)return;getIngs(p).forEach(ing=>{if(ing.pt)thawAgg[ing.n]=(thawAgg[ing.n]||0)+tot;});});
-    const thawItems=Object.keys(thawAgg).map(n=>`${n} ×${thawAgg[n]}`);
-    if(thawItems.length)thawHtml=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px;margin-bottom:8px">
-      <div style="color:#1e40af;font-weight:700;font-size:12px">❄️ 前日解凍（明日の分の食材を今日のうちに）</div>
-      <div style="font-size:11px;color:#1d4ed8;line-height:1.6">${thawItems.join(' ・ ')}</div></div>`;
+    const thawItems=Object.keys(thawAgg).map(n=>`${n}<span style="color:#1d4ed8;font-weight:700"> ×${thawAgg[n]}</span>`);
+    if(thawItems.length)thawHtml=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 11px;margin-top:10px">
+      <div style="color:#1e40af;font-weight:700;font-size:13px">❄️ 明日（${DAYS[nd]||''}）の事前解凍　<span style="font-size:11px;font-weight:600;color:#3b82f6">今日のうちに解凍しておく分</span></div>
+      <div style="font-size:13px;color:#1e3a8a;line-height:1.7;margin-top:2px">${thawItems.join('、')}</div></div>`;
   }
   return `<div style="margin-top:10px;border-top:2px dashed #fed7aa;padding-top:10px">
     <div style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none" onclick="toggleMkPrep()">
@@ -5003,8 +5008,8 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     </div>
     ${_mkPrepOpen?`<div style="margin-top:8px">
       ${slotsHtml||'<div style="font-size:12px;color:#9ca3af;margin-bottom:8px">この日は作成数がありません</div>'}
-      ${thawHtml}
     </div>`:''}
+    ${thawHtml}
   </div>`;
 }
 
