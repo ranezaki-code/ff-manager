@@ -251,7 +251,10 @@ const SYSTEMS = {
   bumon:{url:'./bumon/index.html',label:'担当部門'}
 };
 // 統合アプリ内で開くことを各システムに伝える（重複UI非表示＋Gist同期停止のため）
-function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1';}
+// v=このapp.html起動時刻 を付けて、各システムHTMLの更新が必ず最新で読み込まれるようにする
+// （クエリ違いでブラウザキャッシュを回避。localStorageはオリジン単位なのでデータには影響しない）
+const BUILD = Date.now();
+function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1&v='+BUILD;}
 const DATA_FILENAME = '経営データ.json';
 // Driveファイルへ保存しないキー（端末ローカルの一時バックアップ類）
 const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_)/;

@@ -5451,9 +5451,14 @@ function renderSlotGroupedView(dayIdx){
       });
       if(!rows.length)return;
       const sc=slotSeqColor(cat,slotH), doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah;
-      const rowsHtml=rows.map(({p,grandTotal,extra})=>{
+      const _hasGrp=catHasGroups(cat);
+      const _sortedRows=_hasGrp?[...rows].sort((a,b)=>{const ga=prodGroup(a.p).order,gb=prodGroup(b.p).order;return ga!==gb?ga-gb:((a.p.order??0)-(b.p.order??0));}):rows;
+      let _lastGrp=null;
+      const rowsHtml=_sortedRows.map(({p,grandTotal,extra})=>{
         const chkKey=`${di}_${slotH}_${p.id}`, checked=!!S.checks[chkKey], skipped=!!(S.skipped&&S.skipped[chkKey]);
-        return `<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
+        let _grpHdr='';
+        if(_hasGrp){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
+        return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
           <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
           <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">投資+${extra}</span>`:''}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">在庫欠品</span>':''}</span>
           <span style="font-size:21px;font-weight:800;color:#1d4ed8;min-width:34px;text-align:right">${grandTotal}</span>
