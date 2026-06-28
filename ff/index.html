@@ -2944,6 +2944,12 @@ function getInvestExtra(pid,dayIdx,slotH){
   const perDay=isInvest?(S.budget.investCounts[p.id]||0):(S.budget.newProductCounts[p.id]||0);
   if(!perDay)return 0;
   const numSlots=cfg.slots.length;
+  const batch=getBatchUnit(p);
+  if(batch>1){
+    // 最低作成数(バッチ)単位で配分：各スロットは batch の倍数になる（自然算出も batch 倍数なので合計が奇数化しない）
+    const totalBatches=Math.round(perDay/batch);
+    return (Math.floor(totalBatches/numSlots)+(slotIdx<(totalBatches%numSlots)?1:0))*batch;
+  }
   // perDay個をnumSlotsスロットに均等配分（余りは前スロットへ）
   return Math.floor(perDay/numSlots)+(slotIdx<(perDay%numSlots)?1:0);
 }
