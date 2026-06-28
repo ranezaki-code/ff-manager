@@ -3773,12 +3773,12 @@ function renderProductCards(){
     cats.forEach(cat=>{
       html+=`<div style="margin:10px 0 4px 0;padding:6px 10px;background:var(--main-lt);border-left:4px solid var(--main);border-radius:6px;font-size:13px;font-weight:700;color:var(--main)">${tCat(cat)}</div>`;
       let list=sorted.filter(p=>p.category===cat);
-      if(cat==='まちかど厨房'||cat==='まちかど厨房新商品'){
-        list=[...list].sort((a,b)=>{const ga=mkGroup(a).order,gb=mkGroup(b).order;return ga!==gb?ga-gb:((a.order??0)-(b.order??0));});
+      if(catHasGroups(cat)){
+        list=[...list].sort((a,b)=>{const ga=prodGroup(a).order,gb=prodGroup(b).order;return ga!==gb?ga-gb:((a.order??0)-(b.order??0));});
         let lastGrp=null;
         list.forEach(p=>{
-          const g=mkGroup(p);
-          if(g.key!==lastGrp){ lastGrp=g.key;
+          const g=prodGroup(p);
+          if(g&&g.key!==lastGrp){ lastGrp=g.key;
             html+=`<div style="margin:6px 0 3px 14px;padding:3px 9px;font-size:12px;font-weight:700;color:#7c2d12;background:#fde8c8;border-radius:6px;display:inline-block">${g.label}</div>`;
           }
           html+=renderProductCard(p);
@@ -3914,6 +3914,11 @@ function renderProductCard(p){
         <select onchange="setProdField('${p.id}','category',this.value)">
           ${CATS.map(c=>`<option ${p.category===c?'selected':''} value="${c}">${tCat(c)}</option>`).join('')}
         </select></div>
+      ${subCatsFor(p.category)?`<div><label>種類</label>
+        <select onchange="setProdField('${p.id}','subType',this.value)">
+          <option value="">—</option>
+          ${subCatsFor(p.category).map(s=>`<option ${(p.subType||'')===s?'selected':''} value="${_escMk(s)}">${_escMk(s)}</option>`).join('')}
+        </select></div>`:''}
       <!-- (B) バッチ単位（最低作成単位） -->
       <div style="grid-column:span 2"><label>最低作成単位（バッチサイズ）
         <span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:6px">この単位ずつ作成（2食ずつしか作れない商品は「2」）。通常商品は「1」のまま</span>
@@ -4192,6 +4197,21 @@ function mkGroup(p){
   }
   if(t==='総菜')   return {key:'総菜',order:2,label:'🥗 総菜'};
   return {key:'未設定',order:9,label:'❓ 小分類 未設定'};
+}
+// カテゴリ別のサブ分類（ホットFF等）。新商品カテゴリは元カテゴリと共有
+const SUBCATS={'ホットFF':['からあげクン','フライドチキン','スティック']};
+function subCatsFor(cat){ const base=(cat||'').endsWith('新商品')?cat.slice(0,-3):cat; return SUBCATS[base]||null; }
+function catHasGroups(cat){ return cat==='まちかど厨房'||cat==='まちかど厨房新商品'||!!subCatsFor(cat); }
+// 商品のサブグループ（まちかどは小分類/パン種別、それ以外はサブ分類）。無ければnull
+function prodGroup(p){
+  if(p.category==='まちかど厨房'||p.category==='まちかど厨房新商品') return mkGroup(p);
+  const opts=subCatsFor(p.category);
+  if(opts){
+    const st=(p.subType||'').trim(), i=opts.indexOf(st);
+    if(i>=0) return {key:p.category+':'+st, order:i, label:'🍗 '+st};
+    return {key:p.category+':_', order:9, label:'❓ 未分類'};
+  }
+  return null;
 }
 function getIngs(p){
   const v=p.mkIngredients;
@@ -5485,15 +5505,15 @@ function renderProdDayContent(dayIdx){
     html+=`</tr></thead><tbody>`;
 
     const _circled=(i)=>{const a=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];return a[i]||`(${i+1})`;};
-    // まちかど厨房は小分類（弁当→調理パン[パン種別]→総菜→未設定）でグループ分けして表示
-    const _isMkCat=(cat==='まちかど厨房'||cat==='まちかど厨房新商品');
-    const _rowProds=_isMkCat?[...prods].sort((a,b)=>{const ga=mkGroup(a).order,gb=mkGroup(b).order;return ga!==gb?ga-gb:((a.order??0)-(b.order??0));}):prods;
+    // サブ分類のあるカテゴリ（まちかど＝小分類/パン種別、ホットFF＝種類）はグループ見出しで分割表示
+    const _hasGrp=catHasGroups(cat);
+    const _rowProds=_hasGrp?[...prods].sort((a,b)=>{const ga=prodGroup(a).order,gb=prodGroup(b).order;return ga!==gb?ga-gb:((a.order??0)-(b.order??0));}):prods;
     const _mkColspan=1+cfg.slots.length;
     let _mkLastGrp=null;
     _rowProds.forEach((p,pi)=>{
-      if(_isMkCat){
-        const _g=mkGroup(p);
-        if(_g.key!==_mkLastGrp){ _mkLastGrp=_g.key;
+      if(_hasGrp){
+        const _g=prodGroup(p);
+        if(_g&&_g.key!==_mkLastGrp){ _mkLastGrp=_g.key;
           html+=`<tr><td colspan="${_mkColspan}" style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:5px 8px;text-align:left;border-top:2px solid #fcd34d">${_g.label}</td></tr>`;
         }
       }
