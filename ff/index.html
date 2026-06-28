@@ -5424,7 +5424,7 @@ function mkSlotPrepRows(dayIdx,slotH){
   if(!hasMk)return '';
   const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' 適量'; return escapeHtmlP(nm)+'×'+(Math.round(it.qty*100)/100);});
   const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+o[k]);
-  const _row=(label,items)=>items.length?`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px;line-height:1.5"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">${label}</span><span style="flex:1">${items.join('、')}</span></div>`:'';
+  const _row=(label,items)=>items.length?`<div style="display:flex;gap:8px;padding:3px 0;font-size:13px;line-height:1.5;border-top:1px solid #f3e8d0"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">${label}</span><span style="flex:1">${items.map(it=>`<div style="padding:1px 0">${it}</div>`).join('')}</span></div>`:'';
   let rows='';
   if(bento>0)rows+=`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px;line-height:1.5"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">炊飯</span><span style="flex:1">${bento+1}食　▶ ${fmtHM(slotH-1.5)} 開始</span></div>`;
   rows+=_row('解凍',_it(mAgg.thaw))+_row('水洗い',_it(mAgg.wash))+_row('フライ',_it(mAgg.fry))+_row('レンジ',_it(mAgg.range))+_row('その他',_it(mAgg.other))+_row('後付け',_it(mAgg.post))+_row('盛付',_it(mAgg.none))+_row('容器',_kv(contCnt))+_row('シール',_kv(seals));
