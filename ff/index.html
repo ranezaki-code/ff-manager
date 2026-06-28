@@ -572,37 +572,57 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
 
     <!-- Tab 4: 予算管理 -->
     <div class="tab-panel" id="tab4">
-      <div class="card">
-        <div class="section-title" id="budget-jisseki-title">先週の実績サマリー</div>
-        <div class="overflow-auto"><div id="budget-jisseki"></div></div>
+      <!-- 予算管理 サブタブ -->
+      <div class="card" style="padding:6px;margin-bottom:10px">
+        <div id="bud-subtabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
       </div>
-      <div class="card">
-        <div class="section-title" id="budget-plan-title">予算計画</div>
-        <div id="budget-plan"></div>
-      </div>
-      <div class="card">
-        <div class="section-title" id="budget-daily-title">曜日別サマリー</div>
-        <div class="overflow-auto"><div id="budget-daily"></div></div>
-      </div>
-      <div class="card">
-        <div class="section-title">週次予算設定（手動）</div>
-        <div id="budget-manual"></div>
-      </div>
-      <div class="card">
-        <div class="section-title">☁️ クラウド同期（GitHub Gist）</div>
-        <div id="gist-sync-panel"></div>
-      </div>
-      <div class="card">
-        <div class="section-title">データ管理</div>
-        <div class="flex gap-2 flex-wrap">
-          <button class="btn-primary" onclick="exportData()">エクスポート</button>
-          <button class="btn-secondary" onclick="importData()">インポート</button>
-          <button class="btn-success" onclick="openRecoveryModal()" title="自動バックアップから過去のデータに戻す">🛟 データ復元</button>
-          <button class="btn-danger" onclick="resetSetup()">店舗設定をリセット</button>
+
+      <!-- 📊 先週実績 -->
+      <div id="bud-actual" class="bud-sub">
+        <div class="card">
+          <div class="section-title" id="budget-jisseki-title">先週の実績サマリー</div>
+          <div class="overflow-auto"><div id="budget-jisseki"></div></div>
         </div>
-        <div style="margin-top:8px;font-size:11px;color:#6b7280;line-height:1.6">
-          自動バックアップ：保存のたびに最大1分間隔でスナップショット（端末内に20件＋IndexedDBに30件）。<br>
-          リセット・インポート・取得の直前にも退避を作成しています。誤操作で消えた時は「🛟 データ復元」から戻せます。
+      </div>
+
+      <!-- 🎯 来週の計画 -->
+      <div id="bud-plan" class="bud-sub">
+        <div class="card">
+          <div class="section-title" id="budget-plan-title">予算計画</div>
+          <div id="bud-plan-summary"></div>
+        </div>
+        <div class="card">
+          <div class="section-title" id="budget-daily-title">曜日別サマリー</div>
+          <div class="overflow-auto"><div id="budget-daily"></div></div>
+        </div>
+      </div>
+
+      <!-- ⚙️ 投資・設定 -->
+      <div id="bud-invest" class="bud-sub">
+        <div class="card">
+          <div class="section-title">📈 投資・新商品の予算</div>
+          <div id="bud-invest-tables"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">週次予算設定（手動）</div>
+          <div id="budget-manual"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">☁️ クラウド同期（GitHub Gist）</div>
+          <div id="gist-sync-panel"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">データ管理</div>
+          <div class="flex gap-2 flex-wrap">
+            <button class="btn-primary" onclick="exportData()">エクスポート</button>
+            <button class="btn-secondary" onclick="importData()">インポート</button>
+            <button class="btn-success" onclick="openRecoveryModal()" title="自動バックアップから過去のデータに戻す">🛟 データ復元</button>
+            <button class="btn-danger" onclick="resetSetup()">店舗設定をリセット</button>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#6b7280;line-height:1.6">
+            自動バックアップ：保存のたびに最大1分間隔でスナップショット（端末内に20件＋IndexedDBに30件）。<br>
+            リセット・インポート・取得の直前にも退避を作成しています。誤操作で消えた時は「🛟 データ復元」から戻せます。
+          </div>
         </div>
       </div>
 
@@ -5973,6 +5993,17 @@ function checkCurrentSlot(){
 // ============================================================
 // TAB 4: 予算管理
 // ============================================================
+let _budSub='plan';   // 予算管理のサブタブ：actual=先週実績 / plan=来週の計画 / invest=投資・設定
+function applyBudSub(){
+  const tabs=[['actual','📊 先週実績'],['plan','🎯 来週の計画'],['invest','⚙️ 投資・設定']];
+  const bar=document.getElementById('bud-subtabs');
+  if(bar) bar.innerHTML=tabs.map(([k,l])=>{
+    const on=k===_budSub;
+    return `<button onclick="switchBudSub('${k}')" style="flex:1;min-width:96px;padding:9px 6px;font-size:13px;font-weight:700;border-radius:8px;border:1px solid ${on?'var(--main)':'#e5e7eb'};background:${on?'var(--main)':'#fff'};color:${on?'#fff':'#475569'};cursor:pointer">${l}</button>`;
+  }).join('');
+  ['actual','plan','invest'].forEach(k=>{ const el=document.getElementById('bud-'+k); if(el)el.style.display=(k===_budSub)?'':'none'; });
+}
+function switchBudSub(name){ _budSub=name; applyBudSub(); window.scrollTo(0,0); }
 function renderBudgetTab(){
   renderBudgetTitles();
   renderBudgetJisseki();
@@ -5980,6 +6011,7 @@ function renderBudgetTab(){
   renderBudgetDaily();
   renderBudgetManual();
   renderGistPanel();
+  applyBudSub();
 }
 
 function renderBudgetTitles(){
@@ -6206,87 +6238,70 @@ function renderBudgetPlan(){
   const haikuRate=sumAll?(sumHaiki/sumAll*100).toFixed(1):0;
   const nebikiRateDisp=sumAll?(sumNebiki/sumAll*100).toFixed(1):0;
 
-  el.innerHTML=`
-    <div class="summary-grid">
-      <div class="summary-box">
-        <div class="label">${t('budget.nextMake')}</div>
-        <div class="value">${fmt(nextMake)}</div><div class="unit">${t('common.yen')}</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${t('budget.nextMakeNote')}</div>
+  // ===== 🎯 来週の計画：来週の売上・利益・利益率を主役に、細かい内訳は折りたたみ =====
+  const _yen=v=>fmt(v)+'円';
+  const _hero=(label,val,sub,color)=>`<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 8px;text-align:center">
+      <div style="font-size:12px;color:#64748b;margin-bottom:4px">${label}</div>
+      <div style="font-size:23px;font-weight:800;color:${color||'var(--text)'};line-height:1.1">${val}</div>
+      ${sub?`<div style="font-size:10px;color:#94a3b8;margin-top:3px">${sub}</div>`:''}
+    </div>`;
+  const _mini=(label,val,color)=>`<div style="background:#f8fafc;border-radius:10px;padding:9px 8px;text-align:center">
+      <div style="font-size:11px;color:#64748b">${label}</div>
+      <div style="font-size:16px;font-weight:700;color:${color||'var(--text)'}">${val}</div>
+    </div>`;
+  const planEl=document.getElementById('bud-plan-summary');
+  if(planEl) planEl.innerHTML=`
+    ${noDataProds.length?`<div class="alert alert-warn" style="background:#fff8e1;border:1px solid #f59e0b;border-radius:8px;padding:9px 12px;margin-bottom:8px;font-size:12px">⚠️ <b>実績データなし商品が${noDataProds.length}件</b>（廃棄率100%で計算）：<span style="color:#92400e">${noDataProds.join('、')}</span></div>`:''}
+    ${!hasNebikiHaiki?'<div class="alert alert-info">💡 廃棄額・値引額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</div>':''}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+      ${_hero('来週の売上',_yen(nextSalesAmt),'作成高 − 売変額')}
+      ${_hero('来週の利益',_yen(nextProfitAmt),'売上 − 原価',pColor)}
+      ${_hero('利益率',nextProfitRate.toFixed(1)+'%','',pColor)}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      ${_mini('作成高',_yen(nextMake))}
+      ${_mini('売変額',_yen(nextUrihenAmt),'#b45309')}
+      ${_mini('売変率',nextUrihenRate.toFixed(1)+'%','#b45309')}
+    </div>
+    <details style="border:1px solid var(--border);border-radius:10px;margin-top:10px">
+      <summary style="cursor:pointer;padding:9px 12px;font-size:12px;font-weight:700;color:var(--main)">内訳（廃棄・値引・適正販売率・投資枠）</summary>
+      <div style="padding:2px 12px 12px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+        ${_mini('廃棄額（売価）',_yen(nextWasteAmt),'#b91c1c')}
+        ${_mini('値引額',_yen(nextDiscAmt),'#d97706')}
+        ${_mini('実績 適正販売率（全週累計）',sumAll?(tekisei_rate*100).toFixed(1)+'%':'--')}
+        ${_mini('投資できる上限',_yen(newBudgetMax),maxColor)}
       </div>
-      <div class="summary-box">
-        <div class="label">${t('budget.wasteAmt')}<span style="font-size:9px">${t('budget.priceBase')}</span></div>
-        <div class="value">${fmt(nextWasteAmt)}</div><div class="unit">${t('common.yen')}</div>
-        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?t('budget.wasteFormula').replace('{0}',haikuRate):t('budget.needWasteInput')}</div>
+    </details>`;
+
+  // ===== ⚙️ 投資・設定：投資枠サマリー＋商品別入力表 =====
+  const invEl=document.getElementById('bud-invest-tables');
+  if(invEl) invEl.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 8px;text-align:center">
+        <div style="font-size:11px;color:#166534">投資できる上限</div>
+        <div style="font-size:18px;font-weight:800;color:${newBudgetMax>=0?'#16a34a':'#dc2626'}">${fmt(newBudgetMax)}円</div>
       </div>
-      <div class="summary-box">
-        <div class="label">${t('budget.discAmt')}</div>
-        <div class="value">${fmt(nextDiscAmt)}</div><div class="unit">${t('common.yen')}</div>
-        <div style="font-size:10px;color:${hasNebikiHaiki?'#999':'var(--orange)'};margin-top:2px">${hasNebikiHaiki?t('budget.discFormula').replace('{0}',nebikiRateDisp):t('budget.needDiscInput')}</div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 8px;text-align:center">
+        <div style="font-size:11px;color:var(--main)">新商品予算</div>
+        <div style="font-size:18px;font-weight:800;color:var(--main)">${newBudgetTotalCnt}<span style="font-size:11px">個/日</span></div>
+        <div style="font-size:11px;color:var(--main)">${fmt(newBudgetFormal)}円/週</div>
       </div>
-      <div class="summary-box">
-        <div class="label">${t('budget.urihen')}</div>
-        <div class="value">${fmt(nextUrihenAmt)}</div><div class="unit">${t('common.yen')}</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${t('budget.urihenFormula')}</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">${t('budget.urihenRate')}</div>
-        <div class="value">${nextUrihenRate.toFixed(1)}</div><div class="unit">%</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${t('budget.urihenRateFormula')}</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">${t('budget.nextSales')}</div>
-        <div class="value">${fmt(nextSalesAmt)}</div><div class="unit">${t('common.yen')}</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${t('budget.nextSalesFormula')}</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">${t('budget.investCap')}</div>
-        <div class="value" style="color:${maxColor}">${fmt(newBudgetMax)}</div><div class="unit">${t('common.yen')}</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${t('budget.investCapNote')}</div>
-      </div>
-      <div class="summary-box" style="border:2px solid var(--main)">
-        <div class="label">${t('budget.newBudget')}</div>
-        <div class="value" style="color:var(--main)">${newBudgetTotalCnt}</div><div class="unit">${t('common.piece')}/${t('common.day')}</div>
-        <div style="font-size:11px;color:var(--main);font-weight:600;margin-top:2px">${fmt(newBudgetFormal)}${t('common.yen')}/${t('common.week')}</div>
-        <div style="font-size:10px;color:#999;margin-top:1px">${t('budget.formulaPerDay')}</div>
-      </div>
-      <div class="summary-box" style="border:2px solid var(--orange)">
-        <div class="label" style="color:var(--orange)">${t('budget.investBudget')}</div>
-        <div class="value" style="color:var(--orange)">${investBudgetTotalCnt}</div><div class="unit">${t('common.piece')}/${t('common.day')}</div>
-        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-top:2px">${fmt(investBudgetFormal)}${t('common.yen')}/${t('common.week')}</div>
-        <div style="font-size:10px;color:#999;margin-top:1px">${t('budget.formulaPerDay')}</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">${t('budget.nextProfit')}</div>
-        <div class="value" style="color:${pColor}">${fmt(nextProfitAmt)}</div><div class="unit">${t('common.yen')}</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${t('budget.nextProfitFormula')}</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">${t('budget.nextProfitRate')}</div>
-        <div class="value" style="color:${pColor}">${nextProfitRate.toFixed(1)}</div><div class="unit">%</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">${t('budget.nextProfitRateFormula')}</div>
-      </div>
-      <div class="summary-box">
-        <div class="label">実績 適正販売率<span style="font-size:9px">（全週累計）</span></div>
-        <div class="value" style="color:${sumAll?(tekisei_rate*100>=96?'var(--green)':tekisei_rate*100>=90?'var(--orange)':'var(--red)'):'#999'}">${sumAll?(tekisei_rate*100).toFixed(1):'--'}</div><div class="unit">%</div>
-        <div style="font-size:10px;color:#999;margin-top:2px">定価販売÷作成数（廃棄率算出の根拠）</div>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 8px;text-align:center">
+        <div style="font-size:11px;color:var(--orange)">定番投資予算</div>
+        <div style="font-size:18px;font-weight:800;color:var(--orange)">${investBudgetTotalCnt}<span style="font-size:11px">個/日</span></div>
+        <div style="font-size:11px;color:var(--orange)">${fmt(investBudgetFormal)}円/週</div>
       </div>
     </div>
-    ${noDataProds.length?`<div class="alert alert-warn" style="background:#fff8e1;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px">
-      ⚠️ <b>実績データなし商品が${noDataProds.length}件あります。廃棄率100%で計算しています。</b><br>
-      <span style="color:#92400e">対象商品：${noDataProds.join('、')}</span><br>
-      <span style="color:#78350f">→ これらの商品を作成計画から除外するか、①実績入力タブで実績を入力すると正確な計算になります。</span>
-    </div>`:''}
-    ${!hasNebikiHaiki?'<div class="alert alert-info">💡 <b>廃棄額・値引額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</b>実績タブで数値を入力すると反映されます。</div>':''}
-    <div style="margin-top:16px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:8px">📦 新商品予算（正式）— 商品別入力</div>
+    ${noDataProds.length?`<div class="alert alert-warn" style="background:#fff8e1;border:1px solid #f59e0b;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:12px">⚠️ 実績データなし商品が${noDataProds.length}件（廃棄率100%計算）：<span style="color:#92400e">${noDataProds.join('、')}</span></div>`:''}
+    <div style="margin-bottom:18px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px">📦 新商品予算 — 商品別入力</div>
       ${renderNewProductBudgetTable(newBudgetMax)}
     </div>
-    <div style="margin-top:16px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:var(--orange)">📈 定番投資予算（正式）— 商品別入力</div>
-      <div style="font-size:11px;color:#999;margin-bottom:8px">②商品設定で「定番投資対象」チェックONにした商品が表示されます</div>
+    <div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:var(--orange)">📈 定番投資予算 — 商品別入力</div>
+      <div style="font-size:11px;color:#999;margin-bottom:8px">②商品設定で「定番投資対象」ONの商品が表示されます</div>
       ${renderInvestBudgetTable(newBudgetMax,newBudgetFormal)}
-    </div>
-  `;
+    </div>`;
 }
 
 function renderNewProductBudgetTable(maxBudget){
