@@ -461,6 +461,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
           <button class="btn-primary" style="width:auto;margin:0;padding:6px 14px;font-size:13px" onclick="addProduct()" data-i18n="product.add">+ 商品追加</button>
           <button type="button" onclick="collapseAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.collapseAll">すべて閉じる</button>
           <button type="button" onclick="expandAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.expandAll">すべて開く</button>
+          <span id="cross-store-import"></span>
         </div>
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px">
           <span style="font-size:12px;color:#555;font-weight:600" data-i18n="product.sortLabel">並び順：</span>
@@ -3806,6 +3807,7 @@ function renderProductCards(){
     html=sorted.map(p=>renderProductCard(p)).join('');
   }
   el.innerHTML=html;
+  renderCrossStoreImport();   // 他店舗からの取り込みドロップダウンを更新
   // ドラッグ＆ドロップ: カード全体にイベント設定
   el.querySelectorAll('[data-pid]').forEach(card=>{
     card.addEventListener('dragstart',e=>{
@@ -4302,6 +4304,46 @@ function toggleProdTag(pid,tag,checked){
   saveS();renderProductCards();
 }
 
+// ===== 店舗間で商品を取り込む（店舗で変わらない共通情報だけコピー） =====
+// 除外：作成時間(minSlots)/最低数/有効化/並び順/発注ステータス/投資 など店舗固有の運用設定
+const SHARED_FIELDS=['name','category','subType','mkType','mkBread','mkContainer','cost','stdPrice','shopPrice','disc','markupRate','mkIngredients','mkSeals','prepMethod','microwaveMin','fryerMin','fryerCap','batchUnit'];
+function getOtherStoreProducts(){
+  const out=[], seen=new Set();
+  const cur=new Set((S.PM||[]).map(p=>(p.name||'').trim()+'|||'+(p.category||'')));
+  (storeList||[]).forEach(s=>{
+    if(s.id===currentStoreId)return;
+    let st; try{ st=JSON.parse(localStorage.getItem('ffv6_store_'+s.id)||'{}'); }catch(_){ return; }
+    (st.PM||[]).forEach(p=>{
+      const nm=(p.name||'').trim(); if(!nm)return;
+      const key=nm+'|||'+(p.category||'');
+      if(cur.has(key)||seen.has(key))return;   // 既に当店にある／他店間の重複は1つに
+      seen.add(key);
+      out.push({storeName:s.name||'(無名)', key, p});
+    });
+  });
+  return out.sort((a,b)=>(a.p.category||'').localeCompare(b.p.category||'','ja')||(a.p.name||'').localeCompare(b.p.name||'','ja'));
+}
+function addProductFromStore(key){
+  if(!key)return;
+  const found=getOtherStoreProducts().find(x=>x.key===key);
+  if(!found){ renderProductCards(); return; }
+  const src=found.p;
+  const maxOrder=(S.PM||[]).reduce((m,p)=>Math.max(m,p.order??0),-1);
+  const np={id:'p'+Date.now(), enabled:true, order:maxOrder+1, minCount:1};
+  SHARED_FIELDS.forEach(f=>{ if(src[f]!==undefined&&src[f]!==null) np[f]=JSON.parse(JSON.stringify(src[f])); });
+  if(!np.name)return;
+  S.PM.push(np);
+  saveS(); renderProductCards();
+}
+function renderCrossStoreImport(){
+  const host=document.getElementById('cross-store-import'); if(!host)return;
+  const others=getOtherStoreProducts();
+  if(!others.length){ host.innerHTML=''; return; }
+  const byStore={}; others.forEach(o=>{ (byStore[o.storeName]=byStore[o.storeName]||[]).push(o); });
+  const groups=Object.keys(byStore).map(sn=>`<optgroup label="${_escMk(sn)}">${byStore[sn].map(o=>`<option value="${_escMk(o.key)}">${_escMk(o.p.name)}（${_escMk(tCat(o.p.category))}）</option>`).join('')}</optgroup>`).join('');
+  host.innerHTML=`<select onchange="addProductFromStore(this.value);this.value='';" title="他店舗で登録済みの商品を、共通情報だけコピーして取り込みます（作成時間など店舗固有の設定は引き継ぎません）" style="padding:6px 10px;font-size:12px;border:1px solid #c4b5fd;border-radius:6px;background:#f5f3ff;color:#6d28d9;cursor:pointer;font-weight:600">
+    <option value="">＋ 他店舗の商品から取り込む</option>${groups}</select>`;
+}
 function addProduct(){
   const id='p'+(Date.now());
   const minOrder=S.PM.length?Math.min(...S.PM.map(p=>p.order??0)):0;
