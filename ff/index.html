@@ -5093,7 +5093,7 @@ function printMakePlan(){
         const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+o[k]);
         const _pr=(label,items)=>items.length?`<tr><td class="pp-l">${label}</td><td class="pp-v">${items.join('、')}</td></tr>`:'';
         let prep='';
-        if(bento>0)prep+=`<tr><td class="pp-l">炊飯</td><td class="pp-v">${bento+1}食　▶ ${fmtHM(slotH-1.5)} 開始</td></tr>`;
+        if(bento>0)prep+=`<tr><td class="pp-l">炊飯</td><td class="pp-v">${riceFlowHtml(bento,slotH)}</td></tr>`;
         prep+=_pr('解凍',_it(mAgg.thaw))+_pr('水洗い',_it(mAgg.wash))+_pr('フライ',_it(mAgg.fry))+_pr('レンジ',_it(mAgg.range))+_pr('その他',_it(mAgg.other))+_pr('後付け',_it(mAgg.post))+_pr('盛付',_it(mAgg.none))+_pr('容器',_kv(contCnt))+_pr('シール',_kv(seals));
         if(prep)body+=`<div class="pcat pp"><div class="pcat-head"><span class="pcat-name">🍱 まちかど 事前準備</span></div><table class="ptbl pptbl"><tbody>${prep}</tbody></table></div>`;
       }
@@ -5148,6 +5148,10 @@ function confirmCreate(chkKey,pid,el){
     : '【作成後の確認】\n\nタブレットに作成登録はしましたか？\n\n登録済みなら「OK」を押してください。';
   if(confirm(msg)){ setCheck(chkKey,true); }
   else { el.checked=false; }                            // キャンセル＝チェックを戻す
+}
+// 炊飯フローをコンパクト1行で表示。slotH=炊上り(=作成)時刻。浸水30分→炊飯ON→1時間後炊上り→登録・かき混ぜ
+function riceFlowHtml(bento,slotH){
+  return `${bento+1}食　<b>${fmtHM(slotH-1.5)}</b>浸水 → <b>${fmtHM(slotH-1)}</b>炊飯ON → <b>${fmtHM(slotH)}</b>炊上り→登録・かき混ぜ`;
 }
 function renderMachikadoPrep(dayIdx,cfg,prods){
   // 時間帯ごとに「炊飯・フライ・レンジ・後付け調味料・シール」だけをまとめて表示（シンプル）
@@ -5205,7 +5209,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       }).join('');
       return `<div style="display:flex;gap:9px;align-items:flex-start;padding:4px 0;border-top:1px solid #f1f5f9"><span style="flex-shrink:0;width:66px;font-size:11px;font-weight:700;background:${s[1]};color:${s[2]};border-radius:6px;padding:3px 0;text-align:center">${s[0]}</span><span style="flex:1;font-size:13px;line-height:1.45">${body}</span></div>`; };
     let rows='';
-    if(bento>0) rows+=mrow('rice',[{k:'rice',h:`${bento+1}食　<span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)}</span>`}]);
+    if(bento>0) rows+=mrow('rice',[{k:'rice',h:riceFlowHtml(bento,slotH)}]);
     if(Object.keys(mAgg.thaw).length)  rows+=mrow('thaw',_items(mAgg.thaw));
     if(Object.keys(mAgg.wash).length)  rows+=mrow('wash',_items(mAgg.wash));
     if(Object.keys(mAgg.fry).length)   rows+=mrow('fry',_items(mAgg.fry));
@@ -5426,7 +5430,7 @@ function mkSlotPrepRows(dayIdx,slotH){
   const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+o[k]);
   const _row=(label,items)=>items.length?`<div style="display:flex;gap:8px;padding:3px 0;font-size:13px;line-height:1.5;border-top:1px solid #f3e8d0"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">${label}</span><span style="flex:1">${items.map(it=>`<div style="padding:1px 0">${it}</div>`).join('')}</span></div>`:'';
   let rows='';
-  if(bento>0)rows+=`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px;line-height:1.5"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">炊飯</span><span style="flex:1">${bento+1}食　▶ ${fmtHM(slotH-1.5)} 開始</span></div>`;
+  if(bento>0)rows+=`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px;line-height:1.5"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">炊飯</span><span style="flex:1">${riceFlowHtml(bento,slotH)}</span></div>`;
   rows+=_row('解凍',_it(mAgg.thaw))+_row('水洗い',_it(mAgg.wash))+_row('フライ',_it(mAgg.fry))+_row('レンジ',_it(mAgg.range))+_row('その他',_it(mAgg.other))+_row('後付け',_it(mAgg.post))+_row('盛付',_it(mAgg.none))+_row('容器',_kv(contCnt))+_row('シール',_kv(seals));
   return rows;
 }
@@ -5628,11 +5632,7 @@ function renderProdDayContent(dayIdx){
   html+=renderStickerChart();     // 🏷 廃棄シール早見表（トグルで開閉）
   // 外部ファクト関連の天気/温度/イベント/補正%、週総客数は非表示
   // （外部ファクトタブを使わない運用に合わせて削除）
-  html+=`${(()=>{
-    const hasInvest=S.PM.some(p=>p.enabled&&(p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)));
-    return hasInvest?'<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:6px 12px;font-size:11px;color:#92400e;margin-bottom:6px">📈 <b>黄色セル</b> = 投資/新商品追加分（⑤予算管理で設定）　<a onclick="showTab(4)" style="color:var(--main);cursor:pointer;text-decoration:underline">→ 予算管理で編集</a></div>':''
-  })()}
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+  html+=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
     <span style="font-size:12px;color:#555;font-weight:600">並び順：</span>
     <div style="display:inline-flex;background:#f3f4f6;padding:3px;border-radius:8px;gap:2px">
       <button onclick="setProdSortMode('default')"
