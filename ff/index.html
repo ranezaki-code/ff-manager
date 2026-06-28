@@ -4953,20 +4953,23 @@ function selectProdDay(i){currentProdDay=i;renderProdDayTabs();renderProdDayCont
 function toggleMakeRules(){const b=document.getElementById('make-rules-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 function toggleCellGuide(){const b=document.getElementById('cell-guide-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 // ===== 廃棄シール色分け（作成時刻ベース：同じ作成時刻＝同じ色・全カテゴリ共通） =====
-const STICKER_PALETTE=[
-  {bg:'#ef4444',name:'赤'},{bg:'#f59e0b',name:'黄'},{bg:'#22c55e',name:'緑'},
-  {bg:'#3b82f6',name:'青'},{bg:'#a855f7',name:'紫'},{bg:'#ec4899',name:'桃'},
-  {bg:'#14b8a6',name:'青緑'},{bg:'#f97316',name:'橙'},{bg:'#64748b',name:'灰'},{bg:'#854d0e',name:'茶'}
+// 廃棄シール色（全カテゴリ共通・作成回数ベース）：1回目=青/2回目=黄/3回目=赤/4回目=白/それ以外=黒
+const STICKER_SEQ=[
+  {bg:'#2563eb',name:'青',fg:'#ffffff'},
+  {bg:'#f59e0b',name:'黄',fg:'#ffffff'},
+  {bg:'#dc2626',name:'赤',fg:'#ffffff'},
+  {bg:'#ffffff',name:'白',fg:'#374151',border:'#94a3b8'}
 ];
-let _slotColorMap={};
-function buildSlotColorMap(){
-  const set=new Set();
-  CATS.forEach(c=>{ if(S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots) S.catCfg[c].slots.forEach(h=>set.add(h)); });
-  const arr=[...set].sort((a,b)=>a-b); const m={};
-  arr.forEach((h,i)=>m[h]=STICKER_PALETTE[i%STICKER_PALETTE.length]);
-  _slotColorMap=m; return m;
+const STICKER_EXTRA={bg:'#111827',name:'黒',fg:'#ffffff'};
+function seqColor(ord){ return (ord>=1&&ord<=STICKER_SEQ.length)?STICKER_SEQ[ord-1]:STICKER_EXTRA; }
+// カテゴリの作成スロットを時刻順に並べ、そのh が何回目の作成かで色を返す（全カテゴリ共通）
+function slotSeqColor(cat,h){
+  const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots) return STICKER_EXTRA;
+  const ord=[...cfg.slots].sort((a,b)=>a-b).indexOf(h)+1;
+  return ord>0?seqColor(ord):STICKER_EXTRA;
 }
-function slotColor(h){return _slotColorMap[h]||{bg:'#9ca3af',name:'—'};}
+function buildSlotColorMap(){}                 // 互換用（作成回数ベースへ移行）
+function slotColor(){ return STICKER_EXTRA; }  // 後方互換（未使用）
 let _stickerChartOpen=false;
 function toggleStickerChart(){_stickerChartOpen=!_stickerChartOpen;renderProdDayContent(currentProdDay||0);}
 // 色→廃棄時刻 早見表（カテゴリ別）
@@ -4974,12 +4977,12 @@ function renderStickerChart(){
   let rows='';
   CATS.forEach(cat=>{
     if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots||!cfg.slots.length)return;
-    const cells=cfg.slots.map(h=>{const sc=slotColor(h);const disp=fmtHour(h+PREP_HOURS+cfg.ah);
-      return `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0"><span style="width:14px;height:14px;border-radius:3px;background:${sc.bg};display:inline-block"></span><span style="font-size:11px;color:#374151">${sc.name}（${fmtHour(h)}作成）→<b style="color:#b91c1c">${disp}廃棄</b></span></span>`;}).join('');
+    const cells=[...cfg.slots].sort((a,b)=>a-b).map((h,i)=>{const sc=slotSeqColor(cat,h);const disp=fmtHour(h+PREP_HOURS+cfg.ah);
+      return `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0"><span style="width:14px;height:14px;border-radius:3px;background:${sc.bg};${sc.border?`border:1px solid ${sc.border};`:''}display:inline-block"></span><span style="font-size:11px;color:#374151">${i+1}回目 <b>${sc.name}</b>（${fmtHour(h)}作成）→<b style="color:#b91c1c">${disp}廃棄</b></span></span>`;}).join('');
     rows+=`<div style="padding:5px 0;border-bottom:1px solid #f1f5f9"><div style="font-size:11px;font-weight:700;color:#92400e">${cat}（販売許容${cfg.ah}h）</div><div style="display:flex;flex-wrap:wrap;margin-top:2px">${cells}</div></div>`;
   });
   return `<div id="sticker-chart-block" style="display:${_stickerChartOpen?'block':'none'};background:#fff;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:10px">
-    <div style="font-size:12px;font-weight:700;color:#9a3412;margin-bottom:4px">🏷 廃棄シール早見表（作成時刻＝色／同じ色は全カテゴリ共通）</div>
+    <div style="font-size:12px;font-weight:700;color:#9a3412;margin-bottom:4px">🏷 廃棄シール早見表（作成回数＝色／1青・2黄・3赤・4白・それ以外黒／全カテゴリ共通）</div>
     ${rows||'<div style="font-size:11px;color:#9ca3af">カテゴリが未設定です</div>'}
   </div>`;
 }
@@ -5534,12 +5537,12 @@ function renderProdDayContent(dayIdx){
     cfg.slots.forEach(h=>{
       const md=getMarkdownTime(cat,h);
       const doneH=h+PREP_HOURS;
-      const sc=slotColor(h);
+      const sc=slotSeqColor(cat,h);
       html+=`<th style="width:90px;padding:5px 2px">
         <div style="display:flex;flex-direction:column;gap:3px;line-height:1.2;align-items:center">
           <span style="white-space:nowrap"><span style="font-size:10px;color:#64748b">作成</span> <span style="font-size:17px;font-weight:800;color:#1d4ed8">${fmtHour(h)}</span></span>
           <span style="font-size:10px;color:#16a34a">完成 ${fmtHour(doneH)}</span>
-          <span style="background:${sc.bg};color:#fff;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700">${sc.name}シール</span>
+          <span style="background:${sc.bg};color:${sc.fg};${sc.border?`border:1px solid ${sc.border};`:''}border-radius:4px;padding:0 6px;font-size:10px;font-weight:700">${sc.name}シール</span>
           ${discOn?`<span style="font-size:10px;color:#d97706">値引 ${fmtHour(md)}〜</span>`:''}
         </div>
       </th>`;
