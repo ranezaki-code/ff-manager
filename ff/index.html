@@ -5396,6 +5396,40 @@ function resetSlotScheduleChecks(dayIdx,slotH){
   saveS();
   renderProdDayContent(currentProdDay);
 }
+// 時間帯別ビューの「まちかど事前準備」の折りたたみ状態（スロットごと・既定=開）
+let _slotPrepClosed={};
+function setSlotPrepOpen(slotH,open){ if(open)delete _slotPrepClosed[slotH]; else _slotPrepClosed[slotH]=true; }
+// 単一時刻のまちかど厨房（通常＋新商品）の事前準備行HTML（炊飯/調理方法別/容器/シール）。無ければ''
+function mkSlotPrepRows(dayIdx,slotH){
+  const di=dayIdx, mkCats=['まちかど厨房','まちかど厨房新商品'];
+  const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={};
+  let bento=0, hasMk=false;
+  mkCats.forEach(cat=>{
+    if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+    S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH)).forEach(p=>{
+      const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
+      hasMk=true;
+      if(p.mkType==='弁当')bento+=cnt;
+      const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
+      String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>seals[s]=(seals[s]||0)+cnt);
+      getIngs(p).forEach(ing=>{
+        if(!ing.n||!ing.n.trim())return;
+        const ms=ing.m||[], key=ing.n.trim();
+        const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('wash')?'wash':ms.includes('thaw')?'thaw':ms.includes('other')?'other':ms.includes('post')?'post':'none';
+        const b=mAgg[prim]; if(!b[key])b[key]={qty:0,tekiryo:false};
+        const u=ingUse(ing); if(u==='tekiryo')b[key].tekiryo=true; else b[key].qty+=cnt*(_USE_FACTOR[u]||1);
+      });
+    });
+  });
+  if(!hasMk)return '';
+  const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' 適量'; return escapeHtmlP(nm)+'×'+(Math.round(it.qty*100)/100);});
+  const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+o[k]);
+  const _row=(label,items)=>items.length?`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px;line-height:1.5"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">${label}</span><span style="flex:1">${items.join('、')}</span></div>`:'';
+  let rows='';
+  if(bento>0)rows+=`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px;line-height:1.5"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">炊飯</span><span style="flex:1">${bento+1}食　▶ ${fmtHM(slotH-1.5)} 開始</span></div>`;
+  rows+=_row('解凍',_it(mAgg.thaw))+_row('水洗い',_it(mAgg.wash))+_row('フライ',_it(mAgg.fry))+_row('レンジ',_it(mAgg.range))+_row('その他',_it(mAgg.other))+_row('後付け',_it(mAgg.post))+_row('盛付',_it(mAgg.none))+_row('容器',_kv(contCnt))+_row('シール',_kv(seals));
+  return rows;
+}
 // 時間帯別ビュー：作る時刻ごとに、カテゴリ→商品（作成数・チェック）をまとめて表示。チェックは通常の作成表と共有
 function renderSlotGroupedView(dayIdx){
   const di=dayIdx;
@@ -5435,9 +5469,15 @@ function renderSlotGroupedView(dayIdx){
         </div>${rowsHtml}</div>`;
     });
     if(!cats)return;
+    const prepRows=mkSlotPrepRows(di,slotH);
+    const prepHtml=prepRows?`<details ${_slotPrepClosed[slotH]?'':'open'} ontoggle="setSlotPrepOpen(${slotH},this.open)" style="border:1px solid #fde68a;border-radius:8px;background:#fffdf7;margin-top:8px">
+      <summary style="cursor:pointer;padding:8px 11px;font-size:13px;font-weight:700;color:#9a3412">🍱 まちかど 事前準備</summary>
+      <div style="padding:0 11px 10px">${prepRows}</div>
+    </details>`:'';
     out+=`<div class="card" style="border-left:4px solid var(--main)">
       <div style="font-size:17px;font-weight:800;color:#92400e;margin-bottom:8px">🕐 ${fmtHour(slotH)} 作成 <span style="font-size:12px;font-weight:600;color:#64748b">→ 完成 ${fmtHour(slotH+PREP_HOURS)}</span></div>
       ${cats}
+      ${prepHtml}
     </div>`;
   });
   return out||'<div class="card" style="text-align:center;color:#9ca3af;padding:20px">この曜日に作成する商品がありません</div>';
@@ -5591,7 +5631,7 @@ function renderProdDayContent(dayIdx){
     <span style="font-size:12px;color:#555;font-weight:600">並び順：</span>
     <div style="display:inline-flex;background:#f3f4f6;padding:3px;border-radius:8px;gap:2px">
       <button onclick="setProdSortMode('default')"
-        style="padding:8px 20px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${(_prodSortMode||'default')==='default'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">通常順</button>
+        style="padding:8px 20px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${(_prodSortMode||'default')==='default'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">カテゴリ別</button>
       <button onclick="setProdSortMode('efficient')"
         style="padding:8px 20px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${_prodSortMode==='efficient'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">作成効率順</button>
       <button onclick="setProdSortMode('slot')"
