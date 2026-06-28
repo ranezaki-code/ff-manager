@@ -4172,6 +4172,11 @@ function renderProductCard(p){
               <option value="">—</option>
               ${MK_BREADS.map(b=>`<option ${(p.mkBread||'')===b?'selected':''}>${_escMk(b)}</option>`).join('')}
             </select>
+          </label>
+          <label style="font-size:11px;color:#555">パン使用量
+            <select onchange="setProdField('${p.id}','mkBreadUse',this.value)" style="font-size:12px;margin-left:4px;padding:2px 4px">
+              ${MK_BREAD_USES.map(([v,l])=>`<option value="${v}" ${(p.mkBreadUse||'1')===v?'selected':''}>${l}</option>`).join('')}
+            </select>
           </label>`:''}
         </div>
         <div style="margin-top:8px">
@@ -4246,6 +4251,9 @@ function setProdTimeMS(pid,key,minStr,secStr){
 const ING_METHODS=[['thaw','解凍'],['wash','水洗い'],['range','レンジ'],['fry','フライ'],['other','その他'],['post','後付け'],['none','なし']];
 const MK_CONTAINERS=['調理パン用フードパック','調理パン用兼用袋','調理パン用ドッグロール袋','紙容器','惣菜容器','仕切り付き弁当容器','プレート容器'];
 const MK_BREADS=['食パン','バンズ','ドッグロール'];
+// 調理パンの1商品あたりパン使用量（1枚/½枚等）。値は _USE_FACTOR と共通
+const MK_BREAD_USES=[['1','1'],['1/2','½'],['1/3','⅓'],['1/4','¼']];
+function breadFactor(p){ return _USE_FACTOR[p&&p.mkBreadUse||'1']||1; }
 // まちかど厨房の小分類グループ（弁当／調理パンはパン種別で細分化／総菜／未設定）
 function mkGroup(p){
   const t=p.mkType||'';
@@ -4364,7 +4372,7 @@ function toggleProdTag(pid,tag,checked){
 
 // ===== 店舗間で商品を取り込む（店舗で変わらない共通情報だけコピー） =====
 // 除外：作成時間(minSlots)/最低数/有効化/並び順/発注ステータス/投資 など店舗固有の運用設定
-const SHARED_FIELDS=['name','category','subType','mkType','mkBread','mkContainer','cost','stdPrice','shopPrice','disc','markupRate','mkIngredients','mkSeals','prepMethod','microwaveMin','fryerMin','fryerCap','batchUnit'];
+const SHARED_FIELDS=['name','category','subType','mkType','mkBread','mkBreadUse','mkContainer','cost','stdPrice','shopPrice','disc','markupRate','mkIngredients','mkSeals','prepMethod','microwaveMin','fryerMin','fryerCap','batchUnit'];
 function getOtherStoreProducts(){
   const out=[], seen=new Set();
   const cur=new Set((S.PM||[]).map(p=>(p.name||'').trim()+'|||'+(p.category||'')));
@@ -5077,7 +5085,7 @@ function printMakePlan(){
           const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
           hasMk=true;
           if(p.mkType==='弁当')bento+=cnt;
-          if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt;}
+          if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt*breadFactor(p);}
           const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
           String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>seals[s]=(seals[s]||0)+cnt);
           getIngs(p).forEach(ing=>{
@@ -5091,7 +5099,7 @@ function printMakePlan(){
       });
       if(hasMk){
         const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' 適量'; return escapeHtmlP(nm)+'×'+(Math.round(it.qty*100)/100);});
-        const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+o[k]);
+        const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+(Math.round(o[k]*100)/100));
         const _pr=(label,items)=>items.length?`<tr><td class="pp-l">${label}</td><td class="pp-v">${items.join('、')}</td></tr>`:'';
         let prep='';
         if(bento>0)prep+=`<tr><td class="pp-l">炊飯</td><td class="pp-v">${riceFlowHtml(bento,slotH)}</td></tr>`;
@@ -5190,7 +5198,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
       if(p.mkType)typeCount[p.mkType]=(typeCount[p.mkType]||0)+cnt;
-      if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt;}
+      if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt*breadFactor(p);}
       const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
       slotProds.push({p,cnt});
       getIngs(p).forEach(ing=>{
@@ -5214,7 +5222,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       return `<div style="display:flex;gap:9px;align-items:flex-start;padding:4px 0;border-top:1px solid #f1f5f9"><span style="flex-shrink:0;width:66px;font-size:11px;font-weight:700;background:${s[1]};color:${s[2]};border-radius:6px;padding:3px 0;text-align:center">${s[0]}</span><span style="flex:1;font-size:13px;line-height:1.45">${body}</span></div>`; };
     let rows='';
     if(bento>0) rows+=mrow('rice',[{k:'rice',h:riceFlowHtml(bento,slotH)}]);
-    if(Object.keys(breadCnt).length) rows+=mrow('bread',Object.keys(breadCnt).map(k=>({k,h:`${k}<span style="color:#1d4ed8;font-weight:700">×${breadCnt[k]}</span>`})));
+    if(Object.keys(breadCnt).length) rows+=mrow('bread',Object.keys(breadCnt).map(k=>({k,h:`${k}<span style="color:#1d4ed8;font-weight:700">×${Math.round(breadCnt[k]*100)/100}</span>`})));
     if(Object.keys(mAgg.thaw).length)  rows+=mrow('thaw',_items(mAgg.thaw));
     if(Object.keys(mAgg.wash).length)  rows+=mrow('wash',_items(mAgg.wash));
     if(Object.keys(mAgg.fry).length)   rows+=mrow('fry',_items(mAgg.fry));
@@ -5419,7 +5427,7 @@ function mkSlotPrepRows(dayIdx,slotH){
       const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
       hasMk=true;
       if(p.mkType==='弁当')bento+=cnt;
-      if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt;}
+      if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt*breadFactor(p);}
       const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
       String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>seals[s]=(seals[s]||0)+cnt);
       getIngs(p).forEach(ing=>{
@@ -5433,7 +5441,7 @@ function mkSlotPrepRows(dayIdx,slotH){
   });
   if(!hasMk)return '';
   const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' 適量'; return escapeHtmlP(nm)+'×'+(Math.round(it.qty*100)/100);});
-  const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+o[k]);
+  const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+(Math.round(o[k]*100)/100));
   const _row=(label,items)=>items.length?`<div style="display:flex;gap:8px;padding:3px 0;font-size:13px;line-height:1.5;border-top:1px solid #f3e8d0"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">${label}</span><span style="flex:1">${items.map(it=>`<div style="padding:1px 0">${it}</div>`).join('')}</span></div>`:'';
   let rows='';
   if(bento>0)rows+=`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px;line-height:1.5"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">炊飯</span><span style="flex:1">${riceFlowHtml(bento,slotH)}</span></div>`;
