@@ -5843,10 +5843,17 @@ function renderProdDayContent(dayIdx){
       });
     });
     html+=`<div style="text-align:right;font-size:12px;margin-top:6px;color:var(--gray)">作成高: <b>${fmt(catDayHigh)}円</b></div>`;
-    // まちかど厨房は事前準備サマリー＋工程フローを表示
-    if(cat==='まちかど厨房'||cat==='まちかど厨房新商品'){ html+=renderMachikadoPrep(dayIdx,cfg,prods); }
     html+=`</div>`;
   });
+
+  // まちかど厨房（通常＋新商品）の事前準備は1つにまとめて最後に表示（2カテゴリの間に挟まないように）
+  if(S.catOn['まちかど厨房']||S.catOn['まちかど厨房新商品']){
+    const mkProds=S.PM.filter(p=>p.enabled&&(p.category==='まちかど厨房'||p.category==='まちかど厨房新商品'));
+    const _ss=new Set();
+    ['まちかど厨房','まちかど厨房新商品'].forEach(c=>{ if(S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots) S.catCfg[c].slots.forEach(h=>_ss.add(h)); });
+    const _mcfg={slots:[..._ss].sort((a,b)=>a-b), ah:(S.catCfg['まちかど厨房']&&S.catCfg['まちかど厨房'].ah)||8};
+    if(mkProds.length && _mcfg.slots.length) html+=`<div class="card">${renderMachikadoPrep(dayIdx,_mcfg,mkProds)}</div>`;
+  }
 
   el.innerHTML=html;
 }
