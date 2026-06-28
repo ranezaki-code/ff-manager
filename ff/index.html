@@ -5069,7 +5069,7 @@ function printMakePlan(){
     // まちかど厨房：この時間帯の事前準備（炊飯・調理方法別の食材・容器・シール）
     {
       const mkCats=['まちかど厨房','まちかど厨房新商品'];
-      const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={};
+      const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={}, breadCnt={};
       let bento=0, hasMk=false;
       mkCats.forEach(cat=>{
         if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
@@ -5077,6 +5077,7 @@ function printMakePlan(){
           const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
           hasMk=true;
           if(p.mkType==='弁当')bento+=cnt;
+          if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt;}
           const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
           String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>seals[s]=(seals[s]||0)+cnt);
           getIngs(p).forEach(ing=>{
@@ -5094,6 +5095,7 @@ function printMakePlan(){
         const _pr=(label,items)=>items.length?`<tr><td class="pp-l">${label}</td><td class="pp-v">${items.join('、')}</td></tr>`:'';
         let prep='';
         if(bento>0)prep+=`<tr><td class="pp-l">炊飯</td><td class="pp-v">${riceFlowHtml(bento,slotH)}</td></tr>`;
+        if(Object.keys(breadCnt).length)prep+=`<tr><td class="pp-l">パン</td><td class="pp-v">${_kv(breadCnt).join('、')}</td></tr>`;
         prep+=_pr('解凍',_it(mAgg.thaw))+_pr('水洗い',_it(mAgg.wash))+_pr('フライ',_it(mAgg.fry))+_pr('レンジ',_it(mAgg.range))+_pr('その他',_it(mAgg.other))+_pr('後付け',_it(mAgg.post))+_pr('盛付',_it(mAgg.none))+_pr('容器',_kv(contCnt))+_pr('シール',_kv(seals));
         if(prep)body+=`<div class="pcat pp"><div class="pcat-head"><span class="pcat-name">🍱 まちかど 事前準備</span></div><table class="ptbl pptbl"><tbody>${prep}</tbody></table></div>`;
       }
@@ -5159,6 +5161,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   // 調理方法ごとの色（フライ/レンジ等を一目で区別）
   const MSTYLE={
     rice:['🍚 炊飯','#fef3c7','#92400e'],
+    bread:['🍞 パン','#ffe8cc','#92400e'],
     thaw:['❄️ 解凍','#dbeafe','#1e40af'],
     wash:['💧 水洗い','#d1fae5','#065f46'],
     fry:['🍤 フライ','#ffedd5','#9a3412'],
@@ -5180,13 +5183,14 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     return {k:nm, h};
   });   // {キー, 表示HTML} の配列（mrow側で1食材＝1行に縦並び＋チェック）
   cfg.slots.forEach(slotH=>{
-    const typeCount={}; const slotProds=[]; const contCnt={};
+    const typeCount={}; const slotProds=[]; const contCnt={}; const breadCnt={};
     const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}};   // 調理方法ごとに食材を集約（食材は主方法に1回だけ）
     const addTo=(b,k,cnt,ing)=>{ if(!b[k])b[k]={qty:0,ct:false,tekiryo:false}; const u=ingUse(ing||{}); if(u==='tekiryo')b[k].tekiryo=true; else b[k].qty+=cnt*(_USE_FACTOR[u]||1); if(ing&&ing.ct)b[k].ct=true; };
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH);
       if(cnt<=0)return;
       if(p.mkType)typeCount[p.mkType]=(typeCount[p.mkType]||0)+cnt;
+      if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt;}
       const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
       slotProds.push({p,cnt});
       getIngs(p).forEach(ing=>{
@@ -5210,6 +5214,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
       return `<div style="display:flex;gap:9px;align-items:flex-start;padding:4px 0;border-top:1px solid #f1f5f9"><span style="flex-shrink:0;width:66px;font-size:11px;font-weight:700;background:${s[1]};color:${s[2]};border-radius:6px;padding:3px 0;text-align:center">${s[0]}</span><span style="flex:1;font-size:13px;line-height:1.45">${body}</span></div>`; };
     let rows='';
     if(bento>0) rows+=mrow('rice',[{k:'rice',h:riceFlowHtml(bento,slotH)}]);
+    if(Object.keys(breadCnt).length) rows+=mrow('bread',Object.keys(breadCnt).map(k=>({k,h:`${k}<span style="color:#1d4ed8;font-weight:700">×${breadCnt[k]}</span>`})));
     if(Object.keys(mAgg.thaw).length)  rows+=mrow('thaw',_items(mAgg.thaw));
     if(Object.keys(mAgg.wash).length)  rows+=mrow('wash',_items(mAgg.wash));
     if(Object.keys(mAgg.fry).length)   rows+=mrow('fry',_items(mAgg.fry));
@@ -5406,7 +5411,7 @@ function setSlotPrepOpen(slotH,open){ if(open)delete _slotPrepClosed[slotH]; els
 // 単一時刻のまちかど厨房（通常＋新商品）の事前準備行HTML（炊飯/調理方法別/容器/シール）。無ければ''
 function mkSlotPrepRows(dayIdx,slotH){
   const di=dayIdx, mkCats=['まちかど厨房','まちかど厨房新商品'];
-  const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={};
+  const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={}, breadCnt={};
   let bento=0, hasMk=false;
   mkCats.forEach(cat=>{
     if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
@@ -5414,6 +5419,7 @@ function mkSlotPrepRows(dayIdx,slotH){
       const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
       hasMk=true;
       if(p.mkType==='弁当')bento+=cnt;
+      if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt;}
       const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
       String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>seals[s]=(seals[s]||0)+cnt);
       getIngs(p).forEach(ing=>{
@@ -5431,7 +5437,7 @@ function mkSlotPrepRows(dayIdx,slotH){
   const _row=(label,items)=>items.length?`<div style="display:flex;gap:8px;padding:3px 0;font-size:13px;line-height:1.5;border-top:1px solid #f3e8d0"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">${label}</span><span style="flex:1">${items.map(it=>`<div style="padding:1px 0">${it}</div>`).join('')}</span></div>`:'';
   let rows='';
   if(bento>0)rows+=`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px;line-height:1.5"><span style="color:#7c2d12;font-weight:700;min-width:54px;flex-shrink:0">炊飯</span><span style="flex:1">${riceFlowHtml(bento,slotH)}</span></div>`;
-  rows+=_row('解凍',_it(mAgg.thaw))+_row('水洗い',_it(mAgg.wash))+_row('フライ',_it(mAgg.fry))+_row('レンジ',_it(mAgg.range))+_row('その他',_it(mAgg.other))+_row('後付け',_it(mAgg.post))+_row('盛付',_it(mAgg.none))+_row('容器',_kv(contCnt))+_row('シール',_kv(seals));
+  rows+=_row('パン',_kv(breadCnt))+_row('解凍',_it(mAgg.thaw))+_row('水洗い',_it(mAgg.wash))+_row('フライ',_it(mAgg.fry))+_row('レンジ',_it(mAgg.range))+_row('その他',_it(mAgg.other))+_row('後付け',_it(mAgg.post))+_row('盛付',_it(mAgg.none))+_row('容器',_kv(contCnt))+_row('シール',_kv(seals));
   return rows;
 }
 // 時間帯別ビュー：作る時刻ごとに、カテゴリ→商品（作成数・チェック）をまとめて表示。チェックは通常の作成表と共有
