@@ -5025,12 +5025,15 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     seal:['🏷 シール','#fef9c3','#854d0e']
   };
   const _fmtQ=(q)=>{ const r=Math.round(q*100)/100; return String(r); };   // 小数を綺麗に（1.5 等）
+  const _ck=(s)=>String(s).replace(/[^0-9A-Za-z぀-ヿ一-龯]/g,'_');   // チェックキー用に整形
   const _items=(bucket)=>Object.keys(bucket).map(nm=>{
     const it=bucket[nm];
     const ct=it.ct?'<span style="color:#dc2626;font-size:11px"> 🌡</span>':'';
-    if(it.qty<=0&&it.tekiryo) return `${nm}<span style="color:#94a3b8;font-size:11px"> 適量</span>${ct}`;
-    return `${nm}<span style="color:#1d4ed8;font-weight:700">×${_fmtQ(it.qty)}</span>${it.tekiryo?'<span style="color:#94a3b8;font-size:10px"> +適量</span>':''}${ct}`;
-  });   // 食材ごとの配列を返す（mrow側で1食材＝1行に縦並び）
+    const h=(it.qty<=0&&it.tekiryo)
+      ? `${nm}<span style="color:#94a3b8;font-size:11px"> 適量</span>${ct}`
+      : `${nm}<span style="color:#1d4ed8;font-weight:700">×${_fmtQ(it.qty)}</span>${it.tekiryo?'<span style="color:#94a3b8;font-size:10px"> +適量</span>':''}${ct}`;
+    return {k:nm, h};
+  });   // {キー, 表示HTML} の配列（mrow側で1食材＝1行に縦並び＋チェック）
   cfg.slots.forEach(slotH=>{
     const typeCount={}; const slotProds=[]; const contCnt={};
     const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}};   // 調理方法ごとに食材を集約（食材は主方法に1回だけ）
@@ -5052,9 +5055,16 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     const typeLine=['弁当','調理パン','総菜'].filter(t=>typeCount[t]).map(t=>`${t}${typeCount[t]}`).join('・');
     const bento=typeCount['弁当']||0;
     const aSeal=aggField(slotProds,'mkSeals');
-    const mrow=(sk,items)=>{ const s=MSTYLE[sk]; const body=(Array.isArray(items)?items:[items]).map(it=>`<div style="padding:1px 0">${it}</div>`).join(''); return `<div style="display:flex;gap:9px;align-items:flex-start;padding:4px 0;border-top:1px solid #f1f5f9"><span style="flex-shrink:0;width:66px;font-size:11px;font-weight:700;background:${s[1]};color:${s[2]};border-radius:6px;padding:3px 0;text-align:center">${s[0]}</span><span style="flex:1;font-size:13px;line-height:1.45">${body}</span></div>`; };
+    const mrow=(sk,items)=>{ const s=MSTYLE[sk];
+      const body=items.map(it=>{
+        const key=`mkc_${dayIdx}_${slotH}_${sk}_${_ck(it.k)}`, ck=!!S.checks[key];
+        return `<label style="display:flex;align-items:flex-start;gap:6px;padding:1px 0;cursor:pointer">
+          <input type="checkbox" ${ck?'checked':''} onchange="setCheck('${key}',this.checked)" style="margin-top:2px;flex-shrink:0">
+          <span style="${ck?'opacity:.45;text-decoration:line-through':''}">${it.h}</span></label>`;
+      }).join('');
+      return `<div style="display:flex;gap:9px;align-items:flex-start;padding:4px 0;border-top:1px solid #f1f5f9"><span style="flex-shrink:0;width:66px;font-size:11px;font-weight:700;background:${s[1]};color:${s[2]};border-radius:6px;padding:3px 0;text-align:center">${s[0]}</span><span style="flex:1;font-size:13px;line-height:1.45">${body}</span></div>`; };
     let rows='';
-    if(bento>0) rows+=mrow('rice',[`${bento+1}食　<span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)}</span>`]);
+    if(bento>0) rows+=mrow('rice',[{k:'rice',h:`${bento+1}食　<span style="color:#b45309;font-weight:700">▶ ${fmtHM(slotH-1.5)}</span>`}]);
     if(Object.keys(mAgg.thaw).length)  rows+=mrow('thaw',_items(mAgg.thaw));
     if(Object.keys(mAgg.wash).length)  rows+=mrow('wash',_items(mAgg.wash));
     if(Object.keys(mAgg.fry).length)   rows+=mrow('fry',_items(mAgg.fry));
@@ -5062,9 +5072,9 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     if(Object.keys(mAgg.other).length) rows+=mrow('other',_items(mAgg.other));
     if(Object.keys(mAgg.post).length)  rows+=mrow('post',_items(mAgg.post));
     if(Object.keys(mAgg.none).length)  rows+=mrow('plate',_items(mAgg.none));
-    const contArr=Object.keys(contCnt).map(k=>`${k}<span style="color:#1d4ed8;font-weight:700">×${contCnt[k]}</span>`);
+    const contArr=Object.keys(contCnt).map(k=>({k,h:`${k}<span style="color:#1d4ed8;font-weight:700">×${contCnt[k]}</span>`}));
     if(contArr.length) rows+=mrow('cont',contArr);
-    const sealArr=aSeal?aSeal.split('、'):[];
+    const sealArr=(aSeal?aSeal.split('、'):[]).map(s=>({k:s,h:s}));
     if(sealArr.length) rows+=mrow('seal',sealArr);
     slotsHtml+=`<div style="margin-bottom:10px;border:1px solid #fde68a;border-radius:10px;padding:8px 11px;background:#fffdf7">
       <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:3px">🕐 ${fmtHour(slotH)}作成 → 完成 ${fmtHour(slotH+PREP_HOURS)}${typeLine?`　<span style="font-size:11px;font-weight:600;color:#b45309">${typeLine}</span>`:''}</div>
@@ -5602,11 +5612,13 @@ function renderProdDayContent(dayIdx){
           const at=e.readyAt!=null?e.readyAt:e.soldAt;
           return `<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${fmtHour(at)} ${t('sold.badgeReady').replace('{0}',e.added)}">+${e.added}</span>`;
         }).join('');
-        // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、それ以外はチェック状態次第
+        // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、0(作らない)は淡色で目立たせない、それ以外はチェック状態次第
+        const isZero=!isSkip&&!skipped&&extra<=0&&grandTotal===0;
         let cellExtraStyle='';
         if(extra>0) cellExtraStyle=';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px';
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
-        const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
+        else if(isZero) cellExtraStyle=';background:#f8fafc';
+        const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':(isZero?'color:#d1d5db;font-weight:600':''));
         // ⊘ボタン：skippedの時は紺塗りで「対応済」を示す
         const skipBtn=isSkip?'':`<button type="button" onclick="toggleSkipped('${chkKey}')" title="${skipped?'在庫欠品マークを解除':'在庫欠品で作れなかった時に押す'}"
           style="padding:0;width:18px;height:18px;border:1px solid ${skipped?'#475569':'#cbd5e1'};background:${skipped?'#475569':'#fff'};color:${skipped?'#fff':'#64748b'};border-radius:4px;cursor:pointer;font-size:11px;line-height:1;font-weight:700">⊘</button>`;
