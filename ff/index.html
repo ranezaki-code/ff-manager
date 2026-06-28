@@ -5612,17 +5612,16 @@ function renderProdDayContent(dayIdx){
           const at=e.readyAt!=null?e.readyAt:e.soldAt;
           return `<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${fmtHour(at)} ${t('sold.badgeReady').replace('{0}',e.added)}">+${e.added}</span>`;
         }).join('');
-        // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、0(作らない)は淡色で目立たせない、それ以外はチェック状態次第
+        // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、0(作らない)は中身を出さず真っ白、それ以外はチェック状態次第
         const isZero=!isSkip&&!skipped&&extra<=0&&grandTotal===0;
         let cellExtraStyle='';
         if(extra>0) cellExtraStyle=';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px';
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
-        else if(isZero) cellExtraStyle=';background:#f8fafc';
-        const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':(isZero?'color:#d1d5db;font-weight:600':''));
+        const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
         // ⊘ボタン：skippedの時は紺塗りで「対応済」を示す
         const skipBtn=isSkip?'':`<button type="button" onclick="toggleSkipped('${chkKey}')" title="${skipped?'在庫欠品マークを解除':'在庫欠品で作れなかった時に押す'}"
           style="padding:0;width:18px;height:18px;border:1px solid ${skipped?'#475569':'#cbd5e1'};background:${skipped?'#475569':'#fff'};color:${skipped?'#fff':'#64748b'};border-radius:4px;cursor:pointer;font-size:11px;line-height:1;font-weight:700">⊘</button>`;
-        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':`
           <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
             <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
@@ -5637,7 +5636,7 @@ function renderProdDayContent(dayIdx){
               ${soEvents.length>0?`<button type="button" onclick="removeLastSoldOut('${p.id}',${dayIdx},${slotH})" title="最後の追加分を取消"
                 style="padding:0;width:18px;height:18px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:4px;cursor:pointer;font-size:10px;line-height:1">↶</button>`:''}
             </div>
-          </div>
+          </div>`}
         </td>`;
       });
       html+=`</tr>`;
