@@ -5390,6 +5390,52 @@ function resetSlotScheduleChecks(dayIdx,slotH){
   saveS();
   renderProdDayContent(currentProdDay);
 }
+// 時間帯別ビュー：作る時刻ごとに、カテゴリ→商品（作成数・チェック）をまとめて表示。チェックは通常の作成表と共有
+function renderSlotGroupedView(dayIdx){
+  const di=dayIdx;
+  const slotSet=new Set();
+  CATS.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) cfg.slots.forEach(h=>slotSet.add(h)); });
+  const slots=[...slotSet].sort((a,b)=>a-b);
+  if(!slots.length) return '<div class="card" style="text-align:center;color:#9ca3af;padding:20px">作る時間帯が設定されていません</div>';
+  let out='';
+  slots.forEach(slotH=>{
+    let cats='';
+    CATS.forEach(cat=>{
+      if(!S.catOn[cat])return;
+      const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+      const rows=[];
+      S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH)).forEach(p=>{
+        const grandTotal=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH)+getSoldOutTotal(p.id,di,slotH);
+        if(grandTotal<=0)return;
+        rows.push({p,grandTotal,extra:getInvestExtra(p.id,di,slotH)});
+      });
+      if(!rows.length)return;
+      const sc=slotSeqColor(cat,slotH), doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah;
+      const rowsHtml=rows.map(({p,grandTotal,extra})=>{
+        const chkKey=`${di}_${slotH}_${p.id}`, checked=!!S.checks[chkKey], skipped=!!(S.skipped&&S.skipped[chkKey]);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
+          <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
+          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">投資+${extra}</span>`:''}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">在庫欠品</span>':''}</span>
+          <span style="font-size:21px;font-weight:800;color:#1d4ed8;min-width:34px;text-align:right">${grandTotal}</span>
+          <button type="button" onclick="toggleSkipped('${chkKey}')" title="在庫欠品で作れなかった時に押す" style="padding:0;width:22px;height:22px;border:1px solid ${skipped?'#475569':'#cbd5e1'};background:${skipped?'#475569':'#fff'};color:${skipped?'#fff':'#64748b'};border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">⊘</button>
+          <button type="button" onclick="openSoldOutModal('${p.id}',${di},${slotH})" title="完売→追加作成" style="padding:0;width:22px;height:22px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">🔔</button>
+        </div>`;
+      }).join('');
+      cats+=`<div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap">
+          <span style="font-size:14px;font-weight:800;color:#1f2937">${cat}</span>
+          <span style="background:${sc.bg};color:${sc.fg};${sc.border?`border:1px solid ${sc.border};`:''}border-radius:5px;padding:1px 8px;font-size:11px;font-weight:700">${sc.name}シール</span>
+          <span style="font-size:11px;color:#64748b;margin-left:auto">完成 ${fmtHour(doneH)}／廃棄 ${fmtHour(disposeH)}</span>
+        </div>${rowsHtml}</div>`;
+    });
+    if(!cats)return;
+    out+=`<div class="card" style="border-left:4px solid var(--main)">
+      <div style="font-size:17px;font-weight:800;color:#92400e;margin-bottom:8px">🕐 ${fmtHour(slotH)} 作成 <span style="font-size:12px;font-weight:600;color:#64748b">→ 完成 ${fmtHour(slotH+PREP_HOURS)}</span></div>
+      ${cats}
+    </div>`;
+  });
+  return out||'<div class="card" style="text-align:center;color:#9ca3af;padding:20px">この曜日に作成する商品がありません</div>';
+}
 function prepBadge(p){
   const m=p.prepMethod;
   if(!m||m==='none')return '';
@@ -5542,9 +5588,19 @@ function renderProdDayContent(dayIdx){
         style="padding:8px 20px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${(_prodSortMode||'default')==='default'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">通常順</button>
       <button onclick="setProdSortMode('efficient')"
         style="padding:8px 20px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${_prodSortMode==='efficient'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">作成効率順</button>
+      <button onclick="setProdSortMode('slot')"
+        style="padding:8px 18px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${_prodSortMode==='slot'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">🕐 時間帯別</button>
     </div>
     ${_prodSortMode==='efficient'?`<span style="font-size:11px;color:#9a3412">①からの番号順に作成（カテゴリ横断・新商品優先）</span>`:''}
+    ${_prodSortMode==='slot'?`<span style="font-size:11px;color:#9a3412">作る時間帯ごとに、カテゴリ→商品でまとめて表示</span>`:''}
   </div>`;
+
+  // 時間帯別モード：時刻ごとにカテゴリ→商品をまとめて表示（チェックは通常の作成表と共有）
+  if(_prodSortMode==='slot'){
+    html+=renderSlotGroupedView(dayIdx);
+    el.innerHTML=html;
+    return;
+  }
 
   // 効率順モード時：スロット別作成手順カード
   if(_prodSortMode==='efficient'){
