@@ -249,6 +249,33 @@ body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-botto
 .rules-list li{margin-left:16px}
 hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 @keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:.7;transform:scale(1.08)}}
+/* ===== 印刷（作成表：時間帯ごとにA4縦1枚） ===== */
+#print-area{display:none}
+@media print{
+  @page{size:A4 portrait;margin:14mm}
+  body>*{display:none !important}
+  body>#print-area{display:block !important}
+  #print-area{color:#000;font-family:'Hiragino Sans','Yu Gothic',sans-serif}
+  .print-page{page-break-after:always}
+  .print-page:last-child{page-break-after:auto}
+  .phead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:16px}
+  .ptime{font-size:34px;font-weight:800;line-height:1}
+  .pdone{font-size:13px;color:#444;margin-top:4px}
+  .pdate{font-size:15px;font-weight:700;text-align:right}
+  .pstore{font-size:13px;color:#444;text-align:right;margin-top:2px}
+  .pcat{margin-bottom:18px;break-inside:avoid}
+  .pcat-head{display:flex;align-items:center;gap:10px;margin-bottom:5px;flex-wrap:wrap}
+  .pcat-name{font-size:18px;font-weight:800}
+  .pcat-sticker{font-size:12px;font-weight:700;border-radius:5px;padding:2px 9px}
+  .pcat-meta{font-size:12px;color:#444;margin-left:auto}
+  .ptbl{width:100%;border-collapse:collapse}
+  .ptbl th{font-size:12px;color:#555;border-bottom:2px solid #777;padding:4px 8px;text-align:left}
+  .ptbl th.pcnt,.ptbl th.pchk{text-align:center;width:84px}
+  .ptbl td{border-bottom:1px solid #ccc;padding:8px 8px}
+  .ptbl td.pname{font-size:16px;font-weight:600;text-align:left}
+  .ptbl td.pcnt{font-size:26px;font-weight:800;text-align:center}
+  .ptbl td.pchk{font-size:24px;text-align:center;color:#999}
+}
 </style>
 <!-- Google Identity Services (OAuth 2.0) -->
 <script async src="https://accounts.google.com/gsi/client"></script>
@@ -551,6 +578,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         <button type="button" onclick="toggleMakeRules()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer">📋 作成ルール7か条</button>
         <button type="button" onclick="toggleCellGuide()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer">💡 セルの見方</button>
         <button type="button" onclick="toggleStickerChart()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:8px;cursor:pointer">🏷 廃棄シール早見表</button>
+        <button type="button" onclick="printMakePlan()" title="表示中の曜日を、作成時刻ごとにA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;cursor:pointer">🖨 印刷 / PDF</button>
       </div>
       <div class="rules-list" id="make-rules-block" style="display:none;margin-bottom:10px">
         <b data-i18n="make.rules">作成ルール7か条（毎週確認）</b>
@@ -4992,6 +5020,57 @@ function buildSlotColorMap(){}                 // 互換用（作成回数ベー
 function slotColor(){ return STICKER_EXTRA; }  // 後方互換（未使用）
 let _stickerChartOpen=false;
 function toggleStickerChart(){_stickerChartOpen=!_stickerChartOpen;renderProdDayContent(currentProdDay||0);}
+// 表示中の曜日を、作成時刻（時間帯）ごとにA4縦1枚で印刷／PDF保存
+function printMakePlan(){
+  const di=currentProdDay||0;
+  const dates=getWeekDates();
+  const dt=dates[di]||new Date();
+  const dateStr=`${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日（${DAYS[di]}）`;
+  const storeName=(S.storeName||'').trim();
+  // 全有効カテゴリの作成スロットの和集合（時刻昇順）
+  const slotSet=new Set();
+  CATS.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) cfg.slots.forEach(h=>slotSet.add(h)); });
+  const slots=[...slotSet].sort((a,b)=>a-b);
+  let pages='';
+  slots.forEach(slotH=>{
+    let body='';
+    CATS.forEach(cat=>{
+      if(!S.catOn[cat])return;
+      const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+      const rows=S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH))
+        .map(p=>({p,cnt:getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH)}))
+        .filter(o=>o.cnt>0);
+      if(!rows.length)return;
+      const sc=slotSeqColor(cat,slotH);
+      const doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah, md=getMarkdownTime(cat,slotH);
+      const meta=`完成 ${fmtHour(doneH)}　廃棄 ${fmtHour(disposeH)}${isDiscountOn(cat,di)?`　値引 ${fmtHour(md)}〜`:''}`;
+      body+=`<div class="pcat">
+        <div class="pcat-head">
+          <span class="pcat-name">${escapeHtmlP(cat)}</span>
+          <span class="pcat-sticker" style="background:${sc.bg};color:${sc.fg};${sc.border?`border:1px solid ${sc.border};`:''}">${sc.name}シール</span>
+          <span class="pcat-meta">${meta}</span>
+        </div>
+        <table class="ptbl">
+          <thead><tr><th class="pname">商品名</th><th class="pcnt">作成数</th><th class="pchk">作成</th></tr></thead>
+          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+    });
+    if(!body)return;
+    pages+=`<section class="print-page">
+      <div class="phead">
+        <div class="phead-l"><div class="ptime">🕐 ${fmtHour(slotH)} 作成</div><div class="pdone">完成目安 ${fmtHour(slotH+PREP_HOURS)}</div></div>
+        <div class="phead-r"><div class="pdate">${dateStr}</div>${storeName?`<div class="pstore">${escapeHtmlP(storeName)}</div>`:''}</div>
+      </div>
+      ${body}
+    </section>`;
+  });
+  const area=document.getElementById('print-area');
+  if(!area)return;
+  area.innerHTML=pages||`<section class="print-page"><div class="phead"><div class="ptime">作成なし</div><div class="phead-r"><div class="pdate">${dateStr}</div></div></div><div style="font-size:15px;padding:10px">この曜日に作成する商品がありません。</div></section>`;
+  window.print();
+}
+function escapeHtmlP(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 // 色→廃棄時刻 早見表（カテゴリ別）
 function renderStickerChart(){
   let rows='';
@@ -8308,5 +8387,7 @@ function showToast(msg,type='info'){
 function fmt(n){return Math.round(n).toLocaleString('ja-JP');}
 
 </script>
+<!-- 印刷専用（作成表を時間帯ごとにA4縦1枚で出力） -->
+<div id="print-area"></div>
 </body>
 </html>
