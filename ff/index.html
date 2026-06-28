@@ -275,6 +275,10 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   .ptbl td.pname{font-size:16px;font-weight:600;text-align:left}
   .ptbl td.pcnt{font-size:26px;font-weight:800;text-align:center}
   .ptbl td.pchk{font-size:24px;text-align:center;color:#999}
+  .pptbl td.pp-l{font-size:12px;font-weight:700;color:#7c2d12;width:78px;vertical-align:top}
+  .pptbl td.pp-v{font-size:14px}
+  .pcat.pp{border:1px solid #fde68a;border-radius:8px;padding:8px 10px;background:#fffdf7}
+  .pcat.pp .pcat-name{color:#9a3412;font-size:16px}
 }
 </style>
 <!-- Google Identity Services (OAuth 2.0) -->
@@ -5056,6 +5060,38 @@ function printMakePlan(){
         </table>
       </div>`;
     });
+    // まちかど厨房：この時間帯の事前準備（炊飯・調理方法別の食材・容器・シール）
+    {
+      const mkCats=['まちかど厨房','まちかど厨房新商品'];
+      const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={};
+      let bento=0, hasMk=false;
+      mkCats.forEach(cat=>{
+        if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+        S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH)).forEach(p=>{
+          const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
+          hasMk=true;
+          if(p.mkType==='弁当')bento+=cnt;
+          const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
+          String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>seals[s]=(seals[s]||0)+cnt);
+          getIngs(p).forEach(ing=>{
+            if(!ing.n||!ing.n.trim())return;
+            const ms=ing.m||[], key=ing.n.trim();
+            const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('wash')?'wash':ms.includes('thaw')?'thaw':ms.includes('other')?'other':ms.includes('post')?'post':'none';
+            const b=mAgg[prim]; if(!b[key])b[key]={qty:0,tekiryo:false};
+            const u=ingUse(ing); if(u==='tekiryo')b[key].tekiryo=true; else b[key].qty+=cnt*(_USE_FACTOR[u]||1);
+          });
+        });
+      });
+      if(hasMk){
+        const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' 適量'; return escapeHtmlP(nm)+'×'+(Math.round(it.qty*100)/100);});
+        const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+o[k]);
+        const _pr=(label,items)=>items.length?`<tr><td class="pp-l">${label}</td><td class="pp-v">${items.join('、')}</td></tr>`:'';
+        let prep='';
+        if(bento>0)prep+=`<tr><td class="pp-l">炊飯</td><td class="pp-v">${bento+1}食　▶ ${fmtHM(slotH-1.5)} 開始</td></tr>`;
+        prep+=_pr('解凍',_it(mAgg.thaw))+_pr('水洗い',_it(mAgg.wash))+_pr('フライ',_it(mAgg.fry))+_pr('レンジ',_it(mAgg.range))+_pr('その他',_it(mAgg.other))+_pr('後付け',_it(mAgg.post))+_pr('盛付',_it(mAgg.none))+_pr('容器',_kv(contCnt))+_pr('シール',_kv(seals));
+        if(prep)body+=`<div class="pcat pp"><div class="pcat-head"><span class="pcat-name">🍱 まちかど 事前準備</span></div><table class="ptbl pptbl"><tbody>${prep}</tbody></table></div>`;
+      }
+    }
     if(!body)return;
     pages+=`<section class="print-page">
       <div class="phead">
