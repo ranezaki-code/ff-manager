@@ -104,6 +104,31 @@ header .spacer{flex:1}
 .multi .opt.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;opacity:0;transition:opacity .2s;z-index:2000;pointer-events:none}
 .toast.show{opacity:1}
+/* ===== 作戦シート 印刷（A4縦・PDF保存用） ===== */
+#print-area{display:none}
+@media print{
+  @page{size:A4 portrait;margin:14mm}
+  html,body{background:#fff!important}
+  body>*{display:none!important}
+  body>#print-area{display:block!important}
+  .ps-page{font-size:12px;color:#000;font-family:inherit}
+  .ps-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #111;padding-bottom:8px;margin-bottom:12px}
+  .ps-kicker{font-size:11px;color:#555;font-weight:700;letter-spacing:1px}
+  .ps-title{font-size:21px;font-weight:800;margin-top:3px;line-height:1.3}
+  .ps-meta{text-align:right;flex-shrink:0;padding-left:12px}
+  .ps-badge{border:1.5px solid #111;border-radius:5px;padding:2px 9px;font-size:11px;font-weight:800}
+  .ps-store{font-size:12px;margin-top:5px;font-weight:600}
+  .ps-info{width:100%;border-collapse:collapse;margin-bottom:13px;font-size:12px}
+  .ps-info th{background:#f2f2f2;border:1px solid #999;padding:5px 8px;text-align:left;width:72px;white-space:nowrap;font-weight:700}
+  .ps-info td{border:1px solid #999;padding:5px 8px}
+  .ps-box{border:1px solid #333;border-radius:6px;margin-bottom:10px;overflow:hidden;page-break-inside:avoid}
+  .ps-box-h{background:#f2f2f2;border-bottom:1px solid #333;padding:6px 10px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:8px}
+  .ps-n{background:#111;color:#fff;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+  .ps-box-b{padding:9px 11px;min-height:58px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+  .ps-empty{color:#aaa}
+  .ps-next{margin-top:9px;padding-top:8px;border-top:1px dashed #bbb;font-size:12px}
+  .ps-foot{margin-top:16px;text-align:right;font-size:10px;color:#777}
+}
 </style>
 <script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
 </head>
@@ -223,6 +248,7 @@ header .spacer{flex:1}
   </div>
 </div>
 
+<div id="print-area"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -405,6 +431,7 @@ function stepHtml(n,label,val){
 function actionsHtml(sh,st){
   let h='';
   h+='<button class="btn btn-line btn-sm" data-edit="'+sh.id+'">✎ 編集</button>';
+  h+='<button class="btn btn-line btn-sm" data-print="'+sh.id+'">🖨 印刷/PDF</button>';
   if(sh.phase==='draft'||sh.phase==='returned')h+='<button class="btn btn-pri btn-sm" data-submit="'+sh.id+'">提出する</button>';
   if(sh.phase==='submitted'){
     if(isMgr()){
@@ -416,6 +443,49 @@ function actionsHtml(sh,st){
   if(sh.phase==='done'&&sh.next==='B')h+='<button class="btn btn-pri btn-sm" data-cycle="'+sh.id+'">次のサイクルを作成</button>';
   h+='<button class="btn btn-line btn-sm" data-del="'+sh.id+'">削除</button>';
   return h;
+}
+
+// ---- 作戦シート A4印刷 / PDF ----
+function storeName(){
+  try{const arr=JSON.parse(localStorage.getItem('global_stores')||'[]');const s=arr.find(x=>x.id===storeId());if(s&&s.name)return s.name;}catch(e){}
+  return '';
+}
+function fmtJaDate(v){
+  if(v==null||v==='')return '—';
+  const d=(typeof v==='number')?new Date(v):new Date(String(v)+'T00:00:00');
+  if(isNaN(d.getTime()))return String(v);
+  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+}
+function printSheet(id){
+  const sh=S.sheets.find(x=>x.id===id);
+  if(!sh){toast('シートが見つかりません');return;}
+  const ar=areaById(sh.areaId)||{name:'(不明)',group:''};
+  const st=statusOf(sh);
+  const nextTxt=sh.next==='A'?'A：今の仕組みを継続・定着（達成）':sh.next==='B'?'B：仕組みを更新して再挑戦（未達）':'';
+  const box=(n,label,val,extra)=>`<div class="ps-box">
+      <div class="ps-box-h"><span class="ps-n">${n}</span>${esc(label)}</div>
+      <div class="ps-box-b">${val&&String(val).trim()?esc(val):'<span class="ps-empty">（未記入）</span>'}${extra||''}</div>
+    </div>`;
+  const sn=storeName();
+  const html=`<div class="ps-page">
+    <div class="ps-head">
+      <div><div class="ps-kicker">作戦シート（PDCA）</div><div class="ps-title">${esc(sh.title||'(無題)')}</div></div>
+      <div class="ps-meta"><span class="ps-badge">${esc(st.label)}</span>${sn?`<div class="ps-store">${esc(sn)}</div>`:''}</div>
+    </div>
+    <table class="ps-info"><tbody>
+      <tr><th>担当部門</th><td>${esc(ar.group)} ／ ${esc(ar.name)}</td><th>担当者</th><td>${esc(sh.assignee||'—')}</td></tr>
+      <tr><th>期限</th><td>${fmtJaDate(sh.due)}</td><th>更新日</th><td>${fmtJaDate(sh.updatedAt)}</td></tr>
+    </tbody></table>
+    ${box(1,'現状の課題（客観的な事実は何か？）',sh.problem)}
+    ${box(2,'目的とゴール（どんな状態にするか？）',sh.goal)}
+    ${box(3,'明日からの仕組み（いつ・どのタイミングで・誰が・何を）',sh.mechanism)}
+    ${box(4,'結果 ＋ 次の一手',sh.result,nextTxt?`<div class="ps-next">→ 次の一手：<b>${esc(nextTxt)}</b></div>`:'')}
+    <div class="ps-foot">印刷日：${fmtJaDate(Date.now())}　／　自走店舗づくり 作戦シート</div>
+  </div>`;
+  const area=$('print-area');
+  if(!area){toast('印刷領域が見つかりません');return;}
+  area.innerHTML=html;
+  window.print();
 }
 
 // ---- 全体管理ダッシュボード ----
@@ -586,12 +656,13 @@ function renderAll(){renderList();renderSheets();renderManager();renderMgr();}
 
 // ---- イベント ----
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-assign],[data-newsheet],[data-toggle],[data-edit],[data-submit],[data-approve],[data-return],[data-result],[data-cycle],[data-del],[data-close],[data-name],[data-next]');
+  const t=e.target.closest('[data-assign],[data-newsheet],[data-toggle],[data-edit],[data-print],[data-submit],[data-approve],[data-return],[data-result],[data-cycle],[data-del],[data-close],[data-name],[data-next]');
   if(!t)return;
   if(t.dataset.assign!=null)return openAssign(t.dataset.assign);
   if(t.dataset.newsheet!=null){switchView('sheets');return newSheet(t.dataset.newsheet);}
   if(t.dataset.toggle!=null){const s=t.closest('.sheet');if(s)s.classList.toggle('open');return;}
   if(t.dataset.edit!=null)return editSheet(t.dataset.edit);
+  if(t.dataset.print!=null)return printSheet(t.dataset.print);
   if(t.dataset.submit!=null)return submitSheet(t.dataset.submit);
   if(t.dataset.approve!=null)return approveSheet(t.dataset.approve);
   if(t.dataset.return!=null)return returnSheet(t.dataset.return);
