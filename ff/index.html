@@ -275,10 +275,14 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   .ptbl td.pname{font-size:16px;font-weight:600;text-align:left}
   .ptbl td.pcnt{font-size:26px;font-weight:800;text-align:center}
   .ptbl td.pchk{font-size:24px;text-align:center;color:#999}
-  .pptbl td.pp-l{font-size:12px;font-weight:700;color:#7c2d12;width:78px;vertical-align:top}
-  .pptbl td.pp-v{font-size:14px}
-  .pcat.pp{border:1px solid #fde68a;border-radius:8px;padding:8px 10px;background:#fffdf7}
-  .pcat.pp .pcat-name{color:#9a3412;font-size:16px}
+  .pptbl td.pp-l{font-size:15px;font-weight:700;color:#7c2d12;width:96px;vertical-align:top;padding:9px 10px;border-bottom:1px solid #f0e4cf}
+  .pptbl td.pp-v{font-size:17px;line-height:1.55;padding:9px 10px;border-bottom:1px solid #f0e4cf}
+  .pptbl td.pp-v .pp-item{padding:3px 0}
+  .pptbl td.pp-v .pp-item + .pp-item{border-top:1px dashed #eadfca}
+  .pptbl .pp-q{font-weight:800;margin-left:5px}
+  .pptbl .pp-t{color:#777;font-size:.85em}
+  .pcat.pp{border:1.5px solid #f5c877;border-radius:10px;padding:10px 12px;background:#fffdf7}
+  .pcat.pp .pcat-name{color:#9a3412;font-size:18px}
 }
 </style>
 <!-- Google Identity Services (OAuth 2.0) -->
@@ -5064,12 +5068,13 @@ function mkPrepPrintRows(di,slotH){
     });
   });
   if(!hasMk)return '';
-  const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' 適量'; return escapeHtmlP(nm)+'×'+(Math.round(it.qty*100)/100);});
-  const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+(Math.round(o[k]*100)/100));
-  const _pr=(label,items)=>items.length?`<tr><td class="pp-l">${label}</td><td class="pp-v">${items.join('、')}</td></tr>`:'';
+  const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' <span class="pp-t">適量</span>'; return escapeHtmlP(nm)+'<span class="pp-q">×'+(Math.round(it.qty*100)/100)+'</span>';});
+  const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'<span class="pp-q">×'+(Math.round(o[k]*100)/100)+'</span>');
+  const _cell=items=>items.map(it=>`<div class="pp-item">${it}</div>`).join('');   // 1食材＝1行の縦並び
+  const _pr=(label,items)=>items.length?`<tr><td class="pp-l">${label}</td><td class="pp-v">${_cell(items)}</td></tr>`:'';
   let prep='';
   if(bento>0)prep+=`<tr><td class="pp-l">炊飯</td><td class="pp-v">${riceFlowHtml(bento,slotH)}</td></tr>`;
-  if(Object.keys(breadCnt).length)prep+=`<tr><td class="pp-l">パン</td><td class="pp-v">${_kv(breadCnt).join('、')}</td></tr>`;
+  if(Object.keys(breadCnt).length)prep+=`<tr><td class="pp-l">パン</td><td class="pp-v">${_cell(_kv(breadCnt))}</td></tr>`;
   prep+=_pr('解凍',_it(mAgg.thaw))+_pr('水洗い',_it(mAgg.wash))+_pr('フライ',_it(mAgg.fry))+_pr('レンジ',_it(mAgg.range))+_pr('その他',_it(mAgg.other))+_pr('後付け',_it(mAgg.post))+_pr('盛付',_it(mAgg.none))+_pr('容器',_kv(contCnt))+_pr('シール',_kv(seals));
   return prep;
 }
