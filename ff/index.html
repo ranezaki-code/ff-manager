@@ -584,6 +584,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         <button type="button" onclick="toggleStickerChart()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:8px;cursor:pointer">🏷 廃棄シール早見表</button>
         <button type="button" onclick="printMakePlan()" title="表示中の曜日を、作成時刻ごとにA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;cursor:pointer">🖨 印刷 / PDF</button>
         <button type="button" onclick="printMachikadoPrep()" title="まちかど厨房の事前準備だけを、作成時刻ごとにA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:8px;cursor:pointer">🍱 事前準備だけ印刷</button>
+        <button type="button" onclick="printThawPrep()" title="明日の作成に向けて今日解凍する『前日解凍』だけをA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer">❄️ 前日解凍だけ印刷</button>
       </div>
       <div class="rules-list" id="make-rules-block" style="display:none;margin-bottom:10px">
         <b data-i18n="make.rules">作成ルール7か条（毎週確認）</b>
@@ -5098,6 +5099,45 @@ function printMachikadoPrep(){
   const area=document.getElementById('print-area');
   if(!area)return;
   area.innerHTML=pages||`<section class="print-page"><div class="phead"><div class="ptime">まちかど 事前準備なし</div><div class="phead-r"><div class="pdate">${dateStr}</div></div></div><div style="font-size:15px;padding:10px">この曜日に「まちかど厨房」の作成予定がありません。</div></section>`;
+  window.print();
+}
+// 明日(dayIdx+1)の作成に向けて「今日のうちに前日解凍」する食材を集計。{食材名:数量}
+function thawTomorrowAgg(dayIdx){
+  const agg={};
+  if(dayIdx>=6) return agg;                 // 画面表示と同じく最終日は翌日分を出さない
+  const nd=dayIdx+1;
+  ['まちかど厨房','まちかど厨房新商品'].forEach(cat=>{
+    if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots)return;
+    S.PM.filter(p=>p.enabled&&p.category===cat).forEach(p=>{
+      let tot=0; cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));
+      if(tot<=0)return;
+      getIngs(p).forEach(ing=>{ if(ing.pt){ const u=ingUse(ing); if(u!=='tekiryo') agg[ing.n]=(agg[ing.n]||0)+tot*(_USE_FACTOR[u]||1); } });
+    });
+  });
+  return agg;
+}
+// 前日解凍（明日の作成のため今日解凍しておく分）だけをA4縦1枚で印刷／PDF保存
+function printThawPrep(){
+  const di=currentProdDay||0;
+  const dates=getWeekDates();
+  const dt=dates[di]||new Date();
+  const dateStr=`${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日（${DAYS[di]}）`;
+  const storeName=(S.storeName||'').trim();
+  const nd=di+1, ndName=DAYS[nd]||'';
+  const agg=thawTomorrowAgg(di);
+  const names=Object.keys(agg);
+  const bodyTable = names.length
+    ? `<table class="ptbl"><thead><tr><th class="pname">食材</th><th class="pcnt">数量</th><th class="pchk">解凍</th></tr></thead><tbody>${names.map(n=>`<tr><td class="pname">${escapeHtmlP(n)}</td><td class="pcnt">×${Math.round(agg[n]*100)/100}</td><td class="pchk">□</td></tr>`).join('')}</tbody></table>`
+    : `<div style="font-size:15px;padding:12px;color:#555">明日（${escapeHtmlP(ndName)}）に向けて前日解凍する食材はありません。</div>`;
+  const area=document.getElementById('print-area');
+  if(!area)return;
+  area.innerHTML=`<section class="print-page">
+    <div class="phead">
+      <div class="phead-l"><div class="ptime">❄️ 前日解凍</div><div class="pdone">明日（${escapeHtmlP(ndName)}）の作成ぶん・今日のうちに解凍</div></div>
+      <div class="phead-r"><div class="pdate">${dateStr}</div>${storeName?`<div class="pstore">${escapeHtmlP(storeName)}</div>`:''}</div>
+    </div>
+    <div class="pcat">${bodyTable}</div>
+  </section>`;
   window.print();
 }
 // 表示中の曜日を、作成時刻（時間帯）ごとにA4縦1枚で印刷／PDF保存
