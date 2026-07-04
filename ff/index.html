@@ -583,6 +583,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         <button type="button" onclick="toggleCellGuide()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer">💡 セルの見方</button>
         <button type="button" onclick="toggleStickerChart()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:8px;cursor:pointer">🏷 廃棄シール早見表</button>
         <button type="button" onclick="printMakePlan()" title="表示中の曜日を、作成時刻ごとにA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;cursor:pointer">🖨 印刷 / PDF</button>
+        <button type="button" onclick="printMachikadoPrep()" title="まちかど厨房の事前準備だけを、作成時刻ごとにA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:8px;cursor:pointer">🍱 事前準備だけ印刷</button>
       </div>
       <div class="rules-list" id="make-rules-block" style="display:none;margin-bottom:10px">
         <b data-i18n="make.rules">作成ルール7か条（毎週確認）</b>
@@ -5038,6 +5039,67 @@ function buildSlotColorMap(){}                 // 互換用（作成回数ベー
 function slotColor(){ return STICKER_EXTRA; }  // 後方互換（未使用）
 let _stickerChartOpen=false;
 function toggleStickerChart(){_stickerChartOpen=!_stickerChartOpen;renderProdDayContent(currentProdDay||0);}
+// まちかど厨房 事前準備の印刷テーブル行(<tr>...)を返す（単一時刻・通常＋新商品を集約）。無ければ''
+function mkPrepPrintRows(di,slotH){
+  const mkCats=['まちかど厨房','まちかど厨房新商品'];
+  const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={}, breadCnt={};
+  let bento=0, hasMk=false;
+  mkCats.forEach(cat=>{
+    if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+    S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH)).forEach(p=>{
+      const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
+      hasMk=true;
+      if(p.mkType==='弁当')bento+=cnt;
+      if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt*breadFactor(p);}
+      const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
+      String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>seals[s]=(seals[s]||0)+cnt);
+      getIngs(p).forEach(ing=>{
+        if(!ing.n||!ing.n.trim())return;
+        const ms=ing.m||[], key=ing.n.trim();
+        const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('wash')?'wash':ms.includes('thaw')?'thaw':ms.includes('other')?'other':ms.includes('post')?'post':'none';
+        const b=mAgg[prim]; if(!b[key])b[key]={qty:0,tekiryo:false};
+        const u=ingUse(ing); if(u==='tekiryo')b[key].tekiryo=true; else b[key].qty+=cnt*(_USE_FACTOR[u]||1);
+      });
+    });
+  });
+  if(!hasMk)return '';
+  const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' 適量'; return escapeHtmlP(nm)+'×'+(Math.round(it.qty*100)/100);});
+  const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+(Math.round(o[k]*100)/100));
+  const _pr=(label,items)=>items.length?`<tr><td class="pp-l">${label}</td><td class="pp-v">${items.join('、')}</td></tr>`:'';
+  let prep='';
+  if(bento>0)prep+=`<tr><td class="pp-l">炊飯</td><td class="pp-v">${riceFlowHtml(bento,slotH)}</td></tr>`;
+  if(Object.keys(breadCnt).length)prep+=`<tr><td class="pp-l">パン</td><td class="pp-v">${_kv(breadCnt).join('、')}</td></tr>`;
+  prep+=_pr('解凍',_it(mAgg.thaw))+_pr('水洗い',_it(mAgg.wash))+_pr('フライ',_it(mAgg.fry))+_pr('レンジ',_it(mAgg.range))+_pr('その他',_it(mAgg.other))+_pr('後付け',_it(mAgg.post))+_pr('盛付',_it(mAgg.none))+_pr('容器',_kv(contCnt))+_pr('シール',_kv(seals));
+  return prep;
+}
+// まちかど厨房の「事前準備だけ」を、作成時刻ごとにA4縦1枚で印刷／PDF保存
+function printMachikadoPrep(){
+  const di=currentProdDay||0;
+  const dates=getWeekDates();
+  const dt=dates[di]||new Date();
+  const dateStr=`${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日（${DAYS[di]}）`;
+  const storeName=(S.storeName||'').trim();
+  const mkCats=['まちかど厨房','まちかど厨房新商品'];
+  const slotSet=new Set();
+  mkCats.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) cfg.slots.forEach(h=>slotSet.add(h)); });
+  const slots=[...slotSet].sort((a,b)=>a-b);
+  let pages='';
+  slots.forEach(slotH=>{
+    const prep=mkPrepPrintRows(di,slotH);
+    if(!prep)return;
+    pages+=`<section class="print-page">
+      <div class="phead">
+        <div class="phead-l"><div class="ptime">🍱 ${fmtHour(slotH)} 作成分 事前準備</div><div class="pdone">完成目安 ${fmtHour(slotH+PREP_HOURS)}</div></div>
+        <div class="phead-r"><div class="pdate">${dateStr}</div>${storeName?`<div class="pstore">${escapeHtmlP(storeName)}</div>`:''}</div>
+      </div>
+      <div class="pcat pp"><table class="ptbl pptbl"><tbody>${prep}</tbody></table></div>
+    </section>`;
+  });
+  const area=document.getElementById('print-area');
+  if(!area)return;
+  area.innerHTML=pages||`<section class="print-page"><div class="phead"><div class="ptime">まちかど 事前準備なし</div><div class="phead-r"><div class="pdate">${dateStr}</div></div></div><div style="font-size:15px;padding:10px">この曜日に「まちかど厨房」の作成予定がありません。</div></section>`;
+  window.print();
+}
 // 表示中の曜日を、作成時刻（時間帯）ごとにA4縦1枚で印刷／PDF保存
 function printMakePlan(){
   const di=currentProdDay||0;
@@ -5076,37 +5138,8 @@ function printMakePlan(){
     });
     // まちかど厨房：この時間帯の事前準備（炊飯・調理方法別の食材・容器・シール）
     {
-      const mkCats=['まちかど厨房','まちかど厨房新商品'];
-      const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={}, breadCnt={};
-      let bento=0, hasMk=false;
-      mkCats.forEach(cat=>{
-        if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
-        S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH)).forEach(p=>{
-          const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
-          hasMk=true;
-          if(p.mkType==='弁当')bento+=cnt;
-          if(p.mkType==='調理パン'){const _b=(p.mkBread||'').trim(); if(_b)breadCnt[_b]=(breadCnt[_b]||0)+cnt*breadFactor(p);}
-          const cn=(p.mkContainer||'').trim(); if(cn)contCnt[cn]=(contCnt[cn]||0)+cnt;
-          String(p.mkSeals||'').split(/[、,]/).map(s=>s.trim()).filter(Boolean).forEach(s=>seals[s]=(seals[s]||0)+cnt);
-          getIngs(p).forEach(ing=>{
-            if(!ing.n||!ing.n.trim())return;
-            const ms=ing.m||[], key=ing.n.trim();
-            const prim=ms.includes('fry')?'fry':ms.includes('range')?'range':ms.includes('wash')?'wash':ms.includes('thaw')?'thaw':ms.includes('other')?'other':ms.includes('post')?'post':'none';
-            const b=mAgg[prim]; if(!b[key])b[key]={qty:0,tekiryo:false};
-            const u=ingUse(ing); if(u==='tekiryo')b[key].tekiryo=true; else b[key].qty+=cnt*(_USE_FACTOR[u]||1);
-          });
-        });
-      });
-      if(hasMk){
-        const _it=bk=>Object.keys(bk).map(nm=>{const it=bk[nm]; if(it.qty<=0&&it.tekiryo)return escapeHtmlP(nm)+' 適量'; return escapeHtmlP(nm)+'×'+(Math.round(it.qty*100)/100);});
-        const _kv=o=>Object.keys(o).map(k=>escapeHtmlP(k)+'×'+(Math.round(o[k]*100)/100));
-        const _pr=(label,items)=>items.length?`<tr><td class="pp-l">${label}</td><td class="pp-v">${items.join('、')}</td></tr>`:'';
-        let prep='';
-        if(bento>0)prep+=`<tr><td class="pp-l">炊飯</td><td class="pp-v">${riceFlowHtml(bento,slotH)}</td></tr>`;
-        if(Object.keys(breadCnt).length)prep+=`<tr><td class="pp-l">パン</td><td class="pp-v">${_kv(breadCnt).join('、')}</td></tr>`;
-        prep+=_pr('解凍',_it(mAgg.thaw))+_pr('水洗い',_it(mAgg.wash))+_pr('フライ',_it(mAgg.fry))+_pr('レンジ',_it(mAgg.range))+_pr('その他',_it(mAgg.other))+_pr('後付け',_it(mAgg.post))+_pr('盛付',_it(mAgg.none))+_pr('容器',_kv(contCnt))+_pr('シール',_kv(seals));
-        if(prep)body+=`<div class="pcat pp"><div class="pcat-head"><span class="pcat-name">🍱 まちかど 事前準備</span></div><table class="ptbl pptbl"><tbody>${prep}</tbody></table></div>`;
-      }
+      const prep=mkPrepPrintRows(di,slotH);
+      if(prep)body+=`<div class="pcat pp"><div class="pcat-head"><span class="pcat-name">🍱 まちかど 事前準備</span></div><table class="ptbl pptbl"><tbody>${prep}</tbody></table></div>`;
     }
     if(!body)return;
     pages+=`<section class="print-page">
