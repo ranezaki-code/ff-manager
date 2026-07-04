@@ -282,6 +282,9 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   .pptbl .pp-t{color:#777;font-size:.85em}
   .pcat.pp{border:1.5px solid #f5c877;border-radius:9px;padding:7px 10px;background:#fffdf7;margin-top:4px}
   .pcat.pp .pcat-name{color:#9a3412;font-size:15px}
+  .pslot{break-inside:avoid;page-break-inside:avoid;border:1.5px solid #f5c877;border-radius:9px;background:#fffdf7;padding:8px 11px;margin-bottom:10px}
+  .pslot-h{font-size:16px;font-weight:800;color:#9a3412;margin-bottom:5px;border-bottom:1.5px solid #fde68a;padding-bottom:4px}
+  .pslot-sub{font-size:12px;font-weight:600;color:#b45309}
 }
 </style>
 <!-- Google Identity Services (OAuth 2.0) -->
@@ -5088,22 +5091,22 @@ function printMachikadoPrep(){
   const slotSet=new Set();
   mkCats.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) cfg.slots.forEach(h=>slotSet.add(h)); });
   const slots=[...slotSet].sort((a,b)=>a-b);
-  let pages='';
+  // 時間帯ごとにブロック化し、1ページに詰めて流し込む（各スロットはページ途中で割れない）
+  let blocks='';
   slots.forEach(slotH=>{
     const prep=mkPrepPrintRows(di,slotH);
     if(!prep)return;
-    pages+=`<section class="print-page">
-      <div class="phead">
-        <div class="phead-l"><div class="ptime">🍱 ${fmtHour(slotH)} 作成分 事前準備</div><div class="pdone">完成目安 ${fmtHour(slotH+PREP_HOURS)}</div></div>
-        <div class="phead-r"><div class="pdate">${dateStr}</div>${storeName?`<div class="pstore">${escapeHtmlP(storeName)}</div>`:''}</div>
-      </div>
-      <div class="pcat pp"><table class="ptbl pptbl"><tbody>${prep}</tbody></table></div>
-    </section>`;
+    blocks+=`<div class="pslot">
+      <div class="pslot-h">🍱 ${fmtHour(slotH)} 作成分 事前準備<span class="pslot-sub">　完成目安 ${fmtHour(slotH+PREP_HOURS)}</span></div>
+      <table class="ptbl pptbl"><tbody>${prep}</tbody></table>
+    </div>`;
   });
-  const area=document.getElementById('print-area');
-  if(!area)return;
-  area.innerHTML=pages||`<section class="print-page"><div class="phead"><div class="ptime">まちかど 事前準備なし</div><div class="phead-r"><div class="pdate">${dateStr}</div></div></div><div style="font-size:15px;padding:10px">この曜日に「まちかど厨房」の作成予定がありません。</div></section>`;
-  window.print();
+  doPrint(blocks
+    ? `<section class="print-page">
+        <div class="phead"><div class="phead-l"><div class="ptime">🍱 まちかど 事前準備</div></div><div class="phead-r"><div class="pdate">${dateStr}</div>${storeName?`<div class="pstore">${escapeHtmlP(storeName)}</div>`:''}</div></div>
+        ${blocks}
+      </section>`
+    : `<section class="print-page"><div class="phead"><div class="ptime">まちかど 事前準備なし</div><div class="phead-r"><div class="pdate">${dateStr}</div></div></div><div style="font-size:15px;padding:10px">この曜日に「まちかど厨房」の作成予定がありません。</div></section>`);
 }
 // 明日(dayIdx+1)の作成に向けて「今日のうちに前日解凍」する食材を集計。{食材名:数量}
 function thawTomorrowAgg(dayIdx){
@@ -5120,6 +5123,58 @@ function thawTomorrowAgg(dayIdx){
   });
   return agg;
 }
+// 印刷CSS（新規ウィンドウで単体ドキュメントとして印刷。app.htmlのiframe内でも崩れない）
+const PRINT_CSS=`
+@page{size:A4 portrait;margin:12mm}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#fff}
+body{color:#000;font-family:'Yu Gothic','Hiragino Sans','Meiryo',sans-serif}
+.print-page{page-break-after:always}
+.print-page:last-child{page-break-after:auto}
+.phead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:12px}
+.ptime{font-size:22px;font-weight:800;line-height:1}
+.pdone{font-size:12px;color:#444;margin-top:3px}
+.pdate{font-size:13px;font-weight:700;text-align:right}
+.pstore{font-size:12px;color:#444;text-align:right;margin-top:2px}
+.pcat{margin-bottom:8px;break-inside:avoid}
+.pcat-head{display:flex;align-items:center;gap:9px;margin-bottom:2px;flex-wrap:wrap}
+.pcat-name{font-size:15px;font-weight:800}
+.pcat-sticker{font-size:11px;font-weight:700;border-radius:5px;padding:1px 8px}
+.pcat-meta{font-size:11px;color:#444;margin-left:auto}
+.ptbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.ptbl thead{display:none}
+.ptbl td{border-bottom:1px solid #ccc;padding:4px 8px;vertical-align:middle;text-align:left}
+.ptbl td.pname{font-size:15px;font-weight:600;word-break:break-word}
+.ptbl td.pcnt{font-size:18px;font-weight:800;color:#111;width:92px}
+.ptbl td.pchk{font-size:18px;color:#999;width:58px}
+.pptbl td.pp-l{font-size:13px;font-weight:700;color:#7c2d12;width:82px;vertical-align:top;padding:5px 8px;border-bottom:1px solid #f0e4cf}
+.pptbl td.pp-v{font-size:14px;line-height:1.45;padding:5px 8px;border-bottom:1px solid #f0e4cf}
+.pptbl td.pp-v .pp-item{padding:2px 0}
+.pptbl td.pp-v .pp-item + .pp-item{border-top:1px dashed #eadfca}
+.pptbl .pp-q{font-weight:800;margin-left:5px}
+.pptbl .pp-t{color:#777;font-size:.85em}
+.pcat.pp{border:1.5px solid #f5c877;border-radius:9px;padding:7px 10px;background:#fffdf7;margin-top:4px}
+.pcat.pp .pcat-name{color:#9a3412;font-size:15px}
+.pslot{break-inside:avoid;page-break-inside:avoid;border:1.5px solid #f5c877;border-radius:9px;background:#fffdf7;padding:8px 11px;margin-bottom:10px}
+.pslot-h{font-size:16px;font-weight:800;color:#9a3412;margin-bottom:5px;border-bottom:1.5px solid #fde68a;padding-bottom:4px}
+.pslot-sub{font-size:12px;font-weight:600;color:#b45309}
+`;
+// 印刷本体：専用ウィンドウを開いて単体ドキュメントとして印刷（統合アプリ内でも余計な枠や崩れが出ない）。
+// ポップアップがブロックされた場合のみ、従来の #print-area ＋ @media print にフォールバック。
+function doPrint(bodyHtml){
+  let w=null;
+  try{ w=window.open('','_blank','width=920,height=1000'); }catch(e){ w=null; }
+  if(w&&w.document){
+    w.document.open();
+    w.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>印刷</title><style>'+PRINT_CSS+'</style></head><body>'+bodyHtml+'</body></html>');
+    w.document.close();
+    w.focus();
+    setTimeout(function(){ try{ w.print(); }catch(e){} }, 400);
+    return;
+  }
+  const area=document.getElementById('print-area');   // フォールバック（同一ウィンドウ）
+  if(area){ area.innerHTML=bodyHtml; window.print(); }
+}
 // 前日解凍（明日の作成のため今日解凍しておく分）だけをA4縦1枚で印刷／PDF保存
 function printThawPrep(){
   const di=currentProdDay||0;
@@ -5133,16 +5188,13 @@ function printThawPrep(){
   const bodyTable = names.length
     ? `<table class="ptbl"><thead><tr><th class="pname">食材</th><th class="pcnt">数量</th><th class="pchk">解凍</th></tr></thead><tbody>${names.map(n=>`<tr><td class="pname">${escapeHtmlP(n)}</td><td class="pcnt">×${Math.round(agg[n]*100)/100}</td><td class="pchk">□</td></tr>`).join('')}</tbody></table>`
     : `<div style="font-size:15px;padding:12px;color:#555">明日（${escapeHtmlP(ndName)}）に向けて前日解凍する食材はありません。</div>`;
-  const area=document.getElementById('print-area');
-  if(!area)return;
-  area.innerHTML=`<section class="print-page">
+  doPrint(`<section class="print-page">
     <div class="phead">
       <div class="phead-l"><div class="ptime">❄️ 前日解凍</div><div class="pdone">明日（${escapeHtmlP(ndName)}）の作成ぶん・今日のうちに解凍</div></div>
       <div class="phead-r"><div class="pdate">${dateStr}</div>${storeName?`<div class="pstore">${escapeHtmlP(storeName)}</div>`:''}</div>
     </div>
     <div class="pcat">${bodyTable}</div>
-  </section>`;
-  window.print();
+  </section>`);
 }
 // 表示中の曜日を、作成時刻（時間帯）ごとにA4縦1枚で印刷／PDF保存
 function printMakePlan(){
@@ -5194,10 +5246,7 @@ function printMakePlan(){
       ${body}
     </section>`;
   });
-  const area=document.getElementById('print-area');
-  if(!area)return;
-  area.innerHTML=pages||`<section class="print-page"><div class="phead"><div class="ptime">作成なし</div><div class="phead-r"><div class="pdate">${dateStr}</div></div></div><div style="font-size:15px;padding:10px">この曜日に作成する商品がありません。</div></section>`;
-  window.print();
+  doPrint(pages||`<section class="print-page"><div class="phead"><div class="ptime">作成なし</div><div class="phead-r"><div class="pdate">${dateStr}</div></div></div><div style="font-size:15px;padding:10px">この曜日に作成する商品がありません。</div></section>`);
 }
 function escapeHtmlP(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 // 色→廃棄時刻 早見表（カテゴリ別）
