@@ -266,7 +266,7 @@ const BUILD = Date.now();
 function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1&v='+BUILD;}
 const DATA_FILENAME = '経営データ.json';
 // Driveファイルへ保存しないキー（端末ローカルの一時バックアップ類）
-const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_)/;
+const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_|^ffv6_oplog$|^ffv6_local_modified$)/;
 
 let dirHandle = null;      // 保存先フォルダ
 let fileHandle = null;     // 経営データ.json のハンドル
@@ -617,6 +617,9 @@ async function fbStart(passphrase){
   catch(e){console.error('auth',e);setSync('err','認証失敗');alert('リアルタイム接続の認証に失敗しました。\nFirebaseで「Anonymous（匿名）」サインインが有効か確認してください。\n'+(e&&e.message||e));return false;}
   const docId=await _sha256hex('keiei::'+passphrase);
   fbDocRef=fbDb.collection(FB_COLLECTION).doc(docId);
+  // 前回この端末が同期した内容（マージの基準）。合言葉が違えば別データなので使わない
+  _persistedBase=null;
+  try{ const b=await hdbGet('base'); if(b&&b.docId===docId&&typeof b.payload==='string'){ _persistedBase=((JSON.parse(b.payload)||{}).data)||null; } }catch(_){}
   try{
     const r=await _fbReadAll();
     if(r&&r.payload){ _fbApplyPayload(r.payload, r.ts, r.writer, true); }
@@ -628,7 +631,10 @@ async function fbStart(passphrase){
   if(_pendingInitialWrite){ _pendingInitialWrite=false; fbPush(); }   // この端末のデータを正としてクラウドへ
   // 画面に戻った時・回線が戻った時は、監視が途切れていた可能性があるので必ず最新を読み直し、未送信があれば送る
   if(!window._fbCatchupWired){ window._fbCatchupWired=true;
-    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')_fbCatchUp(); });
+    // 画面を閉じる/裏に回る時は、待ち時間(1.2秒)を待たずに即送信（スマホは裏に回ると止まるため）
+    const flush=()=>{ if(!fbReady)return; if(_dataSig(collectData())!==lastSyncedSig){ clearTimeout(saveTimer); fbPush(); } };
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')_fbCatchUp(); else flush(); });
+    window.addEventListener('pagehide',flush);
     window.addEventListener('online',_fbCatchUp);
     window.addEventListener('pageshow',e=>{ if(e.persisted)_fbCatchUp(); });
   }
@@ -662,6 +668,75 @@ let _dirty=false,_retryTimer=null;   // 未送信の変更があるか／再送�
 let lastRemotePayload='';            // 直近で取り込んだ（適用 or マージ済みの）クラウド内容。同じ内容の再通知は無視
 let lastSyncedSig='';                // 直近で同期した data 部分の署名（キー順に依存しない）。「変化なし」判定に使う
 function _dataSig(d){ d=d||{}; return JSON.stringify(Object.keys(d).sort().map(k=>[k,d[k]])); }
+
+// ---------- 3方向マージ（端末側の未送信変更と、クラウド側の変更を両方残す） ----------
+// base=最後に同期した内容、local=この端末、remote=クラウド。
+// ・どちらか一方しか変えていない項目は変えた側を採用
+// ・両方が変えたキーは JSON の中まで（depth 階層）見て項目ごとに合成。同じ項目を両方が変えた時だけ preferLocal に従う
+//   （基準がある時は端末側＝未送信の変更を黙って消さない。基準が無い初回はクラウド側）
+function _isPlainObj(v){ return v!==null&&typeof v==='object'&&!Array.isArray(v); }
+function _merge3(local,remote,base,preferLocal,depth,path,conflicts){
+  const ls=JSON.stringify(local), rs=JSON.stringify(remote), bs=JSON.stringify(base);
+  if(ls===rs)return local;
+  if(ls===bs)return remote;            // 端末側は変えていない → クラウド採用
+  if(rs===bs)return local;             // クラウド側は変えていない → 端末採用
+  if(depth>0&&_isPlainObj(local)&&_isPlainObj(remote)){
+    const b=_isPlainObj(base)?base:{}; const out={};
+    new Set([...Object.keys(local),...Object.keys(remote)]).forEach(k=>{
+      const v=_merge3(local[k],remote[k],b[k],preferLocal,depth-1,path+'.'+k,conflicts);
+      if(v!==undefined)out[k]=v;
+    });
+    return out;
+  }
+  conflicts.push(path);
+  return preferLocal?local:remote;
+}
+// localStorage の1キー（文字列）同士のマージ。両方変わっていて中身がJSONオブジェクトなら項目ごとに合成
+function _mergeKeyValue(k,L,R,B,preferLocal,conflicts){
+  let lo,ro,bo; try{lo=JSON.parse(L);ro=JSON.parse(R);bo=B!=null?JSON.parse(B):undefined;}catch(_){ conflicts.push(k); return preferLocal?L:R; }
+  if(!_isPlainObj(lo)||!_isPlainObj(ro)){ conflicts.push(k); return preferLocal?L:R; }
+  return JSON.stringify(_merge3(lo,ro,bo,preferLocal,3,k,conflicts));
+}
+// data(キー→文字列) 全体のマージ。戻り値 merged=採用内容、conflicts=両方が変えていた項目、keptLocal=クラウドと違う（要送信）キー
+function _mergeData(local,remote,base,preferLocal){
+  const merged={},conflicts=[],keptLocal=[];
+  new Set([...Object.keys(local),...Object.keys(remote)]).forEach(k=>{
+    const L=local[k],R=remote[k],B=base?base[k]:undefined; let v;
+    if(L===R)v=L;
+    else if(R===undefined)v=L;                                    // クラウドに無いキーは端末のまま
+    else if(L===undefined)v=R;
+    else if(!_keyHasRealData(k,L)&&_keyHasRealData(k,R))v=R;     // 端末側が初期値だけ → クラウド採用
+    else if(_keyHasRealData(k,L)&&!_keyHasRealData(k,R))v=L;     // クラウド側が初期値だけ → 端末採用（本物を空で消さない）
+    else if(L===B)v=R;
+    else if(R===B)v=L;
+    else{
+      // 両方が変えたキー。本物のデータを含むキーだけ「衝突」として記録（店舗ID等の設定値は記録しない）
+      const c=[]; v=_mergeKeyValue(k,L,R,B,preferLocal,c);
+      if(c.length&&(_keyHasRealData(k,L)||_keyHasRealData(k,R)))conflicts.push(...c);
+    }
+    if(v!==undefined)merged[k]=v;
+    if(v!==R)keptLocal.push(k);
+  });
+  return {merged,conflicts,keptLocal};
+}
+// 直近に同期した内容の data 部分（マージの基準）。起動直後は IndexedDB に控えた前回分を使う
+let _baseCache={payload:null,data:null},_persistedBase=null;
+function _lastSyncedData(){
+  if(!lastSyncedPayload)return null;
+  if(_baseCache.payload!==lastSyncedPayload){ let d=null; try{d=((JSON.parse(lastSyncedPayload)||{}).data)||null;}catch(_){} _baseCache={payload:lastSyncedPayload,data:d}; }
+  return _baseCache.data;
+}
+function _saveBase(payload){ try{ if(fbDocRef)hdbSet('base',{docId:fbDocRef.id,payload,t:Date.now()}).catch(()=>{}); }catch(_){} }
+// 両方が変えていた項目のクラウド側の値を端末内に控える（端末側を採用した後でも戻せるように）
+function _backupRemoteConflicts(remoteData,res){
+  try{
+    const keys=[...new Set(res.conflicts.map(p=>p.split('.')[0]))]; if(!keys.length)return;
+    const data={}; keys.forEach(k=>{ if(remoteData[k]!=null)data[k]=remoteData[k]; });
+    localStorage.setItem('unified_backup_remoteconflict_'+Date.now(),JSON.stringify({conflicts:res.conflicts,data}));
+    const ks=Object.keys(localStorage).filter(x=>x.startsWith('unified_backup_remoteconflict_')).sort();
+    while(ks.length>3){ localStorage.removeItem(ks.shift()); }
+  }catch(e){console.warn('conflict backup',e);}
+}
 // Firestoreの時刻（Timestamp／数値／{seconds}）をミリ秒に正規化
 function _tsMillis(v){ if(v==null)return 0; if(typeof v==='number')return v; try{ if(typeof v.toMillis==='function')return v.toMillis(); }catch(_){} if(typeof v.seconds==='number')return v.seconds*1000; return 0; }
 let _pendingInitialWrite=false;   // 起動時に「この端末のデータを正」と判断した場合、接続完了後に送る
@@ -674,25 +749,34 @@ function _fbApplyPayload(payload, ts, writer, initial){
     // 時刻で取捨しない（端末ごとの時計のズレで更新を捨ててしまうため）。内容が同じ時だけスキップ
     if(payload===lastSyncedPayload||payload===lastRemotePayload)return;
     const obj=JSON.parse(payload);
-    const remoteSig=_dataSig(obj&&obj.data);
-    if(remoteSig===_dataSig(collectData())){ lastSyncedPayload=payload; lastRemotePayload=payload; lastSyncedSig=remoteSig; return; }   // 端末内と同一内容
-    if(initial){
-      // 起動時の取り込みは「この端末の本物のデータ」を守る：
-      //  ・クラウドに本物のデータが無い（別端末の初期設定だけ 等）→ 取り込まず、この端末のデータをクラウドへ送る
-      //  ・両方にある → 先に端末内へ退避してからクラウドを採用。端末側が極端に大きい時だけ確認する
-      const localReal=_localHasRealData(), cloudReal=_dataHasReal(obj&&obj.data);
+    const remoteData=(obj&&obj.data)||{}, localData=collectData();
+    const remoteSig=_dataSig(remoteData);
+    if(remoteSig===_dataSig(localData)){ lastSyncedPayload=payload; lastRemotePayload=payload; lastSyncedSig=remoteSig; _saveBase(payload); return; }   // 端末内と同一内容
+    // マージの基準＝最後に同期した内容。起動時は前回この端末が控えた分（無ければ「初めての同期」）
+    const base=initial?_persistedBase:_lastSyncedData();
+    if(initial&&!base){
+      // この端末で初めての同期：本物のデータが無い側は採用しない。両方にあり端末側が極端に大きい時だけ確認する
+      const localReal=_localHasRealData(), cloudReal=_dataHasReal(remoteData);
       if(localReal&&!cloudReal){ _pendingInitialWrite=true; return; }
       if(localReal&&cloudReal){
-        _backupLocal('cloud_apply');
         const ll=buildPayload().length, cl=payload.length;
-        if(ll>cl*2 && !confirm('クラウド（他の端末）のデータより、この端末のデータの方がかなり多いようです。\n\nOK：クラウドのデータで置き換える（この端末のデータは端末内にバックアップ済み）\nキャンセル：この端末のデータをクラウドへ送って、全端末で使う')){ _pendingInitialWrite=true; return; }
+        if(ll>cl*2 && !confirm('クラウド（他の端末）のデータより、この端末のデータの方がかなり多いようです。\n\nOK：クラウドのデータと合成する（この端末のデータは端末内にバックアップ済み）\nキャンセル：この端末のデータをクラウドへ送って、全端末で使う')){ _pendingInitialWrite=true; return; }
       }
     }
-    applyData(obj);
-    lastSyncedPayload=payload; lastRemotePayload=payload; lastSyncedSig=_dataSig(collectData());
+    // クラウドをそのまま被せず、端末側の未送信変更（別端末に届く前の商品登録など）を残して合成する
+    const res=_mergeData(localData,remoteData,base,!!base);
+    const changed=Object.keys(res.merged).some(k=>res.merged[k]!==localData[k]);
+    if(changed&&(res.conflicts.length||(initial&&!base)))_backupLocal(res.conflicts.length?'conflict':'cloud_apply');
+    if(res.conflicts.length)_backupRemoteConflicts(remoteData,res);
+    if(changed)applyData({data:res.merged});
+    lastSyncedPayload=payload; lastRemotePayload=payload;
     lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);
-    renderSwitcher();
-    reloadAllFrames();
+    if(res.keptLocal.length){
+      // 端末側を残した項目がある → クラウドへ送って全端末を揃える（送信が済むまで「変化あり」のまま）
+      lastSyncedSig=remoteSig; _dirty=true;
+      if(initial)_pendingInitialWrite=true; else fbPush();
+    }else{ lastSyncedSig=_dataSig(collectData()); _saveBase(payload); }
+    if(changed){ renderSwitcher(); reloadAllFrames(); }
     setSync('ok','リアルタイム同期中');
   }catch(e){console.error('applyPayload',e);if(!initial)setTimeout(_fbCatchUp,3000);}   // 壊れた内容なら少し後に読み直す
 }
@@ -741,11 +825,12 @@ async function _fbWrite(){
       if(r&&r.payload&&r.payload!==lastSyncedPayload&&r.payload!==lastRemotePayload){
         lastRemotePayload=r.payload;              // この内容はここで取り込む（後から同じ通知が来ても二重適用しない）
         const remoteData=((JSON.parse(r.payload)||{}).data)||{};
-        let prev={}; try{prev=((JSON.parse(lastSyncedPayload||'{}')||{}).data)||{};}catch(_){}
-        const local=collectData(); const merged=Object.assign({},remoteData);
-        Object.keys(local).forEach(k=>{ if(local[k]!==prev[k]) merged[k]=local[k]; });   // 自分が変えたキーだけ採用
-        const remoteChanged=Object.keys(merged).some(k=>merged[k]!==local[k]);
-        applyData({data:merged});
+        const local=collectData();
+        const res=_mergeData(local,remoteData,_lastSyncedData(),true);   // 端末の変更＋クラウドの変更を項目単位で合成
+        if(res.conflicts.length){ _backupLocal('conflict'); _backupRemoteConflicts(remoteData,res); }
+        const remoteChanged=Object.keys(res.merged).some(k=>res.merged[k]!==local[k]);
+        if(remoteChanged)applyData({data:res.merged});
+        lastSyncedPayload=r.payload;              // 以後の基準はクラウドの内容
         lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,_tsMillis(r.ts));
         payload=buildPayload();
         if(remoteChanged){renderSwitcher();reloadAllFrames();}
@@ -765,6 +850,7 @@ async function _fbWrite(){
     await batch.commit();
     fbLastChunks=chunks.length;
     lastSyncedPayload=payload; lastSyncedSig=_dataSig((JSON.parse(payload)||{}).data);
+    _saveBase(payload);                            // 次回起動時のマージ基準として端末内(IndexedDB)に控える
     if(_dataSig(collectData())===lastSyncedSig)_dirty=false;      // 書いている間にさらに変更があれば dirty のまま（fbPush が続けて送る）
     setSync('ok','リアルタイム同期中');
     return true;

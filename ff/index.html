@@ -1672,15 +1672,67 @@ function syncActiveWeek(){
     weekStart:S.weekStart
   };
 }
+// 保存する項目（S のうち永続化する部分）
+function _ffSaveObj(){
+  return {
+    storeName:S.storeName,chainName:S.chainName,
+    PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
+    ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
+    rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
+    施策:S.施策,
+    booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
+    weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
+  };
+}
+// 【追加保護E】読み込んだ後に localStorage が別タブ／別端末の同期で書き換わっていた場合の検知用。
+// 直近に読み込み or 保存した「保存文字列」を控えておき、保存直前に localStorage と違っていれば
+// 「自分が変えた項目だけ」を最新に重ねる（メモリ上の古い S で別端末の商品登録などを丸ごと消さない）
+let _ffLoadedKey=null,_ffLoadedRaw=null;
+function _ffMarkLoaded(key,raw){ _ffLoadedKey=key; _ffLoadedRaw=raw; }
+function _isPlainObj(v){ return v!==null&&typeof v==='object'&&!Array.isArray(v); }
+// 3方向マージ：base=読み込んだ時点、local=いまの S、remote=localStorage の最新。片方しか変えていない項目は変えた側、
+// 両方が変えた項目はオブジェクトの中まで(depth階層)見て合成。同じ項目を両方が変えていた時だけ S（操作中の側）を採用
+function _merge3(local,remote,base,depth,path,conflicts){
+  const ls=JSON.stringify(local), rs=JSON.stringify(remote), bs=JSON.stringify(base);
+  if(ls===rs)return local;
+  if(ls===bs)return remote;
+  if(rs===bs)return local;
+  if(depth>0&&_isPlainObj(local)&&_isPlainObj(remote)){
+    const b=_isPlainObj(base)?base:{}; const out={};
+    new Set([...Object.keys(local),...Object.keys(remote)]).forEach(k=>{
+      const v=_merge3(local[k],remote[k],b[k],depth-1,path+'.'+k,conflicts);
+      if(v!==undefined)out[k]=v;
+    });
+    return out;
+  }
+  conflicts.push(path);
+  return local;
+}
 function saveS(){
   syncActiveWeek();
   const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
 
+  let prevRaw='';try{prevRaw=localStorage.getItem(key)||'';}catch(_){}
+  let out=_ffSaveObj();
+
+  // 【追加保護E】読み込み後に localStorage が他タブ／他端末の同期で更新されていたら、変えた項目だけを重ねる
+  if(_ffLoadedKey===key&&_ffLoadedRaw!=null&&prevRaw&&prevRaw!==_ffLoadedRaw){
+    try{
+      const base=JSON.parse(_ffLoadedRaw), fresh=JSON.parse(prevRaw);
+      if(!_looksEmptyState(fresh)){
+        const conflicts=[];
+        out=_merge3(out,fresh,base,3,'',conflicts);
+        Object.assign(S,out);
+        logOp('MERGE_STALE_SAVE',{conflicts:conflicts.slice(0,20)});
+        if(conflicts.length)console.warn('FF管理: 他端末の更新と同じ項目を変更していたため、この端末の値を採用しました',conflicts);
+      }
+    }catch(e){console.warn('FF管理: 最新データとの合成に失敗（そのまま保存）',e);}
+  }
+
   // 【追加保護B】空state上書き拒否
   // 既存に意味あるデータが入っていて、いまの S が完全に空っぽなら拒否
   // （初期化バグや一過性の例外で実データが空に置き換わる事故を未然防止）
-  let prevRaw='';try{prevRaw=localStorage.getItem(key)||'';}catch(_){}
-  if(_hasMeaningfulExisting(prevRaw) && _looksEmptyState(S)){
+  if(_hasMeaningfulExisting(prevRaw) && _looksEmptyState(out)){
     logOp('SAVE_BLOCKED_EMPTY_OVER_EXISTING',{prevSize:prevRaw.length});
     console.error('FF管理: 空のstateで既存データを上書きしようとしたため保存を中止しました');
     return;
@@ -1690,26 +1742,14 @@ function saveS(){
   _trimAllBackupsIfNeeded();
 
   const prevSize=prevRaw.length;
-  try{localStorage.setItem(key,JSON.stringify({
-    storeName:S.storeName,chainName:S.chainName,
-    PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
-    ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-    rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
-    施策:S.施策,
-    booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
-    weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
-  }));}catch(e){
+  const json=JSON.stringify(out);
+  try{localStorage.setItem(key,json);}catch(e){
     // QuotaExceededError ならもう一度強めにtrimして再試行
     console.warn('save error (1st)',e);logOp('SAVE_ERROR',{msg:String(e),phase:'first'});
     _trimAllBackupsIfNeeded();
-    try{localStorage.setItem(key,JSON.stringify({
-      storeName:S.storeName,chainName:S.chainName,PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
-      ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-      rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
-      施策:S.施策,booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
-      weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
-    }));}catch(e2){console.error('save error (final)',e2);logOp('SAVE_ERROR',{msg:String(e2),phase:'final'});return;}
+    try{localStorage.setItem(key,json);}catch(e2){console.error('save error (final)',e2);logOp('SAVE_ERROR',{msg:String(e2),phase:'final'});return;}
   }
+  _ffMarkLoaded(key,json);
   // 大幅減検知：50%以上減ったら緊急バックアップ＋警告ログ
   const newSize=(localStorage.getItem(key)||'').length;
   if(prevSize>1000 && newSize<prevSize*0.5){
@@ -1957,6 +1997,7 @@ function _scheduleAutoReload(){
       if(!raw)return;
       const fresh=JSON.parse(raw);
       Object.assign(S,fresh);
+      _ffMarkLoaded(key,raw);
       // タブ全体を再描画（軽量にすべきは個別に。ここはまず全部）
       if(typeof renderJissekiTab==='function')renderJissekiTab();
       if(typeof renderProductTab==='function')renderProductTab();
@@ -2414,6 +2455,7 @@ function loadS(){
       try{
         const parsed=JSON.parse(d);
         Object.assign(S,parsed);
+        _ffMarkLoaded(storeKey,d);
         loaded=true;
       }catch(e){
         // 【追加保護C】JSON破損検知 → 最新snapから自動復旧
