@@ -55,6 +55,84 @@ body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-botto
 .chip{background:var(--gray-lt);border-radius:12px;padding:2px 8px;font-size:11px;color:var(--gray)}
 .chip.warn{background:var(--red-lt);color:var(--red)}
 .chip.ok{background:var(--green-lt);color:var(--green)}
+
+/* ===== 実績入力（1商品=1行のグリッド。入力後も作り直さずフォーカスを保つ） ===== */
+.ji-grid{display:grid;grid-template-columns:minmax(0,1fr) 76px 76px 66px 60px 60px;border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:13px;background:#fff}
+.ji-grid>div{padding:4px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;min-height:40px}
+.ji-head{background:var(--main-lt);color:var(--main);font-weight:600;font-size:11px;min-height:30px!important}
+.ji-cat{grid-column:1/-1;justify-content:flex-start!important;background:var(--tint,#eef2ff);font-weight:700;color:#1f2937;padding:5px 10px!important;min-height:0!important;font-size:12px}
+.ji-name{justify-content:flex-start!important;text-align:left;cursor:pointer;gap:6px;min-width:0;padding-left:10px!important}
+.ji-name .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.ji-name:hover{background:#f8fafc}
+.ji-in input{width:100%;max-width:66px;text-align:center;font-size:15px;font-weight:600;padding:6px 4px;border:1px solid #cbd5e1;border-radius:6px}
+.ji-in input:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.ji-met{font-size:12px;font-weight:600}
+.ji-detail{grid-column:1/-1;justify-content:flex-start!important;background:#f8fafc;min-height:0!important;padding:2px 10px!important}
+.ji-total{grid-column:1/-1;justify-content:space-between!important;background:#f0f4ff;font-weight:600;font-size:12px;min-height:0!important;padding:6px 10px!important;gap:8px;flex-wrap:wrap}
+.ji-lbl{display:none;font-size:10px;color:var(--gray)}
+.mob-met{display:none}
+@media (max-width:640px){
+  .ji-grid{grid-template-columns:1fr 1fr 1fr}
+  .ji-grid>.ji-head{display:none}
+  .ji-grid>.ji-name{grid-column:1/-1;border-bottom:none!important;padding:8px 10px 0!important;min-height:0!important;justify-content:space-between!important}
+  .ji-grid>.ji-met{display:none}
+  .mob-met{display:inline-flex;gap:8px;font-size:11px;font-weight:600;white-space:nowrap}
+  .ji-in{flex-direction:column;gap:2px;padding:2px 6px 8px!important}
+  .ji-lbl{display:block}
+}
+
+/* ===== 商品設定：カテゴリ設定（1カテゴリ=1行、タップで編集） ===== */
+.cc-row{border:1px solid var(--border);border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff}
+.cc-row.off .cc-head{opacity:.55}
+.cc-head{display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;background:var(--tint,#f8fafc);min-height:46px;flex-wrap:wrap}
+.cc-name{font-size:13px;white-space:nowrap}
+.cc-chips{display:flex;gap:4px;flex-wrap:wrap}
+.cc-chip{background:#fff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700}
+.cc-chip.none{border-color:#fca5a5;color:#dc2626}
+.cc-info{font-size:11px;color:#64748b;white-space:nowrap}
+.cc-newtg{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#1565c0;margin-left:auto;cursor:default}
+.cc-edit{font-size:11px;color:var(--main);font-weight:600;white-space:nowrap}
+.cc-body{padding:10px 12px 12px;border-top:1px solid var(--border);font-size:12px}
+.cc-sec{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.cc-sub{font-size:11px;color:#94a3b8}
+.cc-slots{display:flex;flex-wrap:wrap;gap:5px}
+.cc-slot{min-width:40px;padding:7px 0;font-size:12px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#94a3b8;font-weight:600}
+.cc-slot.on{background:#2563eb;border-color:#2563eb;color:#fff}
+.cc-slot:disabled{opacity:.5;cursor:not-allowed}
+.cc-days{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.cc-day{min-width:38px;padding:7px 0;font-size:12px;border-radius:8px;border:1.5px solid #ddd;background:#f5f5f5;color:#999;font-weight:600}
+.cc-day.on{background:#fff3e0;border-color:#f59e0b;color:#d97706}
+.cc-mini{padding:5px 10px;font-size:11px;border:1px solid #ddd;background:#fff;border-radius:6px;margin-left:4px}
+.toggle.sm{width:34px;height:20px}
+.toggle.sm .slider::before{width:14px;height:14px}
+.toggle.sm input:checked+.slider::before{transform:translateX(14px)}
+
+/* ===== 商品設定：商品カード（基本項目 ＋ 折りたたみの詳細設定） ===== */
+.pc{border:1px solid var(--border);border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff}
+.pc.open{border-color:#93c5fd;box-shadow:0 2px 8px rgba(30,58,95,.08)}
+.pc-head{background:var(--main-lt);padding:6px 8px;display:flex;align-items:center;gap:8px;font-size:13px;min-height:44px}
+.pc-grab{cursor:grab;font-size:16px;color:#94a3b8;padding:0 2px;flex-shrink:0;user-select:none}
+.pc-title{flex:1;min-width:0;cursor:pointer;display:flex;align-items:center;gap:6px;overflow:hidden}
+.pc-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-name.empty{color:#bbb;font-weight:400}
+.pc-sum{display:flex;gap:8px;margin-left:auto;white-space:nowrap;font-size:11px;color:#64748b}
+.pc-sum .s-disc{color:#d97706}
+.pc-chev{padding:4px 8px;font-size:12px;border:none;background:transparent;color:#64748b;cursor:pointer}
+.pc-body{padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;font-size:12px}
+.pc-body label{font-size:11px;color:#475569;font-weight:600;display:block;margin-bottom:2px}
+.pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;padding-top:8px}
+.pc-adv{border:1px solid var(--border);border-radius:8px;padding:0 10px 8px;background:#fafafa}
+.pc-adv>summary{cursor:pointer;padding:9px 0;font-weight:700;font-size:12px;color:var(--main);list-style:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pc-adv>summary::-webkit-details-marker{display:none}
+.pc-adv>summary::before{content:'▶';font-size:10px;color:#94a3b8}
+.pc-adv[open]>summary::before{content:'▼'}
+.pc-sub{font-size:10px;color:#94a3b8;font-weight:400}
+.pc-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px;border-top:1px dashed var(--border);flex-wrap:wrap}
+.pc-move{font-size:11px;color:#64748b}
+.pc-move button{padding:6px 10px;font-size:12px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;margin-left:4px;color:#334155}
+.pc-del{padding:6px 12px;font-size:12px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:6px;font-weight:600}
+.info{cursor:help;font-size:11px;margin-left:3px;color:#94a3b8}
+@media (max-width:640px){.pc-body,.pc-grid{grid-template-columns:1fr}.pc-body>*,.pc-grid>*{grid-column:1/-1!important}.pc-sum{display:none}}
 /* 週セレクター（ドロップダウン式） */
 .week-switcher{position:relative;display:inline-block}
 .week-trigger{
@@ -434,15 +512,15 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
           <div class="summary-grid" id="jisseki-summary"></div>
         </div>
         <div class="card">
-          <div class="flex justify-between items-center mb-2">
+          <div class="flex justify-between items-center mb-2" style="flex-wrap:wrap;gap:6px">
             <div class="section-title" style="margin:0" id="jisseki-title">実績入力</div>
-            <div class="flex gap-2">
-              <button class="btn-secondary" onclick="resetJisseki()" data-i18n="common.reset">リセット</button>
+            <div class="flex gap-2 items-center">
               <button class="btn-secondary" onclick="loadPrevJisseki()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
-              <button class="btn-success" onclick="loadSampleJisseki()" data-i18n="jisseki.loadSample">サンプル読込</button>
+              <button type="button" onclick="resetJisseki()" title="この週の実績を全て0に戻す（確認あり）" style="padding:6px 10px;font-size:12px;background:transparent;color:#94a3b8;border:1px solid #e5e7eb;border-radius:8px" data-i18n="common.reset">リセット</button>
             </div>
           </div>
-          <div class="overflow-auto"><div id="jisseki-table"></div></div>
+          <div style="font-size:11px;color:var(--gray);margin-bottom:6px">💡 Enter／→で右へ、↓で下へ移動。商品名をタップすると詳細指標</div>
+          <div id="jisseki-table"></div>
         </div>
         <div class="card">
           <div class="flex justify-between items-center mb-2">
@@ -485,25 +563,12 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
 
     <!-- Tab 1: 商品設定 -->
     <div class="tab-panel" id="tab1">
-      <div class="card">
-        <div class="section-title" data-i18n="product.catToggle">カテゴリ ON/OFF</div>
-        <div id="cat-toggle-area"></div>
-      </div>
-      <div class="card">
-        <div class="section-title" data-i18n="product.catTimeCfg">カテゴリ別作成時間設定</div>
-        <div id="cat-cfg-area"></div>
-      </div>
+      <!-- よく使う「商品マスタ」を最上部に。カテゴリ設定は下に要約表示 -->
       <div class="card">
         <div class="section-title" data-i18n="product.list">商品マスタ</div>
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
-          <button class="btn-primary" style="width:auto;margin:0;padding:6px 14px;font-size:13px" onclick="addProduct()" data-i18n="product.add">+ 商品追加</button>
-          <button type="button" onclick="collapseAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.collapseAll">すべて閉じる</button>
-          <button type="button" onclick="expandAllCards()" style="padding:5px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.expandAll">すべて開く</button>
-          <span id="cross-store-import"></span>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px">
-          <span style="font-size:12px;color:#555;font-weight:600" data-i18n="product.sortLabel">並び順：</span>
-          <select id="prod-sort-select" onchange="setProductSortMode(this.value)" style="padding:5px 10px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer">
+          <button class="btn-primary" style="width:auto;margin:0;padding:8px 16px;font-size:13px" onclick="addProduct()" data-i18n="product.add">+ 商品追加</button>
+          <select id="prod-sort-select" onchange="setProductSortMode(this.value)" title="並び順" style="width:auto;padding:6px 10px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer">
             <option value="manual" data-i18n="product.sortManual">手動（追加順／ドラッグ）</option>
             <option value="category" data-i18n="product.sortCategory">カテゴリ別</option>
             <option value="name" data-i18n="product.sortName">商品名 (50音)</option>
@@ -512,9 +577,17 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
             <option value="profit" data-i18n="product.sortProfit">利益率 高→低</option>
             <option value="status" data-i18n="product.sortStatus">発注ステータス別</option>
           </select>
-          <span id="prod-sort-hint" style="font-size:10px;color:#666"></span>
+          <button type="button" onclick="collapseAllCards()" style="padding:6px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.collapseAll">すべて閉じる</button>
+          <button type="button" onclick="expandAllCards()" style="padding:6px 10px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer" data-i18n="product.expandAll">すべて開く</button>
+          <span id="cross-store-import"></span>
         </div>
+        <div id="prod-sort-hint" style="font-size:10px;color:#666;margin-bottom:6px"></div>
         <div id="product-cards"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">カテゴリ設定 <span style="font-size:11px;font-weight:400;color:var(--gray)">ON/OFF・作成時間帯・販売許容時間・値引き曜日（行をタップで編集）</span></div>
+        <div id="cat-toggle-area" style="display:none"></div>
+        <div id="cat-cfg-area"></div>
       </div>
     </div>
 
@@ -3208,64 +3281,79 @@ function renderJissekiSummary(){
   `;
 }
 
+// ====== 実績入力表 ======
+// 1商品=1行（商品名｜定価｜値引｜廃棄｜販売率｜利益率）。詳細指標は商品名タップで開く。
+// 入力後は表を作り直さず、その商品の指標とカテゴリ合計だけ書き換える（Tab/Enterで移った先のフォーカスを奪わない）
+const _jiOpen=new Set();   // 詳細指標を開いている商品ID
+const CAT_TINT={'ホットFF':'#fff7ed','常温FF':'#f0fdf4','中華まん':'#eff6ff','まちかど厨房':'#fffbeb'};
+function _jiMetHtml(pid){
+  const m=calcJissekiMetrics(pid);
+  const pr=m?m.profitRate:0;
+  const sr=(m&&m.makeCnt>0)?m.sellRate:null;
+  return {
+    profit:`<span style="color:${pr<50?'var(--red)':'#334155'}">${pr.toFixed(1)}%</span>`,
+    sell: sr==null?'<span style="color:#9ca3af">-</span>':`<span style="color:${sr>=96?'var(--green)':sr>=90?'var(--orange)':'var(--red)'}">${sr.toFixed(1)}%</span>`
+  };
+}
+function _jiDetailHtml(pid){
+  const m=calcJissekiMetrics(pid);
+  if(!m)return '<span class="cc-sub">まだ実績がありません</span>';
+  const c=(l,v,cls)=>`<span class="chip ${cls||''}">${l}: ${v}</span>`;
+  return `<div class="chips">${c(t('metric.buyRate'),m.buyRate.toFixed(2)+'%')}${c(t('jisseki.salesTotal'),fmt(m.salesAmt)+t('common.yen'))}${c(t('jisseki.wasteTotal'),fmt(m.wasteAmt)+t('common.yen'))}${c(t('jisseki.discountTotal'),fmt(m.discAmt)+t('common.yen'))}${c(t('metric.urihen'),m.sellChangeRate.toFixed(1)+'%')}${c(t('jisseki.profitTotal'),fmt(m.profit)+t('common.yen'))}${c(t('jisseki.profitRate'),m.profitRate.toFixed(1)+'%',m.profitRate<50?'warn':'')}${c(t('jisseki.sellRate'),m.makeCnt>0?m.sellRate.toFixed(1)+'%':'-',(m.makeCnt>0&&m.sellRate<90)?'warn':'')}</div>`;
+}
+function _jiCatTotalHtml(cat){
+  const prods=S.PM.filter(p=>p.category===cat&&p.enabled);
+  let cSales=0,cWaste=0,cProfit=0;
+  prods.forEach(p=>{const m=calcJissekiMetrics(p.id);if(m){cSales+=m.salesAmt;cWaste+=m.wasteAmt;cProfit+=m.profit;}});
+  const cPR=cSales?cProfit/cSales*100:0;
+  return `<span>${tCat(cat)} 合計</span><span style="font-weight:500;color:#475569">販売高 <b>${fmt(cSales)}</b>円 ・ 廃棄 ${fmt(cWaste)}円 ・ 利益率 <b style="color:${cPR<50?'var(--red)':'inherit'}">${cPR.toFixed(1)}%</b></span>`;
+}
 function renderJissekiTable(){
   const el=document.getElementById('jisseki-table');
-  const catProds={};
-  CATS.forEach(c=>{catProds[c]=S.PM.filter(p=>p.category===c&&p.enabled).sort((a,b)=>a.order-b.order);});
-
-  let html=`<table><thead><tr>
-    <th style="width:140px;text-align:left">${t('jisseki.productName')}</th>
-    <th style="width:60px">${t('jisseki.teikaSales')}</th>
-    <th style="width:60px">${t('jisseki.discountSales')}</th>
-    <th style="width:50px">${t('jisseki.wasteCount')}</th>
-  </tr></thead><tbody>`;
-
+  let html=`<div class="ji-grid">
+    <div class="ji-head" style="justify-content:flex-start;padding-left:10px">${t('jisseki.productName')}</div>
+    <div class="ji-head">${t('jisseki.teikaSales')}</div><div class="ji-head">${t('jisseki.discountSales')}</div><div class="ji-head">${t('jisseki.wasteCount')}</div>
+    <div class="ji-head">${t('jisseki.sellRate')}</div><div class="ji-head">${t('jisseki.profitRate')}</div>`;
+  let r=0;
   CATS.forEach(cat=>{
-    const prods=catProds[cat];
+    const prods=S.PM.filter(p=>p.category===cat&&p.enabled).sort((a,b)=>a.order-b.order);
     if(!prods.length||!S.catOn[cat])return;
-    html+=`<tr><td colspan="4" style="background:var(--main-lt);font-weight:700;text-align:left;padding:6px 8px">${tCat(cat)}</td></tr>`;
+    html+=`<div class="ji-cat" style="--tint:${CAT_TINT[mainCatOf(cat)]||'#eef2ff'}">${tCat(cat)}</div>`;
     prods.forEach(p=>{
       const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
-      const m=calcJissekiMetrics(p.id);
-      const warnClass=m&&m.profitRate<50?'chip warn':'chip';
-      html+=`<tr class="${CAT_CLASS[cat]||''}">
-        <td style="text-align:left">${p.name}</td>
-        <td><input type="number" min="0" value="${ji.teika||0}" style="width:55px;text-align:center"
-          onchange="setJi('${p.id}','teika',parseInt(toHalf(this.value))||0)"></td>
-        <td><input type="number" min="0" value="${ji.nebiki||0}" style="width:55px;text-align:center"
-          onchange="setJi('${p.id}','nebiki',parseInt(toHalf(this.value))||0)"></td>
-        <td><input type="number" min="0" value="${ji.haiki||0}" style="width:45px;text-align:center"
-          onchange="setJi('${p.id}','haiki',parseInt(toHalf(this.value))||0)"></td>
-      </tr>
-      <tr class="${CAT_CLASS[cat]||''}">
-        <td colspan="4" style="padding:4px 8px">
-          <div class="chips">
-            <span class="chip">${t('metric.buyRate')}: ${m?m.buyRate.toFixed(2):'0.00'}%</span>
-            <span class="chip">${t('jisseki.salesTotal')}: ${m?fmt(m.salesAmt):0}${t('common.yen')}</span>
-            <span class="chip">${t('jisseki.wasteTotal')}: ${m?fmt(m.wasteAmt):0}${t('common.yen')}</span>
-            <span class="chip">${t('jisseki.discountTotal')}: ${m?fmt(m.discAmt):0}${t('common.yen')}</span>
-            <span class="chip">${t('metric.urihen')}: ${m?m.sellChangeRate.toFixed(1):'0.0'}%</span>
-            <span class="chip">${t('jisseki.profitTotal')}: ${m?fmt(m.profit):0}${t('common.yen')}</span>
-            <span class="${m&&m.profitRate<50?'chip warn':'chip'}">${t('jisseki.profitRate')}: ${m?m.profitRate.toFixed(1):'0.0'}%</span>
-            <span class="${m&&m.sellRate<90?'chip warn':m&&m.sellRate<96?'chip':'chip'}" style="${m?`color:${m.sellRate>=96?'var(--green)':m.sellRate>=90?'var(--orange)':'var(--red)'}`:''}">${m&&m.makeCnt>0?`${t('jisseki.sellRate')}: ${m.sellRate.toFixed(1)}%`:`${t('jisseki.sellRate')}: -`}</span>
-          </div>
-        </td>
-      </tr>`;
+      const met=_jiMetHtml(p.id);
+      const open=_jiOpen.has(p.id);
+      const mk=(key,ci,label)=>`<div class="ji-in"><span class="ji-lbl">${label}</span><input type="number" min="0" inputmode="numeric" value="${ji[key]||0}" data-ji-r="${r}" data-ji-c="${ci}" onfocus="this.select()" onkeydown="jiKeyNav(event,${r},${ci})" onchange="setJi('${p.id}','${key}',parseInt(toHalf(this.value))||0)"></div>`;
+      html+=`<div class="ji-name" onclick="toggleJiDetail('${p.id}')" title="タップで詳細指標を表示"><span class="n">${p.name}</span><span class="mob-met" id="ji-mm-${p.id}">販売率 ${met.sell}　利益率 ${met.profit}</span></div>
+        ${mk('teika',0,t('jisseki.teikaSales'))}${mk('nebiki',1,t('jisseki.discountSales'))}${mk('haiki',2,t('jisseki.wasteCount'))}
+        <div class="ji-met" id="ji-sell-${p.id}">${met.sell}</div><div class="ji-met" id="ji-prof-${p.id}">${met.profit}</div>
+        <div class="ji-detail" id="ji-detail-${p.id}" style="${open?'':'display:none'}">${open?_jiDetailHtml(p.id):''}</div>`;
+      r++;
     });
-    // Category total
-    const catProdsE=prods;
-    let cSales=0,cWaste=0,cDisc=0,cProfit=0;
-    catProdsE.forEach(p=>{const m=calcJissekiMetrics(p.id);if(m){cSales+=m.salesAmt;cWaste+=m.wasteAmt;cDisc+=m.discAmt;cProfit+=m.profit;}});
-    const cPR=cSales?cProfit/cSales*100:0;
-    html+=`<tr style="background:#f0f4ff;font-weight:600">
-      <td style="text-align:left">${cat} 合計</td>
-      <td colspan="2" style="font-size:11px">販売高: ${fmt(cSales)}円</td>
-      <td style="font-size:11px">${cPR.toFixed(1)}%</td>
-    </tr>`;
+    html+=`<div class="ji-total" id="ji-total-${cat}">${_jiCatTotalHtml(cat)}</div>`;
   });
-
-  html+='</tbody></table>';
+  if(r===0)html+=`<div class="ji-detail" style="padding:16px!important;color:#9ca3af;justify-content:center!important">有効な商品がありません。「②商品設定」で商品を追加してください</div>`;
+  html+='</div>';
   el.innerHTML=html;
+}
+function toggleJiDetail(pid){
+  const d=document.getElementById('ji-detail-'+pid); if(!d)return;
+  if(_jiOpen.has(pid)){ _jiOpen.delete(pid); d.style.display='none'; }
+  else { _jiOpen.add(pid); d.innerHTML=_jiDetailHtml(pid); d.style.display=''; }
+}
+// Enter／→＝右の欄へ（行末なら次の商品の先頭へ）、←＝左、↓↑＝上下の商品の同じ欄へ
+function jiKeyNav(e,r,c){
+  if(e.isComposing||e.keyCode===229)return;
+  let nr=r,nc=c;
+  if(e.key==='Enter'||e.key==='ArrowRight'){ nc=c+1; if(nc>2){nc=0;nr=r+1;} }
+  else if(e.key==='ArrowLeft'){ nc=c-1; if(nc<0){nc=2;nr=r-1;} }
+  else if(e.key==='ArrowDown'){ nr=r+1; }
+  else if(e.key==='ArrowUp'){ nr=r-1; }
+  else return;
+  const next=document.querySelector(`#jisseki-table input[data-ji-r="${nr}"][data-ji-c="${nc}"]`);
+  if(!next)return;
+  e.preventDefault();
+  next.focus(); next.select();
 }
 
 function setJi(pid,key,val){
@@ -3273,7 +3361,13 @@ function setJi(pid,key,val){
   S.ji[pid][key]=val;
   saveS();
   renderJissekiSummary();
-  renderJissekiTable();
+  // 表は作り直さず、この商品の指標・カテゴリ合計だけ更新
+  const met=_jiMetHtml(pid);
+  const s=document.getElementById('ji-sell-'+pid); if(s)s.innerHTML=met.sell;
+  const pr=document.getElementById('ji-prof-'+pid); if(pr)pr.innerHTML=met.profit;
+  const mm=document.getElementById('ji-mm-'+pid); if(mm)mm.innerHTML=`販売率 ${met.sell}　利益率 ${met.profit}`;
+  const d=document.getElementById('ji-detail-'+pid); if(d&&_jiOpen.has(pid))d.innerHTML=_jiDetailHtml(pid);
+  const p=getP(pid); const tot=p&&document.getElementById('ji-total-'+p.category); if(tot)tot.innerHTML=_jiCatTotalHtml(p.category);
   renderRanking();
 }
 
@@ -3714,92 +3808,82 @@ function loadPrevCust(){
 // TAB 1: 商品設定
 // ============================================================
 function renderProductTab(){
-  renderCatToggles();
   renderCatCfgArea();
   renderProductCards();
 }
 
-function renderCatToggles(){
-  document.getElementById('cat-toggle-area').innerHTML=`
-    <div style="display:flex;flex-wrap:wrap;gap:12px">
-      ${CATS.map(c=>`
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
-          <label class="toggle">
-            <input type="checkbox" ${S.catOn[c]?'checked':''} onchange="toggleCat('${c}',this.checked)">
-            <span class="slider"></span>
-          </label>
-          ${c}
-        </label>`).join('')}
-    </div>`;
-}
+// 旧「カテゴリ ON/OFF」カードは廃止（各カテゴリ行のトグルに統合）。呼び出し互換のため空関数を残す
+function renderCatToggles(){}
 
 function toggleCat(cat,on){
   S.catOn[cat]=on;saveS();renderProductTab();
 }
 
+// ====== カテゴリ設定：1カテゴリ=1行の要約（ON/OFF・作成時間帯・許容時間・値引き曜日）。行タップで編集パネル ======
+const _catEditOpen=new Set();
+function toggleCatEdit(c){ if(_catEditOpen.has(c))_catEditOpen.delete(c); else _catEditOpen.add(c); renderCatCfgArea(); }
+function _newCatOf(c){ return c+'新商品'; }
+// 新商品カテゴリが本体と同じ作成時間帯・許容時間か（未設定なら、現在の値が一致していれば「同じ」扱い）
+function _newCatSame(c){
+  const n=S.catCfg[_newCatOf(c)], m=S.catCfg[c]; if(!n||!m)return false;
+  if(n.sameAsMain!==undefined)return !!n.sameAsMain;
+  return n.ah===m.ah&&JSON.stringify(n.slots)===JSON.stringify(m.slots);
+}
+function _syncNewCat(c){ if(!c.endsWith('新商品')&&_newCatSame(c)){ const n=S.catCfg[_newCatOf(c)], m=S.catCfg[c]; n.ah=m.ah; n.slots=[...m.slots]; } }
+function setNewCatSame(c,same){ const n=S.catCfg[_newCatOf(c)]; if(!n)return; n.sameAsMain=same; if(same)_syncNewCat(c); saveS(); renderCatCfgArea(); }
+function _discDaysSummary(c){
+  const on=DAYS.map((d,i)=>isDiscountOn(c,i)?d:null).filter(Boolean);
+  if(on.length===7)return '毎日'; if(on.length===0)return 'なし';
+  return on.join('');
+}
+function _slotEditor(cat){
+  const cfg=S.catCfg[cat], on=S.catOn[cat];
+  return `<div class="cc-slots">${ALL_SLOTS.map(h=>{const sel=cfg.slots.includes(h);return `<button type="button" class="cc-slot ${sel?'on':''}" ${!on?'disabled':''} onclick="toggleCatSlot('${cat}',${h},${!sel})">${h}</button>`;}).join('')}</div>`;
+}
 function renderCatCfgArea(){
-  const el=document.getElementById('cat-cfg-area');
-  el.innerHTML=CATS.map(c=>{
-    const cfg=S.catCfg[c];
-    const isMain=!c.endsWith('新商品');
-    let discountUi='';
-    if(isMain){
-      const dayBoxes=DAYS.map((d,i)=>{
-        const on=isDiscountOn(c,i);
-        return `<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 6px;border-radius:5px;cursor:pointer;background:${on?'#fff3e0':'#f5f5f5'};border:1px solid ${on?'#f59e0b':'#ddd'};color:${on?'#d97706':'#999'};font-weight:${on?700:400}">
-          <input type="checkbox" ${on?'checked':''} onchange="toggleDiscountDay('${c}',${i},this.checked)" style="margin:0;cursor:pointer">${d}
-        </label>`;
-      }).join(' ');
-      discountUi=`<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:12px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
-          <span style="color:#d97706;font-weight:600">💰 ${t('product.discountToggle')}</span>
-          <span style="font-size:10px;color:#999">${t('product.discountToggleHint')}</span>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
-          ${dayBoxes}
-          <button onclick="setDiscountAllDays('${c}',true)" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer;margin-left:6px">${t('product.allOn')}</button>
-          <button onclick="setDiscountAllDays('${c}',false)" style="padding:2px 8px;font-size:10px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer">${t('product.allOff')}</button>
-        </div>
-        <div style="font-size:10px;color:#888;margin-top:3px">${t('product.discountAppliesAlsoNew').replace('{0}',tCat(c))}</div>
+  const el=document.getElementById('cat-cfg-area'); if(!el)return;
+  el.innerHTML=CATS.filter(c=>!c.endsWith('新商品')).map(c=>{
+    const cfg=S.catCfg[c], on=S.catOn[c], nc=_newCatOf(c), ncfg=S.catCfg[nc], open=_catEditOpen.has(c);
+    const chips=cfg.slots.length?cfg.slots.map(h=>`<span class="cc-chip">${h}時</span>`).join(''):'<span class="cc-chip none">作成時間帯 未設定</span>';
+    const same=_newCatSame(c);
+    let body='';
+    if(open){
+      body=`<div class="cc-body">
+        <div class="cc-sec"><b>作成時間帯</b><span class="cc-sub">タップで選択（最大 ${CALC_MAX_HOURS[c]||4} 時間分カバー）</span>
+          <button type="button" class="btn-secondary" style="font-size:11px;padding:4px 10px;margin-left:auto" onclick="suggestSlots('${c}')">${t('product.suggestSlot')}</button></div>
+        ${_slotEditor(c)}
+        <div id="suggest_${c.replace(/\s/g,'_')}" style="display:none;margin-top:6px;background:var(--accent-lt);border-radius:6px;padding:8px;font-size:12px"></div>
+        <div class="cc-sec" style="margin-top:10px"><b>${t('product.allowedHours')}</b>
+          <input type="number" value="${cfg.ah}" min="1" max="24" style="width:64px;text-align:center" onchange="setCatCfg('${c}','ah',parseInt(this.value)||6)"><span>${t('common.hour')}</span>
+          <span class="cc-sub">${t('product.discountTimeBase')}: ${cfg.slots.map(h=>`${getMarkdownTime(c,h)}:00`).join(' / ')||'—'}</span></div>
+        <div class="cc-sec" style="margin-top:10px"><b>💰 ${t('product.discountToggle')}</b><span class="cc-sub">OFFの曜日は作成表に「値引なし」と表示（新商品にも適用）</span></div>
+        <div class="cc-days">${DAYS.map((d,i)=>{const o=isDiscountOn(c,i);return `<button type="button" class="cc-day ${o?'on':''}" onclick="toggleDiscountDay('${c}',${i},${!o})">${d}</button>`;}).join('')}
+          <button type="button" class="cc-mini" onclick="setDiscountAllDays('${c}',true)">${t('product.allOn')}</button><button type="button" class="cc-mini" onclick="setDiscountAllDays('${c}',false)">${t('product.allOff')}</button></div>
+        ${ncfg?`<div class="cc-sec" style="margin-top:12px;padding-top:8px;border-top:1px dashed var(--border)"><b>🆕 ${tCat(nc)}</b>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" ${same?'checked':''} onchange="setNewCatSame('${c}',this.checked)">本体と同じ作成時間帯・許容時間</label></div>
+          ${same?'':`<div style="margin-top:4px">${_slotEditor(nc)}<div class="cc-sec" style="margin-top:6px"><b>${t('product.allowedHours')}</b><input type="number" value="${ncfg.ah}" min="1" max="24" style="width:64px;text-align:center" onchange="setCatCfg('${nc}','ah',parseInt(this.value)||6)"><span>${t('common.hour')}</span></div></div>`}`:''}
       </div>`;
     }
-    return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;${S.catOn[c]?'':'opacity:.5'}">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:13px">${tCat(c)}</b>
-        <button class="btn-secondary" style="font-size:11px" onclick="suggestSlots('${c}')">${t('product.suggestSlot')}</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;flex-wrap:wrap">
-        <span>${t('product.allowedHours')}:</span>
-        <input type="number" value="${cfg.ah}" min="1" max="24" style="width:60px"
-          onchange="setCatCfg('${c}','ah',parseInt(this.value)||6)">${t('common.hour')}
-        <span style="color:var(--gray)">${t('product.discountTimeBase')}: ${cfg.slots.map(h=>`${getMarkdownTime(c,h)}:00`).join('/')}</span>
-      </div>
-      <div style="margin-top:6px;font-size:12px">
-        <div style="margin-bottom:3px">${t('product.makeSlots').replace('{0}',CALC_MAX_HOURS[mainCatOf(c)]||4)}</div>
-        <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px 4px">
-        ${ALL_SLOTS.map(h=>{
-          const on=cfg.slots.includes(h);
-          return `<label style="display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:2px 3px;border-radius:3px;cursor:${S.catOn[c]?'pointer':'not-allowed'};background:${on?'#dbeafe':'#f5f5f5'};border:1px solid ${on?'var(--main)':'#e5e7eb'};color:${on?'var(--main)':'#888'};font-weight:${on?700:400};white-space:nowrap;justify-content:center">
-            <input type="checkbox" ${on?'checked':''} ${!S.catOn[c]?'disabled':''}
-              onchange="toggleCatSlot('${c}',${h},this.checked)" style="margin:0;cursor:inherit;width:11px;height:11px">${h}
-          </label>`;
-        }).join('')}
-        </div>
-      </div>
-      ${discountUi}
-      <div id="suggest_${c.replace(/\s/g,'_')}" style="display:none;margin-top:8px;background:var(--accent-lt);border-radius:6px;padding:8px;font-size:12px"></div>
-    </div>`;
+    return `<div class="cc-row ${on?'':'off'}" style="--tint:${CAT_TINT[c]||'#f8fafc'}">
+      <div class="cc-head" onclick="toggleCatEdit('${c}')" title="${open?'閉じる':'タップして編集'}">
+        <label class="toggle" onclick="event.stopPropagation()" title="このカテゴリを使う/使わない"><input type="checkbox" ${on?'checked':''} onchange="toggleCat('${c}',this.checked)"><span class="slider"></span></label>
+        <b class="cc-name">${tCat(c)}</b>
+        <span class="cc-chips">${chips}</span>
+        <span class="cc-info">許容 ${cfg.ah}h ・ 値引 ${_discDaysSummary(c)}</span>
+        ${ncfg?`<span class="cc-newtg" onclick="event.stopPropagation()" title="${tCat(nc)} を使う/使わない">🆕新商品<label class="toggle sm"><input type="checkbox" ${S.catOn[nc]?'checked':''} onchange="toggleCat('${nc}',this.checked)"><span class="slider"></span></label></span>`:''}
+        <span class="cc-edit">${open?'▲ 閉じる':'✏️ 編集'}</span>
+      </div>${body}</div>`;
   }).join('');
 }
 
 function setCatCfg(cat,key,val){
-  S.catCfg[cat][key]=val;saveS();renderCatCfgArea();
+  S.catCfg[cat][key]=val;_syncNewCat(cat);saveS();renderCatCfgArea();
 }
 function toggleCatSlot(cat,h,on){
   const s=S.catCfg[cat].slots;
   if(on){if(!s.includes(h))s.push(h);s.sort((a,b)=>a-b);}
   else{const i=s.indexOf(h);if(i>=0)s.splice(i,1);}
-  saveS();renderCatCfgArea();
+  _syncNewCat(cat);saveS();renderCatCfgArea();
 }
 
 function suggestSlots(cat){
@@ -3820,7 +3904,7 @@ function suggestSlots(cat){
 }
 
 function adoptSuggest(cat,slots){
-  S.catCfg[cat].slots=slots.sort((a,b)=>a-b);saveS();renderCatCfgArea();
+  S.catCfg[cat].slots=slots.sort((a,b)=>a-b);_syncNewCat(cat);saveS();renderCatCfgArea();
 }
 
 let _dragPid=null, _dragOverPid=null;
@@ -3987,37 +4071,25 @@ function renderProductCard(p){
   if(p.isInvest) badges+=`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:8px;font-weight:700">📈</span>`;
 
   // 一覧で見える要約: カテゴリ + 売価 + 値引
-  const summary=`<span style="font-size:10px;color:#888">${p.category}</span>
-    <span style="font-size:10px;color:#555">¥${p.shopPrice}</span>
-    <span style="font-size:10px;color:#d97706">-¥${p.disc}</span>`;
+  const summary=`<span>${tCat(p.category)}</span><span>¥${p.shopPrice}</span><span class="s-disc">値引 -¥${p.disc}</span>`;
 
-  return `<div data-pid="${p.id}" draggable="true"
-    style="border:1px solid var(--border);border-radius:6px;margin-bottom:4px;overflow:hidden;cursor:default;${!p.enabled?'opacity:.55':''}">
-    <!-- コンパクトヘッダー（常に表示）-->
-    <div style="background:var(--main-lt);padding:4px 6px;display:flex;align-items:center;gap:6px;font-size:12px">
-      <span style="cursor:grab;font-size:16px;color:#888;padding:0 2px;flex-shrink:0;user-select:none" title="ドラッグで並び替え">⠿</span>
-      <div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">
-        <button type="button" onclick="moveProduct('${p.id}',-1)" style="padding:0;width:18px;height:14px;border:1px solid #ccc;background:#fff;border-radius:3px;cursor:pointer;font-size:9px;line-height:1" title="上へ">▲</button>
-        <button type="button" onclick="moveProduct('${p.id}',1)" style="padding:0;width:18px;height:14px;border:1px solid #ccc;background:#fff;border-radius:3px;cursor:pointer;font-size:9px;line-height:1" title="下へ">▼</button>
-      </div>
-      <div onclick="toggleCardExpand('${p.id}',event)" style="flex:1;min-width:0;cursor:pointer;display:flex;align-items:center;gap:6px;overflow:hidden">
-        <span style="font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${!p.name?'color:#bbb;font-weight:400':''}">${p.name||'(名称未設定)'}</span>
+  // 行＝[⠿][商品名・要約][有効トグル][▼]。削除・並び替えは展開した中（誤タップ防止）
+  return `<div data-pid="${p.id}" draggable="true" class="pc ${expanded?'open':''}" style="${!p.enabled?'opacity:.55':''}">
+    <div class="pc-head">
+      <span class="pc-grab" title="ドラッグで並び替え">⠿</span>
+      <div class="pc-title" onclick="toggleCardExpand('${p.id}',event)" title="${expanded?'閉じる':'タップして編集'}">
+        <span class="pc-name ${!p.name?'empty':''}">${p.name||'(名称未設定)'}</span>
         ${badges}
-        <span style="display:flex;gap:6px;margin-left:auto;white-space:nowrap">${summary}</span>
+        <span class="pc-sum">${summary}</span>
       </div>
-      <label class="toggle" onclick="event.stopPropagation()" title="有効/無効">
+      <label class="toggle" onclick="event.stopPropagation()" title="有効/無効（OFFは作成表に出ません）">
         <input type="checkbox" ${p.enabled?'checked':''} onchange="setProdField('${p.id}','enabled',this.checked)">
         <span class="slider"></span>
       </label>
-      <button type="button" onclick="event.stopPropagation();delProduct('${p.id}')"
-        style="padding:3px 10px;font-size:11px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:4px;cursor:pointer;line-height:1.3;font-weight:600;white-space:nowrap" title="この商品を削除">削除</button>
-      <button type="button" onclick="toggleCardExpand('${p.id}',event)"
-        style="padding:2px 6px;font-size:11px;border:none;background:transparent;color:#666;cursor:pointer" title="${expanded?'閉じる':'詳細を開く'}">
-        ${expanded?'▲':'▼'}
-      </button>
+      <button type="button" class="pc-chev" onclick="toggleCardExpand('${p.id}',event)" title="${expanded?'閉じる':'編集を開く'}">${expanded?'▲':'▼'}</button>
     </div>
     ${expanded?`
-    <div style="padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+    <div class="pc-body">
       <div style="grid-column:span 2"><label>${t('product.name')}</label>
         <input type="text" value="${p.name||''}" placeholder="${t('product.namePlaceholder')}" onchange="setProdField('${p.id}','name',this.value)"></div>
       <div><label>${t('product.category')}</label>
@@ -4029,35 +4101,6 @@ function renderProductCard(p){
           <option value="">—</option>
           ${subCatsFor(p.category).map(s=>`<option ${(p.subType||'')===s?'selected':''} value="${_escMk(s)}">${_escMk(s)}</option>`).join('')}
         </select></div>`:''}
-      <!-- (B) バッチ単位（最低作成単位） -->
-      <div style="grid-column:span 2"><label>最低作成単位（バッチサイズ）
-        <span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:6px">この単位ずつ作成（2食ずつしか作れない商品は「2」）。通常商品は「1」のまま</span>
-      </label>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
-          <input type="number" min="1" inputmode="numeric" value="${p.batchUnit??p.minCount??1}" style="width:60px;text-align:center;font-weight:700"
-            onchange="setProdField('${p.id}','batchUnit',Math.max(1,parseInt(toHalf(this.value))||1))">
-          <span style="font-size:11px;color:#64748b">個ずつ作成（2なら 2/4/6... と切上）</span>
-        </div>
-      </div>
-
-      <!-- 作る時間帯（作る/作らない） -->
-      <div style="grid-column:span 2"><label>作る時間帯（チェックした時間帯だけ作成）
-        <span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:6px">✓=作る（需要どおり） / 無印=作らない（0）。売らない時間帯は外す</span>
-      </label>
-        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">
-          ${(()=>{
-            const slots=(S.catCfg[p.category]?.slots||[]);
-            if(slots.length===0)return '<span style="font-size:11px;color:#9ca3af">このカテゴリは作成スロットが未設定です</span>';
-            return slots.map(h=>{
-              const isOn=(p.minSlots&&p.minSlots[h]!==undefined)?!!p.minSlots[h]:true;
-              return `<button type="button" onclick="toggleSlotMin('${p.id}',${h})"
-                style="padding:5px 10px;font-size:12px;border-radius:14px;border:1.5px solid ${isOn?'#2563eb':'#d1d5db'};background:${isOn?'#2563eb':'#fff'};color:${isOn?'#fff':'#9ca3af'};cursor:pointer;font-weight:600;min-width:50px">
-                ${h}時 ${isOn?'✓':''}
-              </button>`;
-            }).join('');
-          })()}
-        </div>
-      </div>
       <div><label>${t('product.cost')}</label>
         <input type="text" inputmode="decimal" value="${p.cost}" onchange="setProdField('${p.id}','cost',parseFloat(toHalf(this.value))||0)"></div>
       <div><label>${t('product.stdPrice')}</label>
@@ -4080,10 +4123,36 @@ function renderProductCard(p){
             title="${t('product.discCalcTip')}">${t('product.calcBtn')}</button>
         </div>
       </div>
+      <!-- ここから詳細設定（滅多に触らない項目は折りたたみ。開閉状態は _advOpen で保持） -->
+      <details class="pc-adv" style="grid-column:span 2" ${_advOpen.has(p.id+':adv')?'open':''} ontoggle="_advToggle('${p.id}:adv',this.open)">
+        <summary>⚙️ 詳細設定 <span class="pc-sub">作成単位・作る時間帯・品切れ防止・タグ・種別・発注・作成方法</span></summary>
+        <div class="pc-grid">
+      <div><label>最低作成単位 <span class="info" title="この単位ずつ作成します（2食ずつしか作れない商品は「2」）。通常商品は「1」のまま">ℹ️</span></label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" min="1" inputmode="numeric" value="${p.batchUnit??p.minCount??1}" style="width:64px;text-align:center;font-weight:700"
+            onchange="setProdField('${p.id}','batchUnit',Math.max(1,parseInt(toHalf(this.value))||1))">
+          <span style="font-size:11px;color:#64748b">個ずつ</span>
+        </div>
+      </div>
+      <div><label>作る時間帯 <span class="info" title="✓＝作る（需要どおり）／無印＝作らない（0）。売らない時間帯は外します">ℹ️</span></label>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          ${(()=>{
+            const slots=(S.catCfg[p.category]?.slots||[]);
+            if(slots.length===0)return '<span style="font-size:11px;color:#9ca3af">このカテゴリは作成時間帯が未設定です</span>';
+            return slots.map(h=>{
+              const isOn=(p.minSlots&&p.minSlots[h]!==undefined)?!!p.minSlots[h]:true;
+              return `<button type="button" onclick="toggleSlotMin('${p.id}',${h})"
+                style="padding:6px 10px;font-size:12px;border-radius:14px;border:1.5px solid ${isOn?'#2563eb':'#d1d5db'};background:${isOn?'#2563eb':'#fff'};color:${isOn?'#fff':'#9ca3af'};cursor:pointer;font-weight:600;min-width:52px">
+                ${h}時 ${isOn?'✓':''}
+              </button>`;
+            }).join('');
+          })()}
+        </div>
+      </div>
       <div style="grid-column:span 2">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600">
           <input type="checkbox" ${p.noStockout?'checked':''} onchange="setProdField('${p.id}','noStockout',this.checked)">
-          <span>品切れ防止（算出0でも最低1個作る）<span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:4px">主力商品向け・既定OFF。ONにすると廃棄が増える可能性</span></span>
+          <span>品切れ防止（算出0でも最低1個作る） <span class="info" title="主力商品向け・既定OFF。ONにすると廃棄が増える可能性があります">ℹ️</span></span>
         </label>
       </div>
       <!-- タグ（チェックボックス） -->
@@ -4203,9 +4272,13 @@ function renderProductCard(p){
         </div>`;
         })():''}
       </div>
+        </div>
+      </details>
       ${(p.category==='まちかど厨房'||p.category==='まちかど厨房新商品')?`
+      <details class="pc-adv" style="grid-column:span 2" ${_advOpen.has(p.id+':mk')?'open':''} ontoggle="_advToggle('${p.id}:mk',this.open)">
+        <summary>🍱 まちかど厨房 準備設定 <span class="pc-sub">小分類・容器・使用食材・必要シール</span></summary>
+        <div class="pc-grid">
       <div style="grid-column:span 2;background:#fffbeb;border-radius:6px;padding:8px 10px;border:1px solid #fde68a">
-        <div style="font-size:11px;color:#92400e;margin-bottom:6px;font-weight:600">🍱 まちかど厨房 準備設定</div>
         <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
           <label style="font-size:11px;color:#555">小分類
             <select onchange="setProdField('${p.id}','mkType',this.value)" style="font-size:12px;margin-left:4px;padding:2px 4px">
@@ -4262,10 +4335,21 @@ function renderProductCard(p){
             <input type="text" value="${(p.mkSeals||'').replace(/"/g,'&quot;')}" placeholder="例：からあげ弁当シール" style="width:100%;font-size:12px;padding:3px 6px;margin-top:2px" onchange="setProdField('${p.id}','mkSeals',this.value)">
           </label>
         </div>
-      </div>`:''}
+      </div>
+        </div>
+      </details>`:''}
+      <div class="pc-foot" style="grid-column:span 2">
+        <span class="pc-move">並び順
+          <button type="button" onclick="moveProduct('${p.id}',-1)" title="ひとつ上へ">▲ 上へ</button><button type="button" onclick="moveProduct('${p.id}',1)" title="ひとつ下へ">▼ 下へ</button>
+        </span>
+        <button type="button" class="pc-del" onclick="delProduct('${p.id}')">🗑 この商品を削除</button>
+      </div>
     </div>`:''}
   </div>`;
 }
+// 展開フォーム内の「詳細設定」「まちかど厨房 準備設定」の開閉状態（再描画しても閉じないように保持）
+const _advOpen=new Set();
+function _advToggle(key,open){ if(open)_advOpen.add(key); else _advOpen.delete(key); }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
 const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason','mkContainer']);
@@ -4489,7 +4573,8 @@ function addProduct(){
 }
 
 function delProduct(pid){
-  if(!confirm('この商品を削除しますか？'))return;
+  const p=S.PM.find(x=>x.id===pid);
+  if(!confirm(`「${(p&&p.name)||'(名称未設定)'}」を削除しますか？\nこの商品の実績・予算などのデータも消えます（取り消し不可）`))return;
   S.PM=S.PM.filter(p=>p.id!==pid);
   // 孤立データをクリーンアップ
   delete S.ji[pid];
