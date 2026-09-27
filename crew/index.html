@@ -58,14 +58,24 @@ header .spacer{flex:1}
 .dow span.on{background:var(--accent-lt);color:var(--accent-dk)}
 .icon-mini{background:none;border:none;font-size:15px;cursor:pointer;color:var(--faint);padding:2px 4px;flex-shrink:0}
 .icon-mini:hover{color:var(--text)}
-/* 俯瞰ダッシュボード */
-.dash{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.dash-card{padding:10px 11px}
-.dash-card h4{font-size:12px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:6px}
-.dash-card .list{display:flex;flex-wrap:wrap;gap:5px}
-.pchip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border-radius:999px;padding:5px 10px;cursor:pointer;background:#fff;border:1.5px solid var(--border)}
-.pchip:hover{border-color:var(--accent)}
-.pchip .sub{font-size:10px;font-weight:600;color:var(--sub)}
+/* 📌 今やること（1本の優先順リスト） */
+.dash{margin-bottom:10px}
+.todo{padding:10px 12px}
+.todo h4{font-size:14px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.trow{display:flex;align-items:center;gap:8px;padding:9px 6px;border-top:1px solid #f1f5f9;cursor:pointer;flex-wrap:wrap}
+.trow:hover{background:#fafcff}
+.trow b{font-size:14px}
+.ttxt{font-size:12px;color:var(--sub);flex:1;min-width:140px}
+.tag{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.t-eval{background:var(--green-lt);color:var(--green)}.t-collect{background:var(--amber-lt);color:var(--amber)}.t-hand{background:var(--purple-lt);color:var(--purple)}.t-talk{background:var(--accent-lt);color:var(--accent-dk)}.t-issue{background:#f1f5f9;color:var(--sub)}
+/* 📄 評価シート */
+.sheet-sec{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:10px 12px}
+.strail{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--faint)}
+.sstep{border:1.5px solid var(--border);border-radius:999px;padding:4px 10px;background:#fff}
+.sstep.on{background:var(--green-lt);color:var(--green);border-color:#bbf7d0}
+.sstep b{margin-left:4px}
+.sarrow{color:#cbd5e1}
+.smsg{font-size:13px;margin-top:8px;color:#374151}
 /* ランクボード */
 .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
 .sum{padding:8px 6px;text-align:center;border-radius:10px;border:1px solid var(--border);background:#fff}
@@ -227,7 +237,39 @@ function loadS(){
   S.members.forEach(m=>{ if(!Array.isArray(m.days))m.days=[]; if(!Array.isArray(m.logs))m.logs=[]; });
 }
 function saveS(){ try{ localStorage.setItem(dataKey(),JSON.stringify(S)); }catch(e){ console.error('crew save',e); alert('保存に失敗しました（容量不足の可能性）: '+e); } }
-function rankRec(id){ if(!S.ranks[id]) S.ranks[id]={rank:'rookie',checks:{},fanta:{},fantaDate:{},issues:[],history:[]}; const r=S.ranks[id]; if(!r.checks)r.checks={}; if(!r.fanta)r.fanta={}; if(!r.fantaDate)r.fantaDate={}; if(!Array.isArray(r.issues))r.issues=[]; if(!Array.isArray(r.history))r.history=[]; if(!NEXT.hasOwnProperty(r.rank))r.rank='rookie'; return r; }
+function rankRec(id){ if(!S.ranks[id]) S.ranks[id]={rank:'rookie',checks:{},fanta:{},fantaDate:{},issues:[],history:[]}; const r=S.ranks[id]; if(!r.checks)r.checks={}; if(!r.fanta)r.fanta={}; if(!r.fantaDate)r.fantaDate={}; if(!Array.isArray(r.issues))r.issues=[]; if(!Array.isArray(r.history))r.history=[]; if(!Array.isArray(r.sheetHistory))r.sheetHistory=[]; if(r.sheet&&typeof r.sheet!=='object')r.sheet=null; if(!NEXT.hasOwnProperty(r.rank))r.rank='rookie'; return r; }
+// ---- 紙の評価シート（ランクアップ用）：渡した→受け取った→評価した をシステムが記憶 ----
+const SHEET_NUDGE_DAYS=7;   // 配布後この日数を過ぎて未提出なら「回収する」に出す
+function sheetOf(id){ const r=rankRec(id); return (r.sheet&&r.sheet.status)?r.sheet:{status:'none'}; }
+function sheetLabel(id){ const s=sheetOf(id); if(s.status==='none')return null; const d=s.status==='handed'?s.handedAt:s.status==='submitted'?s.submittedAt:s.doneAt; const n=daysSince(d); const base=s.status==='handed'?'配布中':s.status==='submitted'?'提出済・未評価':'評価完了'; return {text:base+((n!=null&&s.status!=='done')?` ${n}日`:''),status:s.status,days:n}; }
+function sheetAdvance(id){
+  const r=rankRec(id), m=member(id), t=today(); if(!m)return;
+  const st=sheetOf(id).status;
+  if(st==='none'){ if(!NEXT[r.rank]){toast('最上位ランクのため評価シートは不要です');return;} r.sheet={target:NEXT[r.rank],status:'handed',handedAt:t}; toast(`${m.name}：評価シートを渡した（${fmtD(t)}）`); }
+  else if(st==='handed'){ r.sheet.status='submitted'; r.sheet.submittedAt=t; toast(`${m.name}：評価シートを受け取った（${fmtD(t)}）`); }
+  else if(st==='submitted'){ r.sheet.status='done'; r.sheet.doneAt=t; toast(`${m.name}：評価完了。ランクを上げましょう`); }
+  else return;
+  saveS(); refresh();
+}
+function sheetUndo(id){
+  const r=rankRec(id), s=r.sheet, m=member(id); if(!s||!s.status||s.status==='none'||!m)return;
+  const lbl={handed:'渡した',submitted:'受け取った',done:'評価した'}[s.status];
+  if(!confirm(`${m.name} の評価シート「${lbl}」の記録を取り消しますか？\n（1つ前の状態に戻ります）`))return;
+  if(s.status==='done'){s.status='submitted';delete s.doneAt;} else if(s.status==='submitted'){s.status='handed';delete s.submittedAt;} else {r.sheet=null;}
+  saveS(); refresh();
+}
+function renderSheetBlock(id,nk){
+  const s=sheetOf(id), st=s.status, order={none:0,handed:1,submitted:2,done:3}, cur=order[st]||0;
+  const steps=[['配布',s.handedAt],['提出',s.submittedAt],['評価',s.doneAt]];
+  const trail=steps.map(([l,d],i)=>`<span class="sstep ${cur>i?'on':''}">${cur>i?'✓':(i+1)} ${l}${d?`<b>${esc(fmtD(d))}</b>`:''}</span>`).join('<span class="sarrow">→</span>');
+  const days=st==='handed'?daysSince(s.handedAt):st==='submitted'?daysSince(s.submittedAt):null;
+  let msg='',btn='';
+  if(st==='none'){ msg=nk?'まだ渡していません':'最上位ランクのため対象外'; btn=nk?`<button class="btn btn-pri" data-sheetadv="${esc(id)}">📄 渡した（配布を記録）</button>`:''; }
+  else if(st==='handed'){ msg=`配布から <b>${days}日</b>${days>=SHEET_NUDGE_DAYS?'　⚠️ そろそろ回収の声かけを':''}`; btn=`<button class="btn btn-pri" data-sheetadv="${esc(id)}">📥 受け取った（提出を記録）</button>`; }
+  else if(st==='submitted'){ msg=`提出から <b>${days}日</b>　✅ 評価してランクアップの判断を`; btn=`<button class="btn btn-pri" data-sheetadv="${esc(id)}">✅ 評価した（完了を記録）</button>`; }
+  else { msg='評価完了。下の「ランク」を上げると、このシートは履歴に残り次のランク用に切り替わります'; }
+  return `<div class="strail">${trail}</div><div class="smsg">${msg}</div><div class="btn-row" style="margin-top:6px">${btn}${st!=='none'?`<button class="btn btn-line" data-sheetundo="${esc(id)}">取り消し</button>`:''}</div>`;
+}
 function member(id){return S.members.find(m=>m.id===id);}
 function progressOf(id){ const r=rankRec(id); const nk=NEXT[r.rank]; if(!nk)return {pct:100,done:0,total:0,max:true}; const list=S.criteria[nk]||[]; const done=list.filter(c=>r.checks[c]).length; return {pct:list.length?Math.round(done/list.length*100):0,done,total:list.length,max:false}; }
 function openIssues(id){ return rankRec(id).issues.filter(i=>i.status!=='done').length; }
@@ -265,7 +307,8 @@ function renderInfo(){
     const dow=m.days.length?`<span class="dow">${DOW.map((d,i)=>`<span class="${m.days.includes(i)?'on':''}">${d}</span>`).join('')}</span>`:'';
     const ten=tenure(m.hireDate);
     const l1=[ten?`勤続 ${esc(ten)}`:'', m.hours?`🕐 ${esc(m.hours)}`:'', m.weeklyHours?`週${esc(m.weeklyHours)}h`:''].filter(Boolean).map(s=>`<span>${s}</span>`).join('');
-    const status=[ (!pg.max&&pg.done>0)?`<span class="chip" style="background:${rk.bg};color:${rk.color}">次まで ${pg.pct}%</span>`:'', oi?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">課題 ${oi}</span>`:'' ].join('');
+    const sl=sheetLabel(m.id);
+    const status=[ (!pg.max&&pg.done>0)?`<span class="chip" style="background:${rk.bg};color:${rk.color}">次まで ${pg.pct}%</span>`:'', sl?`<span class="chip" style="${sl.status==='submitted'?'background:var(--green-lt);color:var(--green)':sl.status==='done'?'background:#f1f5f9;color:var(--sub)':'background:var(--purple-lt);color:var(--purple)'}">📄 ${esc(sl.text)}</span>`:'', oi?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">課題 ${oi}</span>`:'' ].join('');
     return `<div class="member card" data-open="${esc(m.id)}">
       <div class="avatar" style="background:${rk.color}">${esc((m.name||'?').slice(0,1))}</div>
       <div class="m-body">
@@ -353,6 +396,7 @@ function renderPersonHtml(id){
       <div class="addrow"><input placeholder="🎯 課題を追加（Enterで登録）" data-issue-input></div>
       <div class="addrow"><input placeholder="🗣 面談・声かけを記録（Enterで登録）" data-log-input></div>
     </div>
+    <div class="sec sheet-sec"><h3>📄 評価シート（ランクアップ用）${nk?`<span class="hint">${esc(rankOf(nk).short)}へ</span>`:''}<span class="hint">ボタン1つで記録・日付は自動</span></h3>${renderSheetBlock(id,nk)}</div>
     <div class="sec"><h3>🎯 課題・取り組み ${issues.length?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">未完了 ${openIssues(id)}</span>`:''}<span class="hint">状態をタップで 未着手→取組中→完了</span></h3>
       ${issues.length?issues.map(i=>`<div class="issue ${i.status==='done'?'done':''}"><button class="st st-${i.status}" data-cycle="${esc(id)}|${esc(i.id)}">${i.status==='todo'?'未着手':i.status==='doing'?'取組中':'完了'}</button><div style="flex:1;min-width:0"><div class="tx">${esc(i.text)}</div><div class="meta">${esc(fmtD(i.created))}登録${i.done?`・${esc(fmtD(i.done))}完了`:''}</div></div><button class="icon-mini" data-delissue="${esc(id)}|${esc(i.id)}" title="削除">🗑</button></div>`).join(''):'<div class="hint">課題はありません。上の欄から追加できます</div>'}</div>
     <div class="sec"><h3>📈 ${nk?`${esc(rankOf(nk).short)}への昇格条件`:'最上位ランク'}${nk?`<span class="chip" style="background:${rankOf(nk).bg};color:${rankOf(nk).color}">${pg.done}/${pg.total}（${pg.pct}%）</span>`:''}</h3>
@@ -361,7 +405,7 @@ function renderPersonHtml(id){
     <div class="sec"><h3>✨ ファンタジスタ <span class="hint">外すときは確認が出ます・取得日は保持</span></h3><div class="rankbtns">${FANTA.map(f=>`<button class="fbtn ${r.fanta[f.k]?'on':''}" data-fanta="${esc(id)}|${f.k}">${f.icon} ${esc(f.label)}${r.fanta[f.k]&&r.fantaDate[f.k]?`<span class="muted" style="font-weight:500">${esc(fmtD(r.fantaDate[f.k]))}</span>`:''}</button>`).join('')}</div></div>
     <div class="sec"><h3>🗣 面談・声かけログ${logs.length?`<span class="hint">最終 ${esc(fmtD(logs[0].d))}</span>`:''}</h3>
       ${logs.length?logs.map(l=>`<div class="logrow"><span class="d">${esc(fmtD(l.d))}</span><span style="flex:1;white-space:pre-wrap;word-break:break-word">${esc(l.text)}</span><button class="icon-mini" data-dellog="${esc(id)}|${esc(l.id)}" title="削除">🗑</button></div>`).join(''):'<div class="hint">まだ記録がありません。上の欄から記録できます</div>'}</div>
-    ${r.history.length?`<div class="sec"><h3>📜 ランク履歴</h3><div class="hist">${[...r.history].reverse().map(h=>`${esc(fmtD(h.d))}　${esc(rankOf(h.from).short)} → <b>${esc(rankOf(h.to).short)}</b>`).join('<br>')}</div></div>`:''}
+    ${(r.history.length||r.sheetHistory.length)?`<div class="sec"><h3>📜 履歴</h3><div class="hist">${[...r.history].reverse().map(h=>`${esc(fmtD(h.d))}　ランク ${esc(rankOf(h.from).short)} → <b>${esc(rankOf(h.to).short)}</b>`).join('<br>')}${(r.history.length&&r.sheetHistory.length)?'<br>':''}${[...r.sheetHistory].reverse().map(h=>`📄 ${esc(rankOf(h.target).short)}用シート：配布${esc(fmtD(h.handedAt))}${h.submittedAt?`→提出${esc(fmtD(h.submittedAt))}`:''}${h.doneAt?`→評価${esc(fmtD(h.doneAt))}`:''}`).join('<br>')}</div></div>`:''}
   </div>`;
 }
 function openPerson(id){ _personOpen=id; setModal(`<button class="close-x" data-close>×</button><div id="person-body">${renderPersonHtml(id)}</div>`); }
@@ -369,27 +413,36 @@ function openPerson(id){ _personOpen=id; setModal(`<button class="close-x" data-
 // ============ クルーランク（俯瞰＋ボード＋選択中の人物パネル） ============
 function renderRank(){
   const ms=sortedMembers();
-  // 俯瞰：昇格間近／課題が多い／面談が空いている
-  const near=ms.filter(m=>{const p=progressOf(m.id);return !p.max&&p.total>0&&p.pct>=NEAR_PCT;}).map(m=>({m,sub:progressOf(m.id).pct+'%'}));
-  const many=ms.map(m=>({m,n:openIssues(m.id)})).filter(x=>x.n>=2).sort((a,b)=>b.n-a.n).map(x=>({m:x.m,sub:`課題${x.n}`}));
-  const quiet=ms.map(m=>({m,d:daysSince(lastLog(m))})).filter(x=>x.d===null||x.d>=NO_TALK_DAYS).map(x=>({m:x.m,sub:x.d===null?'未記録':`${x.d}日前`}));
-  const dcard=(icon,title,arr,emptyTxt)=>`<div class="card dash-card"><h4>${icon} ${title}${arr.length?`<span class="chip" style="background:#f1f5f9;color:var(--sub)">${arr.length}</span>`:''}</h4><div class="list">${arr.length?arr.map(x=>`<span class="pchip" data-sel="${esc(x.m.id)}">${esc(x.m.name)}<span class="sub">${esc(x.sub)}</span></span>`).join(''):`<span class="hint">${emptyTxt}</span>`}</div></div>`;
-  $('rank-dash').innerHTML=S.members.length?dcard('🚀','昇格間近（'+NEAR_PCT+'%以上）',near,'なし')+dcard('🎯','未完了の課題が多い',many,'なし')+dcard('🗣','面談が'+NO_TALK_DAYS+'日以上あいている',quiet,'全員フォロー済み'):'';
+  // 📌 今やること：忘れていても画面を開けば分かるよう、対応が必要な事項を1本の優先順リストに自動抽出
+  const todo=[];
+  ms.forEach(m=>{
+    const r=rankRec(m.id), pg=progressOf(m.id), s=sheetOf(m.id);
+    if(s.status==='submitted') todo.push({p:1,tag:'評価する',cls:'t-eval',m,txt:`評価シート提出済み（${daysSince(s.submittedAt)}日前）→ 評価してランクを判断`});
+    else if(s.status==='done') todo.push({p:1,tag:'昇格',cls:'t-eval',m,txt:'評価完了 → ランクを上げる'});
+    else if(s.status==='handed'&&daysSince(s.handedAt)>=SHEET_NUDGE_DAYS) todo.push({p:2,tag:'回収する',cls:'t-collect',m,txt:`評価シートを渡してから${daysSince(s.handedAt)}日、まだ提出なし → 声かけ`});
+    else if(s.status==='none'&&!pg.max&&pg.total>0&&pg.pct>=NEAR_PCT) todo.push({p:pg.pct>=100?2:3,tag:'渡す',cls:'t-hand',m,txt:`${rankOf(NEXT[r.rank]).short}の条件 ${pg.pct}%${pg.pct>=100?'（クリア）':''} → 評価シートを渡す`});
+    const d=daysSince(lastLog(m)); if(d===null||d>=NO_TALK_DAYS) todo.push({p:4,tag:'声かけ',cls:'t-talk',m,txt:d===null?'面談の記録がまだない':`最後の面談から${d}日`});
+    const oi=openIssues(m.id); if(oi>=2) todo.push({p:5,tag:'課題',cls:'t-issue',m,txt:`未完了の課題が${oi}件`});
+  });
+  todo.sort((a,b)=>a.p-b.p);
+  $('rank-dash').innerHTML=S.members.length?`<div class="card todo"><h4>📌 今やること<span class="chip" style="background:#f1f5f9;color:var(--sub)">${todo.length}</span><span class="hint">上から順に。名前タップでその人へ</span></h4>${todo.length?todo.map(t=>`<div class="trow" data-sel="${esc(t.m.id)}"><span class="tag ${t.cls}">${t.tag}</span><b>${esc(t.m.name)}</b><span class="ttxt">${t.txt}</span></div>`).join(''):'<div class="hint" style="padding:6px 0">今は対応が必要なことはありません 🎉</div>'}</div>`:'';
   $('rank-summary').innerHTML=RANKS.map(r=>`<div class="sum" style="background:${r.bg};border-color:${r.border}"><div class="n" style="color:${r.color}">${ms.filter(m=>rankRec(m.id).rank===r.k).length}</div><div class="l" style="color:${r.color}">${esc(r.short)}</div></div>`).join('');
   $('rank-board').innerHTML=RANKS.map(r=>{
     const ins=ms.filter(m=>rankRec(m.id).rank===r.k);
     return `<div class="col" style="background:${r.bg};border-color:${r.border}"><h4 style="color:${r.color}">${esc(r.label)}</h4>
-      ${ins.length?ins.map(m=>{ const rr=rankRec(m.id), pg=progressOf(m.id), open=openIssues(m.id);
+      ${ins.length?ins.map(m=>{ const rr=rankRec(m.id), pg=progressOf(m.id), open=openIssues(m.id), sl=sheetLabel(m.id);
         return `<div class="mchip ${_selId===m.id?'sel':''}" data-sel="${esc(m.id)}"><div class="nm"><span>${esc(m.name)}</span><span class="pct">${pg.max?'MAX':(pg.done?pg.pct+'%':'')}</span></div>
           ${pg.max?'':`<div class="bar"><i style="width:${pg.pct}%;background:${r.color}"></i></div>`}
-          ${(FANTA.some(f=>rr.fanta[f.k])||open)?`<div class="fx">${FANTA.filter(f=>rr.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}</span>`).join('')}${open?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">課題${open}</span>`:''}</div>`:''}</div>`; }).join('')
+          ${(FANTA.some(f=>rr.fanta[f.k])||open||sl)?`<div class="fx">${FANTA.filter(f=>rr.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}</span>`).join('')}${sl?`<span class="chip" style="${sl.status==='submitted'?'background:var(--green-lt);color:var(--green)':sl.status==='done'?'background:#f1f5f9;color:var(--sub)':'background:var(--purple-lt);color:var(--purple)'}">📄${sl.status==='handed'?'配布中':sl.status==='submitted'?'提出済':'完了'}</span>`:''}${open?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">課題${open}</span>`:''}</div>`:''}</div>`; }).join('')
       :`<div class="hint" style="text-align:center;padding:8px 0">—</div>`}</div>`;
   }).join('');
   if(_selId&&!member(_selId))_selId=null;
-  $('rank-detail').innerHTML=_selId?`<div class="card">${renderPersonHtml(_selId)}</div>`:`<div class="empty">上のボードや俯瞰カードで名前をタップすると、その人の全情報（ランク・昇格条件・課題・面談ログ）をここで操作できます。${S.members.length?'':'<br>まず「クルー情報」でクルーを登録してください。'}</div>`;
+  $('rank-detail').innerHTML=_selId?`<div class="card">${renderPersonHtml(_selId)}</div>`:`<div class="empty">上の「今やること」やボードで名前をタップすると、その人の全情報（ランク・昇格条件・課題・面談ログ）をここで操作できます。${S.members.length?'':'<br>まず「クルー情報」でクルーを登録してください。'}</div>`;
 }
 // ---- 操作（誤タップ防止：ランク変更／ファンタジスタ解除は確認、取得日は保持） ----
-function setRank(id,k){ const r=rankRec(id); if(r.rank===k)return; const m=member(id); if(!confirm(`${m.name} のランクを\n${rankOf(r.rank).short} → ${rankOf(k).short}\nに変更しますか？`))return; r.history.push({d:today(),from:r.rank,to:k}); r.rank=k; saveS(); refresh(); toast(`${m.name} → ${rankOf(k).short}`); }
+function setRank(id,k){ const r=rankRec(id); if(r.rank===k)return; const m=member(id); if(!confirm(`${m.name} のランクを\n${rankOf(r.rank).short} → ${rankOf(k).short}\nに変更しますか？`))return; r.history.push({d:today(),from:r.rank,to:k}); r.rank=k;
+  if(r.sheet&&r.sheet.status&&r.sheet.status!=='none'){ r.sheetHistory.push(Object.assign({},r.sheet,{closedAt:today(),promotedTo:k})); }   // 評価シートは履歴へ。次ランク用に切り替え
+  r.sheet=null; saveS(); refresh(); toast(`${m.name} → ${rankOf(k).short}`); }
 function toggleCheck(id,c,on){ const r=rankRec(id); if(on)r.checks[c]=true; else delete r.checks[c]; saveS(); refresh(); }
 function toggleFanta(id,k){ const r=rankRec(id); const f=FANTA.find(x=>x.k===k); if(r.fanta[k]){ if(!confirm(`${member(id).name} の「${f.label}ファンタジスタ」を外しますか？\n（取得日 ${fmtD(r.fantaDate[k])||'—'} は記録として保持されます）`))return; r.fanta[k]=false; } else { r.fanta[k]=true; if(!r.fantaDate[k])r.fantaDate[k]=today(); } saveS(); refresh(); }
 function addIssue(id,text){ text=(text||'').trim(); if(!text)return false; rankRec(id).issues.push({id:uid('i'),text,status:'todo',created:today()}); saveS(); refresh(); toast('課題を追加しました'); return true; }
@@ -419,6 +472,8 @@ document.addEventListener('click',e=>{
   const se=t.closest('[data-sel]'); if(se){ _selId=se.dataset.sel; if(_view!=='rank'){openPerson(_selId);return;} renderRank(); const d=$('rank-detail'); if(d)d.scrollIntoView({behavior:'smooth',block:'start'}); return; }
   const sr=t.closest('[data-setrank]'); if(sr){const [id,k]=sp(sr.dataset.setrank);setRank(id,k);return;}
   const fa=t.closest('[data-fanta]'); if(fa){const [id,k]=sp(fa.dataset.fanta);toggleFanta(id,k);return;}
+  const sa=t.closest('[data-sheetadv]'); if(sa){sheetAdvance(sa.dataset.sheetadv);return;}
+  const su=t.closest('[data-sheetundo]'); if(su){sheetUndo(su.dataset.sheetundo);return;}
   const cy=t.closest('[data-cycle]'); if(cy){const [id,iid]=sp(cy.dataset.cycle);cycleIssue(id,iid);return;}
   const di=t.closest('[data-delissue]'); if(di){const [id,iid]=sp(di.dataset.delissue);delIssue(id,iid);return;}
   const dl=t.closest('[data-dellog]'); if(dl){const [id,lid]=sp(dl.dataset.dellog);delLog(id,lid);return;}
