@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>クルー</title>
+<script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f1f5f9;--panel:#fff;--text:#0f172a;--sub:#64748b;--faint:#94a3b8;--border:#e2e8f0;
+  --accent:#2563eb;--accent-dk:#1d4ed8;--accent-lt:#eff6ff;
+  --green:#16a34a;--green-lt:#ecfdf5;--amber:#d97706;--amber-lt:#fffbeb;--red:#dc2626;--red-lt:#fef2f2;--purple:#7c3aed;--purple-lt:#f5f3ff;
+}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+.wrap{flex:1;display:flex;flex-direction:column;min-height:0;width:100%;max-width:1000px;margin:0 auto;padding:10px 12px 0}
+header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-shrink:0}
+header h1{font-size:18px;font-weight:800}
+header .spacer{flex:1}
+.hub-link{font-size:13px;color:var(--sub);text-decoration:none;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px}
+.embedded-in-hub .hub-link{display:none}
+.subtabs{display:flex;gap:6px;margin-bottom:10px;flex-shrink:0}
+.subtab{flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--sub);background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 6px;cursor:pointer;user-select:none}
+.subtab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.view{display:none;flex:1;min-height:0;overflow:auto;padding-bottom:80px;-webkit-overflow-scrolling:touch}
+.view.active{display:block}
+#view-duty{padding:0;overflow:hidden;background:#fff;border:1px solid var(--border);border-radius:12px}
+#view-duty.active{display:flex;flex-direction:column}
+#duty-frame{flex:1;width:100%;border:none;min-height:0;background:#fff}
+/* 共通部品 */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.toolbar input[type=search]{flex:1;min-width:140px;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;background:#fff}
+.btn{font-family:inherit;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;padding:9px 13px;white-space:nowrap}
+.btn-pri{background:var(--accent);color:#fff}.btn-pri:hover{background:var(--accent-dk)}
+.btn-ghost{background:#f1f5f9;color:var(--text)}.btn-ghost:hover{background:#e2e8f0}
+.btn-line{background:#fff;border:1px solid var(--border);color:var(--sub)}
+.btn-red{background:var(--red-lt);color:var(--red)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.empty{color:var(--faint);font-size:13px;text-align:center;padding:22px;background:var(--panel);border:1px dashed var(--border);border-radius:12px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.rank-badge{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.fanta{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px;background:#fdf4ff;color:#7e22ce;border:1px solid #e9d5ff;white-space:nowrap}
+.muted{font-size:12px;color:var(--sub)}
+/* クルー情報 */
+.member{display:flex;gap:12px;padding:12px 14px;margin-bottom:9px;align-items:flex-start;cursor:pointer}
+.member:hover{background:#fafcff}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.m-body{flex:1;min-width:0}
+.m-name{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.m-kana{font-size:11px;color:var(--faint);font-weight:500}
+.m-line{font-size:12px;color:var(--sub);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.m-memo{font-size:12px;color:#374151;margin-top:5px;white-space:pre-wrap;word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dow{display:inline-flex;gap:2px}
+.dow span{width:18px;height:18px;border-radius:4px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:#f1f5f9;color:#cbd5e1}
+.dow span.on{background:var(--accent-lt);color:var(--accent-dk)}
+/* クルーランク */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.sum{padding:9px 6px;text-align:center;border-radius:10px;border:1px solid var(--border);background:#fff}
+.sum .n{font-size:22px;font-weight:800;line-height:1}
+.sum .l{font-size:11px;font-weight:700;margin-top:3px}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.col{border-radius:12px;padding:8px;min-height:120px;border:1.5px solid var(--border)}
+.col h4{font-size:12px;font-weight:800;margin-bottom:6px;text-align:center}
+.mchip{background:#fff;border:1px solid var(--border);border-radius:9px;padding:7px 8px;margin-bottom:6px;cursor:pointer}
+.mchip.sel{outline:2px solid var(--accent);outline-offset:-1px}
+.mchip .nm{font-size:13px;font-weight:800;display:flex;justify-content:space-between;gap:4px;align-items:center}
+.mchip .pct{font-size:11px;font-weight:700;color:var(--sub)}
+.bar{height:6px;background:#eef2f7;border-radius:999px;overflow:hidden;margin-top:4px}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.mchip .fx{margin-top:4px;display:flex;gap:3px;flex-wrap:wrap}
+.detail{padding:14px}
+.d-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.d-head .nm{font-size:18px;font-weight:800}
+.sec{margin-top:14px}
+.sec h3{font-size:13px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rankbtns{display:flex;gap:6px;flex-wrap:wrap}
+.rankbtn{font-family:inherit;font-size:12px;font-weight:800;border-radius:999px;padding:7px 12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--sub)}
+.rankbtn.on{color:#fff}
+.chk{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;cursor:pointer;background:#fff}
+.chk input{width:18px;height:18px;margin-top:1px;flex-shrink:0;cursor:pointer}
+.chk.done{background:var(--green-lt);border-color:#bbf7d0}
+.chk .t{font-size:13px;font-weight:600}
+.chk.done .t{text-decoration:line-through;color:var(--sub)}
+.fbtn{font-family:inherit;font-size:13px;font-weight:800;border-radius:10px;padding:9px 12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--sub);display:inline-flex;align-items:center;gap:6px}
+.fbtn.on{background:#fdf4ff;color:#7e22ce;border-color:#d8b4fe}
+.issue{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;background:#fff}
+.issue .st{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;cursor:pointer;white-space:nowrap;flex-shrink:0;border:none;font-family:inherit}
+.st-todo{background:#f1f5f9;color:var(--sub)}.st-doing{background:var(--amber-lt);color:var(--amber)}.st-done{background:var(--green-lt);color:var(--green)}
+.issue .tx{flex:1;font-size:13px;font-weight:600;min-width:0;word-break:break-word}
+.issue.done .tx{text-decoration:line-through;color:var(--sub)}
+.issue .meta{font-size:11px;color:var(--faint);margin-top:2px}
+.addrow{display:flex;gap:6px;margin-bottom:8px}
+.addrow input{flex:1;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:9px;padding:9px 11px}
+.hist{font-size:12px;color:var(--sub);line-height:1.8}
+.icon-mini{background:none;border:none;font-size:15px;cursor:pointer;color:var(--faint);padding:2px 4px;flex-shrink:0}
+.icon-mini:hover{color:var(--text)}
+/* モーダル */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-end;justify-content:center;z-index:1000}
+.overlay.show{display:flex}
+@media(min-width:600px){.overlay{align-items:center;padding:18px}}
+.modal{background:#fff;border-radius:18px 18px 0 0;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px 18px calc(20px + env(safe-area-inset-bottom));position:relative}
+@media(min-width:600px){.modal{border-radius:18px}}
+.modal h2{font-size:17px;font-weight:800;margin-bottom:12px}
+.close-x{position:absolute;top:12px;right:14px;font-size:22px;color:var(--sub);cursor:pointer;background:none;border:none}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:4px}
+.field input,.field textarea,.field select{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:10px;padding:9px 11px;background:#fff;color:var(--text)}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:64px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dowpick{display:flex;gap:5px;flex-wrap:wrap}
+.dowpick label{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;border:1.5px solid var(--border);border-radius:999px;padding:6px 10px;cursor:pointer;background:#fff}
+.dowpick label.on{background:var(--accent-lt);border-color:#bfdbfe;color:var(--accent-dk)}
+.dowpick input{display:none}
+.btn-row{display:flex;gap:9px;margin-top:8px;flex-wrap:wrap}
+.btn-row .btn{flex:1;padding:12px}
+.logrow{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.logrow .d{color:var(--faint);font-size:11px;white-space:nowrap;padding-top:2px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;z-index:2000;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:.95}
+@media(max-width:640px){
+  .summary,.board{grid-template-columns:repeat(2,1fr)}
+  .grid2{grid-template-columns:1fr}
+  .wrap{padding:8px 8px 0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>👥 クルー</h1>
+    <div class="spacer"></div>
+    <a href="../app.html" class="hub-link">← ハブ</a>
+  </header>
+  <div class="subtabs">
+    <div class="subtab" data-view="duty">🧭 担当業務</div>
+    <div class="subtab" data-view="info">📇 クルー情報</div>
+    <div class="subtab" data-view="rank">🏅 クルーランク</div>
+  </div>
+
+  <!-- 担当業務（既存の担当部門画面をそのまま内包） -->
+  <div id="view-duty" class="view"><iframe id="duty-frame" title="担当業務"></iframe></div>
+
+  <!-- クルー情報 -->
+  <div id="view-info" class="view">
+    <div class="toolbar">
+      <input type="search" id="info-q" placeholder="名前で検索">
+      <button class="btn btn-line" id="import-btn">📥 WSから取り込み</button>
+      <button class="btn btn-pri" id="add-member-btn">＋ クルー追加</button>
+    </div>
+    <div id="member-list"></div>
+  </div>
+
+  <!-- クルーランク -->
+  <div id="view-rank" class="view">
+    <div class="summary" id="rank-summary"></div>
+    <div class="board" id="rank-board"></div>
+    <div class="toolbar" style="justify-content:flex-end"><button class="btn btn-line btn-sm" id="edit-criteria-btn">⚙️ 昇格条件を編集</button></div>
+    <div id="rank-detail"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ 基本 ============
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function attr(s){return esc(s);}
+let _toastT=null;
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('show'),1800);}
+function uid(p){return (p||'id')+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtD(s){if(!s)return '';const p=String(s).split('-');return p.length===3?`${+p[1]}/${+p[2]}`:s;}
+function tenure(hire){ if(!hire)return ''; const d=new Date(hire+'T00:00:00'); if(isNaN(d))return ''; const now=new Date(); let m=(now.getFullYear()-d.getFullYear())*12+(now.getMonth()-d.getMonth()); if(now.getDate()<d.getDate())m--; if(m<0)return ''; const y=Math.floor(m/12),mm=m%12; return y>0?`${y}年${mm}か月`:`${mm}か月`; }
+const DOW=['日','月','火','水','木','金','土'];
+
+// ============ 店舗 / 保存（データ保護：壊れた保存は退避して上書きしない） ============
+function storeId(){return localStorage.getItem('current_store_id')||localStorage.getItem('ffv6_current')||'';}
+function dataKey(){const s=storeId();return s?'crew_v1_store_'+s:'crew_v1';}
+const RANKS=[
+  {k:'rookie',   label:'ルーキークルー',   short:'ルーキー',   color:'#64748b',bg:'#f1f5f9',border:'#e2e8f0'},
+  {k:'regular',  label:'レギュラークルー', short:'レギュラー', color:'#2563eb',bg:'#eff6ff',border:'#bfdbfe'},
+  {k:'subleader',label:'サブリーダークルー',short:'サブリーダー',color:'#d97706',bg:'#fffbeb',border:'#fde68a'},
+  {k:'leader',   label:'リーダークルー',   short:'リーダー',   color:'#dc2626',bg:'#fef2f2',border:'#fecaca'}
+];
+const NEXT={rookie:'regular',regular:'subleader',subleader:'leader',leader:null};
+const FANTA=[{k:'ff',label:'FF',icon:'🍗'},{k:'sekkyaku',label:'接客',icon:'🙋'},{k:'machicafe',label:'Machi Cafe',icon:'☕'},{k:'machikado',label:'まちかど厨房',icon:'🍱'}];
+const DEFAULT_CRITERIA={
+  regular:['レジ操作を一人でできる','品出し・前出し・先入れ先出しができる','挨拶・接客の基本ができる','ホットFFの基本作成ができる','清掃基準どおりに清掃できる'],
+  subleader:['発注の補助ができる','新人に業務を教えられる','値引き・廃棄の判断ができる','まちかど厨房を一人で回せる','トラブルの一次対応ができる'],
+  leader:['シフト内で指示出し・声かけができる','売場改善を提案して実行できる','売上・廃棄の数値を意識して運営できる','全部門の基本業務を網羅している','店長不在時に店舗を運営できる']
+};
+let S={members:[],ranks:{},criteria:null};
+function rankOf(k){return RANKS.find(r=>r.k===k)||RANKS[0];}
+function loadS(){
+  S={members:[],ranks:{},criteria:null};
+  const raw=localStorage.getItem(dataKey());
+  if(raw){
+    try{ const o=JSON.parse(raw); if(o&&typeof o==='object'){ S.members=Array.isArray(o.members)?o.members:[]; S.ranks=(o.ranks&&typeof o.ranks==='object')?o.ranks:{}; S.criteria=(o.criteria&&typeof o.criteria==='object')?o.criteria:null; } }
+    catch(e){ console.error('crew load',e); try{localStorage.setItem(dataKey()+'_corrupt_backup_'+Date.now(),raw);}catch(_){}; }
+  }
+  if(!S.criteria) S.criteria=JSON.parse(JSON.stringify(DEFAULT_CRITERIA));
+  ['regular','subleader','leader'].forEach(k=>{ if(!Array.isArray(S.criteria[k])) S.criteria[k]=DEFAULT_CRITERIA[k].slice(); });
+  S.members.forEach(m=>{ if(!Array.isArray(m.days))m.days=[]; if(!Array.isArray(m.logs))m.logs=[]; });
+}
+function saveS(){ try{ localStorage.setItem(dataKey(),JSON.stringify(S)); }catch(e){ console.error('crew save',e); alert('保存に失敗しました（容量不足の可能性）: '+e); } }
+function rankRec(id){ if(!S.ranks[id]) S.ranks[id]={rank:'rookie',checks:{},fanta:{},fantaDate:{},issues:[],history:[]}; const r=S.ranks[id]; if(!r.checks)r.checks={}; if(!r.fanta)r.fanta={}; if(!r.fantaDate)r.fantaDate={}; if(!Array.isArray(r.issues))r.issues=[]; if(!Array.isArray(r.history))r.history=[]; if(!NEXT.hasOwnProperty(r.rank))r.rank='rookie'; return r; }
+function member(id){return S.members.find(m=>m.id===id);}
+function progressOf(id){ const r=rankRec(id); const nk=NEXT[r.rank]; if(!nk)return {pct:100,done:0,total:0,max:true}; const list=S.criteria[nk]||[]; const done=list.filter(c=>r.checks[c]).length; return {pct:list.length?Math.round(done/list.length*100):0,done,total:list.length,max:false}; }
+function sortedMembers(){ const ord={leader:0,subleader:1,regular:2,rookie:3}; return [...S.members].sort((a,b)=>{const ra=ord[rankRec(a.id).rank],rb=ord[rankRec(b.id).rank]; return ra!==rb?ra-rb:String(a.kana||a.name).localeCompare(String(b.kana||b.name),'ja');}); }
+
+// ============ ビュー切替 ============
+let _view=localStorage.getItem('crew_view')||'duty';
+function switchView(v){
+  _view=v; try{localStorage.setItem('crew_view',v);}catch(_){}
+  document.querySelectorAll('.subtab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  ['duty','info','rank'].forEach(k=>$('view-'+k).classList.toggle('active',k===v));
+  if(v==='duty') ensureDuty();
+  if(v==='info') renderInfo();
+  if(v==='rank') renderRank();
+}
+function ensureDuty(){ const f=$('duty-frame'); const want='../bumon/index.html?embedded=1&v='+(window.__DUTY_V||(window.__DUTY_V=Date.now())); if(!f.getAttribute('data-loaded')){ f.src=want; f.setAttribute('data-loaded','1'); } }
+function reloadDuty(){ const f=$('duty-frame'); window.__DUTY_V=Date.now(); f.removeAttribute('data-loaded'); if(_view==='duty') ensureDuty(); }
+
+// ============ クルー情報 ============
+function renderInfo(){
+  const q=($('info-q').value||'').trim();
+  const list=sortedMembers().filter(m=>!q||String(m.name||'').includes(q)||String(m.kana||'').includes(q));
+  const box=$('member-list');
+  if(!list.length){ box.innerHTML=`<div class="empty">${S.members.length?'該当するクルーがいません':'クルーがまだいません。「＋ クルー追加」または「WSから取り込み」で登録してください。'}</div>`; return; }
+  box.innerHTML=list.map(m=>{
+    const r=rankRec(m.id), rk=rankOf(r.rank), pg=progressOf(m.id);
+    const fx=FANTA.filter(f=>r.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}${esc(f.label)}</span>`).join('');
+    const dow=`<span class="dow">${DOW.map((d,i)=>`<span class="${m.days.includes(i)?'on':''}">${d}</span>`).join('')}</span>`;
+    const ten=tenure(m.hireDate);
+    return `<div class="member card" data-open="${attr(m.id)}">
+      <div class="avatar" style="background:${rk.color}">${esc((m.name||'?').slice(0,1))}</div>
+      <div class="m-body">
+        <div class="m-name">${esc(m.name)}${m.kana?`<span class="m-kana">${esc(m.kana)}</span>`:''}<span class="rank-badge" style="background:${rk.bg};color:${rk.color};border:1px solid ${rk.border}">${esc(rk.short)}</span>${fx}</div>
+        <div class="m-line">${ten?`<span>勤続 ${esc(ten)}</span>`:''}${m.hours?`<span>🕐 ${esc(m.hours)}</span>`:''}${m.weeklyHours?`<span>週${esc(m.weeklyHours)}h目安</span>`:''}${dow}${!pg.max?`<span class="muted">次のランクまで ${pg.pct}%</span>`:''}</div>
+        ${m.strengths?`<div class="m-line">💪 <span>${esc(m.strengths)}</span></div>`:''}
+        ${m.memo?`<div class="m-memo">${esc(m.memo)}</div>`:''}
+      </div>
+      <button class="icon-mini" data-edit="${attr(m.id)}" title="編集">✏️</button>
+    </div>`;
+  }).join('');
+}
+function openMemberForm(id){
+  const m=id?member(id):null;
+  const days=m?m.days:[];
+  setModal(`<button class="close-x" data-close>×</button>
+    <h2>${m?'✏️ クルー情報を編集':'＋ クルー追加'}</h2>
+    <div class="grid2">
+      <div class="field"><label>名前 *</label><input id="f-name" value="${attr(m?m.name:'')}" placeholder="例：佐藤 花子"></div>
+      <div class="field"><label>ふりがな</label><input id="f-kana" value="${attr(m?m.kana:'')}" placeholder="さとう はなこ"></div>
+      <div class="field"><label>入社日</label><input type="date" id="f-hire" value="${attr(m?m.hireDate:'')}"></div>
+      <div class="field"><label>誕生日</label><input type="date" id="f-bday" value="${attr(m?m.birthday:'')}"></div>
+      <div class="field"><label>連絡先</label><input id="f-contact" value="${attr(m?m.contact:'')}" placeholder="電話・LINE等"></div>
+      <div class="field"><label>週の目安時間（h）</label><input id="f-wh" inputmode="numeric" value="${attr(m?m.weeklyHours:'')}" placeholder="例：20"></div>
+    </div>
+    <div class="field"><label>勤務できる曜日</label><div class="dowpick" id="f-days">${DOW.map((d,i)=>`<label class="${days.includes(i)?'on':''}"><input type="checkbox" value="${i}" ${days.includes(i)?'checked':''}>${d}</label>`).join('')}</div></div>
+    <div class="field"><label>勤務できる時間帯</label><input id="f-hours" value="${attr(m?m.hours:'')}" placeholder="例：平日 17:00〜22:00 ／ 土日 9:00〜17:00"></div>
+    <div class="field"><label>💪 得意なこと・任せられること</label><input id="f-str" value="${attr(m?m.strengths:'')}" placeholder="例：レジが速い、FFの盛り付けが丁寧"></div>
+    <div class="field"><label>⚠️ 気をつけること・配慮</label><input id="f-care" value="${attr(m?m.cautions:'')}" placeholder="例：早番は苦手、声かけは丁寧に"></div>
+    <div class="field"><label>📝 メモ（どんな人か・家庭状況・目標など）</label><textarea id="f-memo" placeholder="この人どんな人だっけ？と思ったときに読み返す欄">${esc(m?m.memo:'')}</textarea></div>
+    ${m?`<div class="field"><label>🗣 面談・声かけログ</label>
+      <div class="addrow"><input id="f-log" placeholder="今日話したこと・気づき"><button class="btn btn-ghost btn-sm" data-addlog="${attr(m.id)}">追加</button></div>
+      <div id="f-logs">${renderLogs(m)}</div></div>`:''}
+    <div class="btn-row">
+      ${m?`<button class="btn btn-red" data-delmember="${attr(m.id)}">削除</button>`:''}
+      <button class="btn btn-pri" data-savemember="${attr(m?m.id:'')}">保存</button>
+    </div>`);
+  setTimeout(()=>{const n=$('f-name'); if(n&&!m)n.focus();},60);
+}
+function renderLogs(m){ if(!m.logs.length)return '<div class="muted">まだありません</div>'; return [...m.logs].sort((a,b)=>a.d<b.d?1:-1).map(l=>`<div class="logrow"><span class="d">${esc(fmtD(l.d))}</span><span style="flex:1;white-space:pre-wrap;word-break:break-word">${esc(l.text)}</span><button class="icon-mini" data-dellog="${attr(m.id)}|${attr(l.id)}">🗑</button></div>`).join(''); }
+function saveMemberForm(id){
+  const name=($('f-name').value||'').trim(); if(!name){alert('名前を入力してください');return;}
+  const days=[...document.querySelectorAll('#f-days input:checked')].map(i=>+i.value);
+  const rec={ name, kana:($('f-kana').value||'').trim(), hireDate:$('f-hire').value||'', birthday:$('f-bday').value||'', contact:($('f-contact').value||'').trim(), weeklyHours:($('f-wh').value||'').trim(), days, hours:($('f-hours').value||'').trim(), strengths:($('f-str').value||'').trim(), cautions:($('f-care').value||'').trim(), memo:($('f-memo').value||'').trim() };
+  if(id){ const m=member(id); if(m) Object.assign(m,rec); }
+  else { S.members.push(Object.assign({id:uid('m'),logs:[],createdAt:today()},rec)); }
+  saveS(); closeModal(); renderInfo(); if(_view==='rank')renderRank(); toast(id?'更新しました':'追加しました');
+}
+function deleteMember(id){ const m=member(id); if(!m)return; if(!confirm(`「${m.name}」を削除しますか？\nランク・課題の記録も消えます。`))return; S.members=S.members.filter(x=>x.id!==id); delete S.ranks[id]; if(_selId===id)_selId=null; saveS(); closeModal(); renderInfo(); toast('削除しました'); }
+function addLog(id){ const m=member(id); const inp=$('f-log'); const text=(inp.value||'').trim(); if(!m||!text)return; m.logs.push({id:uid('l'),d:today(),text}); saveS(); inp.value=''; $('f-logs').innerHTML=renderLogs(m); toast('記録しました'); }
+function delLog(id,lid){ const m=member(id); if(!m)return; m.logs=m.logs.filter(l=>l.id!==lid); saveS(); $('f-logs').innerHTML=renderLogs(m); }
+// WS（ワークスケジュール）の従業員名を取り込み
+function wsStaffNames(){ const s=storeId(); const key=s?'ws_v1_store_'+s:'ws_v1'; try{ const raw=localStorage.getItem(key); if(raw){ const st=JSON.parse(raw); if(Array.isArray(st.staff)) return st.staff.map(x=>typeof x==='string'?x:(x&&x.name)||'').map(x=>x.trim()).filter(Boolean); } }catch(e){} return []; }
+function openImport(){
+  const have=new Set(S.members.map(m=>m.name)); const names=wsStaffNames().filter(n=>!have.has(n));
+  setModal(`<button class="close-x" data-close>×</button><h2>📥 WSから取り込み</h2>
+    <div class="muted" style="margin-bottom:10px">ワークスケジュールの従業員のうち、まだクルー登録されていない人を取り込みます。</div>
+    ${names.length?`<div id="imp-list">${names.map(n=>`<label class="chk"><input type="checkbox" value="${attr(n)}" checked><span class="t">${esc(n)}</span></label>`).join('')}</div>
+    <div class="btn-row"><button class="btn btn-pri" data-doimport>取り込む</button></div>`:`<div class="empty">取り込める従業員がいません（すべて登録済み、またはWSに従業員が未登録）</div>`}`);
+}
+function doImport(){ const names=[...document.querySelectorAll('#imp-list input:checked')].map(i=>i.value); if(!names.length){closeModal();return;} names.forEach(n=>S.members.push({id:uid('m'),name:n,kana:'',days:[],logs:[],createdAt:today()})); saveS(); closeModal(); renderInfo(); toast(`${names.length}人を取り込みました`); }
+
+// ============ クルーランク ============
+let _selId=null;
+function renderRank(){
+  const ms=sortedMembers();
+  $('rank-summary').innerHTML=RANKS.map(r=>`<div class="sum" style="background:${r.bg};border-color:${r.border}"><div class="n" style="color:${r.color}">${ms.filter(m=>rankRec(m.id).rank===r.k).length}</div><div class="l" style="color:${r.color}">${esc(r.short)}</div></div>`).join('');
+  $('rank-board').innerHTML=RANKS.map(r=>{
+    const ins=ms.filter(m=>rankRec(m.id).rank===r.k);
+    return `<div class="col" style="background:${r.bg};border-color:${r.border}"><h4 style="color:${r.color}">${esc(r.label)}</h4>
+      ${ins.length?ins.map(m=>{ const rr=rankRec(m.id), pg=progressOf(m.id), open=rr.issues.filter(i=>i.status!=='done').length;
+        return `<div class="mchip ${_selId===m.id?'sel':''}" data-sel="${attr(m.id)}"><div class="nm"><span>${esc(m.name)}</span><span class="pct">${pg.max?'MAX':pg.pct+'%'}</span></div>
+          ${pg.max?'':`<div class="bar"><i style="width:${pg.pct}%;background:${r.color}"></i></div>`}
+          <div class="fx">${FANTA.filter(f=>rr.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}</span>`).join('')}${open?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">課題${open}</span>`:''}</div></div>`; }).join('')
+      :`<div class="muted" style="text-align:center;padding:8px 0">—</div>`}</div>`;
+  }).join('');
+  if(_selId&&!member(_selId))_selId=null;
+  $('rank-detail').innerHTML=_selId?renderDetail(_selId):`<div class="empty">上のボードでクルーをタップすると、ランク・昇格の進捗・ファンタジスタ・課題をここで管理できます。${S.members.length?'':'<br>まず「クルー情報」でクルーを登録してください。'}</div>`;
+}
+function renderDetail(id){
+  const m=member(id), r=rankRec(id), rk=rankOf(r.rank), nk=NEXT[r.rank], pg=progressOf(id);
+  const crit=nk?(S.criteria[nk]||[]):[];
+  const issues=[...r.issues].sort((a,b)=>(a.status==='done')-(b.status==='done'));
+  return `<div class="card detail">
+    <div class="d-head"><div class="avatar" style="background:${rk.color}">${esc((m.name||'?').slice(0,1))}</div><div><div class="nm">${esc(m.name)}</div><div class="muted">${esc(rk.label)}${m.hireDate?`　勤続 ${esc(tenure(m.hireDate))}`:''}</div></div><div class="spacer" style="flex:1"></div><button class="btn btn-line btn-sm" data-edit="${attr(id)}">✏️ 情報</button></div>
+    <div class="sec"><h3>🏅 現在のランク</h3><div class="rankbtns">${RANKS.map(x=>`<button class="rankbtn ${x.k===r.rank?'on':''}" style="${x.k===r.rank?`background:${x.color};border-color:${x.color}`:''}" data-setrank="${attr(id)}|${x.k}">${esc(x.short)}</button>`).join('')}</div></div>
+    <div class="sec"><h3>📈 ${nk?`${esc(rankOf(nk).short)}への昇格条件`:'最上位ランクです'}${nk?`<span class="chip" style="background:${rankOf(nk).bg};color:${rankOf(nk).color}">${pg.done}/${pg.total}（${pg.pct}%）</span>`:''}</h3>
+      ${nk?`<div class="bar" style="height:9px;margin-bottom:8px"><i style="width:${pg.pct}%;background:${rankOf(nk).color}"></i></div>${crit.map(c=>`<label class="chk ${r.checks[c]?'done':''}"><input type="checkbox" ${r.checks[c]?'checked':''} data-chk="${attr(id)}|${attr(c)}"><span class="t">${esc(c)}</span></label>`).join('')||'<div class="muted">昇格条件が未設定です（右上「昇格条件を編集」）</div>'}${nk&&pg.total&&pg.done===pg.total?`<div class="chip" style="background:var(--green-lt);color:var(--green);margin-top:4px">✅ 条件クリア！ランクを上げられます</div>`:''}`:''}</div>
+    <div class="sec"><h3>✨ ファンタジスタ</h3><div class="rankbtns">${FANTA.map(f=>`<button class="fbtn ${r.fanta[f.k]?'on':''}" data-fanta="${attr(id)}|${f.k}">${f.icon} ${esc(f.label)}${r.fanta[f.k]&&r.fantaDate[f.k]?`<span class="muted" style="font-weight:500">${esc(fmtD(r.fantaDate[f.k]))}</span>`:''}</button>`).join('')}</div></div>
+    <div class="sec"><h3>🎯 課題・取り組み <span class="muted" style="font-weight:500">タップで 未着手→取組中→完了</span></h3>
+      <div class="addrow"><input id="issue-in" placeholder="例：レジの返品操作を覚える"><button class="btn btn-pri btn-sm" data-addissue="${attr(id)}">追加</button></div>
+      ${issues.length?issues.map(i=>`<div class="issue ${i.status==='done'?'done':''}"><button class="st st-${i.status}" data-cycle="${attr(id)}|${attr(i.id)}">${i.status==='todo'?'未着手':i.status==='doing'?'取組中':'完了'}</button><div style="flex:1;min-width:0"><div class="tx">${esc(i.text)}</div><div class="meta">${esc(fmtD(i.created))}登録${i.done?`・${esc(fmtD(i.done))}完了`:''}</div></div><button class="icon-mini" data-delissue="${attr(id)}|${attr(i.id)}">🗑</button></div>`).join(''):'<div class="muted">課題はありません</div>'}</div>
+    ${r.history.length?`<div class="sec"><h3>📜 ランク履歴</h3><div class="hist">${[...r.history].reverse().map(h=>`${esc(fmtD(h.d))}　${esc(rankOf(h.from).short)} → <b>${esc(rankOf(h.to).short)}</b>`).join('<br>')}</div></div>`:''}
+  </div>`;
+}
+function setRank(id,k){ const r=rankRec(id); if(r.rank===k)return; r.history.push({d:today(),from:r.rank,to:k}); r.rank=k; saveS(); renderRank(); toast(`${member(id).name} → ${rankOf(k).short}`); }
+function toggleCheck(id,c,on){ const r=rankRec(id); if(on)r.checks[c]=true; else delete r.checks[c]; saveS(); renderRank(); }
+function toggleFanta(id,k){ const r=rankRec(id); r.fanta[k]=!r.fanta[k]; if(r.fanta[k])r.fantaDate[k]=today(); saveS(); renderRank(); }
+function addIssue(id){ const inp=$('issue-in'); const text=(inp.value||'').trim(); if(!text)return; rankRec(id).issues.push({id:uid('i'),text,status:'todo',created:today()}); saveS(); renderRank(); toast('課題を追加しました'); }
+function cycleIssue(id,iid){ const i=rankRec(id).issues.find(x=>x.id===iid); if(!i)return; i.status=i.status==='todo'?'doing':i.status==='doing'?'done':'todo'; if(i.status==='done')i.done=today(); else delete i.done; saveS(); renderRank(); }
+function delIssue(id,iid){ const r=rankRec(id); r.issues=r.issues.filter(x=>x.id!==iid); saveS(); renderRank(); }
+function openCriteria(){
+  setModal(`<button class="close-x" data-close>×</button><h2>⚙️ 昇格条件を編集</h2><div class="muted" style="margin-bottom:10px">1行に1条件。チェック済みの条件は文言が同じなら引き継がれます。</div>
+    ${['regular','subleader','leader'].map(k=>`<div class="field"><label>${esc(rankOf(k).short)}への昇格条件</label><textarea id="crit-${k}" style="min-height:110px">${esc((S.criteria[k]||[]).join('\n'))}</textarea></div>`).join('')}
+    <div class="btn-row"><button class="btn btn-ghost" data-critdefault>初期値に戻す</button><button class="btn btn-pri" data-critsave>保存</button></div>`);
+}
+function saveCriteria(){ ['regular','subleader','leader'].forEach(k=>{ S.criteria[k]=($('crit-'+k).value||'').split('\n').map(s=>s.trim()).filter(Boolean); }); saveS(); closeModal(); renderRank(); toast('昇格条件を保存しました'); }
+
+// ============ モーダル ============
+function setModal(html){$('modal').innerHTML=html;$('overlay').classList.add('show');}
+function closeModal(){$('overlay').classList.remove('show');}
+
+// ============ イベント（委譲） ============
+document.querySelector('.subtabs').addEventListener('click',e=>{const t=e.target.closest('.subtab');if(t)switchView(t.dataset.view);});
+$('info-q').addEventListener('input',renderInfo);
+$('add-member-btn').addEventListener('click',()=>openMemberForm(null));
+$('import-btn').addEventListener('click',openImport);
+$('edit-criteria-btn').addEventListener('click',openCriteria);
+$('member-list').addEventListener('click',e=>{ const ed=e.target.closest('[data-edit]'); if(ed){openMemberForm(ed.dataset.edit);return;} const op=e.target.closest('[data-open]'); if(op){ _selId=op.dataset.open; switchView('rank'); } });
+$('rank-board').addEventListener('click',e=>{ const s=e.target.closest('[data-sel]'); if(s){ _selId=s.dataset.sel; renderRank(); const d=$('rank-detail'); if(d)d.scrollIntoView({behavior:'smooth',block:'start'}); } });
+$('rank-detail').addEventListener('click',e=>{
+  const t=e.target; const sp=v=>String(v).split('|');
+  const ed=t.closest('[data-edit]'); if(ed){openMemberForm(ed.dataset.edit);return;}
+  const sr=t.closest('[data-setrank]'); if(sr){const [id,k]=sp(sr.dataset.setrank);setRank(id,k);return;}
+  const fa=t.closest('[data-fanta]'); if(fa){const [id,k]=sp(fa.dataset.fanta);toggleFanta(id,k);return;}
+  const ai=t.closest('[data-addissue]'); if(ai){addIssue(ai.dataset.addissue);return;}
+  const cy=t.closest('[data-cycle]'); if(cy){const [id,iid]=sp(cy.dataset.cycle);cycleIssue(id,iid);return;}
+  const di=t.closest('[data-delissue]'); if(di){const [id,iid]=sp(di.dataset.delissue); if(confirm('この課題を削除しますか？'))delIssue(id,iid);return;}
+});
+$('rank-detail').addEventListener('change',e=>{ const c=e.target.closest('[data-chk]'); if(c){const i=String(c.dataset.chk).indexOf('|'); toggleCheck(c.dataset.chk.slice(0,i),c.dataset.chk.slice(i+1),c.checked);} });
+$('rank-detail').addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.id==='issue-in'){ const b=$('rank-detail').querySelector('[data-addissue]'); if(b)addIssue(b.dataset.addissue); } });
+$('modal').addEventListener('click',e=>{
+  const t=e.target; const sp=v=>String(v).split('|');
+  if(t.closest('[data-close]')){closeModal();return;}
+  const sm=t.closest('[data-savemember]'); if(sm){saveMemberForm(sm.dataset.savemember||'');return;}
+  const dm=t.closest('[data-delmember]'); if(dm){deleteMember(dm.dataset.delmember);return;}
+  const al=t.closest('[data-addlog]'); if(al){addLog(al.dataset.addlog);return;}
+  const dl=t.closest('[data-dellog]'); if(dl){const [id,lid]=sp(dl.dataset.dellog);delLog(id,lid);return;}
+  if(t.closest('[data-doimport]')){doImport();return;}
+  if(t.closest('[data-critsave]')){saveCriteria();return;}
+  if(t.closest('[data-critdefault]')){ ['regular','subleader','leader'].forEach(k=>{$('crit-'+k).value=DEFAULT_CRITERIA[k].join('\n');}); return; }
+  const dp=t.closest('#f-days label'); if(dp){ setTimeout(()=>dp.classList.toggle('on',dp.querySelector('input').checked),0); }
+});
+$('modal').addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.id==='f-log'){ const b=$('modal').querySelector('[data-addlog]'); if(b){e.preventDefault();addLog(b.dataset.addlog);} } });
+$('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+// 店舗切替／多タブ同期：自分のデータ・店舗IDの変化で再描画。店舗が変わったら担当業務も読み直す
+window.addEventListener('storage',e=>{ if(e.key===dataKey()){loadS(); if(_view==='info')renderInfo(); if(_view==='rank')renderRank();} else if(e.key==='current_store_id'||e.key==='ffv6_current'){ loadS(); reloadDuty(); if(_view==='info')renderInfo(); if(_view==='rank')renderRank(); } });
+
+loadS();
+switchView(['duty','info','rank'].includes(_view)?_view:'duty');
+</script>
+</body>
+</html>

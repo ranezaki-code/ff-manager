@@ -133,7 +133,7 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
   <button class="tab active" data-sys="ff"><span class="emoji">🍗</span>FF管理</button>
   <button class="tab" data-sys="ws"><span class="emoji">📋</span>ワークスケジュール</button>
   <button class="tab" data-sys="next"><span class="emoji">📅</span>次週計画</button>
-  <button class="tab" data-sys="bumon"><span class="emoji">🧭</span>担当部門</button>
+  <button class="tab" data-sys="crew"><span class="emoji">👥</span>クルー</button>
   <button class="tab" data-sys="cal"><span class="emoji">📅</span>カレンダー</button>
 </nav>
 
@@ -249,7 +249,7 @@ const SYSTEMS = {
   ff:   {url:'./ff/index.html',   label:'FF管理'},
   ws:   {url:'./ws/index.html',   label:'ワークスケジュール'},
   next: {url:'./next/index.html', label:'次週計画'},
-  bumon:{url:'./bumon/index.html',label:'担当部門'},
+  crew: {url:'./crew/index.html',  label:'クルー'},
   cal:  {url:'./cal/index.html',  label:'カレンダー'}
 };
 // 統合アプリ内で開くことを各システムに伝える（重複UI非表示＋Gist同期停止のため）
@@ -563,7 +563,7 @@ function _fbApplyPayload(payload, ts, writer, initial){
 function _localLooksEmpty(){
   const data=collectData();
   let big=false;
-  Object.keys(data).forEach(k=>{ if(/(ffv6_store_|shinmuraten-plan-v1|ws_v1|bumon_v1)/.test(k) && (data[k]||'').length>120)big=true; });
+  Object.keys(data).forEach(k=>{ if(/(ffv6_store_|shinmuraten-plan-v1|ws_v1|bumon_v1|crew_v1|cal_v1)/.test(k) && (data[k]||'').length>120)big=true; });
   return !big;
 }
 async function _fbWrite(){
