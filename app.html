@@ -339,8 +339,8 @@ function setCurrentId(id){
   localStorage.setItem('current_store_id',id);
   localStorage.setItem('ffv6_current',id);
   renderSwitcher();
-  // 全iframeを作り直して新店舗データを反映
-  reloadAllFrames();
+  // 全iframeを作り直して新店舗データを反映（明示操作なので即時）
+  reloadAllFrames(true);
   scheduleSave();
 }
 function addStore(name){
@@ -383,11 +383,36 @@ function showSystem(sys){
   }
   frames[sys].classList.add('active');
 }
-function reloadAllFrames(){
+// どこかのiframe（入れ子含む）で文字入力中か。
+// 親の activeElement が入れ子iframe要素になる前提は背景タブ等で崩れるため、各iframeの中を直接再帰走査する
+function _isEditable(a){
+  if(!a)return false; const tag=(a.tagName||'').toUpperCase();
+  if(tag==='TEXTAREA'||tag==='SELECT'||a.isContentEditable)return true;
+  return tag==='INPUT'&&!/^(checkbox|radio|button|submit|range|file)$/i.test(a.type||'');
+}
+function _editingIn(doc,depth){
+  try{
+    if(!doc||depth>3)return false;
+    if(_isEditable(doc.activeElement))return true;
+    for(const f of doc.querySelectorAll('iframe')){ if(_editingIn(f.contentDocument,depth+1))return true; }
+  }catch(_){}
+  return false;
+}
+function _anyFrameEditing(){
+  try{ for(const sys of Object.keys(frames)){ if(_editingIn(frames[sys].contentDocument,0))return true; } }catch(_){}
+  return false;
+}
+let _pendingFrameReload=false;
+// 同期で受け取ったデータを画面に反映する。入力中に作り直すと入力途中の値が消えるため、
+// 入力中は保留して入力が終わってから反映する（force=店舗切替・取込・復元など利用者の明示操作は即時）
+function reloadAllFrames(force){
+  if(!force && _anyFrameEditing()){ _pendingFrameReload=true; setSync('saving','入力が終わったら反映'); return; }
+  _pendingFrameReload=false;
   Object.keys(frames).forEach(sys=>{
     try{frames[sys].contentWindow.location.replace(sysUrl(sys));}catch(_){frames[sys].src=sysUrl(sys);}
   });
 }
+setInterval(()=>{ if(_pendingFrameReload && !_anyFrameEditing()){ reloadAllFrames(); setSync('ok', fbReady?'リアルタイム同期中':'同期済み'); } },1500);
 
 // ---------- Drive データ層 ----------
 function fsaSupported(){return 'showDirectoryPicker' in window;}
@@ -692,7 +717,7 @@ async function pickFolder(){
     updateFolderStatus();
     // 既存ファイルがあれば読み込み、無ければ現状を保存
     const loaded=await loadFromDrive();
-    if(loaded){renderSwitcher();reloadAllFrames();}
+    if(loaded){renderSwitcher();reloadAllFrames(true);}
     else{await saveToDrive();}
   }catch(e){if(e&&e.name==='AbortError')return;console.error(e);alert('フォルダ選択に失敗しました: '+e);}
 }
@@ -719,7 +744,7 @@ function restoreLocalBackup(){
   if(!obj||!obj.data){alert('バックアップの形式が不正です');return;}
   if(!confirm(label(ks[idx])+' のバックアップで現在のデータを置き換えます（共有中の全端末にも反映されます）。\n直前の状態も退避してから復元します。続行しますか？'))return;
   _backupLocal('pre_restore');
-  applyData(obj); showSettingsStatus('復元しました。画面を更新します。'); renderSwitcher(); reloadAllFrames(); scheduleSave();
+  applyData(obj); showSettingsStatus('復元しました。画面を更新します。'); renderSwitcher(); reloadAllFrames(true); scheduleSave();
 }
 function doExport(){
   const blob=new Blob([buildPayload()],{type:'application/json'});
@@ -751,7 +776,7 @@ function handleImportFile(file){
         return;
       }
       showSettingsStatus('取り込みました。画面を更新します。');
-      renderSwitcher();reloadAllFrames();scheduleSave();
+      renderSwitcher();reloadAllFrames(true);scheduleSave();
     }catch(e){alert('読み込み失敗: '+e);}
   };
   r.readAsText(file);
@@ -793,7 +818,7 @@ async function boot(){
       const ok=await verifyPermission(dirHandle,true);
       if(ok){
         const loaded=await loadFromDrive();
-        if(loaded){renderSwitcher();reloadAllFrames();}
+        if(loaded){renderSwitcher();reloadAllFrames(true);}
       }else{
         setSync('off','タップで再接続');
       }
@@ -853,7 +878,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 設定パネル
   document.getElementById('change-folder-btn').addEventListener('click',pickFolder);
   document.getElementById('save-now-btn').addEventListener('click',async()=>{if(!dirHandle){alert('先に保存先フォルダを設定してください');return;}await saveToDrive();showSettingsStatus('保存しました。');});
-  document.getElementById('load-now-btn').addEventListener('click',async()=>{if(!dirHandle){alert('先に保存先フォルダを設定してください');return;}const ok=await loadFromDrive();if(ok){renderSwitcher();reloadAllFrames();showSettingsStatus('Driveから読み込みました。');}else{showSettingsStatus('読み込めるデータがありませんでした。');}});
+  document.getElementById('load-now-btn').addEventListener('click',async()=>{if(!dirHandle){alert('先に保存先フォルダを設定してください');return;}const ok=await loadFromDrive();if(ok){renderSwitcher();reloadAllFrames(true);showSettingsStatus('Driveから読み込みました。');}else{showSettingsStatus('読み込めるデータがありませんでした。');}});
   document.getElementById('export-btn').addEventListener('click',doExport);
   document.getElementById('import-btn').addEventListener('click',()=>document.getElementById('import-file').click());
   document.getElementById('restore-local-btn').addEventListener('click',restoreLocalBackup);
