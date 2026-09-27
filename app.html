@@ -587,9 +587,14 @@ async function _fbWrite(){
   }catch(e){console.error('fbWrite',e);setSync('err','保存失敗');return false;}
 }
 function fbPush(){ if(fbReady)_fbWrite(); }
+// 共有リンク：合言葉をURLの「#」以降（サーバーに送られない部分）に含め、開くだけで同じデータに繋がるようにする
+let _activePass='';
+function _passFromUrl(){ try{ const m=(location.hash||'').match(/[#&]k=([^&]+)/); if(m)return decodeURIComponent(m[1]).trim(); const q=new URLSearchParams(location.search).get('k'); if(q)return q.trim(); }catch(_){} return ''; }
 function copyShareLink(){
-  const url=location.origin+location.pathname;
-  try{navigator.clipboard.writeText(url);showSettingsStatus('共有リンクをコピーしました。相手にはリンクと合言葉の両方を伝えてください。');}
+  const pass=_activePass||localStorage.getItem('unified_pass')||'';
+  const base=location.origin+location.pathname;
+  const url=pass?base+'#k='+encodeURIComponent(pass):base;
+  try{navigator.clipboard.writeText(url);showSettingsStatus(pass?'共有リンクをコピーしました。このリンクを開くだけで、どの端末でも同じデータにリアルタイムで繋がります（合言葉入りなので、信頼できる人にだけ渡してください）。':'共有リンクをコピーしました。相手にはリンクと合言葉の両方を伝えてください。');}
   catch(_){showSettingsStatus('リンク: '+url);}
 }
 function changePassphrase(){
@@ -677,12 +682,18 @@ function handleImportFile(file){
 // =====================================================================
 async function boot(){
   renderSwitcher();
-  showSystem('ff');
+  // ?sys=crew のように、開くタブを指定できる（各システムの単体ページから統合アプリへ誘導する時に使用）
+  let initSys='ff'; try{ const q=new URLSearchParams(location.search).get('sys'); if(q&&SYSTEMS[q])initSys=q; }catch(_){}
+  showSystem(initSys);
 
   // 【リアルタイム共有モード】Firebase設定済みなら合言葉ゲートで開始
   if(firebaseConfigured()){
+    // 共有リンク（#k=合言葉）で開かれたら、その合言葉をこの端末に保存し、アドレスバーからは消す
+    const urlPass=_passFromUrl();
+    if(urlPass){ try{localStorage.setItem('unified_pass',urlPass);}catch(_){} try{history.replaceState(null,'',location.pathname+location.search);}catch(_){} }
     const saved=localStorage.getItem('unified_pass');
     if(saved){
+      _activePass=saved;
       const ok=await fbStart(saved);
       if(!ok)openOverlay('pass-overlay');
     }else{
@@ -747,6 +758,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!v){st.style.display='block';st.textContent='合言葉を入力してください';return;}
     if(document.getElementById('pass-remember').checked)localStorage.setItem('unified_pass',v); else localStorage.removeItem('unified_pass');
     st.style.display='block';st.textContent='接続中…';
+    _activePass=v;
     const ok=await fbStart(v);
     if(ok){closeOverlay('pass-overlay');}
     else{st.style.display='block';st.textContent='接続できませんでした。合言葉・ネット接続・Firebase設定を確認してください。';}
