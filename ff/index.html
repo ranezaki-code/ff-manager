@@ -587,7 +587,6 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
       <div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">
         <button type="button" onclick="toggleMakeRules()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer">📋 作成ルール7か条</button>
         <button type="button" onclick="toggleCellGuide()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer">💡 セルの見方</button>
-        <button type="button" onclick="toggleStickerChart()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:8px;cursor:pointer">🏷 廃棄シール早見表</button>
         <button type="button" onclick="printMakePlan()" title="表示中の曜日を、作成時刻ごとにA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;cursor:pointer">🖨 印刷 / PDF</button>
         <button type="button" onclick="printMachikadoPrep()" title="まちかど厨房の事前準備だけを、作成時刻ごとにA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:8px;cursor:pointer">🍱 事前準備だけ印刷</button>
         <button type="button" onclick="printThawPrep()" title="明日の作成に向けて今日解凍する『前日解凍』だけをA4縦1枚で印刷／PDF保存" style="padding:7px 13px;font-size:12px;font-weight:600;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer">❄️ 前日解凍だけ印刷</button>
@@ -5217,13 +5216,11 @@ function printMakePlan(){
         .map(p=>({p,cnt:getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH)}))
         .filter(o=>o.cnt>0);
       if(!rows.length)return;
-      const sc=slotSeqColor(cat,slotH);
       const doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah, md=getMarkdownTime(cat,slotH);
       const meta=`完成 ${fmtHour(doneH)}　廃棄 ${fmtHour(disposeH)}${isDiscountOn(cat,di)?`　値引 ${fmtHour(md)}〜`:''}`;
       body+=`<div class="pcat">
         <div class="pcat-head">
           <span class="pcat-name">${escapeHtmlP(cat)}</span>
-          <span class="pcat-sticker" style="background:${sc.bg};color:${sc.fg};${sc.border?`border:1px solid ${sc.border};`:''}">${sc.name}シール</span>
           <span class="pcat-meta">${meta}</span>
         </div>
         <table class="ptbl">
@@ -5613,7 +5610,6 @@ function renderSlotGroupedView(dayIdx){
       cats+=`<div style="margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap">
           <span style="font-size:14px;font-weight:800;color:#1f2937">${cat}</span>
-          <span style="background:${sc.bg};color:${sc.fg};${sc.border?`border:1px solid ${sc.border};`:''}border-radius:5px;padding:1px 8px;font-size:11px;font-weight:700">${sc.name}シール</span>
           <span style="font-size:11px;color:#64748b;margin-left:auto">完成 ${fmtHour(doneH)}／廃棄 ${fmtHour(disposeH)}</span>
         </div>${rowsHtml}</div>`;
     });
@@ -5764,12 +5760,8 @@ function renderProdDayContent(dayIdx){
   const fullDayName=DAYS[dayIdx]+'曜日';
   const dateStr=`${dt.getMonth()+1}月${dt.getDate()}日（${fullDayName}）`;
 
-  // Selected day badge
-  let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-    <div class="selected-day-badge">📅 ${dateStr} を表示中</div>
-  </div>`;
-  buildSlotColorMap();            // 廃棄シール色（作成時刻ベース）を構築
-  html+=renderStickerChart();     // 🏷 廃棄シール早見表（トグルで開閉）
+  let html='';
+  buildSlotColorMap();            // 廃棄シール色（内部計算用。作成表には表示しない）
   // 外部ファクト関連の天気/温度/イベント/補正%、週総客数は非表示
   // （外部ファクトタブを使わない運用に合わせて削除）
   html+=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
@@ -5782,8 +5774,6 @@ function renderProdDayContent(dayIdx){
       <button onclick="setProdSortMode('slot')"
         style="padding:8px 18px;font-size:13px;font-weight:600;border-radius:6px;border:none;cursor:pointer;min-height:38px;${_prodSortMode==='slot'?'background:var(--main);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'background:transparent;color:#666'}">🕐 時間帯別</button>
     </div>
-    ${_prodSortMode==='efficient'?`<span style="font-size:11px;color:#9a3412">①からの番号順に作成（カテゴリ横断・新商品優先）</span>`:''}
-    ${_prodSortMode==='slot'?`<span style="font-size:11px;color:#9a3412">作る時間帯ごとに、カテゴリ→商品でまとめて表示</span>`:''}
   </div>`;
 
   // 時間帯別モード：時刻ごとにカテゴリ→商品をまとめて表示（チェックは通常の作成表と共有）
@@ -5915,7 +5905,6 @@ function renderProdDayContent(dayIdx){
       <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
       <span>${cat}</span>
       ${(_st.state==='none'||_st.state==='future')?'':`<span style="background:${_badgeBg};color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${_badgeTxt}</span>`}
-      <span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;line-height:1.4">🗑 販売許容${cfg.ah}時間</span>
     </div>`;
     if(_isCollapsed){
       // 折りたたみ時はテーブル本体・効率順ヒント・カテゴリ合計をすべてスキップ
@@ -5930,13 +5919,10 @@ function renderProdDayContent(dayIdx){
     cfg.slots.forEach(h=>{
       const md=getMarkdownTime(cat,h);
       const doneH=h+PREP_HOURS;
-      const sc=slotSeqColor(cat,h);
-      html+=`<th style="width:90px;padding:5px 2px">
-        <div style="display:flex;flex-direction:column;gap:3px;line-height:1.2;align-items:center">
+      html+=`<th style="width:90px;padding:6px 2px">
+        <div style="display:flex;flex-direction:column;gap:2px;line-height:1.2;align-items:center">
           <span style="white-space:nowrap"><span style="font-size:10px;color:#64748b">作成</span> <span style="font-size:17px;font-weight:800;color:#1d4ed8">${fmtHour(h)}</span></span>
-          <span style="font-size:10px;color:#16a34a">完成 ${fmtHour(doneH)}</span>
-          <span style="background:${sc.bg};color:${sc.fg};${sc.border?`border:1px solid ${sc.border};`:''}border-radius:4px;padding:0 6px;font-size:10px;font-weight:700">${sc.name}シール</span>
-          ${discOn?`<span style="font-size:10px;color:#d97706">値引 ${fmtHour(md)}〜</span>`:''}
+          <span style="font-size:10px;color:#64748b;white-space:nowrap">完成 ${fmtHour(doneH)}${discOn?`　値引 ${fmtHour(md)}〜`:''}</span>
         </div>
       </th>`;
     });
@@ -5961,7 +5947,7 @@ function renderProdDayContent(dayIdx){
       const orderBadge=(gIdx!=null)?`<span style="font-size:13px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(gIdx)}</span>`:'';
       const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'';
       const endingBadge=p.orderEnding?`<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px" title="${t('order.endingHint')}">${t('order.endingBadge')}</span>`:'';
-      html+=`<tr><td style="text-align:left;font-size:12px;${p.orderEnding?'background:#fef2f2':''}">${orderBadge}${p.name}${newBadge}${endingBadge}${prepBadge(p)}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
+      html+=`<tr><td style="text-align:left;font-size:12px;${p.orderEnding?'background:#fef2f2':''}">${orderBadge}${p.name}${newBadge}${endingBadge}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
       cfg.slots.forEach(slotH=>{
         const cnt=getProdCnt(p.id,dayIdx,slotH);
         const extra=getInvestExtra(p.id,dayIdx,slotH);
