@@ -294,9 +294,10 @@ let fbApp=null, fbDb=null, fbReady=false, fbUnsub=null, fbDocRef=null;
 let lastSyncedPayload='';               // 直近で同期した内容（echo再送・無駄書き込み防止）
 let lastAppliedRemoteAt=0;              // 直近で適用したリモートのupdatedAt
 let fbPushTimer=null;
+// 端末IDは「このタブ」単位（同じ端末で2タブ開いた時も互いの更新が届くように。端末単位だと自分の更新扱いで無視される）
 function _deviceId(){
-  let d=localStorage.getItem('unified_device');
-  if(!d){d='dev_'+Math.random().toString(36).slice(2)+'_'+(navigator.userAgent||'').replace(/\D+/g,'').slice(0,6);localStorage.setItem('unified_device',d);}
+  let d=null; try{d=sessionStorage.getItem('unified_device');}catch(_){}
+  if(!d){ d=window.__devId||('dev_'+Math.random().toString(36).slice(2)+'_'+(navigator.userAgent||'').replace(/\D+/g,'').slice(0,6)); window.__devId=d; try{sessionStorage.setItem('unified_device',d);}catch(_){} }
   return d;
 }
 function firebaseConfigured(){return typeof FIREBASE_CONFIG.apiKey==='string' && FIREBASE_CONFIG.apiKey.indexOf('AIza')===0;}
@@ -377,42 +378,88 @@ function showSystem(sys){
   if(!frames[sys]){
     const ifr=document.createElement('iframe');
     ifr.className='frame';
+    ifr.addEventListener('load',()=>_wireTyping(ifr.contentDocument,0));   // キー入力の検知（作り直し後も毎回）
     ifr.src=sysUrl(sys);
     document.getElementById('main').appendChild(ifr);
     frames[sys]=ifr;
   }
   frames[sys].classList.add('active');
 }
-// どこかのiframe（入れ子含む）で文字入力中か。
-// 親の activeElement が入れ子iframe要素になる前提は背景タブ等で崩れるため、各iframeの中を直接再帰走査する
+// ---------- 同期の反映をリアルタイムに保ちつつ、入力途中の値を失わない ----------
 function _isEditable(a){
   if(!a)return false; const tag=(a.tagName||'').toUpperCase();
   if(tag==='TEXTAREA'||tag==='SELECT'||a.isContentEditable)return true;
   return tag==='INPUT'&&!/^(checkbox|radio|button|submit|range|file)$/i.test(a.type||'');
 }
-function _editingIn(doc,depth){
+// フォーカス中の編集要素を（入れ子iframe含め）探し、作り直し後に戻すための情報を返す
+function _findFocused(doc,depth){
   try{
-    if(!doc||depth>3)return false;
-    if(_isEditable(doc.activeElement))return true;
-    for(const f of doc.querySelectorAll('iframe')){ if(_editingIn(f.contentDocument,depth+1))return true; }
+    if(!doc||depth>3)return null;
+    const a=doc.activeElement;
+    if(_isEditable(a)){
+      const all=[...doc.querySelectorAll('input,textarea,select')];
+      let ss=null,se=null; try{ss=a.selectionStart;se=a.selectionEnd;}catch(_){}
+      const key=a.id?'#'+a.id:(a.getAttribute('onchange')||a.getAttribute('oninput')||null);
+      return {key,attr:a.id?null:(a.getAttribute('onchange')?'onchange':'oninput'),idx:all.indexOf(a),value:a.value,ss,se,path:[],oldDoc:doc};
+    }
+    for(const f of doc.querySelectorAll('iframe')){ const r=_findFocused(f.contentDocument,depth+1); if(r){ r.path=[f.id||f.getAttribute('src')||''].concat(r.path); return r; } }
   }catch(_){}
-  return false;
+  return null;
+}
+// キー入力の検知（直近2秒以内に打鍵があった時だけ「入力中」。欄にカーソルを置いたままでも反映は止まらない）
+let _lastTypingAt=0,_composing=false;   // _composing=日本語入力の変換中（確定するまで作り直さない）
+function _wireTyping(doc,depth){
+  try{
+    if(!doc||(depth||0)>3||doc.__typingWired)return; doc.__typingWired=true;
+    ['keydown','input'].forEach(ev=>doc.addEventListener(ev,()=>{_lastTypingAt=Date.now();},true));
+    doc.addEventListener('compositionstart',()=>{_composing=true;_lastTypingAt=Date.now();},true);
+    doc.addEventListener('compositionend',()=>{_composing=false;_lastTypingAt=Date.now();},true);
+    for(const f of doc.querySelectorAll('iframe')){ f.addEventListener('load',()=>_wireTyping(f.contentDocument,(depth||0)+1)); _wireTyping(f.contentDocument,(depth||0)+1); }
+  }catch(_){}
 }
 function _anyFrameEditing(){
-  try{ for(const sys of Object.keys(frames)){ if(_editingIn(frames[sys].contentDocument,0))return true; } }catch(_){}
+  if(_composing && Date.now()-_lastTypingAt<60000)return true;
+  if(Date.now()-_lastTypingAt>2000)return false;
+  try{ for(const sys of Object.keys(frames)){ if(_findFocused(frames[sys].contentDocument,0))return true; } }catch(_){}
   return false;
 }
+function _captureFocus(){ try{ for(const sys of Object.keys(frames)){ const r=_findFocused(frames[sys].contentDocument,0); if(r){ r.sys=sys; return r; } } }catch(_){} return null; }
+function _docByPath(sys,path){ let doc=frames[sys]&&frames[sys].contentDocument; for(const id of (path||[])){ if(!doc)return null; const f=[...doc.querySelectorAll('iframe')].find(x=>(x.id||x.getAttribute('src')||'')===id); doc=f&&f.contentDocument; } return doc||null; }
+// 作り直し後に同じ欄を探し、入力途中の値とカーソル位置を戻す（FFの商品カードは折りたたまれるので展開してから探す）
+function _restoreFocus(info){
+  const t0=Date.now();
+  const tick=()=>{
+    try{
+      const doc=_docByPath(info.sys,info.path);
+      if(doc&&doc!==info.oldDoc&&doc.body&&doc.readyState==='complete'){   // 作り直し後の新しい文書になってから
+        const find=()=>{ let el=null; if(info.key){ el=info.key[0]==='#'?doc.querySelector(info.key):[...doc.querySelectorAll('['+info.attr+']')].find(x=>x.getAttribute(info.attr)===info.key); } if(!el&&info.idx>=0&&!info.key){ el=[...doc.querySelectorAll('input,textarea,select')][info.idx]||null; } return el; };
+        let el=find();
+        if(!el&&info.key){ const m=info.key.match(/^(?:setProdField|setMarkupRateInput|mkIng\w+)\('([^']+)'/); const w=doc.defaultView; if(m&&w&&w._expandedCards&&typeof w.renderProductCards==='function'){ w._expandedCards.add(m[1]); w.renderProductCards(); el=find(); } }
+        if(el){
+          if(el.value!==info.value){ el.value=info.value; try{el.dispatchEvent(new Event('input',{bubbles:true}));}catch(_){} }
+          try{ el.focus(); if(el.setSelectionRange&&typeof info.ss==='number')el.setSelectionRange(info.ss,info.se); }catch(_){}
+          return;
+        }
+      }
+    }catch(_){}
+    if(Date.now()-t0<10000)setTimeout(tick,200);
+  };
+  setTimeout(tick,200);
+}
 let _pendingFrameReload=false;
-// 同期で受け取ったデータを画面に反映する。入力中に作り直すと入力途中の値が消えるため、
-// 入力中は保留して入力が終わってから反映する（force=店舗切替・取込・復元など利用者の明示操作は即時）
+// 同期で受け取ったデータを画面に反映する（force=店舗切替・取込・復元など利用者の明示操作は即時）
+// ・打鍵中（直近2秒）だけ待つ ・作り直す前に入力途中の欄を控え、作り直し後に値とカーソルを戻す
 function reloadAllFrames(force){
   if(!force && _anyFrameEditing()){ _pendingFrameReload=true; setSync('saving','入力が終わったら反映'); return; }
   _pendingFrameReload=false;
+  const keep=force?null:_captureFocus();
+  _composing=false;
   Object.keys(frames).forEach(sys=>{
     try{frames[sys].contentWindow.location.replace(sysUrl(sys));}catch(_){frames[sys].src=sysUrl(sys);}
   });
+  if(keep)_restoreFocus(keep);
 }
-setInterval(()=>{ if(_pendingFrameReload && !_anyFrameEditing()){ reloadAllFrames(); setSync('ok', fbReady?'リアルタイム同期中':'同期済み'); } },1500);
+setInterval(()=>{ if(_pendingFrameReload && !_anyFrameEditing()){ reloadAllFrames(); setSync('ok', fbReady?'リアルタイム同期中':'同期済み'); } },700);
 
 // ---------- Drive データ層 ----------
 function fsaSupported(){return 'showDirectoryPicker' in window;}
@@ -502,6 +549,7 @@ function scheduleSave(){
   if(booting)return;
   if(!fbReady && !dirHandle)return; // 同期先（クラウド or Drive）が無ければ何もしない
   setSync('saving','変更あり…');
+  _dirty=true;
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
     if(fbReady)fbPush();         // リアルタイム共有（主）
@@ -538,18 +586,29 @@ function _chunkByBytes(str,maxBytes){
   return out;
 }
 // meta(チャンク数等) + parts/{i} を読み、payload文字列を結合して返す（旧単一payloadも互換）
+// meta と parts は別々に読むため、読んでいる最中に他端末が書き換えると新旧が混ざる。
+// 書込みID(wid)が全部一致した時だけ採用し、混ざっていたら少し待って読み直す（壊れたJSONを適用して止まらないように）
 async function _fbReadAll(){
-  const metaSnap=await fbDocRef.get();
-  if(!metaSnap.exists)return null;
-  const m=metaSnap.data()||{};
-  if(typeof m.payload==='string'){ fbLastChunks=0; return {payload:m.payload, ts:m.updatedAt||0, writer:m.writer}; } // 旧v1
-  const n=m.chunks||0;
-  if(!n)return {payload:'', ts:m.updatedAt||0, writer:m.writer};
-  const parts=await Promise.all(Array.from({length:n},(_,i)=>fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i).get()));
-  let payload='';
-  for(const p of parts){ if(p.exists)payload+=(p.data()||{}).d||''; }
-  fbLastChunks=n;
-  return {payload, ts:m.updatedAt||0, writer:m.writer};
+  for(let attempt=0;attempt<4;attempt++){
+    const metaSnap=await fbDocRef.get();
+    if(!metaSnap.exists)return null;
+    const m=metaSnap.data()||{};
+    if(typeof m.payload==='string'){ fbLastChunks=0; return {payload:m.payload, ts:m.updatedAt||0, writer:m.writer}; } // 旧v1
+    const n=m.chunks||0;
+    if(!n)return {payload:'', ts:m.updatedAt||0, writer:m.writer};
+    const parts=await Promise.all(Array.from({length:n},(_,i)=>fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i).get()));
+    let payload='',ok=true;
+    for(const p of parts){ const d=p.exists?(p.data()||{}):{}; if(m.wid&&d.wid!==m.wid){ok=false;break;} payload+=d.d||''; }
+    if(ok){ fbLastChunks=n; return {payload, ts:m.updatedAt||0, writer:m.writer}; }
+    await new Promise(res=>setTimeout(res,400+attempt*400));
+  }
+  throw new Error('chunk mismatch (書込み中に読み込み)');
+}
+// 最新を読み直して適用し、未送信があれば送る（画面復帰・回線復帰・受信失敗後の立て直し）
+async function _fbCatchUp(){
+  if(!fbReady||!fbDocRef)return;
+  try{ const r=await _fbReadAll(); if(r&&r.payload)_fbApplyPayload(r.payload,r.ts,r.writer,false); }catch(e){console.warn('catch-up',e);}
+  if(_dirty)fbPush();
 }
 async function fbStart(passphrase){
   if(!fbInit()){setSync('err','設定未完了');return false;}
@@ -563,30 +622,60 @@ async function fbStart(passphrase){
     if(r&&r.payload){ _fbApplyPayload(r.payload, r.ts, r.writer, true); }
     else if(!_localLooksEmpty()){ await _fbWrite(); } // クラウド未作成かつ手元にデータ→作成
   }catch(e){console.error('initial get',e);setSync('err','取得失敗');alert('データ取得に失敗しました。\nFirestoreのルール設定をご確認ください。\n'+(e&&e.message||e));return false;}
-  if(fbUnsub){try{fbUnsub();}catch(_){}}
-  // metaドキュメントの変化を監視→partsを読み直して適用
+  _fbSubscribe();
+  fbReady=true;
+  setSync('ok','リアルタイム同期中');
+  if(_pendingInitialWrite){ _pendingInitialWrite=false; fbPush(); }   // この端末のデータを正としてクラウドへ
+  // 画面に戻った時・回線が戻った時は、監視が途切れていた可能性があるので必ず最新を読み直し、未送信があれば送る
+  if(!window._fbCatchupWired){ window._fbCatchupWired=true;
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')_fbCatchUp(); });
+    window.addEventListener('online',_fbCatchUp);
+    window.addEventListener('pageshow',e=>{ if(e.persisted)_fbCatchUp(); });
+  }
+  return true;
+}
+// metaドキュメントの変化を監視→partsを読み直して適用。
+// ・読み込みは非同期なので、連続更新時は「最後に届いた通知」の結果だけ適用する（古い内容で上書きしない）
+// ・監視がエラーで切れたら自動で張り直す（切れたまま「反映されない」状態を作らない）
+let _snapSeq=0,_resubTimer=null;
+function _fbSubscribe(){
+  if(fbUnsub){try{fbUnsub();}catch(_){} fbUnsub=null;}
+  if(!fbDocRef)return;
   fbUnsub=fbDocRef.onSnapshot(async snap=>{
     if(!snap.exists)return;
     if(snap.metadata.hasPendingWrites)return; // 自端末の書込みのecho
     const m=snap.data()||{};
     if(m.writer===_deviceId())return;          // 自分の更新は無視
-    try{ const r=await _fbReadAll(); if(r) _fbApplyPayload(r.payload, r.ts, r.writer, false); }
-    catch(e){console.error('snapshot read',e);}
-  },err=>{console.error('snapshot',err);setSync('err','同期エラー');});
-  fbReady=true;
-  setSync('ok','リアルタイム同期中');
-  if(_pendingInitialWrite){ _pendingInitialWrite=false; _fbWrite(); }   // この端末のデータを正としてクラウドへ
-  return true;
+    const seq=++_snapSeq;
+    try{
+      let r=null;
+      try{ r=await _fbReadAll(); }catch(e){ console.warn('snapshot read retry',e); await new Promise(res=>setTimeout(res,1500)); r=await _fbReadAll(); }
+      if(seq!==_snapSeq)return;                // もっと新しい通知が来ている→そちらに任せる
+      if(r) _fbApplyPayload(r.payload, r.ts, r.writer, false);
+    }catch(e){console.error('snapshot read',e);setSync('err','受信失敗（再試行します）');setTimeout(_fbCatchUp,3000);}
+  },err=>{
+    console.error('snapshot',err);setSync('err','同期エラー（再接続します）');
+    clearTimeout(_resubTimer);_resubTimer=setTimeout(()=>{ if(fbReady)_fbSubscribe(); },5000);
+  });
 }
+let _dirty=false,_retryTimer=null;   // 未送信の変更があるか／再送タイマー
+let lastRemotePayload='';            // 直近で取り込んだ（適用 or マージ済みの）クラウド内容。同じ内容の再通知は無視
+let lastSyncedSig='';                // 直近で同期した data 部分の署名（キー順に依存しない）。「変化なし」判定に使う
+function _dataSig(d){ d=d||{}; return JSON.stringify(Object.keys(d).sort().map(k=>[k,d[k]])); }
+// Firestoreの時刻（Timestamp／数値／{seconds}）をミリ秒に正規化
+function _tsMillis(v){ if(v==null)return 0; if(typeof v==='number')return v; try{ if(typeof v.toMillis==='function')return v.toMillis(); }catch(_){} if(typeof v.seconds==='number')return v.seconds*1000; return 0; }
 let _pendingInitialWrite=false;   // 起動時に「この端末のデータを正」と判断した場合、接続完了後に送る
 function _fbApplyPayload(payload, ts, writer, initial){
   try{
     if(typeof payload!=='string'||!payload)return;
-    ts=ts||0;
-    if(writer===_deviceId()){lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);lastSyncedPayload=payload;return;}
-    if(!initial && ts && ts<=lastAppliedRemoteAt)return;
-    if(payload===lastSyncedPayload)return;
+    ts=_tsMillis(ts);
+    // 起動時以外、自分の書いた内容の通知は無視（起動時は必ず内容で判定：端末内データが消えていても復元できるように）
+    if(!initial && writer===_deviceId()){lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);lastSyncedPayload=payload;lastRemotePayload=payload;return;}
+    // 時刻で取捨しない（端末ごとの時計のズレで更新を捨ててしまうため）。内容が同じ時だけスキップ
+    if(payload===lastSyncedPayload||payload===lastRemotePayload)return;
     const obj=JSON.parse(payload);
+    const remoteSig=_dataSig(obj&&obj.data);
+    if(remoteSig===_dataSig(collectData())){ lastSyncedPayload=payload; lastRemotePayload=payload; lastSyncedSig=remoteSig; return; }   // 端末内と同一内容
     if(initial){
       // 起動時の取り込みは「この端末の本物のデータ」を守る：
       //  ・クラウドに本物のデータが無い（別端末の初期設定だけ 等）→ 取り込まず、この端末のデータをクラウドへ送る
@@ -600,12 +689,12 @@ function _fbApplyPayload(payload, ts, writer, initial){
       }
     }
     applyData(obj);
-    lastSyncedPayload=payload;
+    lastSyncedPayload=payload; lastRemotePayload=payload; lastSyncedSig=_dataSig(collectData());
     lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);
     renderSwitcher();
     reloadAllFrames();
     setSync('ok','リアルタイム同期中');
-  }catch(e){console.error('applyPayload',e);}
+  }catch(e){console.error('applyPayload',e);if(!initial)setTimeout(_fbCatchUp,3000);}   // 壊れた内容なら少し後に読み直す
 }
 // 「本物のデータ」があるかをキー別に中身で判定する。
 // （初期設定だけの状態を"データあり"と誤判定して、空の既定値でクラウドや他端末を上書きしないため）
@@ -639,23 +728,25 @@ function _backupLocal(tag){
 async function _fbWrite(){
   if(!fbDocRef)return false;
   let payload=buildPayload();
-  if(payload===lastSyncedPayload)return true;     // 変化なし
+  // 変化の有無は data 部分だけで判定（payload には保存時刻が入るため文字列比較では毎回「変化あり」になる）
+  if(_dataSig(collectData())===lastSyncedSig){_dirty=false;return true;}     // 変化なし
   if(_localLooksEmpty())return false;             // 本物のデータが無ければクラウドを上書きしない
   // 他端末の更新を取りこぼさない：自分が最後に取り込んだ後にクラウドが更新されていたら先にそれを取り込み、
   // 「自分が変えたキーだけ」を上書きしてから書く（全キー一括の後勝ちで他端末の変更を消さない）
   try{
     const metaSnap=await fbDocRef.get();
     const m=metaSnap.exists?(metaSnap.data()||{}):null;
-    if(m&&(m.updatedAt||0)>lastAppliedRemoteAt&&m.writer!==_deviceId()){
+    if(m&&m.writer!==_deviceId()){                // 最後に書いたのが他端末 → 内容で判定（時計のズレに依存しない）
       const r=await _fbReadAll();
-      if(r&&r.payload){
+      if(r&&r.payload&&r.payload!==lastSyncedPayload&&r.payload!==lastRemotePayload){
+        lastRemotePayload=r.payload;              // この内容はここで取り込む（後から同じ通知が来ても二重適用しない）
         const remoteData=((JSON.parse(r.payload)||{}).data)||{};
         let prev={}; try{prev=((JSON.parse(lastSyncedPayload||'{}')||{}).data)||{};}catch(_){}
         const local=collectData(); const merged=Object.assign({},remoteData);
         Object.keys(local).forEach(k=>{ if(local[k]!==prev[k]) merged[k]=local[k]; });   // 自分が変えたキーだけ採用
         const remoteChanged=Object.keys(merged).some(k=>merged[k]!==local[k]);
         applyData({data:merged});
-        lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,r.ts||0);
+        lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,_tsMillis(r.ts));
         payload=buildPayload();
         if(remoteChanged){renderSwitcher();reloadAllFrames();}
       }
@@ -666,17 +757,36 @@ async function _fbWrite(){
     setSync('saving','保存中…');
     const chunks=_chunkByBytes(payload,700000);   // ~700KB/件に分割（1MB制限回避）
     const batch=fbDb.batch();
+    const wid=_deviceId()+'_'+now;                 // この書込みのID（読み手が新旧の混在を見分ける）
     // チャンクは同一コレクション内の隣接ドキュメント <docId>_p<i> に置く（既存ルールで許可される／削除はしない）
-    chunks.forEach((c,i)=>batch.set(fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i),{d:c}));
-    batch.set(fbDocRef,{chunks:chunks.length, payload:firebase.firestore.FieldValue.delete(), updatedAt:now, writer:_deviceId(), ua:(navigator.userAgent||'').slice(0,80), ver:2},{merge:true});
+    chunks.forEach((c,i)=>batch.set(fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i),{d:c,wid}));
+    // updatedAt はサーバー時刻（端末の時計に依存しない）。updatedAtLocal は参考値
+    batch.set(fbDocRef,{chunks:chunks.length, payload:firebase.firestore.FieldValue.delete(), updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedAtLocal:now, wid, writer:_deviceId(), ua:(navigator.userAgent||'').slice(0,80), ver:2},{merge:true});
     await batch.commit();
     fbLastChunks=chunks.length;
-    lastSyncedPayload=payload; lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,now);
+    lastSyncedPayload=payload; lastSyncedSig=_dataSig((JSON.parse(payload)||{}).data);
+    if(_dataSig(collectData())===lastSyncedSig)_dirty=false;      // 書いている間にさらに変更があれば dirty のまま（fbPush が続けて送る）
     setSync('ok','リアルタイム同期中');
     return true;
-  }catch(e){console.error('fbWrite',e);setSync('err','保存失敗');return false;}
+  }catch(e){
+    // 失敗しても変更は端末内に残っている。5秒後に自動で再送（回線復帰時にも再送）
+    console.error('fbWrite',e);setSync('err','保存失敗（自動で再送します）');_dirty=true;
+    clearTimeout(_retryTimer);_retryTimer=setTimeout(()=>{if(_dirty)fbPush();},5000);
+    return false;
+  }
 }
-function fbPush(){ if(fbReady)_fbWrite(); }
+// 書き込みは同時に1本だけ。書いている途中に来た変更は終わってから続けて送る（並行書込みで新しい方が古い方に負けるのを防ぐ）
+let _writing=false,_writeQueued=false;
+async function fbPush(){
+  if(!fbReady)return;
+  if(_writing){_writeQueued=true;return;}
+  _writing=true; let ok=false;
+  try{ ok=await _fbWrite(); }catch(e){console.error('fbPush',e);}
+  finally{ _writing=false; }
+  // 成功したのに書いている間の変更が残っていれば続けて送る。失敗時は再送タイマー（5秒）に任せて連打しない
+  if(ok&&(_writeQueued||(_dirty&&_dataSig(collectData())!==lastSyncedSig))){ _writeQueued=false; setTimeout(fbPush,300); }
+  else _writeQueued=false;
+}
 // 共有リンク：合言葉をURLの「#」以降（サーバーに送られない部分）に含め、開くだけで同じデータに繋がるようにする
 let _activePass='';
 function _passFromUrl(){ try{ const m=(location.hash||'').match(/[#&]k=([^&]+)/); if(m)return decodeURIComponent(m[1]).trim(); const q=new URLSearchParams(location.search).get('k'); if(q)return q.trim(); }catch(_){} return ''; }
