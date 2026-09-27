@@ -233,6 +233,13 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
       </div>
       <button class="btn btn-ghost" id="import-btn" style="font-size:13px;padding:9px 14px">📥 取込</button>
     </div>
+    <div class="settings-row">
+      <div>
+        <div class="label">🛟 端末内バックアップから復元</div>
+        <div class="desc">クラウド取込・インポートの直前に自動で退避したデータに戻します</div>
+      </div>
+      <button class="btn btn-ghost" id="restore-local-btn" style="font-size:13px;padding:9px 14px">復元</button>
+    </div>
     <div class="warn-box" id="settings-status" style="display:none"></div>
     <input type="file" id="import-file" accept="application/json,.json" style="display:none">
   </div>
@@ -543,8 +550,10 @@ async function fbStart(passphrase){
   },err=>{console.error('snapshot',err);setSync('err','同期エラー');});
   fbReady=true;
   setSync('ok','リアルタイム同期中');
+  if(_pendingInitialWrite){ _pendingInitialWrite=false; _fbWrite(); }   // この端末のデータを正としてクラウドへ
   return true;
 }
+let _pendingInitialWrite=false;   // 起動時に「この端末のデータを正」と判断した場合、接続完了後に送る
 function _fbApplyPayload(payload, ts, writer, initial){
   try{
     if(typeof payload!=='string'||!payload)return;
@@ -552,7 +561,20 @@ function _fbApplyPayload(payload, ts, writer, initial){
     if(writer===_deviceId()){lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);lastSyncedPayload=payload;return;}
     if(!initial && ts && ts<=lastAppliedRemoteAt)return;
     if(payload===lastSyncedPayload)return;
-    applyData(JSON.parse(payload));
+    const obj=JSON.parse(payload);
+    if(initial){
+      // 起動時の取り込みは「この端末の本物のデータ」を守る：
+      //  ・クラウドに本物のデータが無い（別端末の初期設定だけ 等）→ 取り込まず、この端末のデータをクラウドへ送る
+      //  ・両方にある → 先に端末内へ退避してからクラウドを採用。端末側が極端に大きい時だけ確認する
+      const localReal=_localHasRealData(), cloudReal=_dataHasReal(obj&&obj.data);
+      if(localReal&&!cloudReal){ _pendingInitialWrite=true; return; }
+      if(localReal&&cloudReal){
+        _backupLocal('cloud_apply');
+        const ll=buildPayload().length, cl=payload.length;
+        if(ll>cl*2 && !confirm('クラウド（他の端末）のデータより、この端末のデータの方がかなり多いようです。\n\nOK：クラウドのデータで置き換える（この端末のデータは端末内にバックアップ済み）\nキャンセル：この端末のデータをクラウドへ送って、全端末で使う')){ _pendingInitialWrite=true; return; }
+      }
+    }
+    applyData(obj);
     lastSyncedPayload=payload;
     lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,ts);
     renderSwitcher();
@@ -560,17 +582,60 @@ function _fbApplyPayload(payload, ts, writer, initial){
     setSync('ok','リアルタイム同期中');
   }catch(e){console.error('applyPayload',e);}
 }
-function _localLooksEmpty(){
-  const data=collectData();
-  let big=false;
-  Object.keys(data).forEach(k=>{ if(/(ffv6_store_|shinmuraten-plan-v1|ws_v1|bumon_v1|crew_v1|cal_v1)/.test(k) && (data[k]||'').length>120)big=true; });
-  return !big;
+// 「本物のデータ」があるかをキー別に中身で判定する。
+// （初期設定だけの状態を"データあり"と誤判定して、空の既定値でクラウドや他端末を上書きしないため）
+function _keyHasRealData(k,raw){
+  if(!raw||raw.length<20)return false;
+  let o; try{o=JSON.parse(raw);}catch(_){return false;}
+  if(!o||typeof o!=='object')return false;
+  const ne=v=>Array.isArray(v)?v.length>0:(v&&typeof v==='object'?Object.keys(v).length>0:false);
+  if(/^ffv6_store_/.test(k))        return ne(o.PM)||ne(o.ji)||ne(o.checks)||ne(o.soldOuts);
+  if(/^ws_v1/.test(k))              return ne(o.staff)||ne(o.tasks)||ne(o.rec)||ne(o.records)||ne(o.shifts);
+  if(/shinmuraten-plan-v1/.test(k)) return Object.keys(o).length>0;
+  if(/^bumon_v1/.test(k))           return ne(o.assignments)||ne(o.sheets);
+  if(/^crew_v1/.test(k))            return ne(o.members);
+  if(/^cal_v1/.test(k))             return ne(o.events);
+  return false;
+}
+function _dataHasReal(data){ return Object.keys(data||{}).some(k=>_keyHasRealData(k,data[k])); }
+function _localHasRealData(){ return _dataHasReal(collectData()); }
+function _localLooksEmpty(){ return !_localHasRealData(); }
+// 端末内バックアップ（同期対象外キー）。上書きの直前に必ず退避し、直近3件を保持する
+function _backupLocal(tag){
+  try{
+    if(!_localHasRealData())return null;
+    const key='unified_backup_'+tag+'_'+Date.now();
+    localStorage.setItem(key,buildPayload());
+    const ks=Object.keys(localStorage).filter(x=>x.startsWith('unified_backup_'+tag+'_')).sort();
+    while(ks.length>3){ localStorage.removeItem(ks.shift()); }
+    return key;
+  }catch(e){console.warn('backup',e);return null;}
 }
 async function _fbWrite(){
   if(!fbDocRef)return false;
-  const payload=buildPayload();
+  let payload=buildPayload();
   if(payload===lastSyncedPayload)return true;     // 変化なし
-  if(_localLooksEmpty())return false;             // 空でクラウドを上書きしない
+  if(_localLooksEmpty())return false;             // 本物のデータが無ければクラウドを上書きしない
+  // 他端末の更新を取りこぼさない：自分が最後に取り込んだ後にクラウドが更新されていたら先にそれを取り込み、
+  // 「自分が変えたキーだけ」を上書きしてから書く（全キー一括の後勝ちで他端末の変更を消さない）
+  try{
+    const metaSnap=await fbDocRef.get();
+    const m=metaSnap.exists?(metaSnap.data()||{}):null;
+    if(m&&(m.updatedAt||0)>lastAppliedRemoteAt&&m.writer!==_deviceId()){
+      const r=await _fbReadAll();
+      if(r&&r.payload){
+        const remoteData=((JSON.parse(r.payload)||{}).data)||{};
+        let prev={}; try{prev=((JSON.parse(lastSyncedPayload||'{}')||{}).data)||{};}catch(_){}
+        const local=collectData(); const merged=Object.assign({},remoteData);
+        Object.keys(local).forEach(k=>{ if(local[k]!==prev[k]) merged[k]=local[k]; });   // 自分が変えたキーだけ採用
+        const remoteChanged=Object.keys(merged).some(k=>merged[k]!==local[k]);
+        applyData({data:merged});
+        lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,r.ts||0);
+        payload=buildPayload();
+        if(remoteChanged){renderSwitcher();reloadAllFrames();}
+      }
+    }
+  }catch(e){console.warn('merge before write',e);}
   const now=Date.now();
   try{
     setSync('saving','保存中…');
@@ -643,6 +708,19 @@ function openOverlay(id){document.getElementById(id).classList.add('show');}
 function closeOverlay(id){document.getElementById(id).classList.remove('show');}
 
 // ---------- import / export ----------
+// 端末内バックアップ（unified_backup_*）から復元。復元の直前の状態も退避する
+function restoreLocalBackup(){
+  const ks=Object.keys(localStorage).filter(k=>k.startsWith('unified_backup_')).sort().reverse();
+  if(!ks.length){alert('端末内バックアップはまだありません（クラウド取込やインポートの直前に自動で作られます）。');return;}
+  const label=k=>{const m=k.match(/^unified_backup_(.+)_(\d+)$/);const t=m?new Date(+m[2]).toLocaleString('ja-JP'):k;const tag=m?({cloud_apply:'クラウド取込の直前',pre_import:'インポートの直前',pre_restore:'復元の直前'}[m[1]]||m[1]):'';return `${t}（${tag}）`;};
+  const pick=prompt('復元するバックアップの番号を入力してください:\n'+ks.slice(0,10).map((k,i)=>`${i+1}: ${label(k)}`).join('\n'),'1');
+  if(pick===null)return; const idx=parseInt(pick,10)-1; if(!(idx>=0&&idx<ks.length)){alert('番号が正しくありません');return;}
+  let obj; try{obj=JSON.parse(localStorage.getItem(ks[idx]));}catch(e){alert('バックアップの読み込みに失敗: '+e);return;}
+  if(!obj||!obj.data){alert('バックアップの形式が不正です');return;}
+  if(!confirm(label(ks[idx])+' のバックアップで現在のデータを置き換えます（共有中の全端末にも反映されます）。\n直前の状態も退避してから復元します。続行しますか？'))return;
+  _backupLocal('pre_restore');
+  applyData(obj); showSettingsStatus('復元しました。画面を更新します。'); renderSwitcher(); reloadAllFrames(); scheduleSave();
+}
 function doExport(){
   const blob=new Blob([buildPayload()],{type:'application/json'});
   const a=document.createElement('a');
@@ -658,11 +736,13 @@ function handleImportFile(file){
     try{
       const obj=JSON.parse(r.result);
       // 新形式 {data:{...}} か、旧FF/WSエクスポート形式かを判定
-      if(obj&&obj.data&&typeof obj.data==='object'){
-        applyData(obj);
-      }else if(obj&&obj.localStorage&&typeof obj.localStorage==='object'){
-        // 復旧ページの全データダンプ形式
-        applyData({data:obj.localStorage});
+      const incoming=(obj&&obj.data&&typeof obj.data==='object')?obj.data:((obj&&obj.localStorage&&typeof obj.localStorage==='object')?obj.localStorage:null); // 新形式 or 復旧ページのダンプ形式
+      if(incoming){
+        // 取込は「この端末＋共有中の全端末」のデータを置き換える破壊的操作。必ず退避し、確認してから適用する
+        const bk=_backupLocal('pre_import');
+        const inReal=_dataHasReal(incoming);
+        if(!confirm('取り込むと、この端末と共有中の全端末のデータが、このファイルの内容に置き換わります。\n'+(inReal?'':'⚠️ このファイルには本物のデータ（商品・従業員・クルー等）が見当たりません。\n')+(bk?'現在のデータは端末内にバックアップしました（⚙️設定→「端末内バックアップから復元」で戻せます）。\n':'')+'\n続行しますか？'))return;
+        applyData({data:incoming});
       }else{
         // 旧システム単体のエクスポート（そのままだと取り込み形式が不明）
         if(!confirm('このファイルは旧システム単体のエクスポートのようです。各システムの「インポート」から読み込むことをおすすめします。\nこのまま強制的に取り込みますか？'))return;
@@ -776,6 +856,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('load-now-btn').addEventListener('click',async()=>{if(!dirHandle){alert('先に保存先フォルダを設定してください');return;}const ok=await loadFromDrive();if(ok){renderSwitcher();reloadAllFrames();showSettingsStatus('Driveから読み込みました。');}else{showSettingsStatus('読み込めるデータがありませんでした。');}});
   document.getElementById('export-btn').addEventListener('click',doExport);
   document.getElementById('import-btn').addEventListener('click',()=>document.getElementById('import-file').click());
+  document.getElementById('restore-local-btn').addEventListener('click',restoreLocalBackup);
   document.getElementById('import-file').addEventListener('change',e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value='';});
 
   boot();

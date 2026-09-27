@@ -2864,7 +2864,7 @@ function loadState(){
       if(!Array.isArray(s.priorityTasks)) s.priorityTasks = [];
       return s;
     }
-  }catch(e){}
+  }catch(e){ try{const _raw=localStorage.getItem(STORAGE_KEY); if(_raw) localStorage.setItem(STORAGE_KEY+'_corrupt_backup_'+Date.now(),_raw);}catch(_){} }   // 壊れた保存は退避して上書きしない
   return {
     tasks: {},
     staff: [],

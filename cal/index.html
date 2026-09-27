@@ -156,7 +156,8 @@ function dataKey(){const s=storeId();return s?'cal_v1_store_'+s:'cal_v1';}
 let S={events:[]};
 function loadS(){
   S={events:[]};
-  try{const raw=localStorage.getItem(dataKey());if(raw){const o=JSON.parse(raw);if(o&&typeof o==='object'){S.events=Array.isArray(o.events)?o.events:[];}}}catch(e){console.error('cal load',e);}
+  const raw=localStorage.getItem(dataKey());
+  try{if(raw){const o=JSON.parse(raw);if(o&&typeof o==='object'){S.events=Array.isArray(o.events)?o.events:[];}}}catch(e){console.error('cal load',e);try{localStorage.setItem(dataKey()+'_corrupt_backup_'+Date.now(),raw);}catch(_){}}   // 壊れた保存は退避して上書きしない
 }
 function saveS(){
   try{localStorage.setItem(dataKey(),JSON.stringify(S));}

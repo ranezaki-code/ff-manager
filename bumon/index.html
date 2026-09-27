@@ -290,7 +290,8 @@ function storeId(){return localStorage.getItem('current_store_id')||localStorage
 function dataKey(){const s=storeId();return s?'bumon_v1_store_'+s:'bumon_v1';}
 let S={assignments:{},sheets:[]};
 function loadS(){
-  try{const raw=localStorage.getItem(dataKey());if(raw)S=JSON.parse(raw);}catch(e){console.error(e);}
+  const raw=localStorage.getItem(dataKey());
+  try{if(raw)S=JSON.parse(raw);}catch(e){console.error(e);try{localStorage.setItem(dataKey()+'_corrupt_backup_'+Date.now(),raw);}catch(_){}}   // 壊れた保存は退避して上書きしない
   if(!S.assignments)S.assignments={};
   if(!Array.isArray(S.sheets))S.sheets=[];
 }
