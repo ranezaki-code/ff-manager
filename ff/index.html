@@ -2529,6 +2529,8 @@ function loadS(){
         const parsed=JSON.parse(d);
         Object.assign(S,parsed);
         _ffMarkLoaded(storeKey,d);
+        // 壊れかけの商品データで画面全体が落ちないよう最低限を補う（保存は次の通常保存時）
+        if(Array.isArray(S.PM))S.PM.forEach(p=>{ if(p&&typeof p==='object'){ if(!p.category)p.category=CATS[0]; if(p.name==null)p.name=''; } });
         loaded=true;
       }catch(e){
         // 【追加保護C】JSON破損検知 → 最新snapから自動復旧
@@ -2727,7 +2729,9 @@ function showApp(){
   const ls=document.getElementById('lang-select');
   if(ls)ls.value=LANG;
   applyI18nStatic();
+  _uiRestoreState();   // 作り直し前に開いていたカード等を復元してから描画
   renderAll();
+  _uiRestoreView();    // 作り直し前に開いていたタブ・位置へ戻す
 }
 
 function renderAll(){
@@ -2794,7 +2798,48 @@ function showTab(n){
   if(n===3) renderProdDayContent(currentProdDay);
   if(n===4) renderBudgetTab();
   if(n===5) renderOrderTable();
+  _uiSave();
 }
+
+// ============================================================
+// 画面の状態の保持（開いているタブ・サブタブ・展開中カード・スクロール位置）
+//   統合アプリの同期や店舗切替で iframe が作り直されても、同じ画面・同じ場所に戻す。
+//   sessionStorage＝このタブだけの保存（同期対象外・他端末に影響しない）
+// ============================================================
+let _jsubTab='input';
+function _uiSave(){
+  try{
+    sessionStorage.setItem('ffv6_ui',JSON.stringify({
+      tab:currentTab, jsub:_jsubTab, prodDay:currentProdDay, y:window.scrollY,
+      expanded:[...(typeof _expandedCards!=='undefined'?_expandedCards:[])],
+      adv:[...(typeof _advOpen!=='undefined'?_advOpen:[])],
+      catEdit:[...(typeof _catEditOpen!=='undefined'?_catEditOpen:[])],
+      jiOpen:[...(typeof _jiOpen!=='undefined'?_jiOpen:[])]
+    }));
+  }catch(_){}
+}
+function _uiLoad(){ try{ return JSON.parse(sessionStorage.getItem('ffv6_ui')||'null'); }catch(_){ return null; } }
+// 描画前に呼ぶ：展開状態など
+function _uiRestoreState(){
+  const u=_uiLoad(); if(!u)return;
+  try{
+    (u.expanded||[]).forEach(id=>_expandedCards.add(id));
+    (u.adv||[]).forEach(k=>_advOpen.add(k));
+    (u.catEdit||[]).forEach(c=>_catEditOpen.add(c));
+    (u.jiOpen||[]).forEach(id=>_jiOpen.add(id));
+    if(typeof u.prodDay==='number')currentProdDay=u.prodDay;
+  }catch(_){}
+}
+// 描画後に呼ぶ：タブ・サブタブ・スクロール位置
+function _uiRestoreView(){
+  const u=_uiLoad(); if(!u)return;
+  try{
+    if(typeof u.tab==='number'&&u.tab!==2&&u.tab!==currentTab)showTab(u.tab);
+    if(u.jsub==='rank')switchJisubTab('rank');
+    if(u.y>0)setTimeout(()=>window.scrollTo(0,u.y),80);
+  }catch(e){console.warn('FF管理: 画面状態の復元に失敗',e);}
+}
+window.addEventListener('pagehide',_uiSave);
 
 // ============================================================
 // CALCULATION HELPERS
@@ -3147,6 +3192,7 @@ function switchJisubTab(name){
   const rp=document.getElementById('jsubpanel-rank');
   const ib=document.getElementById('jsubtab-input');
   const rb=document.getElementById('jsubtab-rank');
+  _jsubTab=(name==='rank')?'rank':'input'; _uiSave();
   if(name==='rank'){
     ip.style.display='none';rp.style.display='block';
     ib.style.background='transparent';ib.style.color='#64748b';ib.style.boxShadow='none';
@@ -3340,6 +3386,7 @@ function toggleJiDetail(pid){
   const d=document.getElementById('ji-detail-'+pid); if(!d)return;
   if(_jiOpen.has(pid)){ _jiOpen.delete(pid); d.style.display='none'; }
   else { _jiOpen.add(pid); d.innerHTML=_jiDetailHtml(pid); d.style.display=''; }
+  _uiSave();
 }
 // Enter／→＝右の欄へ（行末なら次の商品の先頭へ）、←＝左、↓↑＝上下の商品の同じ欄へ
 function jiKeyNav(e,r,c){
@@ -3821,7 +3868,7 @@ function toggleCat(cat,on){
 
 // ====== カテゴリ設定：1カテゴリ=1行の要約（ON/OFF・作成時間帯・許容時間・値引き曜日）。行タップで編集パネル ======
 const _catEditOpen=new Set();
-function toggleCatEdit(c){ if(_catEditOpen.has(c))_catEditOpen.delete(c); else _catEditOpen.add(c); renderCatCfgArea(); }
+function toggleCatEdit(c){ if(_catEditOpen.has(c))_catEditOpen.delete(c); else _catEditOpen.add(c); _uiSave(); renderCatCfgArea(); }
 function _newCatOf(c){ return c+'新商品'; }
 // 新商品カテゴリが本体と同じ作成時間帯・許容時間か（未設定なら、現在の値が一致していれば「同じ」扱い）
 function _newCatSame(c){
@@ -4059,12 +4106,13 @@ function toggleCardExpand(pid,e){
   const closing=_expandedCards.has(pid);
   if(closing) _expandedCards.delete(pid);
   else _expandedCards.add(pid);
+  _uiSave();
   renderProductCards();
   // 閉じた時に並び順（カテゴリ別など）が更新されてカードが移動するので、見失わないように追いかける
   if(closing){ const c=document.querySelector(`#product-cards [data-pid="${pid}"]`); if(c)c.scrollIntoView({block:'nearest',behavior:'smooth'}); }
 }
-function collapseAllCards(){ _expandedCards.clear(); renderProductCards(); }
-function expandAllCards(){ S.PM.forEach(p=>_expandedCards.add(p.id)); renderProductCards(); }
+function collapseAllCards(){ _expandedCards.clear(); _uiSave(); renderProductCards(); }
+function expandAllCards(){ S.PM.forEach(p=>_expandedCards.add(p.id)); _uiSave(); renderProductCards(); }
 function moveProduct(pid,dir){
   const sorted=[...S.PM].sort((a,b)=>(a.order??0)-(b.order??0));
   const idx=sorted.findIndex(x=>x.id===pid);
@@ -4077,6 +4125,7 @@ function moveProduct(pid,dir){
 }
 
 function renderProductCard(p){
+  if(!p.category)p.category=CATS[0];   // カテゴリ未設定の商品（他端末からの取込途中など）で一覧全体が落ちないように
   const isNewCat=p.category.endsWith('新商品');
   const curTags=new Set((p.tags||'').split(',').map(t=>t.trim()).filter(Boolean));
   const expanded=_expandedCards.has(p.id);
@@ -4365,7 +4414,7 @@ function renderProductCard(p){
 }
 // 展開フォーム内の「詳細設定」「まちかど厨房 準備設定」の開閉状態（再描画しても閉じないように保持）
 const _advOpen=new Set();
-function _advToggle(key,open){ if(open)_advOpen.add(key); else _advOpen.delete(key); }
+function _advToggle(key,open){ if(open)_advOpen.add(key); else _advOpen.delete(key); _uiSave(); }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
 const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason','mkContainer']);
@@ -5177,7 +5226,7 @@ function renderProdDayTabs(){
   document.getElementById('prod-day-tabs').innerHTML=tabsHTML+`<div class="day-tab-bar" style="flex:1;align-self:flex-end"></div>`;
 }
 
-function selectProdDay(i){currentProdDay=i;renderProdDayTabs();renderProdDayContent(i);}
+function selectProdDay(i){currentProdDay=i;_uiSave();renderProdDayTabs();renderProdDayContent(i);}
 function toggleMakeRules(){const b=document.getElementById('make-rules-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 function toggleCellGuide(){const b=document.getElementById('cell-guide-block');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 // ===== 廃棄シール色分け（作成時刻ベース：同じ作成時刻＝同じ色・全カテゴリ共通） =====

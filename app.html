@@ -266,7 +266,7 @@ const BUILD = Date.now();
 function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1&v='+BUILD;}
 const DATA_FILENAME = '経営データ.json';
 // Driveファイルへ保存しないキー（端末ローカルの一時バックアップ類）
-const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_|^ffv6_oplog$|^ffv6_local_modified$)/;
+const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_|^ffv6_oplog$|^ffv6_local_modified$|^ffv6_prodMasterSort$)/;
 
 let dirHandle = null;      // 保存先フォルダ
 let fileHandle = null;     // 経営データ.json のハンドル
@@ -460,6 +460,20 @@ function reloadAllFrames(force){
   if(keep)_restoreFocus(keep);
 }
 setInterval(()=>{ if(_pendingFrameReload && !_anyFrameEditing()){ reloadAllFrames(); setSync('ok', fbReady?'リアルタイム同期中':'同期済み'); } },700);
+// 同期で変わったキーに応じた画面更新。
+// 各システム(ff/ws/crew/bumon/cal)は localStorage の storage イベントで自分の画面を描き直すので、iframe は作り直さない
+// （作り直すと開いていたタブ・スクロール位置・入力途中の内容が消えて「別のタブに飛ぶ」ように見える）。
+// 作り直すのは、店舗一覧/選択店舗が変わった時（全frame）と、storage イベントに対応していない next の分だけ。
+const _GLOBAL_KEY_RE=/^(global_stores|current_store_id|ffv6_stores|ffv6_current)$/;
+function _refreshFrames(changedKeys){
+  if(!changedKeys||!changedKeys.length)return;
+  if(changedKeys.some(k=>_GLOBAL_KEY_RE.test(k))){ reloadAllFrames(); return; }
+  if(changedKeys.some(k=>/shinmuraten-plan/.test(k))) reloadFrame('next');
+}
+function reloadFrame(sys){
+  const f=frames[sys]; if(!f)return;
+  try{f.contentWindow.location.replace(sysUrl(sys));}catch(_){f.src=sysUrl(sys);}
+}
 
 // ---------- Drive データ層 ----------
 function fsaSupported(){return 'showDirectoryPicker' in window;}
@@ -765,7 +779,8 @@ function _fbApplyPayload(payload, ts, writer, initial){
     }
     // クラウドをそのまま被せず、端末側の未送信変更（別端末に届く前の商品登録など）を残して合成する
     const res=_mergeData(localData,remoteData,base,!!base);
-    const changed=Object.keys(res.merged).some(k=>res.merged[k]!==localData[k]);
+    const changedKeys=Object.keys(res.merged).filter(k=>res.merged[k]!==localData[k]);
+    const changed=changedKeys.length>0;
     if(changed&&(res.conflicts.length||(initial&&!base)))_backupLocal(res.conflicts.length?'conflict':'cloud_apply');
     if(res.conflicts.length)_backupRemoteConflicts(remoteData,res);
     if(changed)applyData({data:res.merged});
@@ -776,7 +791,7 @@ function _fbApplyPayload(payload, ts, writer, initial){
       lastSyncedSig=remoteSig; _dirty=true;
       if(initial)_pendingInitialWrite=true; else fbPush();
     }else{ lastSyncedSig=_dataSig(collectData()); _saveBase(payload); }
-    if(changed){ renderSwitcher(); reloadAllFrames(); }
+    if(changed){ renderSwitcher(); if(initial)reloadAllFrames(true); else _refreshFrames(changedKeys); }
     setSync('ok','リアルタイム同期中');
   }catch(e){console.error('applyPayload',e);if(!initial)setTimeout(_fbCatchUp,3000);}   // 壊れた内容なら少し後に読み直す
 }
@@ -828,12 +843,13 @@ async function _fbWrite(){
         const local=collectData();
         const res=_mergeData(local,remoteData,_lastSyncedData(),true);   // 端末の変更＋クラウドの変更を項目単位で合成
         if(res.conflicts.length){ _backupLocal('conflict'); _backupRemoteConflicts(remoteData,res); }
-        const remoteChanged=Object.keys(res.merged).some(k=>res.merged[k]!==local[k]);
+        const changedKeys=Object.keys(res.merged).filter(k=>res.merged[k]!==local[k]);
+        const remoteChanged=changedKeys.length>0;
         if(remoteChanged)applyData({data:res.merged});
         lastSyncedPayload=r.payload;              // 以後の基準はクラウドの内容
         lastAppliedRemoteAt=Math.max(lastAppliedRemoteAt,_tsMillis(r.ts));
         payload=buildPayload();
-        if(remoteChanged){renderSwitcher();reloadAllFrames();}
+        if(remoteChanged){renderSwitcher();_refreshFrames(changedKeys);}
       }
     }
   }catch(e){console.warn('merge before write',e);}
