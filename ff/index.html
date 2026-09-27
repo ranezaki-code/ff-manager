@@ -2093,12 +2093,62 @@ function _initMultiTabGuard(){
     };
   }catch(_){}
 }
+// ============================================================
+// 差分更新（morph）：新しいHTMLを仮の要素に描き、いまの画面と比べて違う所だけ書き換える。
+//   - 同じ要素（id / data-pid / data-key / 入力ハンドラ属性 で同定）はそのまま残すので、
+//     フォーカス・IME・スクロール位置が保たれる
+//   - フォーカス中の欄は値を触らず、それ以外の欄だけ最新の値に更新する
+//   → 他端末の更新を「入力中の欄以外は常に最新」で画面に反映するための土台
+// ============================================================
+function morphInto(el,html){
+  const tpl=document.createElement('template'); tpl.innerHTML=html;
+  _morphChildren(el,tpl.content);
+}
+function _morphKey(n){
+  if(n.nodeType!==1)return null;
+  const id=n.getAttribute('id'); if(id)return '#'+id;
+  const k=n.getAttribute('data-pid')||n.getAttribute('data-key'); if(k)return 'k:'+k;
+  const h=n.getAttribute('onchange')||n.getAttribute('oninput')||n.getAttribute('onclick'); if(h)return 'h:'+h;
+  return null;
+}
+function _morphNode(o,n){
+  for(const a of Array.from(o.attributes)){ if(!n.hasAttribute(a.name))o.removeAttribute(a.name); }
+  for(const a of Array.from(n.attributes)){ if(o.getAttribute(a.name)!==a.value)o.setAttribute(a.name,a.value); }
+  const tag=o.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'){
+    const editing=(document.activeElement===o);          // 入力中の欄は値を上書きしない
+    if(tag==='INPUT'&&(o.type==='checkbox'||o.type==='radio')){ if(o.checked!==n.checked)o.checked=n.checked; return; }
+    if(tag==='SELECT'){ _morphChildren(o,n); if(!editing&&o.value!==n.value)o.value=n.value; return; }
+    if(!editing&&o.value!==n.value)o.value=n.value;
+    return;
+  }
+  _morphChildren(o,n);
+}
+function _morphChildren(op,np){
+  const news=Array.from(np.childNodes), olds=Array.from(op.childNodes);
+  const oldByKey=new Map(); olds.forEach(c=>{const k=_morphKey(c); if(k&&!oldByKey.has(k))oldByKey.set(k,c);});
+  const kept=new Set(); let cursor=op.firstChild;
+  for(const nn of news){
+    const k=_morphKey(nn); let match=null;
+    if(k){ if(oldByKey.has(k)){ match=oldByKey.get(k); oldByKey.delete(k); } }
+    else { // 同定キーの無いノードは、まだ使っていない同種のノードを順番に対応させる
+      for(let c=cursor;c;c=c.nextSibling){ if(!kept.has(c)&&!_morphKey(c)&&c.nodeType===nn.nodeType&&(c.nodeType!==1||c.tagName===nn.tagName)){match=c;break;} }
+    }
+    if(match){
+      if(match!==cursor)op.insertBefore(match,cursor);
+      if(nn.nodeType===1)_morphNode(match,nn); else if(match.nodeValue!==nn.nodeValue)match.nodeValue=nn.nodeValue;
+      kept.add(match); cursor=match.nextSibling;
+    }else{
+      const clone=document.importNode(nn,true); op.insertBefore(clone,cursor); kept.add(clone);
+    }
+  }
+  olds.forEach(c=>{ if(!kept.has(c)&&c.parentNode===op)op.removeChild(c); });
+}
+
 function _scheduleAutoReload(){
   if(_pendingReload)return;
   _pendingReload=true;
-  // 入力フォーカス中は blur まで待ってから reflect（タイピング中のデータを失わないため）
-  const ae=document.activeElement;
-  const isEditing=ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.isContentEditable);
+  // 画面は差分更新（morph）なので入力中でも待たずに反映する：入力中の欄はそのまま、それ以外の欄が最新になる
   const doReload=()=>{
     _pendingReload=false;
     // localStorage の最新を読んで in-memory state に反映
@@ -2117,21 +2167,8 @@ function _scheduleAutoReload(){
       if(typeof renderProdDayContent==='function'&&currentTab===3)renderProdDayContent(currentProdDay);
     }catch(e){console.warn('auto reload failed',e);}
   };
-  if(isEditing){
-    // 編集が終わるまで待つ。300ms ごとに再チェック（フォーカスが外れたらすぐ実行）
-    const wait=()=>{
-      const e=document.activeElement;
-      if(!e || (e.tagName!=='INPUT' && e.tagName!=='TEXTAREA' && !e.isContentEditable)){
-        doReload();
-      } else {
-        setTimeout(wait,300);
-      }
-    };
-    setTimeout(wait,300);
-  } else {
-    // 軽くdebounceして連続更新時の負荷を抑える
-    setTimeout(doReload,80);
-  }
+  // 軽くdebounceして連続更新時の負荷を抑える
+  setTimeout(doReload,80);
 }
 function _broadcastSave(){
   try{if(_bcChannel)_bcChannel.postMessage({type:'SAVED',t:Date.now(),storeId:currentStoreId||''});}catch(_){}
@@ -3402,13 +3439,13 @@ function renderJissekiTable(){
   CATS.forEach(cat=>{
     const prods=S.PM.filter(p=>p.category===cat&&p.enabled).sort((a,b)=>a.order-b.order);
     if(!prods.length||!S.catOn[cat])return;
-    html+=`<div class="ji-cat" style="--tint:${CAT_TINT[mainCatOf(cat)]||'#eef2ff'}">${tCat(cat)}</div>`;
+    html+=`<div class="ji-cat" data-key="jc-${cat}" style="--tint:${CAT_TINT[mainCatOf(cat)]||'#eef2ff'}">${tCat(cat)}</div>`;
     prods.forEach(p=>{
       const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
       const met=_jiMetHtml(p.id);
       const open=_jiOpen.has(p.id);
-      const mk=(key,ci,label)=>`<div class="ji-in"><span class="ji-lbl">${label}</span><input type="number" min="0" inputmode="numeric" value="${ji[key]||0}" data-ji-r="${r}" data-ji-c="${ci}" onfocus="this.select()" onkeydown="jiKeyNav(event,${r},${ci})" onchange="setJi('${p.id}','${key}',parseInt(toHalf(this.value))||0)"></div>`;
-      html+=`<div class="ji-name" onclick="toggleJiDetail('${p.id}')" title="タップで詳細指標を表示"><span class="n">${p.name}</span><span class="mob-met" id="ji-mm-${p.id}">販売率 ${met.sell}　利益率 ${met.profit}</span></div>
+      const mk=(key,ci,label)=>`<div class="ji-in" data-key="jin-${p.id}-${key}"><span class="ji-lbl">${label}</span><input type="number" min="0" inputmode="numeric" value="${ji[key]||0}" data-ji-r="${r}" data-ji-c="${ci}" onfocus="this.select()" onkeydown="jiKeyNav(event,${r},${ci})" onchange="setJi('${p.id}','${key}',parseInt(toHalf(this.value))||0)"></div>`;
+      html+=`<div class="ji-name" data-key="jn-${p.id}" onclick="toggleJiDetail('${p.id}')" title="タップで詳細指標を表示"><span class="n">${p.name}</span><span class="mob-met" id="ji-mm-${p.id}">販売率 ${met.sell}　利益率 ${met.profit}</span></div>
         ${mk('teika',0,t('jisseki.teikaSales'))}${mk('nebiki',1,t('jisseki.discountSales'))}${mk('haiki',2,t('jisseki.wasteCount'))}
         <div class="ji-met" id="ji-sell-${p.id}">${met.sell}</div><div class="ji-met" id="ji-prof-${p.id}">${met.profit}</div>
         <div class="ji-detail" id="ji-detail-${p.id}" style="${open?'':'display:none'}">${open?_jiDetailHtml(p.id):''}</div>`;
@@ -3418,7 +3455,7 @@ function renderJissekiTable(){
   });
   if(r===0)html+=`<div class="ji-detail" style="padding:16px!important;color:#9ca3af;justify-content:center!important">有効な商品がありません。「②商品設定」で商品を追加してください</div>`;
   html+='</div>';
-  el.innerHTML=html;
+  morphInto(el,html);   // 差分更新：入力中の欄はそのまま、他の欄だけ最新に
 }
 function toggleJiDetail(pid){
   const d=document.getElementById('ji-detail-'+pid); if(!d)return;
@@ -3713,7 +3750,7 @@ function renderCustGrid(){
   }
   html+=`<td id="cust-week-total" style="text-align:center;white-space:nowrap;padding:4px 8px">${wt}</td></tr>`;
   html+='</tbody></table>';
-  el.innerHTML=html;
+  morphInto(el,html);   // 差分更新：入力中のマスはそのまま、他のマスだけ最新に
 }
 
 function toHalf(s){
@@ -3927,7 +3964,7 @@ function _slotEditor(cat){
 }
 function renderCatCfgArea(){
   const el=document.getElementById('cat-cfg-area'); if(!el)return;
-  el.innerHTML=CATS.filter(c=>!c.endsWith('新商品')).map(c=>{
+  morphInto(el,CATS.filter(c=>!c.endsWith('新商品')).map(c=>{
     const cfg=S.catCfg[c], on=S.catOn[c], nc=_newCatOf(c), ncfg=S.catCfg[nc], open=_catEditOpen.has(c);
     const chips=cfg.slots.length?cfg.slots.map(h=>`<span class="cc-chip">${h}時</span>`).join(''):'<span class="cc-chip none">作成時間帯 未設定</span>';
     const same=_newCatSame(c);
@@ -3958,7 +3995,7 @@ function renderCatCfgArea(){
         ${ncfg?`<span class="cc-newtg" onclick="event.stopPropagation()" title="${tCat(nc)} を使う/使わない">🆕新商品<label class="toggle sm"><input type="checkbox" ${S.catOn[nc]?'checked':''} onchange="toggleCat('${nc}',this.checked)"><span class="slider"></span></label></span>`:''}
         <span class="cc-edit">${open?'▲ 閉じる':'✏️ 編集'}</span>
       </div>${body}</div>`;
-  }).join('');
+  }).join(''));
 }
 
 function setCatCfg(cat,key,val){
@@ -4083,9 +4120,9 @@ function renderProductCards(){
     if(hint)hint.textContent='';
     html=sorted.map(p=>renderProductCard(p)).join('');
   }
-  el.innerHTML=html;
+  morphInto(el,html);         // 差分更新：入力中の欄はそのまま、他の欄・他のカードだけ最新に
   renderCrossStoreImport();   // 他店舗からの取り込みドロップダウンを更新
-  // ドラッグ＆ドロップ: カード全体にイベント設定
+  // ドラッグ＆ドロップ: カード全体にイベント設定（既に設定済みのカードは _wireCardDrag 内でスキップ）
   el.querySelectorAll('[data-pid]').forEach(card=>_wireCardDrag(card));
 }
 // 1枚のカードだけ描き直す。一覧全体は並べ直さない
@@ -4094,11 +4131,12 @@ function renderProductCardInPlace(pid){
   const p=S.PM.find(x=>x.id===pid);
   const old=document.querySelector(`#product-cards [data-pid="${pid}"]`);
   if(!p||!old){ renderProductCards(); return; }
-  const tmp=document.createElement('div'); tmp.innerHTML=renderProductCard(p);
-  const card=tmp.firstElementChild; old.replaceWith(card); _wireCardDrag(card);
+  const tpl=document.createElement('template'); tpl.innerHTML=renderProductCard(p);
+  _morphNode(old,tpl.content.firstElementChild); _wireCardDrag(old);
 }
 function _wireCardDrag(card){
   const el=document.getElementById('product-cards');
+  if(card.__dragWired)return; card.__dragWired=true;   // 差分更新で残ったカードに二重登録しない
   {
     card.addEventListener('dragstart',e=>{
       _dragPid=card.dataset.pid;
