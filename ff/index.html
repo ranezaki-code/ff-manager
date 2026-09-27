@@ -369,6 +369,44 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 <script async src="https://accounts.google.com/gsi/client"></script>
 <!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す（単体URLでは従来通り） -->
 <script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
+<script>
+/* 入力途中の値を守る共通ガード（全システム共通・同期対象外）
+   - 文字を打つたびに sessionStorage へ退避し、画面の作り直し・再描画の後に同じ欄へ戻す（フォーカスも戻す）
+   - 欄が確定（change）されたら退避を消す。30分で失効
+   → 統合アプリの同期や他タブの保存で画面が描き直されても、入力途中の文字が構造的に消えない */
+(function(){
+  var KEY='__draft::'+location.pathname, TTL=30*60*1000, drafts={}, lastFocusKey=null, timer=null;
+  try{ drafts=JSON.parse(sessionStorage.getItem(KEY)||'{}')||{}; lastFocusKey=sessionStorage.getItem(KEY+'#focus')||null; }catch(e){ drafts={}; }
+  function isText(el){ if(!el||!el.tagName)return false; var t=el.tagName; if(t==='TEXTAREA')return true; if(t!=='INPUT')return false; var ty=(el.type||'text').toLowerCase(); return ['text','number','search','tel','url','email','date','time','month'].indexOf(ty)>=0; }
+  function keyOf(el){
+    if(el.id)return '#'+el.id;
+    var a=el.getAttribute('onchange')||el.getAttribute('oninput')||el.getAttribute('onblur'); if(a)return 'h:'+a;
+    var ds=(el.dataset&&Object.keys(el.dataset).length)?JSON.stringify(el.dataset):''; if(ds)return 'd:'+ds;
+    var anc=el.closest('[id],[data-pid],[data-id],[data-key]'); var base=anc?(anc.id?'#'+anc.id:JSON.stringify(anc.dataset)):'body';
+    var list=(anc||document.body).querySelectorAll('input,textarea'); return 'p:'+base+'/'+Array.prototype.indexOf.call(list,el);
+  }
+  function persist(){ try{ sessionStorage.setItem(KEY,JSON.stringify(drafts)); sessionStorage.setItem(KEY+'#focus',lastFocusKey||''); }catch(e){} }
+  function prune(){ var now=Date.now(); Object.keys(drafts).forEach(function(k){ if(now-(drafts[k].t||0)>TTL)delete drafts[k]; }); }
+  document.addEventListener('input',function(e){ var el=e.target; if(!isText(el)||el.__draftRestoring)return; var k=keyOf(el); lastFocusKey=k; drafts[k]={v:el.value,t:Date.now()}; persist(); },true);
+  document.addEventListener('change',function(e){ var el=e.target; if(!isText(el))return; var k=keyOf(el); if(drafts[k]){ delete drafts[k]; persist(); } },true);
+  document.addEventListener('focusin',function(e){ if(isText(e.target))lastFocusKey=keyOf(e.target); },true);
+  function restore(){
+    timer=null; prune(); var keys=Object.keys(drafts); if(!keys.length)return;
+    var els=document.querySelectorAll('input,textarea'), map={}, i;
+    for(i=0;i<els.length;i++){ if(isText(els[i]))map[keyOf(els[i])]=els[i]; }
+    var refocus=null;
+    keys.forEach(function(k){ var el=map[k]; if(!el)return; var d=drafts[k];
+      if(el.value!==d.v){ el.__draftRestoring=true; el.value=d.v; try{ el.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} el.__draftRestoring=false; }
+      if(k===lastFocusKey)refocus=el; });
+    // 描き直しでフォーカスが外れていたら、同じ欄の末尾へ戻す
+    if(refocus&&(!document.activeElement||document.activeElement===document.body)){ try{ refocus.focus(); var n=refocus.value.length; if(refocus.setSelectionRange)refocus.setSelectionRange(n,n); }catch(e){} }
+  }
+  function schedule(){ if(!timer)timer=setTimeout(restore,60); }
+  function start(){ try{ new MutationObserver(function(ms){ for(var i=0;i<ms.length;i++){ if(ms[i].addedNodes&&ms[i].addedNodes.length){ schedule(); return; } } }).observe(document.body,{childList:true,subtree:true}); }catch(e){} schedule(); }
+  if(document.body)start(); else document.addEventListener('DOMContentLoaded',start);
+  window.addEventListener('pagehide',persist);
+})();
+</script>
 <script>if(!window.__EMBEDDED){document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('div');b.id='standalone-warn';b.style.cssText='position:sticky;top:0;z-index:9999;background:#fef3c7;color:#92400e;border-bottom:2px solid #f59e0b;padding:9px 12px;font-size:13px;font-weight:700;display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex-shrink:0';b.innerHTML='⚠️ このページ単体で入力したデータは<b>他の端末と共有されません</b>。全端末でリアルタイム共有するには統合アプリから開いてください。<a href="../app.html?sys=ff" style="margin-left:auto;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:6px 12px;font-weight:800;white-space:nowrap">統合アプリで開く →</a>';document.body.insertBefore(b,document.body.firstChild);});}</script>
 <style>
 html.embedded-in-hub .card:has(#gist-sync-panel){display:none!important}

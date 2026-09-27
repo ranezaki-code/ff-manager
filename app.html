@@ -266,7 +266,9 @@ const BUILD = Date.now();
 function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1&v='+BUILD;}
 const DATA_FILENAME = '経営データ.json';
 // Driveファイルへ保存しないキー（端末ローカルの一時バックアップ類）
-const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_|^ffv6_oplog$|^ffv6_local_modified$|^ffv6_prodMasterSort$)/;
+// ※ current_store_id / ffv6_current（いま開いている店舗）は端末ごとの選択なので同期しない
+//   （同期すると、他端末で店舗を切り替えた瞬間にこちらの画面も切り替わってしまう）
+const EXCLUDE_RE = /(_snap_|_autobackup_|_pre_import_|_premigration_|_recover_backup_|_backup_|_gist_token|_gist_lastPull|^unified_|^ffv6_oplog$|^ffv6_local_modified$|^ffv6_prodMasterSort$|^current_store_id$|^ffv6_current$)/;
 
 let dirHandle = null;      // 保存先フォルダ
 let fileHandle = null;     // 経営データ.json のハンドル
@@ -461,18 +463,14 @@ function reloadAllFrames(force){
 }
 setInterval(()=>{ if(_pendingFrameReload && !_anyFrameEditing()){ reloadAllFrames(); setSync('ok', fbReady?'リアルタイム同期中':'同期済み'); } },700);
 // 同期で変わったキーに応じた画面更新。
-// 各システム(ff/ws/crew/bumon/cal)は localStorage の storage イベントで自分の画面を描き直すので、iframe は作り直さない
-// （作り直すと開いていたタブ・スクロール位置・入力途中の内容が消えて「別のタブに飛ぶ」ように見える）。
-// 作り直すのは、店舗一覧/選択店舗が変わった時（全frame）と、storage イベントに対応していない next の分だけ。
-const _GLOBAL_KEY_RE=/^(global_stores|current_store_id|ffv6_stores|ffv6_current)$/;
+// 【原則】同期では iframe を作り直さない。全システム(ff/ws/next/crew/bumon/cal)は localStorage の storage イベントで
+// 自分の画面を描き直し、入力途中の値は各ページ先頭の共通ガードが守る。
+// （作り直すと開いていたタブ・スクロール位置・入力途中の内容が消えて「別のタブに飛ぶ」ように見える）
+// 店舗一覧が変わった時は、統合アプリ側の店舗切替ボタンだけ描き直す。作り直しは利用者の明示操作（店舗切替・取込・復元）のみ。
+const _GLOBAL_KEY_RE=/^(global_stores|ffv6_stores)$/;
 function _refreshFrames(changedKeys){
   if(!changedKeys||!changedKeys.length)return;
-  if(changedKeys.some(k=>_GLOBAL_KEY_RE.test(k))){ reloadAllFrames(); return; }
-  if(changedKeys.some(k=>/shinmuraten-plan/.test(k))) reloadFrame('next');
-}
-function reloadFrame(sys){
-  const f=frames[sys]; if(!f)return;
-  try{f.contentWindow.location.replace(sysUrl(sys));}catch(_){f.src=sysUrl(sys);}
+  if(changedKeys.some(k=>_GLOBAL_KEY_RE.test(k)))renderSwitcher();
 }
 
 // ---------- Drive データ層 ----------
@@ -715,6 +713,7 @@ function _mergeKeyValue(k,L,R,B,preferLocal,conflicts){
 function _mergeData(local,remote,base,preferLocal){
   const merged={},conflicts=[],keptLocal=[];
   new Set([...Object.keys(local),...Object.keys(remote)]).forEach(k=>{
+    if(EXCLUDE_RE.test(k))return;                                  // 同期対象外のキー（端末ごとの選択・退避）は取り込まない
     const L=local[k],R=remote[k],B=base?base[k]:undefined; let v;
     if(L===R)v=L;
     else if(R===undefined)v=L;                                    // クラウドに無いキーは端末のまま
