@@ -599,7 +599,9 @@ function _chunkByBytes(str,maxBytes){
 }
 // meta(チャンク数等) + parts/{i} を読み、payload文字列を結合して返す（旧単一payloadも互換）
 // meta と parts は別々に読むため、読んでいる最中に他端末が書き換えると新旧が混ざる。
-// 書込みID(wid)が全部一致した時だけ採用し、混ざっていたら少し待って読み直す（壊れたJSONを適用して止まらないように）
+// 「parts 同士」が同じ書込み（wid が全部同じ・件数 n が一致）なら内容は壊れていないので採用する。
+// ※ meta の wid とは比べない：meta は merge 書込みのため、旧版の端末が書くと meta に古い wid が残り、
+//   parts（wid 無し）と食い違って永遠に「取得失敗」になる事故があった（2026-09-28）
 async function _fbReadAll(){
   for(let attempt=0;attempt<4;attempt++){
     const metaSnap=await fbDocRef.get();
@@ -609,8 +611,8 @@ async function _fbReadAll(){
     const n=m.chunks||0;
     if(!n)return {payload:'', ts:m.updatedAt||0, writer:m.writer};
     const parts=await Promise.all(Array.from({length:n},(_,i)=>fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i).get()));
-    let payload='',ok=true;
-    for(const p of parts){ const d=p.exists?(p.data()||{}):{}; if(m.wid&&d.wid!==m.wid){ok=false;break;} payload+=d.d||''; }
+    let payload='',ok=true,wid0;
+    parts.forEach((p,i)=>{ const d=p.exists?(p.data()||{}):{}; if(i===0)wid0=d.wid; if(d.wid!==wid0)ok=false; if(d.n!=null&&d.n!==n)ok=false; payload+=d.d||''; });
     if(ok){ fbLastChunks=n; return {payload, ts:m.updatedAt||0, writer:m.writer}; }
     await new Promise(res=>setTimeout(res,400+attempt*400));
   }
@@ -636,7 +638,17 @@ async function fbStart(passphrase){
     const r=await _fbReadAll();
     if(r&&r.payload){ _fbApplyPayload(r.payload, r.ts, r.writer, true); }
     else if(!_localLooksEmpty()){ await _fbWrite(); } // クラウド未作成かつ手元にデータ→作成
-  }catch(e){console.error('initial get',e);setSync('err','取得失敗');alert('データ取得に失敗しました。\nFirestoreのルール設定をご確認ください。\n'+(e&&e.message||e));return false;}
+    _fbStartTries=0;
+  }catch(e){
+    // 取得失敗（回線・書込み中の読み込み等）：ダイアログで止めず、端末内のデータで使いながら自動で再接続する。
+    // fbReady は false のままなので、つながるまでクラウドへは書かない（つながった時に未送信分をマージして送る）
+    _fbStartTries=(_fbStartTries||0)+1;
+    console.error('initial get',e);
+    const wait=_fbStartTries<6?5000:30000;
+    setSync('err',_fbStartTries<6?'取得失敗（自動で再接続中）':'取得できません（通信/設定を確認。再接続は続けます）');
+    clearTimeout(_fbStartTimer); _fbStartTimer=setTimeout(()=>{ if(!fbReady)fbStart(passphrase); },wait);
+    return true;   // 合言葉の再入力は求めない（合言葉の問題ではない）
+  }
   _fbSubscribe();
   fbReady=true;
   setSync('ok','リアルタイム同期中');
@@ -677,6 +689,7 @@ function _fbSubscribe(){
   });
 }
 let _dirty=false,_retryTimer=null;   // 未送信の変更があるか／再送タイマー
+let _fbStartTries=0,_fbStartTimer=null;   // 起動時の取得失敗の回数／再接続タイマー
 let lastRemotePayload='';            // 直近で取り込んだ（適用 or マージ済みの）クラウド内容。同じ内容の再通知は無視
 let lastSyncedSig='';                // 直近で同期した data 部分の署名（キー順に依存しない）。「変化なし」判定に使う
 function _dataSig(d){ d=d||{}; return JSON.stringify(Object.keys(d).sort().map(k=>[k,d[k]])); }
@@ -859,7 +872,7 @@ async function _fbWrite(){
     const batch=fbDb.batch();
     const wid=_deviceId()+'_'+now;                 // この書込みのID（読み手が新旧の混在を見分ける）
     // チャンクは同一コレクション内の隣接ドキュメント <docId>_p<i> に置く（既存ルールで許可される／削除はしない）
-    chunks.forEach((c,i)=>batch.set(fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i),{d:c,wid}));
+    chunks.forEach((c,i)=>batch.set(fbDb.collection(FB_COLLECTION).doc(fbDocRef.id+'_p'+i),{d:c,wid,n:chunks.length}));
     // updatedAt はサーバー時刻（端末の時計に依存しない）。updatedAtLocal は参考値
     batch.set(fbDocRef,{chunks:chunks.length, payload:firebase.firestore.FieldValue.delete(), updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedAtLocal:now, wid, writer:_deviceId(), ua:(navigator.userAgent||'').slice(0,80), ver:2},{merge:true});
     await batch.commit();
