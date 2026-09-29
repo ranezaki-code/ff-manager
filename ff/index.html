@@ -61,6 +61,7 @@ body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-botto
 .ji-grid>div{padding:4px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;min-height:40px}
 .ji-head{background:var(--main-lt);color:var(--main);font-weight:600;font-size:11px;min-height:30px!important}
 .ji-cat{grid-column:1/-1;justify-content:flex-start!important;background:var(--tint,#eef2ff);font-weight:700;color:#1f2937;padding:5px 10px!important;min-height:0!important;font-size:12px}
+.ji-sub{grid-column:1/-1;justify-content:flex-start!important;background:#fffaf0;color:#7c2d12;font-weight:700;font-size:11px;padding:3px 10px 3px 20px!important;min-height:0!important}
 .ji-name{justify-content:flex-start!important;text-align:left;cursor:pointer;gap:6px;min-width:0;padding-left:10px!important}
 .ji-name .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .ji-name:hover{background:#f8fafc}
@@ -3437,10 +3438,19 @@ function renderJissekiTable(){
     <div class="ji-head">${t('jisseki.sellRate')}</div><div class="ji-head">${t('jisseki.profitRate')}</div>`;
   let r=0;
   CATS.forEach(cat=>{
-    const prods=S.PM.filter(p=>p.category===cat&&p.enabled).sort((a,b)=>a.order-b.order);
+    let prods=S.PM.filter(p=>p.category===cat&&p.enabled).sort((a,b)=>a.order-b.order);
     if(!prods.length||!S.catOn[cat])return;
     html+=`<div class="ji-cat" data-key="jc-${cat}" style="--tint:${CAT_TINT[mainCatOf(cat)]||'#eef2ff'}">${tCat(cat)}</div>`;
+    // 小分類（まちかど厨房＝弁当／調理パン・パン種別／総菜、ホットFF＝からあげクン等）ごとに小見出しを入れて入力しやすく。
+    // 小分類が1つも設定されていないカテゴリは見出し無し（未設定だけの「その他」見出しは出さない）
+    let useGroups=false;
+    if(catHasGroups(cat)){
+      const hasReal=prods.some(p=>{const g=prodGroup(p);return g&&g.order<9;});
+      if(hasReal){ useGroups=true; prods=[...prods].sort((a,b)=>{const ga=prodGroup(a).order,gb=prodGroup(b).order;return ga!==gb?ga-gb:((a.order??0)-(b.order??0));}); }
+    }
+    let lastGrp=null;
     prods.forEach(p=>{
+      if(useGroups){ const g=prodGroup(p); if(g&&g.key!==lastGrp){ lastGrp=g.key; html+=`<div class="ji-sub" data-key="js-${cat}-${g.key}">${g.order<9?g.label:'その他'}</div>`; } }
       const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
       const met=_jiMetHtml(p.id);
       const open=_jiOpen.has(p.id);
