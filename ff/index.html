@@ -62,6 +62,39 @@ body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-botto
 .ji-head{background:var(--main-lt);color:var(--main);font-weight:600;font-size:11px;min-height:30px!important}
 .ji-cat{grid-column:1/-1;justify-content:flex-start!important;background:var(--tint,#eef2ff);font-weight:700;color:#1f2937;padding:5px 10px!important;min-height:0!important;font-size:12px}
 .ji-sub{grid-column:1/-1;justify-content:flex-start!important;background:#fffaf0;color:#7c2d12;font-weight:700;font-size:11px;padding:3px 10px 3px 20px!important;min-height:0!important}
+
+/* ===== 予算管理（来週の計画） ===== */
+.bd-flow{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.bd-box{flex:1 1 120px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;min-width:110px}
+.bd-box.big{border-width:2px;border-color:var(--c,var(--main));background:#fbfdff}
+.bd-box .bd-l{font-size:11px;color:#64748b}
+.bd-box .bd-v{font-size:19px;font-weight:800;color:var(--c,#1f2937);line-height:1.2;margin-top:2px;white-space:nowrap}
+.bd-box.big .bd-v{font-size:22px}
+.bd-s{font-size:10px;color:#94a3b8;margin-top:3px}
+.bd-op{display:flex;align-items:center;font-size:18px;font-weight:700;color:#94a3b8;padding:0 2px}
+.bd-budget{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bd-bcard{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:9px 10px}
+.bd-bcard .bd-l{font-size:11px;color:#475569;font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.bd-bcard input{width:96px;text-align:right;padding:3px 6px;font-size:12px}
+.bd-bv{font-size:14px;font-weight:700;margin-top:4px}
+.bd-bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin-top:5px}.bd-bar>div{height:100%}
+.bd-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto}
+.bd-table th{background:var(--main-lt);color:var(--main);font-weight:600;font-size:11px;padding:6px 6px;white-space:nowrap;text-align:right;cursor:help;border:none}
+.bd-table th:first-child{text-align:left}
+.bd-table td{padding:6px 6px;text-align:right;border:none;border-bottom:1px solid var(--border);white-space:nowrap;font-size:12px}
+.bd-table td.bd-name{text-align:left;white-space:normal;min-width:150px;word-break:normal}
+.bd-table tr.bd-cat td{background:var(--tint,#eef2ff);cursor:pointer;font-weight:600}
+.bd-table tr.bd-cat:hover td{filter:brightness(.97)}
+.bd-table tr.bd-group td{background:#fafafa;font-size:11px;color:#7c2d12}
+.bd-table tr.bd-prod td{color:#334155}
+.bd-table tr.bd-total td{background:var(--main-lt);font-weight:700;border-top:2px solid var(--main)}
+.bd-sub{font-size:10px;color:#94a3b8;font-weight:400}
+.bd-chev{font-size:10px;color:#64748b}
+.bd-warn{color:#d97706;cursor:help}
+.bd-note{font-size:11px;color:#64748b;margin-top:8px;line-height:1.6}
+.bd-formula{font-size:12px;line-height:1.9;color:#334155;padding:4px 0 6px}.bd-formula b{color:var(--main)}
+.cc-mini.on{background:var(--main);color:#fff;border-color:var(--main)}
+@media (max-width:640px){.bd-opt{display:none}.bd-budget{grid-template-columns:1fr}.bd-box{min-width:90px;padding:8px 4px}.bd-box .bd-v{font-size:15px}.bd-box.big .bd-v{font-size:17px}.bd-op{font-size:14px}}
 .ji-name{justify-content:flex-start!important;text-align:left;cursor:pointer;gap:6px;min-width:0;padding-left:10px!important}
 .ji-name .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .ji-name:hover{background:#f8fafc}
@@ -737,15 +770,22 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         </div>
       </div>
 
-      <!-- 🎯 来週の計画 -->
+      <!-- 🎯 来週の計画（数字はすべて calcPlanBreakdown() から。計算式は最下部に明記） -->
       <div id="bud-plan" class="bud-sub">
         <div class="card">
           <div class="section-title" id="budget-plan-title">予算計画</div>
           <div id="bud-plan-summary"></div>
         </div>
         <div class="card">
+          <div class="section-title" id="budget-cat-title">カテゴリ別の計画 <span style="font-size:11px;font-weight:400;color:var(--gray)">行をタップで商品ごとの内訳</span></div>
+          <div class="overflow-auto"><div id="budget-cats"></div></div>
+        </div>
+        <div class="card">
           <div class="section-title" id="budget-daily-title">曜日別サマリー</div>
           <div class="overflow-auto"><div id="budget-daily"></div></div>
+        </div>
+        <div class="card">
+          <details class="pc-adv" style="background:#fff"><summary>📐 この画面の計算式（何が何を示しているか）</summary><div id="budget-formula" class="bd-formula"></div></details>
         </div>
       </div>
 
@@ -754,10 +794,6 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         <div class="card">
           <div class="section-title">📈 投資・新商品の予算</div>
           <div id="bud-invest-tables"></div>
-        </div>
-        <div class="card">
-          <div class="section-title">週次予算設定（手動）</div>
-          <div id="budget-manual"></div>
         </div>
         <div class="card">
           <div class="section-title">☁️ クラウド同期（GitHub Gist）</div>
@@ -6652,9 +6688,7 @@ function switchBudSub(name){ _budSub=name; applyBudSub(); window.scrollTo(0,0); 
 function renderBudgetTab(){
   renderBudgetTitles();
   renderBudgetJisseki();
-  renderBudgetPlan();
-  renderBudgetDaily();
-  renderBudgetManual();
+  renderBudgetPlan();      // 来週の計画（サマリー・カテゴリ別・曜日別・計算式）と投資タブの表
   renderGistPanel();
   applyBudSub();
 }
@@ -6672,13 +6706,14 @@ function renderBudgetTitles(){
   const setT=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
   setT('budget-jisseki-title',`先週の実績サマリー <span style="font-size:12px;font-weight:400;color:#666">（${actRange}）</span>`);
   setT('budget-plan-title',`${planLabel}の予算計画 <span style="font-size:12px;font-weight:400;color:#666">（${planRange}）</span>`);
+  setT('budget-cat-title',`カテゴリ別の計画 <span style="font-size:12px;font-weight:400;color:#666">（${planRange}）</span> <span style="font-size:11px;font-weight:400;color:var(--gray)">行をタップで商品ごとの内訳</span>`);
   setT('budget-daily-title',`曜日別サマリー <span style="font-size:12px;font-weight:400;color:#666">（${planRange}）</span>`);
 }
 
 function renderBudgetJisseki(){
   const TARGET_SR=96; // 適正販売率の目標
   const el=document.getElementById('budget-jisseki');
-  const mainCats=['ホットFF','常温FF','中華まん'];
+  const mainCats=CATS.filter(c=>!c.endsWith('新商品')).filter(mc=>S.PM.some(p=>p.enabled&&mainCatOf(p.category)===mc));   // 商品があるカテゴリだけ（新商品は本体に合算）
   const rows=mainCats.map(mc=>{
     const catKeys=CATS.filter(c=>c.startsWith(mc));
     const prods=S.PM.filter(p=>catKeys.includes(p.category)&&p.enabled);
@@ -6797,133 +6832,125 @@ function renderBudgetJisseki(){
   el.innerHTML=alerts+html;
 }
 
-function renderBudgetPlan(){
-  const el=document.getElementById('budget-plan');
-
-  // ── 作成計画から商品別に集計（同一ループで廃棄・値引も計算）──
-  // 作成数 = 基本作成 + 投資/新商品の追加作成（実際に作って売る分すべて）
-  // 廃棄率・値引率は商品ごとの実績から。値引額は商品ごとのp.discを使用。
-  let nextMake=0, nextTotalCost=0, nextWasteAmt=0, nextDiscAmt=0;
-  let nextBaseCost=0; // 基本作成のみの原価合計（投資予算上限の計算用）
-  let sumTeika=0, sumNebiki=0, sumHaiki=0; // 適正販売率表示用
-  const noDataProds=[]; // 実績データなし商品リスト（警告表示用）
+// ============================================================
+// 来週の計画：この画面の数字はすべて calcPlanBreakdown() から作る（計算式は1か所・曜日別表と必ず一致する）
+//   作成数   ＝ 自然算出（需要から計算）＋ 最低作成分（品切れ防止・作成単位の切上げ）＋ 投資/新商品の追加分
+//   作成高   ＝ 作成数 × 店頭売価
+//   廃棄額   ＝ 自然算出 × 実績廃棄率 × 売価 ＋（最低作成分＋投資追加分）× 売価   ※売れない前提＝100%廃棄
+//   値引額   ＝ 自然算出 × 実績値引率 × 値引額
+//   売変額   ＝ 廃棄額 ＋ 値引額
+//   売上高   ＝ 作成高 − 売変額
+//   原価     ＝ 作成数 × 原価
+//   利益     ＝ 売上高 − 原価、 利益率 ＝ 利益 ÷ 売上高
+//   投資上限 ＝ 売上高 −（自然算出＋最低作成分）の原価   ※基本作成だけで出る利益＝投資に回せる枠
+//   実績廃棄率・値引率は ①実績入力（全週累計）から。実績が無い商品は廃棄100%で見積もる
+// ============================================================
+// 商品のサブグループ（表の中見出し）：新商品／まちかど小分類／ホットFFの種類（未設定ならからあげクン系・その他）
+function _budGroupOf(p){
+  if(p.category.endsWith('新商品'))return {key:'new',label:'🆕 新商品',order:8};
+  const g=prodGroup(p);
+  if(g&&g.order<9)return g;
+  if(mainCatOf(p.category)==='ホットFF')return (p.name||'').includes('からあげクン')?{key:'karaage',label:'からあげクン',order:0}:{key:'other',label:'その他',order:5};
+  return null;
+}
+function calcPlanBreakdown(){
+  const rows=[];
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category];if(!cfg)return;
-    // 作成数を3種類に分けて集計
-    //   naturalCnt : 自然算出分（需要から計算された分）→ 歴史的廃棄率で評価
-    //   forcedCnt  : 強制最低分（自然算出0でも作る分）→ 100%廃棄想定
-    //   extraCnt   : 投資/新商品追加分                  → 100%廃棄想定
-    let naturalCnt=0, forcedCnt=0, extraCnt=0;
-    DAYS.forEach((_,di)=>{
-      cfg.slots.forEach(h=>{
-        const d=getProdCntDetail(p.id,di,h);
-        naturalCnt += d.natural;
-        forcedCnt  += d.forced;
-        extraCnt   += getInvestExtra(p.id,di,h);
-      });
-    });
-    const baseCnt=naturalCnt+forcedCnt; // 旧 baseCnt（強制分含む）
-    const cnt_week=baseCnt+extraCnt;
-    nextMake     +=cnt_week*p.shopPrice;
-    nextTotalCost+=cnt_week*p.cost;
-    nextBaseCost +=baseCnt *p.cost;
-    // 商品別の実績レート（S.ji + 他週）
     const ji=getJiAllWeeks(p.id);
-    const haiki_rate_p =ji.total?ji.haiki/ji.total:1.0;
-    const nebiki_rate_p=ji.total?ji.nebiki/ji.total:0;
-    if(!ji.total&&cnt_week>0) noDataProds.push(p.name);
-    // 廃棄額（売価ベース）:
-    //   自然算出 × 歴史的廃棄率 + (強制最低分 + 投資追加分) × 100% を売価で評価
-    nextWasteAmt += naturalCnt * haiki_rate_p * p.shopPrice;
-    nextWasteAmt += (forcedCnt + extraCnt) * 1.0 * p.shopPrice;
-    // 値引額: 自然算出分のみ歴史的値引率で。強制/投資分は売れない前提なので値引もしない
-    nextDiscAmt  += naturalCnt * nebiki_rate_p * p.disc;
-    // 全体集計（適正販売率の表示用）
-    sumTeika+=ji.teika; sumNebiki+=ji.nebiki; sumHaiki+=ji.haiki;
+    const hasJi=ji.total>0;
+    const hr=hasJi?ji.haiki/ji.total:1.0;       // 実績廃棄率（実績なし＝100%想定）
+    const nr=hasJi?ji.nebiki/ji.total:0;        // 実績値引率
+    const perDay=DAYS.map((_,di)=>{
+      let nat=0,forced=0,extra=0;
+      cfg.slots.forEach(h=>{const d=getProdCntDetail(p.id,di,h);nat+=d.natural;forced+=d.forced;extra+=getInvestExtra(p.id,di,h);});
+      const cnt=nat+forced+extra;
+      const make=cnt*p.shopPrice, cost=cnt*p.cost, baseCost=(nat+forced)*p.cost;
+      const waste=nat*hr*p.shopPrice+(forced+extra)*p.shopPrice;
+      const disc=nat*nr*p.disc;
+      const sales=make-waste-disc;
+      return {nat,forced,extra,cnt,make,cost,baseCost,waste,disc,urihen:waste+disc,sales,profit:sales-cost};
+    });
+    const sum={}; perDay.forEach(d=>Object.keys(d).forEach(k=>sum[k]=(sum[k]||0)+d[k]));
+    rows.push({p,hasJi,hr,nr,perDay,sum,main:mainCatOf(p.category),group:_budGroupOf(p)});
   });
-  const sumAll=sumTeika+sumNebiki+sumHaiki;
-  // 全体の適正販売率（表示用）
-  const tekisei_rate=sumAll?sumTeika/sumAll:0;
-  // 売変額 = 廃棄額 + 値引販売の値引額
-  const nextUrihenAmt=nextWasteAmt+nextDiscAmt;
-  // 次週売上高（正式）= 次週作成高 − 売変額
-  const nextSalesAmt =nextMake-nextUrihenAmt;
-  // 売変率 = 売変額 ÷ 次週売上高（正式）
-  const nextUrihenRate=nextSalesAmt?nextUrihenAmt/nextSalesAmt*100:0;
+  return rows;
+}
+const _BUD_KEYS=['nat','forced','extra','cnt','make','cost','baseCost','waste','disc','urihen','sales','profit'];
+function _budSum(rows){ const s={}; _BUD_KEYS.forEach(k=>s[k]=0); rows.forEach(r=>_BUD_KEYS.forEach(k=>s[k]+=r.sum[k])); return s; }
+function _budSumDay(rows,di){ const s={}; _BUD_KEYS.forEach(k=>s[k]=0); rows.forEach(r=>_BUD_KEYS.forEach(k=>s[k]+=r.perDay[di][k])); return s; }
+const _budYen=v=>fmt(Math.round(v));
+const _budRate=(profit,sales)=>sales?profit/sales*100:0;
+const _budPrColor=r=>r>=30?'var(--green)':r>=15?'var(--orange)':'var(--red)';
+// カテゴリ行の展開状態（カテゴリ別表・曜日別表で共通）
+const _budOpen=new Set();
+function toggleBudCat(key){ if(_budOpen.has(key))_budOpen.delete(key); else _budOpen.add(key); renderBudgetCats(); renderBudgetDaily(); }
+function setBudgetTarget(key,raw){ if(!S.budget)S.budget={}; S.budget[key]=parseInt(toHalf(String(raw||'')))||0; saveS(); renderBudgetPlan(); }
+// 商品行をサブグループ順に並べる
+function _budSorted(crows){ return [...crows].sort((a,b)=>{const ga=a.group?a.group.order:99,gb=b.group?b.group.order:99;return ga!==gb?ga-gb:((a.p.order??0)-(b.p.order??0));}); }
+function _budMains(rows){ return CATS.filter(c=>!c.endsWith('新商品')).filter(mc=>rows.some(r=>r.main===mc)); }
+
+function renderBudgetPlan(){
+  const rows=calcPlanBreakdown();
+  const T=_budSum(rows);
+  const rate=_budRate(T.profit,T.sales), urihenRate=T.sales?T.urihen/T.sales*100:0;
+  const noDataProds=rows.filter(r=>!r.hasJi&&r.sum.cnt>0).map(r=>r.p.name);
 
   // ── 投資予算 ──
   if(!S.budget.newProductCounts)S.budget.newProductCounts={};
   if(!S.budget.investCounts)S.budget.investCounts={};
   // 投資できる上限 = 売上高 − 基本作成原価（投資ゼロ時の利益高 ＝ 投資にかけられる枠）
-  const newBudgetMax=Math.max(0,nextSalesAmt-nextBaseCost);
+  const newBudgetMax=Math.max(0,T.sales-T.baseCost);
   // 新商品予算（正式）= 1日あたり個数 × 7日 × 原価 の合計
   const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
     .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*7*p.cost,0);
-  // 新商品予算の1日あたり総個数（表示用）
   const newBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
     .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
   // 定番投資予算（正式）= 1日あたり個数 × 選択曜日数 × 原価 の合計
   const investBudgetFormal=S.PM.filter(p=>p.enabled&&p.isInvest)
     .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*getInvestDays(p.id).length*p.cost,0);
-  // 定番投資予算の1日あたり総個数（表示用）
   const investBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.isInvest)
     .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
 
-  // 次週利益高 = 売上高 − 原価（基本＋投資の合計原価）
-  // ※ nextTotalCost には既に投資原価が含まれている（newBudgetFormal/investBudgetFormal 相当）ため
-  //   それらを別途引く必要はない（二重計上防止）
-  const nextProfitAmt=nextSalesAmt-nextTotalCost;
-  // 次週利益率 = 次週利益高 ÷ 次週売上高（正式）
-  const nextProfitRate=nextSalesAmt?nextProfitAmt/nextSalesAmt*100:0;
-
-  const pColor=nextProfitRate>=30?'var(--green)':nextProfitRate>=15?'var(--orange)':'var(--red)';
-  const maxColor=newBudgetMax>=0?'var(--green)':'var(--red)';
-  const hasNebikiHaiki=(sumNebiki+sumHaiki)>0;
-  const haikuRate=sumAll?(sumHaiki/sumAll*100).toFixed(1):0;
-  const nebikiRateDisp=sumAll?(sumNebiki/sumAll*100).toFixed(1):0;
-
-  // ===== 🎯 来週の計画：来週の売上・利益・利益率を主役に、細かい内訳は折りたたみ =====
-  const _yen=v=>fmt(v)+'円';
-  const _hero=(label,val,sub,color)=>`<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 8px;text-align:center">
-      <div style="font-size:12px;color:#64748b;margin-bottom:4px">${label}</div>
-      <div style="font-size:23px;font-weight:800;color:${color||'var(--text)'};line-height:1.1">${val}</div>
-      ${sub?`<div style="font-size:10px;color:#94a3b8;margin-top:3px">${sub}</div>`:''}
-    </div>`;
-  const _mini=(label,val,color)=>`<div style="background:#f8fafc;border-radius:10px;padding:9px 8px;text-align:center">
-      <div style="font-size:11px;color:#64748b">${label}</div>
-      <div style="font-size:16px;font-weight:700;color:${color||'var(--text)'}">${val}</div>
-    </div>`;
+  // ===== 🎯 来週の計画：計算の流れをそのまま並べる（作成高 − 売変額 ＝ 売上高、売上高 − 原価 ＝ 利益） =====
+  const box=(label,val,sub,color,cls)=>`<div class="bd-box ${cls||''}" style="${color?'--c:'+color:''}"><div class="bd-l">${label}</div><div class="bd-v">${val}</div>${sub?`<div class="bd-s">${sub}</div>`:''}</div>`;
+  const op=s=>`<div class="bd-op">${s}</div>`;
+  const b=S.budget||{}; const tgt=b.target||0, wtgt=b.wasteTarget||0;
+  const bar=(v,t,goodIfUnder)=>{ const pct=Math.min(100,t?v/t*100:0); const ok=goodIfUnder?v<=t:v>=t; return `<div class="bd-bar"><div style="width:${pct}%;background:${ok?'var(--green)':'var(--red)'}"></div></div>`; };
   const planEl=document.getElementById('bud-plan-summary');
   if(planEl) planEl.innerHTML=`
-    ${noDataProds.length?`<div class="alert alert-warn" style="background:#fff8e1;border:1px solid #f59e0b;border-radius:8px;padding:9px 12px;margin-bottom:8px;font-size:12px">⚠️ <b>実績データなし商品が${noDataProds.length}件</b>（廃棄率100%で計算）：<span style="color:#92400e">${noDataProds.join('、')}</span></div>`:''}
-    ${!hasNebikiHaiki?'<div class="alert alert-info">💡 廃棄額・値引額は①実績入力の「廃棄数」「値引販売数」から自動計算されます。</div>':''}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
-      ${_hero('来週の売上',_yen(nextSalesAmt),'作成高 − 売変額')}
-      ${_hero('来週の利益',_yen(nextProfitAmt),'売上 − 原価',pColor)}
-      ${_hero('利益率',nextProfitRate.toFixed(1)+'%','',pColor)}
+    ${noDataProds.length?`<div class="alert alert-warn" style="font-size:12px;margin-bottom:10px">⚠️ 実績がない商品 <b>${noDataProds.length}件</b> は<b>廃棄100%</b>で見積もっています（①実績入力を入れると精度が上がります）：<span style="color:#92400e">${noDataProds.join('、')}</span></div>`:''}
+    <div class="bd-flow">
+      ${box('作成高',_budYen(T.make)+'円',`${_budYen(T.cnt)}個 × 売価`)}
+      ${op('−')}
+      ${box('売変額',_budYen(T.urihen)+'円',`廃棄 ${_budYen(T.waste)} ＋ 値引 ${_budYen(T.disc)}`,'#b45309')}
+      ${op('＝')}
+      ${box('売上高',_budYen(T.sales)+'円',`売変率 ${urihenRate.toFixed(1)}%`,'#047857','big')}
+      ${op('−')}
+      ${box('原価',_budYen(T.cost)+'円','作成数 × 原価')}
+      ${op('＝')}
+      ${box('利益',_budYen(T.profit)+'円',`利益率 ${rate.toFixed(1)}%`,_budPrColor(rate),'big')}
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-      ${_mini('作成高',_yen(nextMake))}
-      ${_mini('売変額',_yen(nextUrihenAmt),'#b45309')}
-      ${_mini('売変率',nextUrihenRate.toFixed(1)+'%','#b45309')}
-    </div>
-    <details style="border:1px solid var(--border);border-radius:10px;margin-top:10px">
-      <summary style="cursor:pointer;padding:9px 12px;font-size:12px;font-weight:700;color:var(--main)">内訳（廃棄・値引・適正販売率・投資枠）</summary>
-      <div style="padding:2px 12px 12px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-        ${_mini('廃棄額（売価）',_yen(nextWasteAmt),'#b91c1c')}
-        ${_mini('値引額',_yen(nextDiscAmt),'#d97706')}
-        ${_mini('実績 適正販売率（全週累計）',sumAll?(tekisei_rate*100).toFixed(1)+'%':'--')}
-        ${_mini('投資できる上限',_yen(newBudgetMax),maxColor)}
-      </div>
-    </details>`;
+    <div class="bd-budget">
+      <div class="bd-bcard"><div class="bd-l">作成高予算 <input type="text" inputmode="numeric" value="${tgt||''}" placeholder="未設定" onchange="setBudgetTarget('target',this.value)"> 円</div>
+        ${tgt?`<div class="bd-bv">計画 ${_budYen(T.make)}円 ／ 予算比 <b style="color:${T.make>=tgt?'var(--green)':'var(--red)'}">${(T.make/tgt*100).toFixed(0)}%</b></div>${bar(T.make,tgt,false)}`:'<div class="bd-s">目標の作成高を入れると達成率を表示します</div>'}</div>
+      <div class="bd-bcard"><div class="bd-l">廃棄予算 <input type="text" inputmode="numeric" value="${wtgt||''}" placeholder="未設定" onchange="setBudgetTarget('wasteTarget',this.value)"> 円</div>
+        ${wtgt?`<div class="bd-bv">見込み ${_budYen(T.waste)}円 ／ 予算比 <b style="color:${T.waste<=wtgt?'var(--green)':'var(--red)'}">${(T.waste/wtgt*100).toFixed(0)}%</b></div>${bar(T.waste,wtgt,true)}`:'<div class="bd-s">廃棄の上限を入れると使用率を表示します</div>'}</div>
+      <div class="bd-bcard"><div class="bd-l">投資に回せる上限 <span class="info" title="基本作成（自然算出＋最低作成分）だけで出る利益 ＝ 売上高 − 基本作成の原価。この範囲なら投資しても赤字になりません">ℹ️</span></div>
+        <div class="bd-bv" style="color:${newBudgetMax>0?'#16a34a':'#dc2626'}">${_budYen(newBudgetMax)}円</div>
+        <div class="bd-s">使用中：新商品 ${_budYen(newBudgetFormal)}円 ＋ 定番投資 ${_budYen(investBudgetFormal)}円${(newBudgetFormal+investBudgetFormal)>newBudgetMax?' <b style="color:var(--red)">⚠ 上限超過</b>':''}</div></div>
+    </div>`;
+  renderBudgetCats(rows);
+  renderBudgetDaily(rows);
+  renderBudgetFormula();
 
   // ===== ⚙️ 投資・設定：投資枠サマリー＋商品別入力表 =====
   const invEl=document.getElementById('bud-invest-tables');
   if(invEl) invEl.innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 8px;text-align:center">
-        <div style="font-size:11px;color:#166534">投資できる上限</div>
+        <div style="font-size:11px;color:#166534">投資できる上限 <span class="info" title="基本作成だけで出る利益（売上高 − 基本作成の原価）">ℹ️</span></div>
         <div style="font-size:18px;font-weight:800;color:${newBudgetMax>=0?'#16a34a':'#dc2626'}">${fmt(newBudgetMax)}円</div>
       </div>
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 8px;text-align:center">
@@ -7124,146 +7151,104 @@ function suggestAllNewCounts(){
   saveS();renderBudgetPlan();
 }
 
-function renderBudgetDaily(){
-  const el=document.getElementById('budget-daily');
-  const dates=getWeekDates();
-  // 曜日別に 作成高 / 原価 / 廃棄額 / 売変額 / 売上高 / 利益高 を集計
-  const day={make:Array(7).fill(0),cost:Array(7).fill(0),waste:Array(7).fill(0),disc:Array(7).fill(0)};
-  S.PM.forEach(p=>{
-    if(!p.enabled||!S.catOn[p.category])return;
-    const cfg=S.catCfg[p.category];if(!cfg)return;
-    const ji=getJiAllWeeks(p.id);
-    const haiki_rate=ji.total?ji.haiki/ji.total:1.0;
-    const nebiki_rate=ji.total?ji.nebiki/ji.total:0;
-    DAYS.forEach((_,di)=>{
-      let cnt=0;
-      // 投資/新商品の追加分（getInvestExtra）も合算して計画作成数とする
-      cfg.slots.forEach(h=>{cnt+=getProdCnt(p.id,di,h)+getInvestExtra(p.id,di,h);});
-      day.make[di] +=cnt*p.shopPrice;
-      day.cost[di] +=cnt*p.cost;
-      day.waste[di]+=cnt*haiki_rate*p.shopPrice;
-      day.disc[di] +=cnt*nebiki_rate*p.disc;
-    });
-  });
-  const day_urihen=day.waste.map((w,i)=>w+day.disc[i]);
-  const day_sales =day.make.map((m,i)=>m-day_urihen[i]);
-  const day_profit=day_sales.map((s,i)=>s-day.cost[i]);
-
-  // カテゴリ別 作成高 & 作成数
-  // ホットFFは「からあげクン系」と「その他」で分割（合算モードも切替可）
-  const mainCats=['ホットFF','常温FF','中華まん'];
-  const splitMode=S.budget?.hotFFSplit!==false; // デフォルト=分割表示
-  const isKaraage=p=>(p.name||'').includes('からあげクン');
-  const catGroups=[]; // {key,label,filter,sub:bool}
-  mainCats.forEach(mc=>{
-    const catKeys=CATS.filter(c=>c.startsWith(mc));
-    if(mc==='ホットFF'&&splitMode){
-      catGroups.push({key:'ホットFF_kr',label:tCat(mc)+t('budget.karaageGroup'),filter:p=>catKeys.includes(p.category)&&isKaraage(p),sub:true});
-      catGroups.push({key:'ホットFF_other',label:tCat(mc)+t('budget.othersGroup'),filter:p=>catKeys.includes(p.category)&&!isKaraage(p),sub:true});
-      catGroups.push({key:'ホットFF_sum',label:tCat(mc)+t('budget.totalGroup'),filter:p=>catKeys.includes(p.category),sub:false,bold:true});
-    } else {
-      catGroups.push({key:mc,label:tCat(mc),filter:p=>catKeys.includes(p.category)});
-    }
-  });
-  const catData={}; // key → {amt:Array(7), cnt:Array(7)}
-  catGroups.forEach(g=>{catData[g.key]={amt:Array(7).fill(0),cnt:Array(7).fill(0)};});
-  catGroups.forEach(g=>{
-    S.PM.filter(p=>p.enabled&&g.filter(p)).forEach(p=>{
-      const cfg=S.catCfg[p.category];if(!cfg||!S.catOn[p.category])return;
-      DAYS.forEach((_,di)=>{
-        cfg.slots.forEach(h=>{
-          // 投資/新商品の追加分も合算（作成表のセル表示と一致させる）
-          const c=getProdCnt(p.id,di,h)+getInvestExtra(p.id,di,h);
-          catData[g.key].amt[di]+=c*p.shopPrice;
-          catData[g.key].cnt[di]+=c;
-        });
-      });
-    });
-  });
-
-  const thDay=(d,i)=>`<th style="padding:4px 6px;text-align:center;min-width:64px">${d}<br><span style="font-size:10px;color:#888;font-weight:400">${dates[i].getMonth()+1}/${dates[i].getDate()}</span></th>`;
-  const sumA=a=>a.reduce((s,v)=>s+v,0);
-  const row=(label,arr,opts={})=>{
-    const total=sumA(arr);
-    const avg=total/7;
-    const style=opts.style||'';
-    const labelStyle=opts.labelStyle||'text-align:left;padding:4px 8px';
-    const color=opts.color||'';
-    return `<tr style="${style}"><td style="${labelStyle}">${label}</td>`+
-      arr.map(v=>`<td style="padding:4px 6px;text-align:right;${color}">${fmt(Math.round(v))}</td>`).join('')+
-      `<td style="padding:4px 8px;text-align:right;font-weight:700;${color}">${fmt(Math.round(total))}</td>`+
-      `<td style="padding:4px 8px;text-align:right;${color}">${fmt(Math.round(avg))}</td></tr>`;
+// ===== カテゴリ別の計画（行タップで サブグループ＋商品ごとの内訳） =====
+function renderBudgetCats(rows){
+  const el=document.getElementById('budget-cats'); if(!el)return;
+  rows=rows||calcPlanBreakdown();
+  const th=(l,tip,cls)=>`<th class="${cls||''}" title="${tip||''}">${l}</th>`;
+  let html=`<table class="bd-table"><thead><tr>
+    ${th('カテゴリ／商品','')}${th('作成数','自然算出 ＋ 最低作成分 ＋ 投資/新商品の追加分（個）')}${th('作成高','作成数 × 店頭売価')}${th('廃棄額','売価ベース。最低作成分・投資追加分は100%廃棄で見積もり','bd-opt')}${th('値引額','自然算出 × 実績値引率 × 値引額','bd-opt')}${th('売上高','作成高 −（廃棄額 ＋ 値引額）')}${th('原価','作成数 × 原価','bd-opt')}${th('利益','売上高 − 原価')}${th('利益率','利益 ÷ 売上高')}${th('想定廃棄率','①実績入力の廃棄率（実績なし＝100%）','bd-opt')}
+  </tr></thead><tbody>`;
+  const line=(label,s,opt={})=>{
+    const r=_budRate(s.profit,s.sales); const wr=s.make?s.waste/s.make*100:0;
+    return `<tr class="${opt.cls||''}" ${opt.onclick?`onclick="${opt.onclick}"`:''} style="${opt.style||''}">
+      <td class="bd-name" style="padding-left:${opt.indent||8}px">${label}</td>
+      <td>${_budYen(s.cnt)}${opt.cntSub?`<div class="bd-sub">${opt.cntSub}</div>`:''}</td>
+      <td>${_budYen(s.make)}</td>
+      <td class="bd-opt" style="color:#b91c1c">${_budYen(s.waste)}</td>
+      <td class="bd-opt" style="color:#d97706">${_budYen(s.disc)}</td>
+      <td style="font-weight:600;color:#047857">${_budYen(s.sales)}</td>
+      <td class="bd-opt">${_budYen(s.cost)}</td>
+      <td style="font-weight:700;color:${_budPrColor(r)}">${_budYen(s.profit)}</td>
+      <td style="font-weight:700;color:${_budPrColor(r)}">${r.toFixed(1)}%</td>
+      <td class="bd-opt">${opt.wr!=null?opt.wr:wr.toFixed(0)+'%'}</td></tr>`;
   };
-
-  let html=`<table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead><tr style="background:var(--main-lt)">
-      <th style="padding:4px 8px;text-align:left;min-width:110px">${t('budget.colItem')}</th>
-      ${DAYS.map((d,i)=>thDay(t('day.'+i),i)).join('')}
-      <th style="padding:4px 8px;text-align:right;min-width:70px">${t('budget.colWeek')}</th>
-      <th style="padding:4px 8px;text-align:right;min-width:70px">${t('budget.colAvg')}</th>
-    </tr></thead><tbody>`;
-
-  // サマリー系（金額）
-  html+=row(t('budget.rowMake'),day.make,{style:'border-top:2px solid #eee'});
-  html+=row(t('budget.rowWaste'),day.waste,{color:'color:#b91c1c'});
-  html+=row(t('budget.rowDisc'),day.disc,{color:'color:#d97706'});
-  html+=row(t('budget.rowUrihen'),day_urihen,{color:'color:#7c2d12;font-weight:600'});
-  html+=row(t('budget.rowSales'),day_sales,{style:'background:#f0fdf4',color:'color:#047857;font-weight:600'});
-  html+=row(t('budget.rowProfit'),day_profit,{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:600'});
-
-  // カテゴリ別 作成高（円）— 曜日別サマリーの最後
-  html+=`<tr><td colspan="${DAYS.length+3}" style="padding:8px 8px 2px;font-size:11px;color:#666;font-weight:600;border-top:1px solid #eee">${t('budget.catMakeAmt')}<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">${t('budget.includeInvest')}</span></td></tr>`;
-  catGroups.forEach(g=>{
-    const indent=g.sub?'　　└ ':'　';
-    const styleA=g.bold?'background:#fafbff;font-weight:600':'';
-    html+=row(indent+g.label,catData[g.key].amt,{style:styleA});
+  _budMains(rows).forEach(mc=>{
+    const crows=rows.filter(r=>r.main===mc); const s=_budSum(crows); const open=_budOpen.has(mc);
+    html+=line(`<span class="bd-chev">${open?'▼':'▶'}</span> <b>${tCat(mc)}</b> <span class="bd-sub">${crows.length}商品</span>`,s,{cls:'bd-cat',onclick:`toggleBudCat('${mc}')`,style:`--tint:${CAT_TINT[mc]||'#eef2ff'}`});
+    if(!open)return;
+    const sorted=_budSorted(crows); let last='__none__';
+    sorted.forEach(r=>{
+      const gk=r.group?r.group.key:null;
+      if(gk!==last){ last=gk; if(r.group){ const gs=_budSum(sorted.filter(x=>(x.group?x.group.key:null)===gk)); html+=line(`<span class="bd-grp">${r.group.label}</span>`,gs,{cls:'bd-group',indent:22}); } }
+      const cntSub=`自然${r.sum.nat}${r.sum.forced?`・最低${r.sum.forced}`:''}${r.sum.extra?`・投資${r.sum.extra}`:''}`;
+      html+=line(`${r.p.name}${r.hasJi?'':' <span class="bd-warn" title="実績がないため廃棄100%で見積もり">⚠</span>'}`,r.sum,{cls:'bd-prod',indent:r.group?36:22,cntSub,wr:r.hasJi?(r.hr*100).toFixed(0)+'%':'100%※'});
+    });
   });
-
-  html+='</tbody></table>';
-
-  // ── 別枠：カテゴリ別 作成数（個）──
-  const splitBtnLabel=splitMode?t('budget.toggleSum'):t('budget.toggleSplit');
-  html+=`<div style="margin-top:18px;padding-top:8px;border-top:2px dashed #d1d5db">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div style="font-size:13px;font-weight:700;color:var(--main)">${t('budget.catMakeCnt')}<span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">${t('budget.includeInvest')}</span></div>
-      <button onclick="toggleHotFFSplit()" style="padding:3px 10px;font-size:11px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer">${splitBtnLabel}</button>
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:var(--main-lt)">
-        <th style="padding:4px 8px;text-align:left;min-width:160px">${t('budget.colCategory')}</th>
-        ${DAYS.map((d,i)=>thDay(t('day.'+i),i)).join('')}
-        <th style="padding:4px 8px;text-align:right;min-width:70px">${t('budget.colWeek')}</th>
-        <th style="padding:4px 8px;text-align:right;min-width:70px">${t('budget.colAvg')}</th>
-      </tr></thead><tbody>`;
-  catGroups.forEach(g=>{
-    const indent=g.sub?'　└ ':'';
-    const styleA=g.bold?'background:#fafbff;font-weight:700':'';
-    html+=row(indent+g.label,catData[g.key].cnt,{style:styleA,color:g.bold?'color:#1e3a8a':'color:#475569'});
-  });
-  html+='</tbody></table></div>';
-
+  html+=line('<b>合計</b>',_budSum(rows),{cls:'bd-total'});
+  html+=`</tbody></table>
+  <div class="bd-note">作成数の内訳：<b>自然</b>＝需要から算出／<b>最低</b>＝品切れ防止・作成単位の切上げで増えた分／<b>投資</b>＝新商品・定番投資の追加分。最低・投資分は売れない前提（廃棄100%）で見積もります。</div>`;
   el.innerHTML=html;
 }
 
-function toggleHotFFSplit(){
-  if(!S.budget)S.budget={};
-  S.budget.hotFFSplit=S.budget.hotFFSplit===false?true:false;
-  saveS();renderBudgetDaily();
+// ===== 曜日別サマリー（同じ計算結果を曜日で見る） =====
+function renderBudgetDaily(rows){
+  const el=document.getElementById('budget-daily'); if(!el)return;
+  rows=rows||calcPlanBreakdown();
+  const dates=getWeekDates();
+  const days=DAYS.map((_,di)=>_budSumDay(rows,di));
+  const T=_budSum(rows);
+  const thDay=(d,i)=>`<th>${d}<br><span class="bd-sub">${dates[i].getMonth()+1}/${dates[i].getDate()}</span></th>`;
+  const head=(first)=>`<thead><tr><th style="text-align:left">${first}</th>${DAYS.map((d,i)=>thDay(t('day.'+i),i)).join('')}<th>週計</th><th>日平均</th></tr></thead>`;
+  const rowArr=(label,arr,opt={})=>{ const total=arr.reduce((s,v)=>s+v,0);
+    return `<tr class="${opt.cls||''}" ${opt.onclick?`onclick="${opt.onclick}"`:''} style="${opt.style||''}"><td class="bd-name" style="padding-left:${opt.indent||8}px;${opt.color||''}">${label}</td>${arr.map(v=>`<td style="${opt.color||''}">${_budYen(v)}</td>`).join('')}<td style="font-weight:700;${opt.color||''}">${_budYen(total)}</td><td style="${opt.color||''}">${_budYen(total/7)}</td></tr>`; };
+  const pick=k=>days.map(d=>d[k]);
+  let html=`<table class="bd-table">${head('金額（円）')}<tbody>
+    ${rowArr('作成高',pick('make'))}
+    ${rowArr('廃棄額',pick('waste'),{color:'color:#b91c1c'})}
+    ${rowArr('値引額',pick('disc'),{color:'color:#d97706'})}
+    ${rowArr('売変額（廃棄＋値引）',pick('urihen'),{color:'color:#7c2d12;font-weight:600'})}
+    ${rowArr('売上高（作成高−売変額）',pick('sales'),{style:'background:#f0fdf4',color:'color:#047857;font-weight:700'})}
+    ${rowArr('原価',pick('cost'))}
+    ${rowArr('利益（売上高−原価）',pick('profit'),{style:'background:#eff6ff',color:'color:#1d4ed8;font-weight:700'})}
+  </tbody></table>`;
+  // カテゴリ別（作成数／作成高）。行タップでサブグループ
+  const mode=_budDailyMode;
+  html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;gap:8px;flex-wrap:wrap">
+    <div style="font-size:13px;font-weight:700;color:var(--main)">カテゴリ別 ${mode==='cnt'?'作成数（個）':'作成高（円）'} <span class="bd-sub">投資/新商品の追加分を含む</span></div>
+    <div><button type="button" class="cc-mini ${mode==='cnt'?'on':''}" onclick="setBudDailyMode('cnt')">個数</button><button type="button" class="cc-mini ${mode==='make'?'on':''}" onclick="setBudDailyMode('make')">金額</button></div>
+  </div>
+  <table class="bd-table">${head('カテゴリ')}<tbody>`;
+  _budMains(rows).forEach(mc=>{
+    const crows=rows.filter(r=>r.main===mc); const open=_budOpen.has(mc);
+    html+=rowArr(`<span class="bd-chev">${open?'▼':'▶'}</span> <b>${tCat(mc)}</b>`,DAYS.map((_,di)=>_budSumDay(crows,di)[mode]),{cls:'bd-cat',onclick:`toggleBudCat('${mc}')`,style:`--tint:${CAT_TINT[mc]||'#eef2ff'}`});
+    if(!open)return;
+    const sorted=_budSorted(crows); const seen=new Set();
+    sorted.forEach(r=>{ const gk=r.group?r.group.key:'__none__'; if(seen.has(gk))return; seen.add(gk);
+      const grows=sorted.filter(x=>(x.group?x.group.key:'__none__')===gk);
+      html+=rowArr(r.group?r.group.label:'（小分類なし）',DAYS.map((_,di)=>_budSumDay(grows,di)[mode]),{cls:'bd-group',indent:22}); });
+  });
+  html+=rowArr('<b>合計</b>',pick(mode),{cls:'bd-total'});
+  html+='</tbody></table>';
+  el.innerHTML=html;
 }
+let _budDailyMode='cnt';
+function setBudDailyMode(m){ _budDailyMode=m; renderBudgetDaily(); }
 
-function renderBudgetManual(){
-  const b=S.budget||{};
-  document.getElementById('budget-manual').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
-      <div><label>作成高予算（円）</label>
-        <input type="number" value="${b.target||0}" onchange="S.budget.target=parseInt(toHalf(this.value))||0;saveS()">
-        <div style="font-size:10px;color:#999;margin-top:2px">目標作成高を手入力</div>
-      </div>
-      <div><label>廃棄予算（円）</label>
-        <input type="number" value="${b.wasteTarget||0}" onchange="S.budget.wasteTarget=parseInt(toHalf(this.value))||0;saveS()">
-        <div style="font-size:10px;color:#999;margin-top:2px">廃棄の上限予算を手入力</div>
-      </div>
-    </div>`;
+// ===== 計算式の説明（画面の数字がどう出ているか） =====
+function renderBudgetFormula(){
+  const el=document.getElementById('budget-formula'); if(!el)return;
+  el.innerHTML=`
+    <div><b>作成数</b> ＝ 自然算出（客数から計算した分）＋ 最低作成分（品切れ防止・作成単位の切上げで増えた分）＋ 投資／新商品の追加分</div>
+    <div><b>作成高</b> ＝ 作成数 × 店頭売価</div>
+    <div><b>廃棄額</b>（売価）＝ 自然算出 × 実績廃棄率 × 売価 ＋（最低作成分 ＋ 投資追加分）× 売価　※最低・投資分は売れない前提＝100%廃棄</div>
+    <div><b>値引額</b> ＝ 自然算出 × 実績値引率 × 商品の値引額</div>
+    <div><b>売変額</b> ＝ 廃棄額 ＋ 値引額　　<b>売変率</b> ＝ 売変額 ÷ 売上高</div>
+    <div><b>売上高</b> ＝ 作成高 − 売変額</div>
+    <div><b>原価</b> ＝ 作成数 × 原価　　<b>利益</b> ＝ 売上高 − 原価　　<b>利益率</b> ＝ 利益 ÷ 売上高</div>
+    <div><b>投資に回せる上限</b> ＝ 売上高 −（自然算出 ＋ 最低作成分）の原価　＝ 基本作成だけで出る利益</div>
+    <div><b>新商品予算</b> ＝ 1日あたり追加数 × 7日 × 原価　　<b>定番投資予算</b> ＝ 1日あたり追加数 × 対象曜日数 × 原価</div>
+    <div class="bd-sub" style="margin-top:4px">実績廃棄率・値引率は ①実績入力（全週の累計）から商品ごとに計算。実績が無い商品は廃棄100%で見積もります。曜日別サマリー・カテゴリ別の計画・上の集計はすべて同じ計算です。</div>`;
 }
 
 // ============================================================
