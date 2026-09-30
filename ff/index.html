@@ -586,6 +586,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
       <div id="jsubpanel-input">
         <div class="card">
           <div class="section-title" data-i18n="jisseki.weekSummary">週合計サマリー</div>
+          <div id="jsum-cats" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
           <div class="summary-grid" id="jisseki-summary"></div>
         </div>
         <div class="card">
@@ -2933,7 +2934,7 @@ let _jsubTab='input';
 function _uiSave(){
   try{
     sessionStorage.setItem('ffv6_ui',JSON.stringify({
-      tab:currentTab, jsub:_jsubTab, prodDay:currentProdDay, y:window.scrollY,
+      tab:currentTab, jsub:_jsubTab, jsum:(typeof _jsumCat!=='undefined'?_jsumCat:'all'), prodDay:currentProdDay, y:window.scrollY,
       expanded:[...(typeof _expandedCards!=='undefined'?_expandedCards:[])],
       adv:[...(typeof _advOpen!=='undefined'?_advOpen:[])],
       catEdit:[...(typeof _catEditOpen!=='undefined'?_catEditOpen:[])],
@@ -2950,6 +2951,7 @@ function _uiRestoreState(){
     (u.adv||[]).forEach(k=>_advOpen.add(k));
     (u.catEdit||[]).forEach(c=>_catEditOpen.add(c));
     (u.jiOpen||[]).forEach(id=>_jiOpen.add(id));
+    if(typeof u.jsum==='string')_jsumCat=u.jsum;
     if(typeof u.prodDay==='number')currentProdDay=u.prodDay;
   }catch(_){}
 }
@@ -3362,9 +3364,11 @@ function calcJissekiMetrics(pid){
   return{teika,nebiki,haiki,buyRate,salesAmt,wasteAmt,discAmt,totalCost,profit,profitRate,sellChangeRate,makeCnt,sellRate};
 }
 
-function calcSummary(){
+// cat を渡すとそのカテゴリ（新商品カテゴリは本体に合算）だけを集計。省略＝全体
+function calcSummary(cat){
   let totalSales=0,totalWaste=0,totalDisc=0,totalProfit=0,totalMake=0,totalSold=0;
   S.PM.forEach(p=>{
+    if(cat&&cat!=='all'&&mainCatOf(p.category)!==cat)return;
     const m=calcJissekiMetrics(p.id);if(!m)return;
     totalSales+=m.salesAmt;totalWaste+=m.wasteAmt;
     totalDisc+=m.discAmt;totalProfit+=m.profit;
@@ -3576,8 +3580,16 @@ function renderJissekiTitle(){
   el.innerHTML=`${t('jisseki.input')} <span style="font-size:12px;font-weight:400;color:#666">${tpl}</span>`;
 }
 
+// 週合計サマリーの表示対象：'all'＝全体／主カテゴリ名＝そのカテゴリ（新商品は本体に合算）
+let _jsumCat='all';
+function setJsumCat(c){ _jsumCat=c; _uiSave(); renderJissekiSummary(); }
 function renderJissekiSummary(){
-  const{totalSales,totalWaste,totalDisc,totalProfit,profitRate,sellRate}=calcSummary();
+  // カテゴリ切替チップ（商品があるカテゴリだけ）
+  const catsEl=document.getElementById('jsum-cats');
+  const cats=CATS.filter(c=>!c.endsWith('新商品')&&S.PM.some(p=>p.enabled&&mainCatOf(p.category)===c));
+  if(_jsumCat!=='all'&&!cats.includes(_jsumCat))_jsumCat='all';
+  if(catsEl)catsEl.innerHTML=cats.length>1?[['all','全体'],...cats.map(c=>[c,tCat(c)])].map(([k,l])=>`<button type="button" class="cc-mini ${_jsumCat===k?'on':''}" style="margin-left:0;padding:6px 12px;font-size:12px" onclick="setJsumCat('${k}')">${l}</button>`).join(''):'';
+  const{totalSales,totalWaste,totalDisc,totalProfit,profitRate,sellRate}=calcSummary(_jsumCat);
   const isWarn=profitRate<50;
   document.getElementById('jisseki-summary').innerHTML=`
     <div class="summary-box"><div class="label">${t('jisseki.salesTotal')}</div><div class="value">${fmt(totalSales)}</div><div class="unit">${t('common.yen')}</div></div>
