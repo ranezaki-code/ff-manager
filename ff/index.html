@@ -105,6 +105,11 @@ body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-botto
 .ji-total{grid-column:1/-1;justify-content:space-between!important;background:#f0f4ff;font-weight:600;font-size:12px;min-height:0!important;padding:6px 10px!important;gap:8px;flex-wrap:wrap}
 .ji-lbl{display:none;font-size:10px;color:var(--gray)}
 .mob-met{display:none}
+/* 時間帯別購入率の入力 */
+.hr-grid{display:flex;flex-wrap:wrap;gap:4px}
+.hr-cell{width:58px;text-align:center}
+.hr-h{font-size:10px;color:#64748b}
+.hr-cell input{width:100%;text-align:center;font-size:13px;padding:5px 2px}
 @media (max-width:640px){
   .ji-grid{grid-template-columns:1fr 1fr 1fr}
   .ji-grid>.ji-head{display:none}
@@ -604,6 +609,10 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
           </div>
           <div class="overflow-auto"><div id="cust-grid"></div></div>
         </div>
+        <div class="card">
+          <div class="section-title" style="margin-bottom:4px">時間帯別購入率（任意） <span style="font-size:11px;font-weight:400;color:var(--gray)">本部データの「時間帯別購入率」をカテゴリごと・1日分ずつ入れると、時間帯ごとの作成数の配分が正確になります（月1回・代表的な日だけでOK。入れた日を貯めて平均します）</span></div>
+          <div id="hour-rate-area"></div>
+        </div>
       </div>
 
       <!-- サブタブ2：ランキング -->
@@ -750,7 +759,8 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         </ol>
       </div>
       <div id="cell-guide-block" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:12px;color:#475569;margin-bottom:10px;line-height:1.7">
-        💡 <b>セルの見方</b>：大きい数字＝その時間帯に作成する個数／☑＝完了チェック／⊘＝在庫欠品で作れなかった／🔔＝完売時の追加作成
+        💡 <b>セルの見方</b>：大きい数字＝その時間帯に作成する個数／☑＝完了チェック／⊘＝在庫欠品で作れなかった／🔔＝完売時の追加作成／📦＝余った（廃棄・値引きが出た）<br>
+        🔔と📦の記録は翌週以降の計画に自動で効きます：完売が続いた時間帯は+10%ずつ、余りが続いた時間帯は−10%ずつ（直近4週・上下限±50%）。「学習±%」の表示がその印です
       </div>
       <div id="prod-day-content"></div>
     </div>
@@ -1817,6 +1827,7 @@ function syncActiveWeek(){
     skipped:{...(S.skipped||{})},
     orderChecks:{...(S.orderChecks||{})},
     soldOuts:JSON.parse(JSON.stringify(S.soldOuts||{})),
+    leftovers:{...(S.leftovers||{})},
     weekStart:S.weekStart
   };
 }
@@ -1826,7 +1837,7 @@ function _ffSaveObj(){
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-    rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
+    rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,leftovers:S.leftovers,hourRate:S.hourRate,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
     施策:S.施策,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
@@ -3157,10 +3168,14 @@ function getProdCntDetail(pid,dayIdx,slotH){
   const batch=getBatchUnit(p);
   const noStockout=!!p.noStockout;        // 品切れ防止（算出0でも最低batch）
   const sc=getSlotCust(dayIdx,hs,he);
-  const wt=getCatWeekTotal(p.category);   // 時間帯配分の分母も「売っている時間」の客数（全時間帯の配分合計＝週目標になる）
+  // 時間帯配分の分母も「売っている時間」の客数（全時間帯の配分合計＝週目標）。
+  // 時間帯別購入率の係数(k)があれば「客数×係数」で配分、学習(adj)は完売/余りの記録でその時間帯だけ増減
+  const wt=getCatWeekTotalWeighted(p.category);
+  const k=getSlotCoef(p.category,slotH);
+  const adj=getLearnAdj(pid,dayIdx,slotH);
   const ct=getCorrTarget(pid,dayIdx);
   // 週客数が無い(wt=0)時は自然算出0として続行（早期returnしない）→品切れ防止を効かせる
-  let natural=(wt>0)?roundCnt(ct*sc/wt):0;
+  let natural=(wt>0)?roundCnt(ct*sc*k*adj/wt):0;
   // 損益分岐ガード（段階化）：品切れ防止ONならスキップ
   const wl=getWithdraw(pid);
   if(wl>0 && !noStockout){
@@ -3229,6 +3244,58 @@ function getInvestDays(pid){
 function getSoldOutTotal(pid,dayIdx,slotH){
   const arr=(S.soldOuts||{})[`${dayIdx}_${slotH}_${pid}`]||[];
   return arr.reduce((s,e)=>s+(e.added||0),0);
+}
+
+// ============================================================
+// 時間帯別購入率（本部データ・任意入力）
+//   S.hourRate = { [主カテゴリ]: { 'YYYY-MM-DD': [24個の購入率%（未入力は null）] } }
+//   入れた日を貯めて直近8件を平均し、作成時間帯ごとの係数（その時間帯の購入率 ÷ カテゴリ全体の購入率）にする。
+//   係数は時間帯配分にだけ効く（週の目標は変えない）。データが無いカテゴリは係数1＝客数比のまま。
+// ============================================================
+function getHourRateAvg(cat){
+  const m=(S.hourRate||{})[mainCatOf(cat)]; if(!m)return null;
+  const dates=Object.keys(m).sort().slice(-8); if(!dates.length)return null;
+  const sum=Array(24).fill(0),n=Array(24).fill(0);
+  dates.forEach(d=>(m[d]||[]).forEach((v,h)=>{ if(v!=null&&v!==''&&isFinite(+v)){sum[h]+=+v;n[h]++;} }));
+  if(!n.some(x=>x))return null;
+  return sum.map((s,h)=>n[h]?s/n[h]:null);
+}
+function _hourCustWeek(h){ const hh=((h%24)+24)%24; return (S.cust||[]).reduce((s,r)=>s+(r[hh]||0),0); }
+function getSlotCoef(cat,slotH){
+  const avg=getHourRateAvg(cat); if(!avg)return 1;
+  const cfg=S.catCfg[cat]; if(!cfg)return 1;
+  const wavg=(hs,he)=>{ let num=0,den=0; for(let h=hs;h<he;h++){ const r=avg[((h%24)+24)%24]; if(r==null)continue; const c=_hourCustWeek(h); num+=r*c; den+=c; } return den?num/den:null; };
+  const rg=getCatSlotRange(cat,slotH); if(!rg)return 1;
+  const slotR=wavg(rg[0],rg[1]); if(slotR==null)return 1;
+  let num=0,den=0;
+  cfg.slots.forEach(h=>{ const r=getCatSlotRange(cat,h); if(!r)return; const sr=wavg(r[0],r[1]); if(sr==null)return; let c=0; for(let x=r[0];x<r[1];x++)c+=_hourCustWeek(x); num+=sr*c; den+=c; });
+  const allR=den?num/den:0; if(!allR)return 1;
+  return slotR/allR;
+}
+// 係数込みの週の総客数（時間帯配分の分母。係数が全部1なら getCatWeekTotal と同じ）
+function getCatWeekTotalWeighted(cat){
+  const cfg=S.catCfg[cat]; if(!cfg)return 0; let s=0;
+  cfg.slots.forEach(h=>{ const r=getCatSlotRange(cat,h); if(!r)return; const k=getSlotCoef(cat,h); for(let d=0;d<7;d++)s+=getSlotCust(d,r[0],r[1])*k; });
+  return s;
+}
+// ============================================================
+// 学習：完売（🔔追加作成）が続けば増やし、余り（📦）が続けば減らす
+//   今の計画週より前の直近4週の記録から、商品×曜日×時間帯ごとに ×1.1／×0.9 を積み上げる（0.5〜1.5に制限）
+// ============================================================
+function getLearnAdj(pid,dayIdx,slotH){
+  if(!S.weeks||!S.activeWeek)return 1;
+  const key=`${dayIdx}_${slotH}_${pid}`;
+  const actT=parseLocalDate(weekKeyToDateStr(S.activeWeek)).getTime();
+  const keys=Object.keys(S.weeks).filter(k=>k!==S.activeWeek&&parseLocalDate(weekKeyToDateStr(k)).getTime()<actT)
+    .sort((a,b)=>parseLocalDate(weekKeyToDateStr(a))-parseLocalDate(weekKeyToDateStr(b))).slice(-4);
+  let f=1;
+  keys.forEach(k=>{ const w=S.weeks[k]||{}; const so=(w.soldOuts||{})[key]; if(so&&so.length)f*=1.1; if((w.leftovers||{})[key])f*=0.9; });
+  return Math.min(1.5,Math.max(0.5,f));
+}
+function toggleLeftover(key){
+  if(!S.leftovers)S.leftovers={};
+  if(S.leftovers[key])delete S.leftovers[key]; else S.leftovers[key]=true;
+  saveS(); if(currentTab===3)renderProdDayContent(currentProdDay);
 }
 
 function getInvestExtra(pid,dayIdx,slotH){
@@ -3317,7 +3384,68 @@ function renderJissekiTab(){
   renderJissekiSummary();
   renderJissekiTable();
   renderCustGrid();
+  renderHourRate();
   renderRanking();
+}
+
+// ====== 時間帯別購入率の入力（本部データ・任意） ======
+let _hrCat=null,_hrDate=null;
+function _todayStr(){const n=new Date();return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;}
+// そのカテゴリが売っている時間（作成時間帯のカバー範囲の和）
+function _catCoverHours(cat){ const cfg=S.catCfg[cat]; if(!cfg)return []; const set=new Set(); cfg.slots.forEach(h=>{const r=getCatSlotRange(cat,h); if(!r)return; for(let x=r[0];x<r[1];x++)set.add(((x%24)+24)%24);}); return [...set].sort((a,b)=>a-b); }
+function _hrCoefText(cat){
+  const cfg=S.catCfg[cat]; const m=(S.hourRate||{})[cat]||{}; const n=Object.keys(m).length;
+  if(!cfg||!getHourRateAvg(cat))return 'データが無いので、客数の比だけで配分しています（係数はすべて ×1.00）';
+  return `配分に使っている係数（直近${Math.min(8,n)}日の平均）：`+cfg.slots.map(h=>`${h}時 ×${getSlotCoef(cat,h).toFixed(2)}`).join('　');
+}
+function _hrDatesHtml(cat){
+  const dates=Object.keys((S.hourRate||{})[cat]||{}).sort();
+  return dates.length?dates.map(d=>`<span class="cc-chip" style="cursor:pointer" title="この日を開く" onclick="hrSetDate('${d}')">${d.slice(5).replace('-','/')}<span onclick="event.stopPropagation();hrDeleteDate('${d}')" title="削除" style="color:#dc2626;margin-left:4px">✕</span></span>`).join(''):'<span class="cc-sub">まだありません</span>';
+}
+function renderHourRate(){
+  const el=document.getElementById('hour-rate-area'); if(!el)return;
+  const cats=CATS.filter(c=>!c.endsWith('新商品')&&S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots.length);
+  if(!cats.length){el.innerHTML='<div class="cc-sub">作成時間帯が設定されたカテゴリがありません</div>';return;}
+  if(!_hrCat||!cats.includes(_hrCat))_hrCat=cats[0];
+  if(!_hrDate)_hrDate=_todayStr();
+  const cur=(((S.hourRate||{})[_hrCat])||{})[_hrDate]||[];
+  const hours=_catCoverHours(_hrCat);
+  el.innerHTML=`
+    <div class="cc-sec" style="margin-bottom:8px">
+      ${cats.map(c=>`<button type="button" class="cc-mini ${c===_hrCat?'on':''}" onclick="hrSetCat('${c}')">${tCat(c)}</button>`).join('')}
+      <span class="cc-sub" style="margin-left:6px">日付</span><input type="date" value="${_hrDate}" style="width:auto;padding:4px 6px;font-size:12px" onchange="hrSetDate(this.value)">
+    </div>
+    <div class="cc-sub" style="margin-bottom:4px">${tCat(_hrCat)}が売っている時間だけ表示。本部画面の購入率（%）をそのまま入力。Enter／→で次の時間へ</div>
+    <div class="hr-grid">${hours.map((h,i)=>`<div class="hr-cell"><div class="hr-h">${h}時</div><input type="text" inputmode="decimal" id="hr-${i}" value="${cur[h]!=null?cur[h]:''}" placeholder="%" onfocus="this.select()" onkeydown="hrKeyNav(event,${i})" onchange="setHourRate(${h},this.value)"></div>`).join('')}</div>
+    <div class="cc-sec" style="margin-top:8px"><span class="cc-sub">保存済みの日：</span><span id="hr-dates">${_hrDatesHtml(_hrCat)}</span></div>
+    <div id="hr-coef" style="margin-top:8px;font-size:12px;color:${getHourRateAvg(_hrCat)?'#1d4ed8':'#94a3b8'}">${_hrCoefText(_hrCat)}</div>`;
+}
+function hrSetCat(c){ _hrCat=c; renderHourRate(); }
+function hrSetDate(d){ if(!d)return; _hrDate=d; renderHourRate(); }
+function setHourRate(h,raw){
+  const s=toHalf(String(raw||'')).replace('%','').trim();
+  if(!S.hourRate)S.hourRate={};
+  if(!S.hourRate[_hrCat])S.hourRate[_hrCat]={};
+  if(!Array.isArray(S.hourRate[_hrCat][_hrDate]))S.hourRate[_hrCat][_hrDate]=Array(24).fill(null);
+  const v=s===''?null:parseFloat(s);
+  S.hourRate[_hrCat][_hrDate][h]=(v==null||isNaN(v))?null:v;
+  if(S.hourRate[_hrCat][_hrDate].every(x=>x==null))delete S.hourRate[_hrCat][_hrDate];
+  if(!Object.keys(S.hourRate[_hrCat]).length)delete S.hourRate[_hrCat];
+  saveS();
+  // 入力欄は作り直さず（Enterで次へ進むフォーカスを保つ）、日付一覧と係数の表示だけ更新
+  const dl=document.getElementById('hr-dates'); if(dl)dl.innerHTML=_hrDatesHtml(_hrCat);
+  const co=document.getElementById('hr-coef'); if(co){ co.textContent=_hrCoefText(_hrCat); co.style.color=getHourRateAvg(_hrCat)?'#1d4ed8':'#94a3b8'; }
+  if(currentTab===3)renderProdDayContent(currentProdDay);
+}
+function hrDeleteDate(d){
+  if(!confirm(`${d} の${tCat(_hrCat)}の時間帯別購入率を削除しますか？`))return;
+  const m=(S.hourRate||{})[_hrCat]; if(m){ delete m[d]; if(!Object.keys(m).length)delete S.hourRate[_hrCat]; }
+  saveS(); renderHourRate();
+}
+function hrKeyNav(e,i){
+  if(e.isComposing||e.keyCode===229)return;
+  let ni=i; if(e.key==='Enter'||e.key==='ArrowRight')ni=i+1; else if(e.key==='ArrowLeft')ni=i-1; else return;
+  const n=document.getElementById('hr-'+ni); if(!n)return; e.preventDefault(); n.focus(); n.select();
 }
 
 // ====== サブタブ切替 ======
@@ -3653,6 +3781,7 @@ function switchWeek(key){
   S.skipped={...(w.skipped||{})};
   S.orderChecks={...(w.orderChecks||{})};
   S.soldOuts=JSON.parse(JSON.stringify(w.soldOuts||{}));
+  S.leftovers={...(w.leftovers||{})};
   S.weekStart=w.weekStart||weekKeyToDateStr(key);
   saveS();
   renderWeekSelector();
@@ -3672,6 +3801,7 @@ function addWeek(dateStr){
   S.skipped={...(S.weeks[key].skipped||{})};
   S.orderChecks={...(S.weeks[key].orderChecks||{})};
   S.soldOuts=JSON.parse(JSON.stringify(S.weeks[key].soldOuts||{}));
+  S.leftovers={...(S.weeks[key].leftovers||{})};
   S.weekStart=dateStr;
   saveS();
   renderWeekSelector();
@@ -5953,6 +6083,7 @@ function renderSlotGroupedView(dayIdx){
           <span style="font-size:21px;font-weight:800;color:#1d4ed8;min-width:34px;text-align:right">${grandTotal}</span>
           <button type="button" onclick="toggleSkipped('${chkKey}')" title="在庫欠品で作れなかった時に押す" style="padding:0;width:22px;height:22px;border:1px solid ${skipped?'#475569':'#cbd5e1'};background:${skipped?'#475569':'#fff'};color:${skipped?'#fff':'#64748b'};border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">⊘</button>
           <button type="button" onclick="openSoldOutModal('${p.id}',${di},${slotH})" title="完売→追加作成" style="padding:0;width:22px;height:22px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">🔔</button>
+          ${(()=>{const lo=!!(S.leftovers&&S.leftovers[chkKey]);return `<button type="button" onclick="toggleLeftover('${chkKey}')" title="${lo?'「余った」を解除':'余った（廃棄・値引きが出た）時に押す。続くとこの時間帯の作成数を自動で減らす'}" style="padding:0;width:22px;height:22px;border:1px solid ${lo?'#ea580c':'#cbd5e1'};background:${lo?'#ea580c':'#fff'};border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">📦</button>`;})()}
         </div>`;
       }).join('');
       cats+=`<div style="margin-bottom:10px">
@@ -6309,15 +6440,19 @@ function renderProdDayContent(dayIdx){
         const isSkip=wl>0&&sc<wl&&!(p.minCount||0);
         const mdTime=getMarkdownTime(cat,slotH);
         const baseJi=S.ji[p.id]?.teika||0;
-        const wkTotal=wt||1;
+        const wkTotal=getCatWeekTotal(cat)||1;
         const slotCust=range?getSlotCust(dayIdx,range[0],range[1]):0;
         const baseCnt=roundCnt(baseJi*slotCust/wkTotal);
         const diff=cnt-baseCnt;
+        const slotK=getSlotCoef(cat,slotH), learnAdj=getLearnAdj(p.id,dayIdx,slotH);
+        const leftover=!!(S.leftovers&&S.leftovers[chkKey]);
         // ツールチップで詳細情報（基準作成数・差分・最低引出客数・値引時間）を表示
         const tip=`【${p.name} ${SLOT_LABELS[slotH]}】\n`+
           `作成数：${isSkip?'なし':totalCnt}個${extra>0?`（通常${cnt}＋投資${extra}）`:''}\n`+
           `基準作成数：${baseCnt}個（実績×客数比）\n`+
           `基準との差：${diff>0?'+'+diff:diff}\n`+
+          (slotK!==1?`時間帯購入率の係数：×${slotK.toFixed(2)}\n`:'')+
+          (learnAdj!==1?`学習（完売/余り）：×${learnAdj.toFixed(2)}\n`:'')+
           `最低引出客数：${Math.round(wl)}人（実客${sc}人 / ${wl>0&&sc>=wl?'OK':'不足'}）\n`+
           (discOn?`値引開始：${fmtHour(mdTime)}`:`値引：なし（この曜日は値引OFF）`);
         // 完売イベント（追加作成履歴）
@@ -6342,6 +6477,8 @@ function renderProdDayContent(dayIdx){
             <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
             ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">在庫欠品</span>`:''}
+            ${leftover?`<span style="background:#ffedd5;color:#9a3412;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">余り</span>`:''}
+            ${learnAdj!==1?`<span style="background:#ede9fe;color:#5b21b6;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700" title="完売/余りの記録から自動調整">学習${learnAdj>1?'+':''}${Math.round((learnAdj-1)*100)}%</span>`:''}
             ${soBadges?`<span style="display:flex;flex-wrap:wrap;justify-content:center;gap:1px">${soBadges}</span>`:''}
             <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
               <input type="checkbox" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}
@@ -6349,6 +6486,8 @@ function renderProdDayContent(dayIdx){
               ${skipBtn}
               <button type="button" onclick="openSoldOutModal('${p.id}',${dayIdx},${slotH})" title="完売した時刻を入力して追加作成数を提案"
                 style="padding:0;width:18px;height:18px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;line-height:1">🔔</button>
+              <button type="button" onclick="toggleLeftover('${chkKey}')" title="${leftover?'「余った」を解除':'余った（廃棄・値引きが出た）時に押す。続くとこの時間帯の作成数を自動で減らす'}"
+                style="padding:0;width:18px;height:18px;border:1px solid ${leftover?'#ea580c':'#cbd5e1'};background:${leftover?'#ea580c':'#fff'};border-radius:4px;cursor:pointer;font-size:11px;line-height:1">📦</button>
               ${soEvents.length>0?`<button type="button" onclick="removeLastSoldOut('${p.id}',${dayIdx},${slotH})" title="最後の追加分を取消"
                 style="padding:0;width:18px;height:18px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:4px;cursor:pointer;font-size:10px;line-height:1">↶</button>`:''}
             </div>
