@@ -1201,9 +1201,9 @@ const I18N = {
     'budget.includeInvest':'※ 投資/新商品追加分を含む',
     'budget.toggleSum':'🔀 合算表示に切替','budget.toggleSplit':'🔀 分けて表示に切替',
     'budget.karaageGroup':'（からあげクン系）','budget.othersGroup':'（その他）','budget.totalGroup':'（合計）',
-    'budget.salesRateSection':'📊 カテゴリ別 販売率・適正販売率',
-    'budget.targetSr':'目標：適正販売率 {0}%以上',
-    'budget.salesRateExplain':'販売率＝定価+値引販売÷作成数　／　適正販売率＝定価販売のみ÷作成数（値引きなしで売れた割合）',
+    'budget.salesRateSection':'📊 カテゴリ別 販売率・定価販売率（実績）',
+    'budget.targetSr':'目標：定価販売率 {0}%以上',
+    'budget.salesRateExplain':'販売率＝（定価＋値引販売）÷ 作成数　／　定価販売率＝定価販売のみ ÷ 作成数（値引きなしで売れた割合）　※作成数＝定価＋値引＋廃棄。計画の「適正販売率」（定価÷目標）とは別物',
     'budget.daily':'曜日別サマリー',
     'budget.dataManage':'データ管理',
     'budget.cloudSync':'☁️ クラウド同期（GitHub Gist）',
@@ -2995,6 +2995,35 @@ function getCatSlotRange(cat,slotH){
   return [slotH,end];
 }
 
+// ---------- カテゴリが「売っている時間」の客数（FF計画シートの「算出範囲」に相当） ----------
+// 作成時間帯ごとのカバー範囲（getCatSlotRange）の合計＝そのカテゴリの商品が実際に売られている時間の客数。
+// 購入率・ゆとり・撤退ライン・時間帯配分はすべてこの客数で計算する（深夜など売っていない時間の客数を混ぜない。
+// 24時間合計で計算すると購入率が小さく出て撤退判定が厳しくなり、売っていない時間の客数の分だけ目標が配られずに消える）
+function getCatDayCust(cat,dayIdx){
+  const cfg=S.catCfg[cat];if(!cfg)return 0;
+  let s=0; cfg.slots.forEach(h=>{const r=getCatSlotRange(cat,h);if(r)s+=getSlotCust(dayIdx,r[0],r[1]);});
+  return s;
+}
+function getCatWeekTotal(cat){ let s=0; for(let d=0;d<7;d++)s+=getCatDayCust(cat,d); return s; }
+
+// ---------- 週の目標販売数（FF計画シートの式そのまま） ----------
+//   購入率   ＝ 定価販売数（直近4週平均）÷ 週の総客数（売っている時間）
+//   強気度   ＝ 値入額 ÷（原価＋値入額）＝ 値入率（店頭売価ベース）
+//   客数の波 ＝ 曜日別客数（売っている時間）の標準偏差
+//   ゆとり   ＝ 客数の波 × 購入率 × 強気度 × 7日
+//   週の目標 ＝ 定価販売数 ＋ ゆとり
+function getWeekTargetBase(pid){
+  const p=getP(pid);if(!p)return null;
+  const wt=getCatWeekTotal(p.category);
+  const teika=getRecentAvgTeika(pid,4);
+  const rate=wt?teika/wt:0;
+  const valInput=p.shopPrice-p.cost;
+  const aggressive=(p.cost+valInput)>0?valInput/(p.cost+valInput):0;
+  const sd=stdDev(DAYS.map((_,i)=>getCatDayCust(p.category,i)));
+  const slack=sd*rate*aggressive*7;
+  return {wt,teika,rate,sd,aggressive,slack,target:teika+slack};
+}
+
 // 作成開始から売場陳列完了までの所要時間（時間）
 const PREP_HOURS=1;
 
@@ -3054,16 +3083,9 @@ function getDayCust(dayIdx){
 
 function getCorrTarget(pid,dayIdx){
   const p=getP(pid);if(!p)return 0;
-  const wt=getWeekTotal();if(!wt)return 0;
-  // 直近4週の teika 移動平均を使う（単週の偶発変動を平滑化）
-  // 過去週データが無い時は現在週の teika だけが採用される
-  const teika=getRecentAvgTeika(pid, 4);
-  const rate=teika/wt;
-  const valInput=p.shopPrice-p.cost;
-  const aggressive=valInput/(p.cost+valInput);
-  const dayCusts=S.cust.map((_,i)=>getDayCust(i));
-  const sd=stdDev(dayCusts);
-  const slack=sd*rate*aggressive;
+  // 週の目標＝定価販売数（直近4週平均）＋ゆとり（getWeekTargetBase：シートの式）
+  const b=getWeekTargetBase(pid);if(!b||!b.wt)return 0;
+  const teika=b.teika, slack=b.slack;
   // 週次目標の下限：1日あたり「有効な最低作成数の合計」×7日
   // 全スロットOFFなら下限=0、有効slot数だけ加算される
   const _cfg=S.catCfg[p.category];
@@ -3095,7 +3117,7 @@ function getCorrTarget(pid,dayIdx){
 
 function getWithdraw(pid){
   const p=getP(pid);if(!p)return 0;
-  const wt=getWeekTotal();if(!wt)return 0;
+  const wt=getCatWeekTotal(p.category);if(!wt)return 0;   // 撤退客数＝原価率÷購入率（購入率は売っている時間の客数で）
   const ji=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
   const teika=ji.teika||0;
   const rate=teika/wt;
@@ -3135,7 +3157,7 @@ function getProdCntDetail(pid,dayIdx,slotH){
   const batch=getBatchUnit(p);
   const noStockout=!!p.noStockout;        // 品切れ防止（算出0でも最低batch）
   const sc=getSlotCust(dayIdx,hs,he);
-  const wt=getWeekTotal();
+  const wt=getCatWeekTotal(p.category);   // 時間帯配分の分母も「売っている時間」の客数（全時間帯の配分合計＝週目標になる）
   const ct=getCorrTarget(pid,dayIdx);
   // 週客数が無い(wt=0)時は自然算出0として続行（早期returnしない）→品切れ防止を効かせる
   let natural=(wt>0)?roundCnt(ct*sc/wt):0;
@@ -3257,7 +3279,7 @@ function calcJissekiMetrics(pid){
   const p=getP(pid);if(!p)return null;
   const ji=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
   const teika=ji.teika||0,nebiki=ji.nebiki||0,haiki=ji.haiki||0;
-  const wt=getWeekTotal();
+  const wt=getCatWeekTotal(p.category)||getWeekTotal();   // 購入率＝定価販売数÷売っている時間の客数
   const buyRate=wt?teika/wt*100:0;
   const salesAmt=teika*p.shopPrice+nebiki*(p.shopPrice-p.disc);
   const wasteAmt=haiki*p.cost;
@@ -6791,7 +6813,7 @@ function renderBudgetJisseki(){
           <div style="color:#ccc;font-size:16px">→</div>
           <!-- 適正販売率 -->
           <div style="text-align:center">
-            <div style="font-size:10px;color:#888;margin-bottom:1px">適正販売率</div>
+            <div style="font-size:10px;color:#888;margin-bottom:1px" title="定価販売数 ÷ 作成数（定価＋値引＋廃棄）。値引きなしで売れた割合（実績）">定価販売率（実績）</div>
             <div style="font-size:16px;font-weight:800;color:${targetColor}">${r.propRate.toFixed(1)}%</div>
           </div>
           <!-- 目標差バッジ -->
@@ -6826,8 +6848,8 @@ function renderBudgetJisseki(){
   const tSR=tot.makeCnt?tot.soldCnt/tot.makeCnt*100:0;
   const tPropR=tot.makeCnt?tot.teikaCnt/tot.makeCnt*100:0;
   let alerts='';
-  if(tPropR>0&&tPropR<90)alerts+=`<div class="alert alert-danger">⚠ 適正販売率が90%未満です（${tPropR.toFixed(1)}%）。廃棄・値引きが多い状態です</div>`;
-  else if(tPropR>0&&tPropR<TARGET_SR)alerts+=`<div class="alert alert-warn">△ 適正販売率が目標${TARGET_SR}%未満です（${tPropR.toFixed(1)}%）</div>`;
+  if(tPropR>0&&tPropR<90)alerts+=`<div class="alert alert-danger">⚠ 定価販売率（実績）が90%未満です（${tPropR.toFixed(1)}%）。廃棄・値引きが多い状態です</div>`;
+  else if(tPropR>0&&tPropR<TARGET_SR)alerts+=`<div class="alert alert-warn">△ 定価販売率（実績）が目標${TARGET_SR}%未満です（${tPropR.toFixed(1)}%）</div>`;
   if(tot.makeAmt&&tot.wasteAmt/tot.makeAmt*100>8)alerts+=`<div class="alert alert-warn">廃棄率が8%を超えています</div>`;
   el.innerHTML=alerts+html;
 }
@@ -6866,18 +6888,18 @@ function calcPlanBreakdown(){
       let nat=0,forced=0,extra=0;
       cfg.slots.forEach(h=>{const d=getProdCntDetail(p.id,di,h);nat+=d.natural;forced+=d.forced;extra+=getInvestExtra(p.id,di,h);});
       const cnt=nat+forced+extra;
-      const make=cnt*p.shopPrice, cost=cnt*p.cost, baseCost=(nat+forced)*p.cost;
+      const make=cnt*p.shopPrice, cost=cnt*p.cost, baseCost=(nat+forced)*p.cost, baseMake=(nat+forced)*p.shopPrice;
       const waste=nat*hr*p.shopPrice+(forced+extra)*p.shopPrice;
       const disc=nat*nr*p.disc;
       const sales=make-waste-disc;
-      return {nat,forced,extra,cnt,make,cost,baseCost,waste,disc,urihen:waste+disc,sales,profit:sales-cost};
+      return {nat,forced,extra,cnt,make,baseMake,cost,baseCost,waste,disc,urihen:waste+disc,sales,profit:sales-cost};
     });
     const sum={}; perDay.forEach(d=>Object.keys(d).forEach(k=>sum[k]=(sum[k]||0)+d[k]));
     rows.push({p,hasJi,hr,nr,perDay,sum,main:mainCatOf(p.category),group:_budGroupOf(p)});
   });
   return rows;
 }
-const _BUD_KEYS=['nat','forced','extra','cnt','make','cost','baseCost','waste','disc','urihen','sales','profit'];
+const _BUD_KEYS=['nat','forced','extra','cnt','make','baseMake','cost','baseCost','waste','disc','urihen','sales','profit'];
 function _budSum(rows){ const s={}; _BUD_KEYS.forEach(k=>s[k]=0); rows.forEach(r=>_BUD_KEYS.forEach(k=>s[k]+=r.sum[k])); return s; }
 function _budSumDay(rows,di){ const s={}; _BUD_KEYS.forEach(k=>s[k]=0); rows.forEach(r=>_BUD_KEYS.forEach(k=>s[k]+=r.perDay[di][k])); return s; }
 const _budYen=v=>fmt(Math.round(v));
@@ -6897,11 +6919,22 @@ function renderBudgetPlan(){
   const rate=_budRate(T.profit,T.sales), urihenRate=T.sales?T.urihen/T.sales*100:0;
   const noDataProds=rows.filter(r=>!r.hasJi&&r.sum.cnt>0).map(r=>r.p.name);
 
-  // ── 投資予算 ──
+  // ── 売変予算・新商品予算（FF計画シートの式） ──
+  //   適正販売率     ＝ Σ定価販売数 ÷ Σ週の目標販売数（定価販売数＋ゆとり）   ※カテゴリ別
+  //   売変予算(最適) ＝ 週の作成高（基本作成分）×（100% − 適正販売率）
+  //   売変予算(最大) ＝ 1日平均の作成高 × 0.5
+  //   新商品予算     ＝ 最大 − 最適 → 新商品・定番投資に使える枠
   if(!S.budget.newProductCounts)S.budget.newProductCounts={};
   if(!S.budget.investCounts)S.budget.investCounts={};
-  // 投資できる上限 = 売上高 − 基本作成原価（投資ゼロ時の利益高 ＝ 投資にかけられる枠）
-  const newBudgetMax=Math.max(0,T.sales-T.baseCost);
+  const bud=_budMains(rows).map(mc=>{
+    const crows=rows.filter(r=>r.main===mc); const s=_budSum(crows);
+    let teika=0,target=0; crows.forEach(r=>{const b=getWeekTargetBase(r.p.id); if(b){teika+=b.teika;target+=b.target;}});
+    const rate=target?teika/target:0, opt=s.baseMake*(1-rate), max=s.baseMake/7*0.5;
+    return {mc,teika,target,rate,make:s.baseMake,opt,max,diff:max-opt};
+  });
+  const budTot=bud.reduce((a,b)=>({teika:a.teika+b.teika,target:a.target+b.target,make:a.make+b.make,opt:a.opt+b.opt,max:a.max+b.max,diff:a.diff+b.diff}),{teika:0,target:0,make:0,opt:0,max:0,diff:0});
+  budTot.rate=budTot.target?budTot.teika/budTot.target:0;
+  const newBudgetMax=Math.max(0,budTot.diff);   // 新商品・投資に使える予算（売変予算の 最大 − 最適）
   // 新商品予算（正式）= 1日あたり個数 × 7日 × 原価 の合計
   const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
     .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*7*p.cost,0);
@@ -6937,10 +6970,22 @@ function renderBudgetPlan(){
         ${tgt?`<div class="bd-bv">計画 ${_budYen(T.make)}円 ／ 予算比 <b style="color:${T.make>=tgt?'var(--green)':'var(--red)'}">${(T.make/tgt*100).toFixed(0)}%</b></div>${bar(T.make,tgt,false)}`:'<div class="bd-s">目標の作成高を入れると達成率を表示します</div>'}</div>
       <div class="bd-bcard"><div class="bd-l">廃棄予算 <input type="text" inputmode="numeric" value="${wtgt||''}" placeholder="未設定" onchange="setBudgetTarget('wasteTarget',this.value)"> 円</div>
         ${wtgt?`<div class="bd-bv">見込み ${_budYen(T.waste)}円 ／ 予算比 <b style="color:${T.waste<=wtgt?'var(--green)':'var(--red)'}">${(T.waste/wtgt*100).toFixed(0)}%</b></div>${bar(T.waste,wtgt,true)}`:'<div class="bd-s">廃棄の上限を入れると使用率を表示します</div>'}</div>
-      <div class="bd-bcard"><div class="bd-l">投資に回せる上限 <span class="info" title="基本作成（自然算出＋最低作成分）だけで出る利益 ＝ 売上高 − 基本作成の原価。この範囲なら投資しても赤字になりません">ℹ️</span></div>
+      <div class="bd-bcard"><div class="bd-l">新商品・投資に使える予算 <span class="info" title="FF計画シートの「新商品予算」＝ 売変予算の最大値（1日平均作成高×0.5）− 最適値（作成高×(1−適正販売率)）。下の表の合計">ℹ️</span></div>
         <div class="bd-bv" style="color:${newBudgetMax>0?'#16a34a':'#dc2626'}">${_budYen(newBudgetMax)}円</div>
-        <div class="bd-s">使用中：新商品 ${_budYen(newBudgetFormal)}円 ＋ 定番投資 ${_budYen(investBudgetFormal)}円${(newBudgetFormal+investBudgetFormal)>newBudgetMax?' <b style="color:var(--red)">⚠ 上限超過</b>':''}</div></div>
-    </div>`;
+        <div class="bd-s">使用中：新商品 ${_budYen(newBudgetFormal)}円 ＋ 定番投資 ${_budYen(investBudgetFormal)}円${(newBudgetFormal+investBudgetFormal)>newBudgetMax?' <b style="color:var(--red)">⚠ 予算超過</b>':''}</div></div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:var(--main);margin:14px 0 6px">売変予算 <span class="bd-sub">FF計画シートの式。列見出しに式</span></div>
+    <div class="overflow-auto"><table class="bd-table"><thead><tr>
+      <th style="text-align:left">カテゴリ</th>
+      <th title="Σ定価販売数（直近4週平均）÷ Σ週の目標販売数（定価販売数＋ゆとり）">適正販売率</th>
+      <th title="基本作成分の作成高 ×（100% − 適正販売率）＝ 廃棄・値引きに使ってよい金額の目安" class="bd-opt">作成高（基本）</th>
+      <th title="作成高 ×（100% − 適正販売率）">売変予算（最適）</th>
+      <th title="1日平均の作成高 × 0.5">売変予算（最大）</th>
+      <th title="最大 − 最適 ＝ 新商品・定番投資に使える枠">新商品予算</th>
+    </tr></thead><tbody>
+      ${bud.map(b=>`<tr><td class="bd-name"><b>${tCat(b.mc)}</b></td><td style="font-weight:700;color:${b.rate>=0.96?'var(--green)':b.rate>=0.9?'var(--orange)':'var(--red)'}">${(b.rate*100).toFixed(1)}%</td><td class="bd-opt">${_budYen(b.make)}</td><td style="color:#b45309">${_budYen(b.opt)}</td><td>${_budYen(b.max)}</td><td style="font-weight:700;color:${b.diff>=0?'#16a34a':'#dc2626'}">${_budYen(b.diff)}</td></tr>`).join('')}
+      <tr class="bd-total"><td class="bd-name"><b>合計</b></td><td>${(budTot.rate*100).toFixed(1)}%</td><td class="bd-opt">${_budYen(budTot.make)}</td><td>${_budYen(budTot.opt)}</td><td>${_budYen(budTot.max)}</td><td style="color:${budTot.diff>=0?'#16a34a':'#dc2626'}">${_budYen(budTot.diff)}</td></tr>
+    </tbody></table></div>`;
   renderBudgetCats(rows);
   renderBudgetDaily(rows);
   renderBudgetFormula();
@@ -6950,7 +6995,7 @@ function renderBudgetPlan(){
   if(invEl) invEl.innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 8px;text-align:center">
-        <div style="font-size:11px;color:#166534">投資できる上限 <span class="info" title="基本作成だけで出る利益（売上高 − 基本作成の原価）">ℹ️</span></div>
+        <div style="font-size:11px;color:#166534">新商品・投資に使える予算 <span class="info" title="売変予算の最大値 − 最適値（FF計画シートの「新商品予算」）">ℹ️</span></div>
         <div style="font-size:18px;font-weight:800;color:${newBudgetMax>=0?'#16a34a':'#dc2626'}">${fmt(newBudgetMax)}円</div>
       </div>
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 8px;text-align:center">
@@ -7246,8 +7291,13 @@ function renderBudgetFormula(){
     <div><b>売変額</b> ＝ 廃棄額 ＋ 値引額　　<b>売変率</b> ＝ 売変額 ÷ 売上高</div>
     <div><b>売上高</b> ＝ 作成高 − 売変額</div>
     <div><b>原価</b> ＝ 作成数 × 原価　　<b>利益</b> ＝ 売上高 − 原価　　<b>利益率</b> ＝ 利益 ÷ 売上高</div>
-    <div><b>投資に回せる上限</b> ＝ 売上高 −（自然算出 ＋ 最低作成分）の原価　＝ 基本作成だけで出る利益</div>
-    <div><b>新商品予算</b> ＝ 1日あたり追加数 × 7日 × 原価　　<b>定番投資予算</b> ＝ 1日あたり追加数 × 対象曜日数 × 原価</div>
+    <div style="margin-top:6px"><b>作成数の元（FF計画シートの式）</b>：購入率 ＝ 定価販売数（直近4週平均）÷ 週の総客数（そのカテゴリが売っている時間の客数）／
+      強気度 ＝ 値入率／客数の波 ＝ 曜日別客数の標準偏差／<b>ゆとり</b> ＝ 客数の波 × 購入率 × 強気度 × 7日／<b>週の目標</b> ＝ 定価販売数 ＋ ゆとり／
+      時間帯別 ＝ 週の目標 × その時間帯の客数 ÷ 週の総客数／撤退客数 ＝ 原価率 ÷ 購入率</div>
+    <div><b>適正販売率</b> ＝ Σ定価販売数 ÷ Σ週の目標販売数（定価＋ゆとり）　※「ゆとり」の分だけ売れ残る想定</div>
+    <div><b>売変予算（最適）</b> ＝ 作成高（基本作成分）×（100% − 適正販売率）　　<b>売変予算（最大）</b> ＝ 1日平均の作成高 × 0.5</div>
+    <div><b>新商品・投資に使える予算</b> ＝ 売変予算の最大 − 最適</div>
+    <div><b>新商品予算（使用中）</b> ＝ 1日あたり追加数 × 7日 × 原価　　<b>定番投資（使用中）</b> ＝ 1日あたり追加数 × 対象曜日数 × 原価</div>
     <div class="bd-sub" style="margin-top:4px">実績廃棄率・値引率は ①実績入力（全週の累計）から商品ごとに計算。実績が無い商品は廃棄100%で見積もります。曜日別サマリー・カテゴリ別の計画・上の集計はすべて同じ計算です。</div>`;
 }
 
