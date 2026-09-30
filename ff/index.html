@@ -2256,8 +2256,10 @@ function _broadcastSave(){
 function openRecoveryModal(){
   const m=document.getElementById('recovery-modal');
   if(!m)return;
+  // モーダルは⑤予算管理タブの中に置かれていたため、他のタブから開くと親が display:none で見えなかった → body 直下へ移す
+  if(m.parentElement!==document.body)document.body.appendChild(m);
   m.style.display='flex';
-  renderRecoveryList();
+  renderRecoveryList().catch(e=>{ const el=document.getElementById('recovery-list'); if(el)el.innerHTML='<div style="padding:16px;color:#dc2626">一覧の読み込みに失敗しました: '+String(e&&e.message||e)+'</div>'; });
 }
 function closeRecoveryModal(){
   const m=document.getElementById('recovery-modal');
