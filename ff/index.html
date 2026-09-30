@@ -594,6 +594,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
             <div class="section-title" style="margin:0" id="jisseki-title">実績入力</div>
             <div class="flex gap-2 items-center">
               <button class="btn-secondary" onclick="loadPrevJisseki()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
+              <button type="button" onclick="openRecoveryModal()" title="消えた週や商品を、この端末に自動保存されたスナップショットから戻す" style="padding:6px 10px;font-size:12px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px">🛟 データ復元</button>
               <button type="button" onclick="resetJisseki()" title="この週の実績を全て0に戻す（確認あり）" style="padding:6px 10px;font-size:12px;background:transparent;color:#94a3b8;border:1px solid #e5e7eb;border-radius:8px" data-i18n="common.reset">リセット</button>
             </div>
           </div>
@@ -1838,7 +1839,7 @@ function _ffSaveObj(){
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
-    rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,leftovers:S.leftovers,hourRate:S.hourRate,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
+    rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,leftovers:S.leftovers,hourRate:S.hourRate,deleted:S.deleted,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
     施策:S.施策,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
@@ -1852,9 +1853,34 @@ function _ffMarkLoaded(key,raw){ _ffLoadedKey=key; _ffLoadedRaw=raw; }
 function _isPlainObj(v){ return v!==null&&typeof v==='object'&&!Array.isArray(v); }
 // 3方向マージ：base=読み込んだ時点、local=いまの S、remote=localStorage の最新。片方しか変えていない項目は変えた側、
 // 両方が変えた項目はオブジェクトの中まで(depth階層)見て合成。同じ項目を両方が変えていた時だけ S（操作中の側）を採用
+// 削除の墓標（S.deleted.weeks / S.deleted.PM）。週と商品は同期・合成で暗黙に消さず、墓標がある時だけ消す
+let _mergeTomb=null;
+function _tombOf(a,b){ const g=(o,f)=>Object.keys((((o||{}).deleted||{})[f])||{}); return {weeks:new Set([...g(a,'weeks'),...g(b,'weeks')]),PM:new Set([...g(a,'PM'),...g(b,'PM')])}; }
+// 週（キー付きオブジェクト）：片方にしか無い週も残す。両方にあれば中を合成
+function _mergeKeyed(lo,ro,bo,depth,path,conflicts,tomb){
+  const out={};
+  new Set([...Object.keys(lo),...Object.keys(ro)]).forEach(k=>{
+    if(tomb&&tomb.has(k))return;
+    if(!(k in lo)){out[k]=ro[k];return;} if(!(k in ro)){out[k]=lo[k];return;}
+    const v=_merge3(lo[k],ro[k],(bo||{})[k],depth-1,path+'.'+k,conflicts); if(v!==undefined)out[k]=v;
+  });
+  return out;
+}
+// 商品（id付き配列）：idで対応づけ、片方にしか無い商品も残す。両方にあれば中を合成
+function _mergeArrById(la,ra,ba,depth,path,conflicts,tomb){
+  const id=x=>(x&&typeof x==='object')?x.id:undefined;
+  if(!la.every(x=>id(x)!=null)||!ra.every(x=>id(x)!=null)){ const ls=JSON.stringify(la),rs=JSON.stringify(ra),bs=JSON.stringify(ba); if(ls===rs||rs===bs)return la; if(ls===bs)return ra; conflicts.push(path); return la; }
+  const bm=new Map((ba||[]).filter(x=>id(x)!=null).map(x=>[id(x),x])), rm=new Map(ra.map(x=>[id(x),x]));
+  const out=[], seen=new Set();
+  la.forEach(x=>{ const k=id(x); seen.add(k); if(tomb&&tomb.has(k))return; if(!rm.has(k)){out.push(x);return;} const v=_merge3(x,rm.get(k),bm.get(k),depth-1,path+'['+k+']',conflicts); if(v!==undefined)out.push(v); });
+  ra.forEach(x=>{ const k=id(x); if(seen.has(k)||(tomb&&tomb.has(k)))return; out.push(x); });
+  return out;
+}
 function _merge3(local,remote,base,depth,path,conflicts){
   const ls=JSON.stringify(local), rs=JSON.stringify(remote), bs=JSON.stringify(base);
   if(ls===rs)return local;
+  if(/\.weeks$/.test(path)&&_isPlainObj(local||{})&&_isPlainObj(remote||{}))return _mergeKeyed(local||{},remote||{},_isPlainObj(base)?base:{},depth,path,conflicts,_mergeTomb&&_mergeTomb.weeks);
+  if(/\.PM$/.test(path)&&Array.isArray(local||[])&&Array.isArray(remote||[]))return _mergeArrById(local||[],remote||[],Array.isArray(base)?base:[],depth,path,conflicts,_mergeTomb&&_mergeTomb.PM);
   if(ls===bs)return remote;
   if(rs===bs)return local;
   if(depth>0&&_isPlainObj(local)&&_isPlainObj(remote)){
@@ -1881,7 +1907,8 @@ function saveS(){
       const base=JSON.parse(_ffLoadedRaw), fresh=JSON.parse(prevRaw);
       if(!_looksEmptyState(fresh)){
         const conflicts=[];
-        out=_merge3(out,fresh,base,3,'',conflicts);
+        _mergeTomb=_tombOf(out,fresh);
+        try{ out=_merge3(out,fresh,base,3,'',conflicts); }finally{ _mergeTomb=null; }
         Object.assign(S,out);
         logOp('MERGE_STALE_SAVE',{conflicts:conflicts.slice(0,20)});
         if(conflicts.length)console.warn('FF管理: 他端末の更新と同じ項目を変更していたため、この端末の値を採用しました',conflicts);
@@ -2236,70 +2263,108 @@ function closeRecoveryModal(){
   const m=document.getElementById('recovery-modal');
   if(m)m.style.display='none';
 }
+// 復元候補（この端末内）：FFの自動スナップ／緊急退避（localStorage・IndexedDB）＋統合アプリの退避（unified_backup_*）
+let _recItems=[];
+function _recContent(item){
+  try{
+    if(item.source==='IndexedDB')return item.content||'';
+    if(item.source==='統合アプリ退避'){ const o=JSON.parse(localStorage.getItem(item.key)||'{}'); return (o&&o.data&&o.data[item.dataKey])||''; }
+    return localStorage.getItem(item.key)||'';
+  }catch(_){return '';}
+}
 async function renderRecoveryList(){
   const el=document.getElementById('recovery-list');
   if(!el)return;
   el.innerHTML='<div style="color:#6b7280">読み込み中…</div>';
-  // localStorage 側を集約
-  const lsItems=[];
-  const labelOf=p=>({snap:'自動スナップ',emergency:'緊急退避',pre_import:'インポート直前',pre_pull:'クラウド取得直前',autobackup:'自動退避'})[p]||p;
+  const labelOf=p=>({snap:'自動スナップ',emergency:'緊急退避',pre_import:'インポート直前',pre_pull:'クラウド取得直前',autobackup:'自動退避',cloud_apply:'統合アプリ：クラウド取込の直前',conflict:'統合アプリ：他端末と衝突した時',pre_import_app:'統合アプリ：インポートの直前',pre_restore:'統合アプリ：復元の直前'})[p]||p;
+  const items=[];
   Object.keys(localStorage).forEach(k=>{
-    const m=k.match(/^ffv6_(snap|emergency|pre_import|pre_pull|autobackup)_(?:([a-zA-Z0-9_]+)_)?(\d{10,})$/);
-    if(!m)return;
-    lsItems.push({source:'localStorage',key:k,prefix:m[1],storeId:m[2]||'',t:parseInt(m[3],10)});
+    let m=k.match(/^ffv6_(snap|emergency|pre_import|pre_pull|autobackup)_(?:([a-zA-Z0-9_]+)_)?(\d{10,})$/);
+    if(m){ items.push({source:'localStorage',key:k,prefix:m[1],storeId:m[2]||'',t:parseInt(m[3],10)}); return; }
+    m=k.match(/^unified_backup_(cloud_apply|conflict|pre_import|pre_restore)_(\d{10,})$/);
+    if(m){ const dataKey='ffv6_store_'+(currentStoreId||''); try{ const o=JSON.parse(localStorage.getItem(k)||'{}'); if(o&&o.data&&o.data[dataKey]) items.push({source:'統合アプリ退避',key:k,dataKey,prefix:m[1]==='pre_import'?'pre_import_app':m[1],storeId:currentStoreId||'',t:parseInt(m[2],10)}); }catch(_){} }
   });
-  // IndexedDB 側
   const idb=await idbListSnapshots();
-  const idbItems=idb.map(r=>({source:'IndexedDB',key:'idb:'+r.t,prefix:'snap',storeId:r.storeId||'',t:r.t,content:r.content}));
-  const all=[...lsItems,...idbItems].sort((a,b)=>b.t-a.t);
-  if(all.length===0){
+  idb.forEach(r=>items.push({source:'IndexedDB',key:'idb:'+r.t,prefix:'snap',storeId:r.storeId||'',t:r.t,content:r.content}));
+  items.sort((a,b)=>b.t-a.t);
+  _recItems=items;
+  if(items.length===0){
     el.innerHTML='<div style="padding:20px;text-align:center;color:#6b7280">復元できるスナップショットがまだありません。<br>データを編集して保存すると自動で作成されます。</div>';
     return;
   }
-  // サイズ計算
-  const sizeOf=item=>{
-    if(item.source==='IndexedDB')return(item.content||'').length;
-    try{return(localStorage.getItem(item.key)||'').length;}catch(_){return 0;}
-  };
   const fmtT=ts=>new Date(ts).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const fmtBytes=n=>n<1024?n+'B':n<1024*1024?(n/1024).toFixed(1)+'KB':(n/1024/1024).toFixed(2)+'MB';
   const storeName=id=>(storeList||[]).find(s=>s.id===id)?.name||(id?'(削除済 '+id.slice(0,8)+')':'');
-  el.innerHTML=all.slice(0,80).map((it,i)=>{
+  const curWeeks=new Set(Object.keys(S.weeks||{}));
+  const fmtWeek=k=>{ try{ const d=parseLocalDate(weekKeyToDateStr(k)); return `${d.getMonth()+1}/${d.getDate()}週`; }catch(_){ return k; } };
+  el.innerHTML=`<div style="font-size:11px;color:#64748b;padding:6px 10px 10px;line-height:1.6">週の名前をタップすると<b>その週だけ</b>を今のデータに戻せます（他の週や商品はそのまま）。<span style="color:#dc2626;font-weight:700">赤い週</span>＝今のデータに無い週。「全部復元」はスナップショット全体で置き換えます。</div>`+
+    items.slice(0,80).map((it,i)=>{
     const sn=storeName(it.storeId);
     const isCurrent=it.storeId===currentStoreId||(!it.storeId&&!currentStoreId);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #f1f5f9">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:#1e293b">${fmtT(it.t)} <span style="font-weight:400;color:#64748b">[${labelOf(it.prefix)}]</span></div>
-        <div style="font-size:11px;color:#6b7280;margin-top:2px">${it.source} ・ ${fmtBytes(sizeOf(it))}${sn?' ・ 店舗: '+sn+(isCurrent?' (現在の店舗)':''):''}</div>
+    const content=_recContent(it); let weeks=[],pm=0;
+    try{ const o=JSON.parse(content); weeks=Object.keys(o.weeks||{}).sort((a,b)=>parseLocalDate(weekKeyToDateStr(a))-parseLocalDate(weekKeyToDateStr(b))); pm=(o.PM||[]).length; }catch(_){}
+    const weekChips=weeks.map(w=>{ const missing=!curWeeks.has(w); return `<button type="button" onclick="restoreWeekFromRecovery(${i},'${w}')" title="${missing?'今のデータに無い週。この週だけ戻す':'この週だけ戻す（今の同じ週を置き換え）'}" style="padding:2px 8px;font-size:11px;border-radius:10px;border:1px solid ${missing?'#fca5a5':'#cbd5e1'};background:${missing?'#fef2f2':'#fff'};color:${missing?'#b91c1c':'#334155'};font-weight:${missing?700:500};cursor:pointer">${fmtWeek(w)}</button>`; }).join(' ');
+    return `<div style="padding:10px;border-bottom:1px solid #f1f5f9">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-size:13px;font-weight:600;color:#1e293b">${fmtT(it.t)} <span style="font-weight:400;color:#64748b">[${labelOf(it.prefix)}]</span></div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px">${it.source} ・ ${fmtBytes(content.length)} ・ 商品${pm}件 ・ 週${weeks.length}${sn?' ・ 店舗: '+sn+(isCurrent?' (現在の店舗)':''):''}</div>
+        </div>
+        <button class="btn-secondary" style="padding:4px 10px;font-size:11px" onclick="previewRecovery(${i})">👁 中身</button>
+        <button class="btn-primary" style="padding:6px 12px;font-size:12px;width:auto;margin:0" onclick="restoreFromRecovery(${i})" ${!isCurrent&&it.storeId?'title="この店舗のデータに復元"':''}>全部復元</button>
       </div>
-      <button class="btn-secondary" style="padding:4px 10px;font-size:11px" onclick='previewRecovery(${JSON.stringify(it)})'>👁 中身</button>
-      <button class="btn-primary" style="padding:6px 12px;font-size:12px" onclick='restoreFromRecovery(${JSON.stringify(it)})' ${!isCurrent&&it.storeId?'title="この店舗のデータに復元"':''}>復元</button>
+      ${weekChips?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center"><span style="font-size:10px;color:#94a3b8">週：</span>${weekChips}</div>`:''}
     </div>`;
-  }).join('')+(all.length>80?`<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px">…他${all.length-80}件は省略</div>`:'');
+  }).join('')+(items.length>80?`<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px">…他${items.length-80}件は省略</div>`:'');
 }
-async function previewRecovery(item){
-  let content='';
-  if(item.source==='IndexedDB'){content=item.content||'';}
-  else{try{content=localStorage.getItem(item.key)||'';}catch(_){}}
+async function previewRecovery(idx){
+  const item=_recItems[idx]; if(!item)return;
+  const content=_recContent(item);
   let preview=content.slice(0,1500);
   try{
     const obj=JSON.parse(content);
     const summary={
       storeName:obj.storeName||'(未設定)',
-      週数:Object.keys(obj.weeks||{}).length,
+      週:Object.keys(obj.weeks||{}).join(', ')||'(なし)',
       アクティブ週:obj.activeWeek||'(なし)',
+      商品件数:(obj.PM||[]).length,
+      商品名:(obj.PM||[]).map(p=>p.name).join('、').slice(0,300),
       ルール件数:(obj.rules||[]).length,
-      施策件数:(obj.施策||[]).length,
-      PM件数:(obj.PM||[]).length
+      施策件数:(obj.施策||[]).length
     };
-    preview=JSON.stringify(summary,null,2)+'\n\n--- 先頭プレビュー ---\n'+content.slice(0,800);
+    preview=JSON.stringify(summary,null,2);
   }catch(_){}
   alert('=== '+item.key+' ===\n保存時刻: '+new Date(item.t).toLocaleString('ja-JP')+'\n\n'+preview);
 }
-async function restoreFromRecovery(item){
-  let content='';
-  if(item.source==='IndexedDB'){content=item.content||'';}
-  else{try{content=localStorage.getItem(item.key)||'';}catch(_){}}
+// スナップショットから「その週だけ」を今のデータに戻す（他の週・商品・設定はそのまま）
+function restoreWeekFromRecovery(idx,weekKey){
+  const item=_recItems[idx]; if(!item)return;
+  let obj; try{ obj=JSON.parse(_recContent(item)); }catch(e){ alert('このスナップショットは読めません: '+e.message); return; }
+  const w=obj&&obj.weeks&&obj.weeks[weekKey]; if(!w){ alert('この週のデータが含まれていません'); return; }
+  const label=(()=>{try{const d=parseLocalDate(weekKeyToDateStr(weekKey));return `${d.getMonth()+1}/${d.getDate()}週`;}catch(_){return weekKey;}})();
+  const exists=!!(S.weeks&&S.weeks[weekKey]);
+  const jiCnt=Object.keys(w.ji||{}).length, chkCnt=Object.keys(w.checks||{}).length;
+  if(!confirm(`${new Date(item.t).toLocaleString('ja-JP')} のスナップショットから「${label}」だけを戻します。\n（実績 ${jiCnt}商品・完了チェック ${chkCnt}件）\n${exists?'今ある同じ週のデータは置き換えます（直前の状態は退避します）。':'今のデータには無い週なので追加します。'}\n他の週・商品・設定はそのままです。続行しますか？`))return;
+  _backupCurrent('emergency');
+  logOp('RECOVERY_RESTORE_WEEK',{from:item.key,week:weekKey});
+  if(!S.weeks)S.weeks={};
+  S.weeks[weekKey]=JSON.parse(JSON.stringify(w));
+  if(S.deleted&&S.deleted.weeks)delete S.deleted.weeks[weekKey];   // 墓標を外す（同期で再び消されないように）
+  if(S.activeWeek===weekKey){
+    S.ji=JSON.parse(JSON.stringify(w.ji||{})); S.cust=(w.cust||[]).map(r=>[...r]); S.checks={...(w.checks||{})}; S.skipped={...(w.skipped||{})};
+    S.orderChecks={...(w.orderChecks||{})}; S.soldOuts=JSON.parse(JSON.stringify(w.soldOuts||{})); S.leftovers={...(w.leftovers||{})}; S.weekStart=w.weekStart||weekKeyToDateStr(weekKey);
+    saveS(); renderAll();
+  } else {
+    saveS();
+    if(confirm(`「${label}」を戻しました。この週に切り替えますか？`)){ switchWeek(weekKey); }
+    else { renderWeekSelector(); }
+  }
+  closeRecoveryModal();
+  alert(`「${label}」を戻しました。統合アプリで開いていれば他の端末にも同期されます。`);
+}
+async function restoreFromRecovery(idx){
+  const item=_recItems[idx]; if(!item)return;
+  const content=_recContent(item);
   if(!content){alert('このスナップショットは空です（復元できません）');return;}
   // 復元先の店舗ID（スナップに含まれていればそれを優先、なければ現在の店舗）
   const targetStoreId=item.storeId||currentStoreId||'';
@@ -3806,6 +3871,7 @@ function addWeek(dateStr){
   if(!S.weeks[key]){
     S.weeks[key]={ji:{},cust:Array.from({length:7},()=>new Array(24).fill(0)),checks:{},skipped:{},weekStart:dateStr};
   }
+  if(S.deleted&&S.deleted.weeks)delete S.deleted.weeks[key];   // 作り直した週は墓標を外す
   S.activeWeek=key;
   S.ji=JSON.parse(JSON.stringify(S.weeks[key].ji));
   S.cust=S.weeks[key].cust.map(r=>[...r]);
@@ -3828,7 +3894,10 @@ function deleteWeek(key){
     clearTimeout(deleteConfirmTimer);
     deleteConfirmKey=null;
     deleteConfirmTimer=null;
+    // 削除前に退避（間違って消しても「データ復元」から戻せる）＋墓標（同期で他端末からも消す。墓標が無い週は同期で消えない）
+    _backupCurrent('emergency');
     delete S.weeks[key];
+    if(!S.deleted)S.deleted={}; if(!S.deleted.weeks)S.deleted.weeks={}; S.deleted.weeks[key]=Date.now();
     if(S.activeWeek===key){
       const remaining=Object.keys(S.weeks).sort();
       switchWeek(remaining[remaining.length-1]);
@@ -4926,7 +4995,9 @@ function addProduct(){
 function delProduct(pid){
   const p=S.PM.find(x=>x.id===pid);
   if(!confirm(`「${(p&&p.name)||'(名称未設定)'}」を削除しますか？\nこの商品の実績・予算などのデータも消えます（取り消し不可）`))return;
+  _backupCurrent('emergency');
   S.PM=S.PM.filter(p=>p.id!==pid);
+  if(!S.deleted)S.deleted={}; if(!S.deleted.PM)S.deleted.PM={}; S.deleted.PM[pid]=Date.now();   // 墓標：同期で他端末からも消す（墓標が無い商品は同期で消えない）
   // 孤立データをクリーンアップ
   delete S.ji[pid];
   Object.values(S.weeks||{}).forEach(w=>{if(w.ji)delete w.ji[pid];});

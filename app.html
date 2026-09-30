@@ -700,9 +700,33 @@ function _dataSig(d){ d=d||{}; return JSON.stringify(Object.keys(d).sort().map(k
 // ・両方が変えたキーは JSON の中まで（depth 階層）見て項目ごとに合成。同じ項目を両方が変えた時だけ preferLocal に従う
 //   （基準がある時は端末側＝未送信の変更を黙って消さない。基準が無い初回はクラウド側）
 function _isPlainObj(v){ return v!==null&&typeof v==='object'&&!Array.isArray(v); }
+// FF店舗データの「週（weeks）」「商品（PM）」は同期で暗黙に消さない。
+// 片方に無くても残し（古い版の端末が古い状態で保存しても他端末から消えない）、消えるのは削除操作が残す墓標（deleted）がある時だけ
+let _mergeTomb=null;
+function _tombOf(a,b){ const g=(o,f)=>Object.keys((((o||{}).deleted||{})[f])||{}); return {weeks:new Set([...g(a,'weeks'),...g(b,'weeks')]),PM:new Set([...g(a,'PM'),...g(b,'PM')])}; }
+function _mergeKeyed(lo,ro,bo,preferLocal,depth,path,conflicts,tomb){
+  const out={};
+  new Set([...Object.keys(lo),...Object.keys(ro)]).forEach(k=>{
+    if(tomb&&tomb.has(k))return;
+    if(!(k in lo)){out[k]=ro[k];return;} if(!(k in ro)){out[k]=lo[k];return;}
+    const v=_merge3(lo[k],ro[k],(bo||{})[k],preferLocal,depth-1,path+'.'+k,conflicts); if(v!==undefined)out[k]=v;
+  });
+  return out;
+}
+function _mergeArrById(la,ra,ba,preferLocal,depth,path,conflicts,tomb){
+  const id=x=>(x&&typeof x==='object')?x.id:undefined;
+  if(!la.every(x=>id(x)!=null)||!ra.every(x=>id(x)!=null)){ const ls=JSON.stringify(la),rs=JSON.stringify(ra),bs=JSON.stringify(ba); if(ls===rs)return la; if(ls===bs)return ra; if(rs===bs)return la; conflicts.push(path); return preferLocal?la:ra; }
+  const bm=new Map((ba||[]).filter(x=>id(x)!=null).map(x=>[id(x),x])), rm=new Map(ra.map(x=>[id(x),x]));
+  const out=[], seen=new Set();
+  la.forEach(x=>{ const k=id(x); seen.add(k); if(tomb&&tomb.has(k))return; if(!rm.has(k)){out.push(x);return;} const v=_merge3(x,rm.get(k),bm.get(k),preferLocal,depth-1,path+'['+k+']',conflicts); if(v!==undefined)out.push(v); });
+  ra.forEach(x=>{ const k=id(x); if(seen.has(k)||(tomb&&tomb.has(k)))return; out.push(x); });
+  return out;
+}
 function _merge3(local,remote,base,preferLocal,depth,path,conflicts){
   const ls=JSON.stringify(local), rs=JSON.stringify(remote), bs=JSON.stringify(base);
   if(ls===rs)return local;
+  if(_mergeTomb&&/\.weeks$/.test(path)&&_isPlainObj(local||{})&&_isPlainObj(remote||{}))return _mergeKeyed(local||{},remote||{},_isPlainObj(base)?base:{},preferLocal,depth,path,conflicts,_mergeTomb.weeks);
+  if(_mergeTomb&&/\.PM$/.test(path)&&Array.isArray(local||[])&&Array.isArray(remote||[]))return _mergeArrById(local||[],remote||[],Array.isArray(base)?base:[],preferLocal,depth,path,conflicts,_mergeTomb.PM);
   if(ls===bs)return remote;            // 端末側は変えていない → クラウド採用
   if(rs===bs)return local;             // クラウド側は変えていない → 端末採用
   if(depth>0&&_isPlainObj(local)&&_isPlainObj(remote)){
@@ -720,7 +744,9 @@ function _merge3(local,remote,base,preferLocal,depth,path,conflicts){
 function _mergeKeyValue(k,L,R,B,preferLocal,conflicts){
   let lo,ro,bo; try{lo=JSON.parse(L);ro=JSON.parse(R);bo=B!=null?JSON.parse(B):undefined;}catch(_){ conflicts.push(k); return preferLocal?L:R; }
   if(!_isPlainObj(lo)||!_isPlainObj(ro)){ conflicts.push(k); return preferLocal?L:R; }
-  return JSON.stringify(_merge3(lo,ro,bo,preferLocal,3,k,conflicts));
+  const prevTomb=_mergeTomb;
+  if(/^ffv6_store_/.test(k))_mergeTomb=_tombOf(lo,ro);   // FF店舗データ：週・商品は墓標が無ければ消さない
+  try{ return JSON.stringify(_merge3(lo,ro,bo,preferLocal,3,k,conflicts)); }finally{ _mergeTomb=prevTomb; }
 }
 // data(キー→文字列) 全体のマージ。戻り値 merged=採用内容、conflicts=両方が変えていた項目、keptLocal=クラウドと違う（要送信）キー
 function _mergeData(local,remote,base,preferLocal){
