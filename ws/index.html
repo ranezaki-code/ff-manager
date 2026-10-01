@@ -5792,7 +5792,18 @@ window.addEventListener('storage', e => {
 
 /* ========== 管理者モード ========== */
 let isAdmin = false;
-const ADMIN_PASSWORD = 'Law3963';
+// 管理者パスワード：平文はソースに置かない（公開リポジトリのため）。PBKDF2-SHA256 のハッシュで照合する。
+// crew（クルー情報）／bumon（全体管理）と同じパスワード＝同じハッシュ。変える時は3ファイルとも同じ値に。
+const ADMIN_PW_HASH = '85682d0460df608730c75fc2551e9917f770309ac61f3c7361514cde5cfce597';
+async function checkAdminPw(pw){
+  try{
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', enc.encode(String(pw||'')), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({name:'PBKDF2', salt:enc.encode('ff-manager::admin-lock::v1'), iterations:200000, hash:'SHA-256'}, key, 256);
+    return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('') === ADMIN_PW_HASH;
+  }catch(e){ console.error(e); return null; }   // null＝この環境では照合できない（https / localhost 以外）
+}
+let _adminPwBusy = false;
 
 function toggleAdminMode(){
   if(!isAdmin){
@@ -5816,12 +5827,22 @@ function openAdminPwModal(){
 function closeAdminPwModal(){
   document.getElementById('admin-pw-modal').classList.remove('show');
 }
-function submitAdminPw(){
+async function submitAdminPw(){
+  if(_adminPwBusy) return;
   const inp = document.getElementById('admin-pw-input');
   const err = document.getElementById('admin-pw-error');
   const pw = inp ? inp.value : '';
-  if(pw !== ADMIN_PASSWORD){
-    if(err){ err.style.display = ''; }
+  if(!pw){ inp?.focus(); return; }
+  _adminPwBusy = true;
+  const ok = await checkAdminPw(pw);
+  _adminPwBusy = false;
+  if(ok !== true){
+    if(err){
+      err.textContent = ok === null
+        ? '⚠ この開き方ではパスワードを確認できません。統合アプリのリンク（https）から開いてください'
+        : '⚠ パスワードが違います';
+      err.style.display = '';
+    }
     if(inp){ inp.value = ''; inp.focus(); }
     return;
   }

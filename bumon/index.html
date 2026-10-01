@@ -310,6 +310,23 @@ header .spacer{flex:1}
   </div>
 </div>
 
+<!-- 全体管理モードのパスワード入力（入力文字は伏せ字） -->
+<div class="overlay" id="pw-overlay">
+  <div class="modal" style="max-width:380px">
+    <button class="close-x" data-close="pw-overlay">×</button>
+    <h2>🔐 全体管理モード</h2>
+    <div class="mhint">承認・差し戻し・全体管理を使うには、パスワードを入力してください。</div>
+    <form id="pw-form" autocomplete="off">
+      <div class="field"><input type="password" id="pw-input" inputmode="numeric" autocomplete="off" placeholder="パスワード" aria-label="パスワード" style="font-size:18px;letter-spacing:2px;text-align:center"></div>
+      <div id="pw-err" style="font-size:12px;font-weight:700;color:var(--red);min-height:18px;margin-bottom:6px"></div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-pri" id="pw-submit">確定</button>
+        <button type="button" class="btn btn-ghost" data-close="pw-overlay">キャンセル</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="print-area"></div>
 <div class="toast" id="toast"></div>
 
@@ -395,8 +412,22 @@ function eligibility(name,cond){
 }
 
 // ---- 全体管理モード（パスワード保護） ----
-const MGR_PW='3963';
-function isMgr(){return localStorage.getItem('bumon_manager_mode')==='1';}
+//   ・パスワードの平文はソースに置かない（公開リポジトリのため）。PBKDF2-SHA256 のハッシュで照合。
+//     crew（クルー情報）／ws（管理者モード）と同じパスワード＝同じハッシュ。変える時は3ファイルとも同じ値に。
+//   ・ON の状態は sessionStorage（この端末・このタブを閉じるまで）。以前の localStorage は統合アプリの同期で
+//     全端末に伝わってしまうため使わない（古い値が残っていても読まない）。
+const ADMIN_PW_HASH='85682d0460df608730c75fc2551e9917f770309ac61f3c7361514cde5cfce597';
+async function checkAdminPw(pw){
+  try{
+    const enc=new TextEncoder();
+    const key=await crypto.subtle.importKey('raw',enc.encode(String(pw||'')),'PBKDF2',false,['deriveBits']);
+    const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode('ff-manager::admin-lock::v1'),iterations:200000,hash:'SHA-256'},key,256);
+    return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('')===ADMIN_PW_HASH;
+  }catch(e){ console.error(e); return null; }   // null＝この環境では照合できない（https / localhost 以外）
+}
+let _mgrMem=false;
+function isMgr(){ try{ return sessionStorage.getItem('bumon_manager_mode')==='1'; }catch(_){ return _mgrMem; } }
+function setMgr(on){ _mgrMem=!!on; try{ if(on)sessionStorage.setItem('bumon_manager_mode','1'); else sessionStorage.removeItem('bumon_manager_mode'); }catch(_){} }
 function renderMgr(){
   const b=$('mgr-toggle');const on=isMgr();
   if(on){b.classList.add('on');b.textContent='🔐 全体管理 ON';}else{b.classList.remove('on');b.textContent='🔓 全体管理';}
@@ -830,12 +861,22 @@ $('assign-save').onclick=()=>{
 };
 $('new-sheet-btn').onclick=()=>newSheet('');
 $('mgr-toggle').onclick=()=>{
-  if(isMgr()){localStorage.setItem('bumon_manager_mode','0');renderAll();toast('全体管理モードOFF');return;}
-  const pw=prompt('全体管理モードのパスワードを入力してください');
-  if(pw===null)return;
-  if(pw!==MGR_PW){toast('パスワードが違います');return;}
-  localStorage.setItem('bumon_manager_mode','1');renderAll();toast('全体管理モードON（承認・全体管理の項目）');
+  if(isMgr()){setMgr(false);renderAll();toast('全体管理モードOFF');return;}
+  $('pw-input').value='';$('pw-err').textContent='';show('pw-overlay');
+  setTimeout(()=>$('pw-input').focus(),60);
 };
+let _pwBusy=false;
+$('pw-form').addEventListener('submit',async e=>{
+  e.preventDefault(); if(_pwBusy)return;
+  const inp=$('pw-input'), err=$('pw-err'), pw=inp.value;
+  if(!pw){inp.focus();return;}
+  _pwBusy=true; $('pw-submit').disabled=true; err.style.color='var(--sub)'; err.textContent='確認中…';
+  const ok=await checkAdminPw(pw);
+  _pwBusy=false; $('pw-submit').disabled=false; inp.value=''; err.style.color='var(--red)';
+  if(ok===null){err.textContent='この開き方ではパスワードを確認できません。統合アプリのリンク（https）から開いてください';return;}
+  if(!ok){err.textContent='⚠ パスワードが違います';inp.focus();return;}
+  err.textContent=''; setMgr(true); hide('pw-overlay'); renderAll(); toast('全体管理モードON（承認・全体管理の項目）');
+});
 document.querySelectorAll('.subtab').forEach(tb=>tb.addEventListener('click',()=>switchView(tb.dataset.view)));
 function switchView(v){
   if(v==='mgr'&&!isMgr())v='board';
