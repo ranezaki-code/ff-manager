@@ -359,6 +359,11 @@ body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-botto
 .badge-plus{background:var(--green-lt);color:var(--green)}
 .badge-minus{background:var(--red-lt);color:var(--red)}
 .prod-count{font-size:20px;font-weight:700;color:var(--main)}
+/* 作成表のマス：数字＝記録メニューを開くボタン（指で押せる大きさ）／完了チェックも大きめ */
+.pc-num{display:inline-flex;align-items:center;justify-content:center;min-width:48px;min-height:36px;padding:4px 9px;border:1px solid #d5dde8;background:#fff;border-radius:10px;cursor:pointer;font-family:inherit;box-shadow:0 1px 0 rgba(15,23,42,.08);-webkit-tap-highlight-color:transparent}
+.pc-num:hover{border-color:#93c5fd}
+.pc-num:active{background:#eff6ff}
+.pc-chk{width:22px;height:22px;margin:0;cursor:pointer}
 .markdown-time{font-size:10px;color:var(--gray)}
 .withdraw-ok{color:var(--green);font-size:12px}
 .withdraw-ng{color:var(--red);font-size:12px}
@@ -761,8 +766,9 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         </ol>
       </div>
       <div id="cell-guide-block" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:12px;color:#475569;margin-bottom:10px;line-height:1.7">
-        💡 <b>セルの見方</b>：大きい数字＝その時間帯に作成する個数／☑＝完了チェック／⊘＝在庫欠品で作れなかった／🔔＝完売時の追加作成／📦＝余った（廃棄・値引きが出た）<br>
-        🔔と📦の記録は翌週以降の計画に自動で効きます：完売が続いた時間帯は+10%ずつ、余りが続いた時間帯は−10%ずつ（直近4週・上下限±50%）。「学習±%」の表示がその印です
+        💡 <b>セルの見方</b>：大きい数字＝その時間帯に作る個数／☑＝作り終わったらチェック<br>
+        <b>数字をタップ</b>すると「🔔 完売した」「📦 余った」「⊘ 在庫がなくて作れなかった」を記録できます（取り消しも同じ場所）<br>
+        完売・余りの記録は、<b>同じ商品・同じ曜日・同じ時間帯で、直近4週のうち2週以上続いた時だけ</b>翌週以降の数に効きます（2週で±10%、3週で±20%、4週で±30%）。1回だけなら数は変わりません。「学習±%」の表示がその印です
       </div>
       <div id="prod-day-content"></div>
     </div>
@@ -3349,22 +3355,85 @@ function getCatWeekTotalWeighted(cat){
 }
 // ============================================================
 // 学習：完売（🔔追加作成）が続けば増やし、余り（📦）が続けば減らす
-//   今の計画週より前の直近4週の記録から、商品×曜日×時間帯ごとに ×1.1／×0.9 を積み上げる（0.5〜1.5に制限）
+//   今の計画週より前の直近4週の記録を、商品×曜日×時間帯ごとに数える。
+//   **1回だけ（たまたま）では動かさない。2週以上続いた時だけ** 2週=±10%／3週=±20%／4週=±30%。
+//   理由：①完売で追加して売れた分は定価販売数（週の土台）にも入るので、1回ごとに+10%すると二重に増える
+//         ②このシステムはわざと少し多め（ゆとり）に作るので、少しの余り1回で減らすとゆとりを削ってしまう
 // ============================================================
-function getLearnAdj(pid,dayIdx,slotH){
-  if(!S.weeks||!S.activeWeek)return 1;
+function getLearnInfo(pid,dayIdx,slotH){
+  const out={so:0,lo:0,adj:1};
+  if(!S.weeks||!S.activeWeek)return out;
   const key=`${dayIdx}_${slotH}_${pid}`;
   const actT=parseLocalDate(weekKeyToDateStr(S.activeWeek)).getTime();
   const keys=Object.keys(S.weeks).filter(k=>k!==S.activeWeek&&parseLocalDate(weekKeyToDateStr(k)).getTime()<actT)
     .sort((a,b)=>parseLocalDate(weekKeyToDateStr(a))-parseLocalDate(weekKeyToDateStr(b))).slice(-4);
-  let f=1;
-  keys.forEach(k=>{ const w=S.weeks[k]||{}; const so=(w.soldOuts||{})[key]; if(so&&so.length)f*=1.1; if((w.leftovers||{})[key])f*=0.9; });
-  return Math.min(1.5,Math.max(0.5,f));
+  keys.forEach(k=>{ const w=S.weeks[k]||{}; const so=(w.soldOuts||{})[key]; if(so&&so.length)out.so++; if((w.leftovers||{})[key])out.lo++; });
+  const f=1+0.1*Math.max(0,out.so-1)-0.1*Math.max(0,out.lo-1);
+  out.adj=Math.min(1.5,Math.max(0.5,Math.round(f*100)/100));
+  return out;
 }
+function getLearnAdj(pid,dayIdx,slotH){ return getLearnInfo(pid,dayIdx,slotH).adj; }
 function toggleLeftover(key){
   if(!S.leftovers)S.leftovers={};
   if(S.leftovers[key])delete S.leftovers[key]; else S.leftovers[key]=true;
   saveS(); if(currentTab===3)renderProdDayContent(currentProdDay);
+}
+// ============================================================
+// 作成表：マスの記録メニュー（数字をタップ）
+//   マスには「数字」と「完了チェック」だけを置き、完売した／余った／在庫欠品 は文字つきの大きなボタンで記録する。
+//   （小さな絵文字ボタンはタブレットで押しにくく、説明も出ないため）
+// ============================================================
+let _cellMenuCtx=null;
+function openCellMenu(pid,dayIdx,slotH){
+  const p=getP(pid); if(!p)return;
+  const key=`${dayIdx}_${slotH}_${pid}`;
+  _cellMenuCtx={pid,dayIdx,slotH,key};
+  let m=document.getElementById('cellMenuModal');
+  if(!m){
+    m=document.createElement('div'); m.id='cellMenuModal';
+    m.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9998;padding:16px;box-sizing:border-box;overflow-y:auto;margin:0';
+    document.body.appendChild(m);
+    m.addEventListener('click',e=>{if(e.target===m)closeCellMenu();});
+  }
+  const leftover=!!(S.leftovers&&S.leftovers[key]);
+  const skipped=!!(S.skipped&&S.skipped[key]);
+  const so=getSoldOutEvents(pid,dayIdx,slotH);
+  const soSum=so.reduce((s,e)=>s+(e.added||0),0);
+  const plan=getProdCnt(pid,dayIdx,slotH)+getInvestExtra(pid,dayIdx,slotH);
+  const li=getLearnInfo(pid,dayIdx,slotH);
+  const k=getSlotCoef(p.category,slotH);
+  const wl=getWithdraw(pid), rg=getCatSlotRange(p.category,slotH), sc=rg?getSlotCust(dayIdx,rg[0],rg[1]):0;
+  const isSkip=wl>0&&sc<wl&&!(p.minCount||0);
+  const row=(act,icon,label,desc,on,onColor)=>`<button type="button" data-act="${act}" onclick="cellMenuAct('${act}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;min-height:64px;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid ${on?onColor:'#e2e8f0'};background:${on?onColor+'1a':'#fff'}">
+      <span style="font-size:26px;flex-shrink:0;width:34px;text-align:center;color:${onColor}">${icon}</span>
+      <span style="flex:1;min-width:0"><span style="display:block;font-size:16px;font-weight:800;color:#0f172a">${label}</span><span style="display:block;font-size:12px;color:#64748b;line-height:1.5;margin-top:2px">${desc}</span></span>
+    </button>`;
+  let rows='';
+  rows+=row('sold','🔔','完売した（追加で作る）',so.length?`今日は追加 +${soSum}個を記録済み。もう一度完売したらここから追加できます`:'完売した時刻を入れると、追加で作る数を提案します',so.length>0,'#16a34a');
+  if(so.length)rows+=row('undo','↶',`追加分（+${so[so.length-1].added}個）を取り消す`,'直前の「完売した」の記録を消します',false,'#dc2626');
+  rows+=row('left','📦',leftover?'余った（記録済み）':'余った',leftover?'もう一度タップすると記録を取り消します':'廃棄や値引きが出た時に押します',leftover,'#ea580c');
+  if(!isSkip)rows+=row('skip','⊘',skipped?'在庫がなくて作れなかった（記録済み）':'在庫がなくて作れなかった',skipped?'もう一度タップすると記録を取り消します':'材料の欠品などで作れなかった時に押します',skipped,'#475569');
+  const adjTxt=li.adj!==1?`今週のこのマスは <b>${li.adj>1?'+':''}${Math.round((li.adj-1)*100)}%</b> 調整中`:'今週のこのマスへの調整はなし';
+  m.innerHTML=`<div style="background:#fff;border-radius:16px;padding:18px;width:100%;max-width:420px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box;margin:auto">
+    <div style="font-weight:800;font-size:17px;color:#0f172a">${escapeHtmlP(p.name)}</div>
+    <div style="font-size:13px;color:#64748b;margin:2px 0 14px">${DAYS[dayIdx]}曜 ${fmtHour(slotH)} 作成　計画 <b style="color:#1d4ed8;font-size:15px">${isSkip?'—':plan}</b>${isSkip?'':'個'}${soSum?`　＋追加 <b>${soSum}</b>個`:''}</div>
+    ${rows}
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
+      完売・余りの記録は、同じ曜日・同じ時間帯で<b>直近4週のうち2週以上続いた時だけ</b>、来週以降の数を自動で増減します（1回だけなら変わりません）<br>
+      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}
+    </div>
+    <button type="button" onclick="closeCellMenu()" style="width:100%;margin-top:12px;padding:13px;font-size:15px;font-weight:700;border:none;border-radius:10px;background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit">閉じる</button>
+  </div>`;
+  m.style.display='flex';
+}
+function closeCellMenu(){ const m=document.getElementById('cellMenuModal'); if(m)m.style.display='none'; _cellMenuCtx=null; }
+function cellMenuAct(act){
+  const c=_cellMenuCtx; if(!c)return;
+  closeCellMenu();
+  if(act==='sold')return openSoldOutModal(c.pid,c.dayIdx,c.slotH);
+  if(act==='undo')return removeLastSoldOut(c.pid,c.dayIdx,c.slotH);
+  if(act==='left'){ const was=!!(S.leftovers&&S.leftovers[c.key]); toggleLeftover(c.key); showToast(was?'「余った」の記録を取り消しました':'📦「余った」を記録しました',was?'info':'success'); return; }
+  if(act==='skip'){ const was=!!(S.skipped&&S.skipped[c.key]); toggleSkipped(c.key); showToast(was?'「在庫がなくて作れなかった」の記録を取り消しました':'⊘「在庫がなくて作れなかった」を記録しました',was?'info':'success'); return; }
 }
 
 function getInvestExtra(pid,dayIdx,slotH){
@@ -6164,11 +6233,8 @@ function renderSlotGroupedView(dayIdx){
         if(_hasGrp){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
         return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
           <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
-          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">投資+${extra}</span>`:''}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">在庫欠品</span>':''}</span>
-          <span style="font-size:21px;font-weight:800;color:#1d4ed8;min-width:34px;text-align:right">${grandTotal}</span>
-          <button type="button" onclick="toggleSkipped('${chkKey}')" title="在庫欠品で作れなかった時に押す" style="padding:0;width:22px;height:22px;border:1px solid ${skipped?'#475569':'#cbd5e1'};background:${skipped?'#475569':'#fff'};color:${skipped?'#fff':'#64748b'};border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">⊘</button>
-          <button type="button" onclick="openSoldOutModal('${p.id}',${di},${slotH})" title="完売→追加作成" style="padding:0;width:22px;height:22px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">🔔</button>
-          ${(()=>{const lo=!!(S.leftovers&&S.leftovers[chkKey]);return `<button type="button" onclick="toggleLeftover('${chkKey}')" title="${lo?'「余った」を解除':'余った（廃棄・値引きが出た）時に押す。続くとこの時間帯の作成数を自動で減らす'}" style="padding:0;width:22px;height:22px;border:1px solid ${lo?'#ea580c':'#cbd5e1'};background:${lo?'#ea580c':'#fff'};border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">📦</button>`;})()}
+          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">投資+${extra}</span>`:''}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">在庫欠品</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">余り</span>':''}${getSoldOutTotal(p.id,di,slotH)>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">追加+${getSoldOutTotal(p.id,di,slotH)}</span>`:''}</span>
+          <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${di},${slotH})" aria-label="${escapeHtmlP(p.name)} の記録メニュー" style="flex-shrink:0"><span style="font-size:21px;font-weight:800;color:#1d4ed8;line-height:1">${grandTotal}</span></button>
         </div>`;
       }).join('');
       cats+=`<div style="margin-bottom:10px">
@@ -6554,28 +6620,19 @@ function renderProdDayContent(dayIdx){
         if(extra>0) cellExtraStyle=';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px';
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
         const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
-        // ⊘ボタン：skippedの時は紺塗りで「対応済」を示す
-        const skipBtn=isSkip?'':`<button type="button" onclick="toggleSkipped('${chkKey}')" title="${skipped?'在庫欠品マークを解除':'在庫欠品で作れなかった時に押す'}"
-          style="padding:0;width:18px;height:18px;border:1px solid ${skipped?'#475569':'#cbd5e1'};background:${skipped?'#475569':'#fff'};color:${skipped?'#fff':'#64748b'};border-radius:4px;cursor:pointer;font-size:11px;line-height:1;font-weight:700">⊘</button>`;
+        // マスは「数字（タップ＝記録メニュー）」と「完了チェック」だけ。完売／余り／在庫欠品は openCellMenu の文字つきボタンで記録
         html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':`
-          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${dayIdx},${slotH})" aria-label="${escapeHtmlP(p.name)} ${fmtHour(slotH)} の記録メニュー">
+              <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
+            </button>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
             ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">在庫欠品</span>`:''}
             ${leftover?`<span style="background:#ffedd5;color:#9a3412;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">余り</span>`:''}
             ${learnAdj!==1?`<span style="background:#ede9fe;color:#5b21b6;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700" title="完売/余りの記録から自動調整">学習${learnAdj>1?'+':''}${Math.round((learnAdj-1)*100)}%</span>`:''}
             ${soBadges?`<span style="display:flex;flex-wrap:wrap;justify-content:center;gap:1px">${soBadges}</span>`:''}
-            <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
-              <input type="checkbox" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}
-                onchange="confirmCreate('${chkKey}','${p.id}',this)" style="margin:0">
-              ${skipBtn}
-              <button type="button" onclick="openSoldOutModal('${p.id}',${dayIdx},${slotH})" title="完売した時刻を入力して追加作成数を提案"
-                style="padding:0;width:18px;height:18px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer;font-size:11px;line-height:1">🔔</button>
-              <button type="button" onclick="toggleLeftover('${chkKey}')" title="${leftover?'「余った」を解除':'余った（廃棄・値引きが出た）時に押す。続くとこの時間帯の作成数を自動で減らす'}"
-                style="padding:0;width:18px;height:18px;border:1px solid ${leftover?'#ea580c':'#cbd5e1'};background:${leftover?'#ea580c':'#fff'};border-radius:4px;cursor:pointer;font-size:11px;line-height:1">📦</button>
-              ${soEvents.length>0?`<button type="button" onclick="removeLastSoldOut('${p.id}',${dayIdx},${slotH})" title="最後の追加分を取消"
-                style="padding:0;width:18px;height:18px;border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:4px;cursor:pointer;font-size:10px;line-height:1">↶</button>`:''}
-            </div>
+            <input type="checkbox" class="pc-chk" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}
+              onchange="confirmCreate('${chkKey}','${p.id}',this)" aria-label="作り終わったらチェック">
           </div>`}
         </td>`;
       });
