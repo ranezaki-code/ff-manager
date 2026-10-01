@@ -1202,6 +1202,9 @@ details.date-direct-toggle[open] summary::before{content:'▾ '}
 .staff-chip{display:inline-flex;align-items:center;gap:6px;background:var(--main-lt);color:var(--main);border-radius:14px;padding:6px 6px 6px 12px;font-size:13px;font-weight:600;border:1px solid var(--main)}
 .staff-chip button{background:rgba(0,0,0,.08);color:var(--main);border-radius:50%;width:20px;height:20px;font-size:11px;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
 .staff-chip button:hover{background:var(--red);color:#fff}
+.staff-chip.crew{padding:6px 12px}
+.staff-chip.orphan{background:#fff7ed;color:#9a3412;border:1px dashed #fdba74}
+.staff-chip.orphan small{font-size:10px;font-weight:700;opacity:.8}
 
 /* 完了モーダルの名前選択ボタン */
 .complete-name-btn{padding:10px 16px;background:var(--green-lt);color:#1b5e20;border:2px solid var(--green);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;flex:1;min-width:90px}
@@ -2125,8 +2128,12 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
           手入力の手間を省き、ダッシュボードで個人別の実績も見られます。<br>
           また、タスクの担当を「個人指定」にする際にもこのリストから選択できます。
         </div>
+        <div id="staff-crew-note" style="display:none;font-size:12px;line-height:1.7;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;border-radius:8px;padding:8px 12px;margin-bottom:10px">
+          👥 名簿は<strong>クルータブの「クルー情報」</strong>です。追加・名前の変更・退職はクルー情報で行うと、ここに自動で反映されます。<br>
+          オレンジ色の名前はクルー情報に無い名前です。クルー情報の「名前の整理」で同じ人に結びつけるか、×で外してください。
+        </div>
         <div id="staff-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:32px"></div>
-        <div style="display:flex;gap:6px">
+        <div id="staff-add-row" style="display:flex;gap:6px">
           <input type="text" id="staff-add-input" placeholder="従業員名を入力" style="flex:1" onkeydown="if(event.key==='Enter')addStaff()">
           <button class="btn-primary" onclick="addStaff()">＋ 追加</button>
         </div>
@@ -2508,7 +2515,7 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
     <div id="complete-task-info" style="font-weight:700;color:var(--main);background:var(--gray-lt);border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:14px"></div>
     <div id="complete-staff-buttons" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
     <div style="font-size:11px;color:var(--gray);text-align:center;margin-bottom:10px;line-height:1.6">
-      💡 一覧にない場合は管理者画面の「従業員管理」から登録してください
+      💡 一覧にない場合は、クルータブの「クルー情報」に登録してください（クルー情報が未使用の店舗は管理者画面の「従業員管理」）
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="cancelComplete()">キャンセル</button>
@@ -2985,6 +2992,91 @@ function saveState(){
   }
 }
 
+/* ========== 名簿はクルー情報が唯一（クルータブ「クルー情報」） ==========
+   ・担当者の選択肢は、クルー情報の名前（フルネーム）を自動で使う。WS 側で名簿を二重に管理しない。
+   ・クルー情報が空の店舗は、従来どおり WS 自身の従業員リスト（state.staff）で動く。
+   ・WS にだけある名前（クルー情報に未登録）は消さずに後ろへ並べる。クルー情報の「名前の整理」で
+     同じ人に結びつけると、下の applyCrewAliases が WS の記録の表記を新しい名前へそろえる。 */
+const CREW_KEY = _STORE_ID?'crew_v1_store_'+_STORE_ID:'crew_v1';
+let _crewRosterCache = {raw:undefined, val:null};
+function crewRoster(){   // {names:[フルネーム…], alias:{古い表記:今の名前}}
+  let raw = null; try{ raw = localStorage.getItem(CREW_KEY); }catch(_){}
+  if(_crewRosterCache.raw === raw && _crewRosterCache.val) return _crewRosterCache.val;
+  const val = {names:[], alias:{}};
+  try{
+    if(raw){
+      const c = JSON.parse(raw), ms = Array.isArray(c.members) ? c.members : [], byId = {};
+      [...ms].sort((a,b) => String(a.kana||a.name||'').localeCompare(String(b.kana||b.name||''),'ja')).forEach(m => {
+        const n = String((m && m.name) || '').trim(); if(!n) return;
+        byId[m.id] = n; if(!val.names.includes(n)) val.names.push(n);
+      });
+      Object.entries((c.aliases && typeof c.aliases === 'object') ? c.aliases : {}).forEach(([old, id]) => {
+        const canon = byId[id];
+        if(canon && old && old !== canon && !val.names.includes(old)) val.alias[old] = canon;
+      });
+    }
+  }catch(e){ console.warn('crewRoster', e); }
+  _crewRosterCache = {raw, val};
+  return val;
+}
+function staffList(){
+  const r = crewRoster(), out = r.names.slice();
+  (state.staff || []).forEach(n => { if(n && !out.includes(n) && !r.alias[n]) out.push(n); });
+  return out;
+}
+/* 名前の統一：クルー情報で「この名前は○○さんと同じ人」と結びつけた／名前を変えた時だけ、
+   WS の記録に残る古い表記を今の名前へ書き換える。
+   ・書き換える前に必ず端末内へ退避（<保存キー>_backup_rename_<時刻>、直近3件。退避できなければ書き換えない）
+   ・何度実行しても同じ結果（古い表記が残っていなければ何もしない）
+   ・自由記入の文章（タスク名・理由・メモ等）は対象外。名前そのものが入っている欄と、名前がキーの入れ物だけ */
+const _RENAME_FREE_TEXT = new Set(['text','title','memo','note','notes','reason','desc','description','body','message','msg','comment','detail','content','manual','label']);
+function _renameStaffDeep(node, map, stat, parentKey){
+  const has = (o,k) => Object.prototype.hasOwnProperty.call(o,k);
+  if(Array.isArray(node)){
+    for(let i=0;i<node.length;i++){
+      const v = node[i];
+      if(typeof v === 'string'){ if(!_RENAME_FREE_TEXT.has(parentKey) && has(map,v)){ node[i] = map[v]; stat.n++; } }
+      else if(v && typeof v === 'object') _renameStaffDeep(v, map, stat, parentKey);
+    }
+    return;
+  }
+  if(!node || typeof node !== 'object') return;
+  Object.keys(node).forEach(k => {
+    const v = node[k];
+    if(typeof v === 'string'){ if(!_RENAME_FREE_TEXT.has(k) && has(map,v)){ node[k] = map[v]; stat.n++; } }
+    else if(v && typeof v === 'object') _renameStaffDeep(v, map, stat, k);
+  });
+  // 名前がキーになっている入れ物（個人プロフィール等）。移し先が既にある時は触らない
+  Object.keys(node).forEach(k => {
+    if(!has(map,k)) return;
+    const nk = map[k];
+    if(!has(node,nk)){ node[nk] = node[k]; delete node[k]; stat.n++; } else stat.conflict++;
+  });
+}
+function applyCrewAliases(){
+  try{
+    const map = crewRoster().alias, olds = Object.keys(map);
+    if(!olds.length) return false;
+    const raw = JSON.stringify(state);
+    if(!olds.some(o => raw.includes(JSON.stringify(o)))) return false;   // 古い表記（その名前だけの値・キー）がどこにも無い
+    const copy = JSON.parse(raw), stat = {n:0, conflict:0};
+    _renameStaffDeep(copy, map, stat, '');
+    if(!stat.n) return false;
+    if(Array.isArray(copy.staff)) copy.staff = [...new Set(copy.staff)].sort();
+    // 退避（できなければ書き換えない）
+    const cur = localStorage.getItem(STORAGE_KEY);
+    if(cur){
+      localStorage.setItem(STORAGE_KEY + '_backup_rename_' + Date.now(), cur);
+      const ks = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_KEY + '_backup_rename_')).sort();
+      while(ks.length > 3) localStorage.removeItem(ks.shift());
+    }
+    state = copy;
+    try{ logOp('RENAME_STAFF', {changed: stat.n, conflict: stat.conflict, names: olds.length}); }catch(_){}
+    saveState();
+    return true;
+  }catch(e){ console.error('applyCrewAliases', e); return false; }
+}
+
 /* ========== 日付ユーティリティ ========== */
 function dateKey(d){
   const y = d.getFullYear();
@@ -3247,7 +3339,7 @@ function renderTanOptions(currentValue){
     `<option value="both">両方</option>`
   ].join('');
   let html = fixedHtml;
-  const staff = state.staff || [];
+  const staff = staffList();
   if(staff.length > 0){
     html += '<optgroup label="個人指定">';
     html += staff.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
@@ -3972,7 +4064,7 @@ function toggleDone(taskId, ev){
       }
     }
     // 完了にする → 従業員が登録されていれば名前選択モーダル
-    if(Array.isArray(state.staff) && state.staff.length > 0){
+    if(staffList().length > 0){
       if(ev.target) ev.target.checked = false;
       openCompleteModal(taskId);
       return;
@@ -4223,7 +4315,7 @@ function renderThanksView(){
     return d.toLocaleDateString('ja-JP', {month:'2-digit', day:'2-digit'});
   };
   const me = sessionStorage.getItem('ws_thanks_me') || '';
-  const staff = state.staff || [];
+  const staff = staffList();
   const meOpts = staff.map(n => `<option value="${escapeHtml(n)}"${n===me?' selected':''}>${escapeHtml(n)}</option>`).join('');
   const renderRow = (t, kind) => {
     const stamp = getStampById(t.stampId);
@@ -4297,7 +4389,7 @@ function setThanksMe(name){
 
 function openSendThanks(){
   ensureThanksLog();
-  const staff = state.staff || [];
+  const staff = staffList();
   if(staff.length < 2){ alert('感謝を送るには2名以上の従業員登録が必要です'); return; }
   // 送信主・受信先のセレクト
   const sFrom = document.getElementById('th-from');
@@ -4480,7 +4572,7 @@ function renderStoreView(){
     }
   });
   // 全スタッフを表示（活動ゼロも含めて、サボってる人も見えるように）
-  const allStaff = state.staff || [];
+  const allStaff = staffList();
   const todayTaskTotal = todayActivity.filter(a => a.type === 'task').length;
   const todayCarryTotal = todayActivity.filter(a => a.type === 'carry').length;
   const todayRetireTotal = todayActivity.filter(a => a.type === 'retire').length;
@@ -4860,7 +4952,7 @@ function openCompleteModal(taskId){
   if(!t) return;
   document.getElementById('complete-task-info').textContent = t.text || '(無題)';
   const btnsEl = document.getElementById('complete-staff-buttons');
-  btnsEl.innerHTML = (state.staff || []).map(name =>
+  btnsEl.innerHTML = staffList().map(name =>
     `<button class="complete-name-btn" onclick="completeBy('${escapeHtml(name).replace(/'/g, "\\'")}')">${escapeHtml(name)}</button>`
   ).join('');
   document.getElementById('complete-modal').classList.add('show');
@@ -5568,7 +5660,7 @@ function openCarryModal(taskId, ev){
   document.getElementById('carry-by').value = '';
   // 繰り越し者候補を datalist に反映
   const dl = document.getElementById('carry-staff-list');
-  dl.innerHTML = (state.staff || []).map(n => `<option value="${escapeHtml(n)}">`).join('');
+  dl.innerHTML = staffList().map(n => `<option value="${escapeHtml(n)}">`).join('');
   document.getElementById('carry-modal').classList.add('show');
   setTimeout(() => document.getElementById('carry-reason').focus(), 50);
 }
@@ -5650,7 +5742,7 @@ function openRetireModal(taskId, ev){
   document.getElementById('retire-reason').value = '';
   document.getElementById('retire-by').value = '';
   const dl = document.getElementById('retire-staff-list');
-  dl.innerHTML = (state.staff || []).map(n => `<option value="${escapeHtml(n)}">`).join('');
+  dl.innerHTML = staffList().map(n => `<option value="${escapeHtml(n)}">`).join('');
   document.getElementById('retire-modal').classList.add('show');
   setTimeout(() => document.getElementById('retire-reason').focus(), 50);
 }
@@ -5711,7 +5803,7 @@ function openSkipModal(taskId, ev){
   document.getElementById('skip-reason').value = '';
   document.getElementById('skip-by').value = '';
   const dl = document.getElementById('skip-staff-list');
-  dl.innerHTML = (state.staff || []).map(n => `<option value="${escapeHtml(n)}">`).join('');
+  dl.innerHTML = staffList().map(n => `<option value="${escapeHtml(n)}">`).join('');
   document.getElementById('skip-modal').classList.add('show');
   setTimeout(() => document.getElementById('skip-reason').focus(), 50);
 }
@@ -5786,7 +5878,13 @@ document.addEventListener('keydown', e => {
 window.addEventListener('storage', e => {
   if(e.key === STORAGE_KEY){
     state = loadState();
+    applyCrewAliases();
     render();
+  } else if(e.key === CREW_KEY){
+    // クルー情報（名簿）が変わった → 担当者の選択肢と表記を即反映
+    applyCrewAliases();
+    render();
+    try{ renderStaffList(); }catch(_){}
   }
 });
 
@@ -7330,7 +7428,7 @@ function renderCustomItemsPanel(){
 function renderAllStaffPanel(){
   const el = document.getElementById('all-staff-panel');
   if(!el) return;
-  const staff = state.staff || [];
+  const staff = staffList();
   if(staff.length === 0){
     el.innerHTML = '<div style="font-size:11px;color:var(--gray);font-style:italic;padding:6px 0">従業員が登録されていません</div>';
     return;
@@ -7440,7 +7538,7 @@ function setGameAllSort(key){
 }
 /* 全員比較モードのレンダー */
 function renderGameAllCompare(){
-  const staff = state.staff || [];
+  const staff = staffList();
   if(staff.length === 0) return '<div class="dash-empty">従業員が登録されていません</div>';
   const rows = staff.map(name => {
     const p = state.gameProfiles && state.gameProfiles[name];
@@ -7655,7 +7753,7 @@ function renderGameView(){
   // ユーザ選択肢を最新化
   const sel = document.getElementById('game-user-select');
   const cur = sel.value;
-  const staff = state.staff || [];
+  const staff = staffList();
   sel.innerHTML = '<option value="">— 選択してください —</option>' +
     staff.map(n => `<option value="${escapeHtml(n)}" ${n === cur ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('');
   const name = sel.value;
@@ -8445,9 +8543,9 @@ function setRqDueOffset(days){
 function openAddRequestModal(){
   // 依頼者プルダウン更新
   const sel = document.getElementById('rq-by');
-  const staff = state.staff || [];
+  const staff = staffList();
   if(staff.length === 0){
-    alert('先に「タスク一覧 > 従業員管理」から従業員を登録してください');
+    alert('先に、クルータブの「クルー情報」に従業員を登録してください');
     return;
   }
   sel.innerHTML = staff.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
@@ -8513,12 +8611,12 @@ function completeRequest(id, ev){
     return;
   }
   // 従業員選択
-  if(Array.isArray(state.staff) && state.staff.length > 0){
+  if(staffList().length > 0){
     completingRequestId = id;
     // 既存の完了モーダルを流用（簡略版）
     document.getElementById('complete-task-info').textContent = r.text || '(無題)';
     const btnsEl = document.getElementById('complete-staff-buttons');
-    btnsEl.innerHTML = (state.staff || []).map(name =>
+    btnsEl.innerHTML = staffList().map(name =>
       `<button class="complete-name-btn" onclick="completeRequestBy('${escapeHtml(name).replace(/'/g, "\\'")}')">${escapeHtml(name)}</button>`
     ).join('');
     document.getElementById('complete-modal').classList.add('show');
@@ -8804,7 +8902,7 @@ function getStaffViewDateRange(){
 function renderStaffView(){
   const view = document.getElementById('staff-view');
   if(!view) return;
-  const staff = state.staff || [];
+  const staff = staffList();
   if(staff.length === 0){
     view.innerHTML = `<div class="staff-empty">
       従業員がまだ登録されていません<br>
@@ -9421,7 +9519,7 @@ function renderDashboard(){
   const staffSel = document.getElementById('dash-staff');
   const currentStaff = staffSel.value;
   const opts = ['<option value="">全員（全体集計）</option>']
-    .concat((state.staff || []).map(n => `<option value="${escapeHtml(n)}" ${n === currentStaff ? 'selected' : ''}>${escapeHtml(n)}</option>`));
+    .concat(staffList().map(n => `<option value="${escapeHtml(n)}" ${n === currentStaff ? 'selected' : ''}>${escapeHtml(n)}</option>`));
   staffSel.innerHTML = opts.join('');
   const selectedStaff = staffSel.value;
 
@@ -11437,15 +11535,22 @@ function previewRecoveryKey(key){
 function renderStaffList(){
   const el = document.getElementById('staff-list');
   if(!el) return;
-  if(!Array.isArray(state.staff) || state.staff.length === 0){
+  // クルー情報に名簿があれば、ここは「見るだけ」。追加・変更はクルー情報の1か所で行う
+  const roster = crewRoster(), managed = roster.names.length > 0;
+  const addRow = document.getElementById('staff-add-row'), note = document.getElementById('staff-crew-note');
+  if(addRow) addRow.style.display = managed ? 'none' : 'flex';
+  if(note) note.style.display = managed ? '' : 'none';
+  const list = staffList();
+  if(list.length === 0){
     el.innerHTML = '<div style="font-size:12px;color:var(--gray);font-style:italic;padding:6px 0">まだ登録されていません。下の入力欄から追加してください。</div>';
     return;
   }
-  el.innerHTML = state.staff.map(name => {
+  el.innerHTML = list.map(name => {
     const safe = escapeHtml(name);
     const escaped = safe.replace(/'/g, "&#39;");
-    return `<div class="staff-chip">
-      <span>${safe}</span>
+    if(managed && roster.names.includes(name)) return `<div class="staff-chip crew"><span>${safe}</span></div>`;
+    return `<div class="staff-chip${managed ? ' orphan' : ''}"${managed ? ' title="クルー情報に登録されていない名前です"' : ''}>
+      <span>${safe}${managed ? ' <small>未登録</small>' : ''}</span>
       <button onclick="removeStaff('${escaped}')" title="削除">×</button>
     </div>`;
   }).join('');
@@ -12160,6 +12265,8 @@ async function start(){
   if(sessionStorage.getItem('ws_admin_active') === '1'){
     isAdmin = true;
   }
+  // 0.5) クルー情報で結びつけた名前の表記を WS の記録にもそろえる（結びつけが無ければ何もしない）
+  try{ applyCrewAliases(); }catch(_){}
 
   // 1) 共有リンクから来た場合は token/id を取り込む
   const fromHash = gistHandleHash();

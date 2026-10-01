@@ -94,6 +94,12 @@ header .spacer{flex:1}
 .lock-err{min-height:20px;margin-top:10px;font-size:13px;font-weight:700;color:var(--red)}
 .lock-err.wait{color:var(--sub);font-weight:500}
 .lock-note{font-size:12px;color:var(--sub);background:#f8fafc;border:1px dashed var(--border);border-radius:9px;padding:8px 11px;margin-bottom:8px}
+/* 名前の整理（WS・担当業務に残る、クルー情報に無い名前） */
+.tidy-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;background:var(--amber-lt);color:#92400e;border:1px solid #fde68a;border-radius:10px;padding:9px 12px;margin-bottom:10px}
+.tidy-banner span{flex:1;min-width:180px}
+.tidy-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.tidy-name{font-size:14px;font-weight:800;width:130px;flex-shrink:0;word-break:break-word}
+.tidy-row select{flex:1;min-width:190px;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:9px;padding:9px 10px;background:#fff}
 /* クルー情報 */
 .member{display:flex;gap:12px;padding:12px 14px;margin-bottom:9px;align-items:flex-start;cursor:pointer}
 .member:hover{background:#fafcff}
@@ -233,9 +239,11 @@ header .spacer{flex:1}
       <div id="info-pw-err" class="lock-err"></div>
     </div>
     <div id="info-body" style="display:none">
+      <div class="lock-note" style="border-style:solid;background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a">👥 ここが<b>唯一の名簿</b>です。ここで追加・名前変更すると、ワークスケジュールの担当者と担当業務に自動で反映されます。</div>
+      <div id="tidy-banner" class="tidy-banner" style="display:none"></div>
       <div class="toolbar">
         <input type="search" id="info-q" placeholder="名前で検索">
-        <button class="btn btn-line" id="import-btn">📥 WSから取り込み</button>
+        <button class="btn btn-line" id="import-btn">🔗 名前の整理</button>
         <button class="btn btn-pri" id="add-member-btn">＋ クルー追加</button>
         <button class="btn btn-line" id="info-lock-btn" title="クルー情報を閉じて、パスワードが必要な状態に戻します">🔒 ロックする</button>
       </div>
@@ -287,13 +295,14 @@ const DEFAULT_CRITERIA={
 };
 const NO_TALK_DAYS=30;   // 面談が空いたと判定する日数
 const NEAR_PCT=80;       // 昇格間近と判定する進捗%
-let S={members:[],ranks:{},criteria:null};
+// aliases＝{古い表記: クルーID}。「この名前は○○さんと同じ人」の結びつけ。WS・担当業務はこれを読んで自分の記録の表記をそろえる
+let S={members:[],ranks:{},criteria:null,aliases:{}};
 function rankOf(k){return RANKS.find(r=>r.k===k)||RANKS[0];}
 function loadS(){
-  S={members:[],ranks:{},criteria:null};
+  S={members:[],ranks:{},criteria:null,aliases:{}};
   const raw=localStorage.getItem(dataKey());
   if(raw){
-    try{ const o=JSON.parse(raw); if(o&&typeof o==='object'){ S.members=Array.isArray(o.members)?o.members:[]; S.ranks=(o.ranks&&typeof o.ranks==='object')?o.ranks:{}; S.criteria=(o.criteria&&typeof o.criteria==='object')?o.criteria:null; } }
+    try{ const o=JSON.parse(raw); if(o&&typeof o==='object'){ S.members=Array.isArray(o.members)?o.members:[]; S.ranks=(o.ranks&&typeof o.ranks==='object')?o.ranks:{}; S.criteria=(o.criteria&&typeof o.criteria==='object')?o.criteria:null; S.aliases=(o.aliases&&typeof o.aliases==='object'&&!Array.isArray(o.aliases))?o.aliases:{}; } }
     catch(e){ console.error('crew load',e); try{localStorage.setItem(dataKey()+'_corrupt_backup_'+Date.now(),raw);}catch(_){}; }
   }
   if(!S.criteria) S.criteria=JSON.parse(JSON.stringify(DEFAULT_CRITERIA));
@@ -415,10 +424,14 @@ function refresh(){
 function renderInfo(){
   applyInfoLock();
   if(!infoUnlocked())return;   // ロック中は一覧を描かない（画面にも DOM にも出さない）
+  // WS・担当業務に、クルー情報に無い名前が残っていたら知らせる（気づかなくても画面を開けば分かるように）
+  const stray=strayNames(), tb=$('tidy-banner');
+  tb.style.display=stray.length?'':'none';
+  tb.innerHTML=stray.length?`<span>⚠️ ワークスケジュール・担当業務に、クルー情報に無い名前が <b>${stray.length}件</b> あります（${esc(stray.slice(0,4).join('、'))}${stray.length>4?' ほか':''}）</span><button class="btn btn-pri btn-sm" id="tidy-open-btn">整理する</button>`:'';
   const q=($('info-q').value||'').trim();
   const list=sortedMembers().filter(m=>!q||String(m.name||'').includes(q)||String(m.kana||'').includes(q));
   const box=$('member-list');
-  if(!list.length){ box.innerHTML=`<div class="empty">${S.members.length?'該当するクルーがいません':'クルーがまだいません。「＋ クルー追加」または「WSから取り込み」で登録してください。'}</div>`; return; }
+  if(!list.length){ box.innerHTML=`<div class="empty">${S.members.length?'該当するクルーがいません':'クルーがまだいません。「＋ クルー追加」で登録してください（ワークスケジュールに従業員がいれば「名前の整理」から取り込めます）。'}</div>`; return; }
   box.innerHTML=list.map(m=>{
     const r=rankRec(m.id), rk=rankOf(r.rank), pg=progressOf(m.id), oi=openIssues(m.id);
     const fx=FANTA.filter(f=>r.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}${esc(f.label)}</span>`).join('');
@@ -467,24 +480,44 @@ function saveMemberForm(id){
   const name=($('f-name').value||'').trim(); if(!name){alert('名前を入力してください');return;}
   const days=[...document.querySelectorAll('#f-days input:checked')].map(i=>+i.value);
   const rec={ name, kana:($('f-kana').value||'').trim(), hireDate:$('f-hire').value||'', birthday:$('f-bday').value||'', contact:($('f-contact').value||'').trim(), weeklyHours:($('f-wh').value||'').trim(), days, hours:($('f-hours').value||'').trim(), strengths:($('f-str').value||'').trim(), cautions:($('f-care').value||'').trim(), memo:($('f-memo').value||'').trim() };
-  let newId=null;
-  if(id){ const m=member(id); if(m) Object.assign(m,rec); }
+  let newId=null, renamed=false;
+  if(id){ const m=member(id); if(m){ const oldName=String(m.name||'').trim(); Object.assign(m,rec);
+    // 名前を変えたら、古い表記を「同じ人」として残す → WS・担当業務の記録も新しい名前にそろう
+    if(oldName&&oldName!==name&&!S.members.some(x=>x.id!==id&&x.name===oldName)){ S.aliases[oldName]=id; renamed=true; } } }
   else { newId=uid('m'); S.members.push(Object.assign({id:newId,logs:[],createdAt:today()},rec)); }
-  saveS(); closeModal(); refresh(); toast(id?'更新しました':'追加しました');
+  delete S.aliases[name];   // 今の名前そのものは「古い表記」にしない（元の名前に戻した時など）
+  saveS(); closeModal(); refresh(); toast(id?(renamed?'更新しました（WS・担当業務の表記も新しい名前にそろえます）':'更新しました'):'追加しました');
   if(newId) openPerson(newId);   // 追加直後にその人のパネルを開く（ランク・課題を続けて入力できる）
 }
-function deleteMember(id){ const m=member(id); if(!m)return; if(!confirm(`「${m.name}」を削除しますか？\nランク・課題・面談ログの記録も消えます。`))return; S.members=S.members.filter(x=>x.id!==id); delete S.ranks[id]; if(_selId===id)_selId=null; if(_personOpen===id)_personOpen=null; saveS(); closeModal(); refresh(); toast('削除しました'); }
+function deleteMember(id){ const m=member(id); if(!m)return; if(!confirm(`「${m.name}」を削除しますか？\nランク・課題・面談ログの記録も消えます。`))return; S.members=S.members.filter(x=>x.id!==id); delete S.ranks[id]; Object.keys(S.aliases).forEach(k=>{ if(S.aliases[k]===id) delete S.aliases[k]; }); if(_selId===id)_selId=null; if(_personOpen===id)_personOpen=null; saveS(); closeModal(); refresh(); toast('削除しました'); }
 // WS（ワークスケジュール）の従業員名を取り込み
 function wsStaffNames(){ const s=storeId(); const key=s?'ws_v1_store_'+s:'ws_v1'; try{ const raw=localStorage.getItem(key); if(raw){ const st=JSON.parse(raw); if(Array.isArray(st.staff)) return st.staff.map(x=>typeof x==='string'?x:(x&&x.name)||'').map(x=>x.trim()).filter(Boolean); } }catch(e){} return []; }
+// ---- 名簿の一元化：クルー情報が唯一の名簿。WS・担当業務に残っている「クルー情報に無い名前」を整理する ----
+function bumonNames(){ const s=storeId(); try{ const raw=localStorage.getItem(s?'bumon_v1_store_'+s:'bumon_v1'); if(raw){ const b=JSON.parse(raw), set=new Set(); Object.values(b.assignments||{}).forEach(a=>(Array.isArray(a)?a:[]).forEach(n=>set.add(n))); (Array.isArray(b.sheets)?b.sheets:[]).forEach(x=>{ if(x&&x.assignee)set.add(x.assignee); }); return [...set]; } }catch(e){} return []; }
+function strayNames(){ const have=new Set(S.members.map(m=>m.name)), out=[]; [...wsStaffNames(),...bumonNames()].forEach(n=>{ n=String(n||'').trim(); if(n&&!have.has(n)&&!S.aliases[n]&&!out.includes(n))out.push(n); }); return out; }
+// 「佐藤」→「佐藤 花子」のように、空白を除いて前方一致／部分一致する人が1人だけなら候補にする
+function guessMember(n){ const k=s=>String(s||'').replace(/[\s　]/g,''); const key=k(n); if(!key)return null; const hit=S.members.filter(m=>{ const mk=k(m.name); return mk&&(mk.startsWith(key)||mk.includes(key)||key.includes(mk)); }); return hit.length===1?hit[0].id:null; }
 function openImport(){
   if(!infoUnlocked()){ switchView('info'); return; }
-  const have=new Set(S.members.map(m=>m.name)); const names=wsStaffNames().filter(n=>!have.has(n));
-  setModal(`<button class="close-x" data-close>×</button><h2>📥 WSから取り込み</h2>
-    <div class="muted" style="margin-bottom:10px">ワークスケジュールの従業員のうち、まだ登録されていない人を取り込みます。</div>
-    ${names.length?`<div id="imp-list">${names.map(n=>`<label class="chk"><input type="checkbox" value="${esc(n)}" checked><span class="t">${esc(n)}</span></label>`).join('')}</div>
-    <div class="btn-row"><button class="btn btn-pri" data-doimport>取り込む</button></div>`:`<div class="empty">取り込める従業員がいません（すべて登録済み、またはWSに従業員が未登録）</div>`}`);
+  const names=strayNames(), ms=sortedMembers();
+  setModal(`<button class="close-x" data-close>×</button><h2>🔗 名前の整理・取り込み</h2>
+    <div class="muted" style="margin-bottom:10px">ワークスケジュール・担当業務に残っている、クルー情報に無い名前です。<b>同じ人</b>を選ぶと、WS・担当業務の表記がクルー情報の名前（フルネーム）にそろいます。</div>
+    ${names.length?`<div id="tidy-list">${names.map(n=>{ const g=guessMember(n); return `<div class="tidy-row"><div class="tidy-name">${esc(n)}</div><select data-tidy="${esc(n)}">
+        <option value="new"${g?'':' selected'}>＋ 新しいクルーとして追加</option>
+        ${ms.map(m=>`<option value="${esc(m.id)}"${g===m.id?' selected':''}>＝ ${esc(m.name)} と同じ人</option>`).join('')}
+        <option value="skip">何もしない</option></select></div>`; }).join('')}</div>
+    <div class="hint" style="margin:8px 0 2px">「同じ人」にすると、WS・担当業務の記録の表記が書き換わります（書き換え前の状態は端末内に自動で退避）。迷ったら「何もしない」を選んでください。</div>
+    <div class="btn-row"><button class="btn btn-pri" data-doimport>この内容で整理する</button></div>`:`<div class="empty">整理が必要な名前はありません。名簿はクルー情報にそろっています ✅</div>`}`);
 }
-function doImport(){ const names=[...document.querySelectorAll('#imp-list input:checked')].map(i=>i.value); if(!names.length){closeModal();return;} names.forEach(n=>S.members.push({id:uid('m'),name:n,kana:'',days:[],logs:[],createdAt:today()})); saveS(); closeModal(); refresh(); toast(`${names.length}人を取り込みました`); }
+function doImport(){
+  const sels=[...document.querySelectorAll('#tidy-list select[data-tidy]')]; const adds=[], links=[];
+  sels.forEach(s=>{ const n=s.dataset.tidy, v=s.value; if(v==='new')adds.push(n); else if(v!=='skip'&&member(v))links.push([n,v]); });
+  if(!adds.length&&!links.length){ closeModal(); return; }
+  if(links.length&&!confirm('次の名前を「同じ人」として、表記をクルー情報の名前にそろえます。\n\n'+links.map(([n,v])=>`${n}　→　${member(v).name}`).join('\n')+'\n\nよろしいですか？'))return;
+  adds.forEach(n=>{ if(!S.members.some(m=>m.name===n)) S.members.push({id:uid('m'),name:n,kana:'',days:[],logs:[],createdAt:today()}); });
+  links.forEach(([n,v])=>{ S.aliases[n]=v; });
+  saveS(); closeModal(); refresh(); toast([adds.length?`${adds.length}人を追加`:'',links.length?`${links.length}件の表記を統一`:''].filter(Boolean).join('／')+'しました');
+}
 
 // ============ 人物パネル（クルー情報／ランク 共通・1画面で全操作） ============
 let _selId=null;      // ランク画面で選択中
@@ -607,7 +640,7 @@ document.addEventListener('click',e=>{
   const dp=t.closest('#f-days label'); if(dp){ setTimeout(()=>dp.classList.toggle('on',dp.querySelector('input').checked),0); return; }
   if(t.id==='info-lock-btn'){lockInfo('🔒 クルー情報をロックしました');return;}
   if(t.id==='add-member-btn'){openMemberForm(null);return;}
-  if(t.id==='import-btn'){openImport();return;}
+  if(t.id==='import-btn'||t.id==='tidy-open-btn'){openImport();return;}
   if(t.id==='edit-criteria-btn'){openCriteria();return;}
 });
 document.addEventListener('change',e=>{ const c=e.target.closest('[data-chk]'); if(c){const [id,crit]=sp(c.dataset.chk);toggleCheck(id,crit,c.checked);} });
@@ -623,7 +656,7 @@ $('info-q').addEventListener('input',renderInfo);
 $('info-lock-form').addEventListener('submit',e=>{ e.preventDefault(); submitInfoPw(); });
 $('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
 // 店舗切替／多タブ同期：自分のデータ・店舗IDの変化で再描画。店舗が変わったら担当業務も読み直す
-window.addEventListener('storage',e=>{ if(e.key===dataKey()){loadS();refresh();} else if(e.key==='current_store_id'||e.key==='ffv6_current'){ loadS(); reloadDuty(); refresh(); } });
+window.addEventListener('storage',e=>{ if(e.key===dataKey()){loadS();refresh();} else if(e.key==='current_store_id'||e.key==='ffv6_current'){ loadS(); reloadDuty(); refresh(); } else if(/^(ws_v1|bumon_v1)/.test(e.key||'')&&!/_backup_|_snap_/.test(e.key)){ if(_view==='info')renderInfo(); } });   // WS・担当業務の名前が変わったら「名前の整理」の案内を更新
 
 loadS();
 switchView(['duty','info','rank'].includes(_view)?_view:'duty');

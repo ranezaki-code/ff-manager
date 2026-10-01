@@ -77,14 +77,18 @@ header .spacer{flex:1}
 .nav-btn:hover{background:#f1f5f9}
 .today-btn{font-family:inherit;font-size:13px;font-weight:700;border:1px solid var(--border);background:#fff;border-radius:10px;padding:9px 14px;cursor:pointer}
 .today-btn:hover{background:#f1f5f9}
+/* 自動表示（ほかの画面で管理している期限） */
+.auto-toggle{margin-left:auto;font-size:12px;font-weight:700;color:#0f766e;background:#f0fdfa;border:1px solid #99f6e4;border-radius:999px;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.auto-toggle input{width:16px;height:16px;margin:0;accent-color:#0f766e}
+.auto-src{font-size:10px;font-weight:700;color:#0f766e;background:#f0fdfa;border:1px solid #99f6e4;border-radius:999px;padding:2px 8px;white-space:nowrap;flex-shrink:0}
 /* カレンダーグリッド */
 .cal{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.04)}
 .dow{display:grid;grid-template-columns:repeat(7,1fr);background:#f8fafc;border-bottom:1px solid var(--border)}
 .dow div{text-align:center;font-size:12px;font-weight:700;color:var(--sub);padding:8px 0}
 .dow div.sun{color:var(--red)}
 .dow div.sat{color:var(--accent)}
-.grid{display:grid;grid-template-columns:repeat(7,1fr)}
-.cell{min-height:96px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px 5px 6px;cursor:pointer;position:relative;display:flex;flex-direction:column;gap:3px;background:#fff}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}   /* minmax(0,…)：長い予定名で列幅が広がって曜日とずれるのを防ぐ */
+.cell{min-width:0;min-height:96px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px 5px 6px;cursor:pointer;position:relative;display:flex;flex-direction:column;gap:3px;background:#fff}
 .cell:nth-child(7n){border-right:none}
 .cell.other{background:#fafafa}
 .cell.other .num{color:#cbd5e1}
@@ -167,6 +171,7 @@ header .spacer{flex:1}
     <div class="month-title" id="month-title"></div>
     <button class="nav-btn" id="next-btn" title="次の月">›</button>
     <button class="today-btn" id="jump-today">今日</button>
+    <label class="auto-toggle" title="担当業務の作戦シートの期限と、クルーランクの評価シートの回収目安を、カレンダーに自動で表示します"><input type="checkbox" id="auto-toggle" checked> 🎯 作戦シート・評価シートの期限を表示</label>
   </div>
 
   <div class="cal">
@@ -211,7 +216,30 @@ const CATS=[
   {k:'important',label:'重要',            color:'#dc2626',bg:'#fef2f2'},
   {k:'memo',    label:'メモ',            color:'#64748b',bg:'#f1f5f9'}
 ];
-function cat(k){return CATS.find(c=>c.k===k)||CATS[0];}
+function cat(k){return k==='auto'?AUTO_CAT:(CATS.find(c=>c.k===k)||CATS[0]);}
+
+// ============ 自動表示：ほかの画面で管理している「期限」 ============
+//   ・担当業務の作戦シートの期限（未完了のもの）
+//   ・クルーランクの評価シートの回収目安（渡してから7日。まだ提出されていないもの）
+//   カレンダーには保存しない（元の画面のデータを読んで出すだけ）。期限を過ぎたものは「今日」に出して見落とさない。
+//   誕生日などクルー情報の個人情報は出さない（クルー情報はパスワード保護のため）。
+const AUTO_CAT={k:'auto',label:'期限（自動）',color:'#0f766e',bg:'#f0fdfa'};
+const AUTO_KEY='unified_ui_cal_auto';   // 表示のオン／オフ（端末ごと。unified_ で始まるキーは同期されない）
+const SHEET_DUE_DAYS=7;
+function showAuto(){ try{return localStorage.getItem(AUTO_KEY)!=='0';}catch(_){return true;} }
+function readJson(key){ try{ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):null; }catch(e){ return null; } }
+function autoEvents(){
+  if(!showAuto())return [];
+  const s=storeId(), ts=todayStr(), out=[];
+  const put=(id,due,title,note,src)=>{ if(!due||!/^\d{4}-\d{2}-\d{2}$/.test(due))return; const over=due<ts?Math.round((parseYmd(ts)-parseYmd(due))/86400000):0;
+    out.push({id:'auto_'+id,auto:true,src,cat:'auto',date:over?ts:due,time:'',title:title+(over?`（${over}日超過）`:''),note:(note||'')+(over?`${note?'・':''}本来の期限 ${+due.slice(5,7)}/${+due.slice(8,10)}`:'')}); };
+  const b=readJson(s?'bumon_v1_store_'+s:'bumon_v1');
+  if(b&&Array.isArray(b.sheets)) b.sheets.forEach(sh=>{ if(sh&&sh.due&&sh.phase!=='done') put('sh_'+sh.id,sh.due,'🎯 作戦シート期限：'+(sh.title||'(無題)'),sh.assignee?'担当 '+sh.assignee:'','担当業務'); });
+  const c=readJson(s?'crew_v1_store_'+s:'crew_v1');
+  if(c&&Array.isArray(c.members)&&c.ranks) c.members.forEach(m=>{ const sheet=(c.ranks[m.id]||{}).sheet; if(sheet&&sheet.status==='handed'&&sheet.handedAt) put('ev_'+m.id,addDays(sheet.handedAt,SHEET_DUE_DAYS),'📄 評価シート回収：'+(m.name||''),'渡した日 '+(+sheet.handedAt.slice(5,7))+'/'+(+sheet.handedAt.slice(8,10)),'クルーランク'); });
+  return out;
+}
+function allEvents(){ return S.events.concat(autoEvents()); }
 
 // ============ 日付ヘルパー ============
 const WD=['日','月','火','水','木','金','土'];
@@ -230,7 +258,7 @@ function render(){
 }
 function renderTodayPanel(){
   const now=new Date(), ts=todayStr();
-  const evs=S.events.filter(e=>e.date===ts).sort(byTime);
+  const evs=allEvents().filter(e=>e.date===ts).sort(byTime);
   let chips='';
   evs.forEach(e=>{const c=cat(e.cat);chips+=`<span class="mini-chip" style="background:${c.bg};color:${c.color}">${e.time?escapeHtml(e.time)+' ':''}${escapeHtml(e.title)}</span>`;});
   if(!chips)chips=`<span class="today-empty">今日の予定はありません</span>`;
@@ -244,13 +272,15 @@ function renderMonth(){
   const first=new Date(y,m,1);
   const start=new Date(y,m,1-first.getDay());          // 週頭(日曜)まで戻す
   const ts=todayStr();
+  const all=allEvents();
+  const tg=document.getElementById('auto-toggle'); if(tg)tg.checked=showAuto();
   let html='';
   for(let i=0;i<42;i++){
     const d=new Date(start); d.setDate(start.getDate()+i);
     const inMonth=d.getMonth()===m;
     const ds=ymd(d), dow=d.getDay();
     const cls=['cell']; if(!inMonth)cls.push('other'); if(ds===ts)cls.push('today'); if(dow===0)cls.push('sun'); if(dow===6)cls.push('sat');
-    const evs=S.events.filter(e=>e.date===ds).sort(byTime);
+    const evs=all.filter(e=>e.date===ds).sort(byTime);
     let inner=`<span class="num">${d.getDate()}</span>`;
     const room=3;
     evs.slice(0,room).forEach(e=>{const c=cat(e.cat);inner+=`<span class="ev" style="background:${c.bg};color:${c.color};border-left-color:${c.color}">${e.time?escapeHtml(e.time)+' ':''}${escapeHtml(e.title)}</span>`;});
@@ -261,7 +291,7 @@ function renderMonth(){
 }
 function renderUpcoming(){
   const ts=todayStr();
-  const list=S.events.filter(e=>e.date>=ts).sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):byTime(a,b)).slice(0,30);
+  const list=allEvents().filter(e=>e.date>=ts).sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):byTime(a,b)).slice(0,30);
   const box=document.getElementById('up-list');
   if(!list.length){box.innerHTML=`<div class="up-empty">これからの予定はまだありません。「＋予定」から追加できます。</div>`;return;}
   box.innerHTML=list.map(e=>{
@@ -276,8 +306,9 @@ function renderUpcoming(){
         <div class="up-title">${e.time?`<span class="up-time">${escapeHtml(e.time)}</span>`:''}<span>${escapeHtml(e.title)}</span><span class="up-cat" style="background:${c.bg};color:${c.color}">${escapeHtml(c.label)}</span></div>
         ${e.note?`<div class="up-note">${escapeHtml(e.note)}</div>`:''}
       </div>
-      <button class="icon-mini" data-edit="${e.id}" title="編集">✏️</button>
-      <button class="icon-mini" data-del="${e.id}" title="削除">🗑</button>
+      ${e.auto?`<span class="auto-src" title="この予定は「${escapeHtml(e.src)}」で管理しています。完了・変更は元の画面で行ってください">${escapeHtml(e.src)}で管理</span>`
+        :`<button class="icon-mini" data-edit="${e.id}" title="編集">✏️</button>
+      <button class="icon-mini" data-del="${e.id}" title="削除">🗑</button>`}
     </div>`;
   }).join('');
 }
@@ -287,14 +318,14 @@ function addDays(ds,n){const d=parseYmd(ds);d.setDate(d.getDate()+n);return ymd(
 // ============ モーダル：日ビュー ============
 function openDay(ds){
   const d=parseYmd(ds);
-  const evs=S.events.filter(e=>e.date===ds).sort(byTime);
+  const evs=allEvents().filter(e=>e.date===ds).sort(byTime);
   let body='';
   if(evs.length){
     body+=evs.map(e=>{const c=cat(e.cat);return `<div class="day-ev" style="border-left-color:${c.color}">
       <div class="de-body"><div class="de-title">${escapeHtml(e.title)}</div>
       <div class="de-meta">${e.time?escapeHtml(e.time)+'・':''}<span style="color:${c.color};font-weight:700">${escapeHtml(c.label)}</span>${e.note?'<br>'+escapeHtml(e.note):''}</div></div>
-      <button class="icon-mini" data-edit="${e.id}">✏️</button>
-      <button class="icon-mini" data-del="${e.id}">🗑</button></div>`;}).join('');
+      ${e.auto?`<span class="auto-src">${escapeHtml(e.src)}で管理</span>`:`<button class="icon-mini" data-edit="${e.id}">✏️</button>
+      <button class="icon-mini" data-del="${e.id}">🗑</button>`}</div>`;}).join('');
   }else{
     body+=`<div style="color:var(--faint);font-size:13px;text-align:center;padding:14px">この日の予定はありません</div>`;
   }
@@ -385,7 +416,8 @@ document.getElementById('modal').addEventListener('click',e=>{
 });
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
 // 店舗切替 / 多タブ同期
-window.addEventListener('storage',e=>{if(e.key===dataKey()||e.key==='current_store_id'||e.key==='ffv6_current')render();});
+window.addEventListener('storage',e=>{if(e.key===dataKey()||e.key==='current_store_id'||e.key==='ffv6_current'||/^(bumon_v1|crew_v1)/.test(e.key||''))render();});   // 担当業務・クルーの期限が変わったら自動表示も更新
+document.getElementById('auto-toggle').addEventListener('change',e=>{ try{localStorage.setItem(AUTO_KEY,e.target.checked?'1':'0');}catch(_){} render(); toast(e.target.checked?'期限の自動表示をオンにしました':'期限の自動表示をオフにしました'); });
 
 render();
 </script>

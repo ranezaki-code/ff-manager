@@ -372,6 +372,26 @@ function loadS(){
   try{if(raw)S=JSON.parse(raw);}catch(e){console.error(e);try{localStorage.setItem(dataKey()+'_corrupt_backup_'+Date.now(),raw);}catch(_){}}   // 壊れた保存は退避して上書きしない
   if(!S.assignments)S.assignments={};
   if(!Array.isArray(S.sheets))S.sheets=[];
+  applyCrewAliases(raw);
+}
+// 名簿はクルー情報が唯一。クルー情報で「この名前は○○さんと同じ人」と結びつけた／名前を変えた時は、
+// 担当・作戦シートの担当者の表記も今の名前にそろえる（書き換え前は端末内に退避。結びつけが無ければ何もしない）
+function crewAlias(){
+  const s=storeId(), out={};
+  try{ const raw=localStorage.getItem(s?'crew_v1_store_'+s:'crew_v1'); if(raw){ const c=JSON.parse(raw), byId={};
+    (Array.isArray(c.members)?c.members:[]).forEach(m=>{ const n=String((m&&m.name)||'').trim(); if(n)byId[m.id]=n; });
+    const names=new Set(Object.values(byId));
+    Object.entries((c.aliases&&typeof c.aliases==='object')?c.aliases:{}).forEach(([old,id])=>{ const cn=byId[id]; if(cn&&old&&old!==cn&&!names.has(old))out[old]=cn; }); } }catch(e){}
+  return out;
+}
+function applyCrewAliases(prevRaw){
+  const al=crewAlias(); if(!Object.keys(al).length)return false;
+  let ch=false;
+  Object.keys(S.assignments).forEach(a=>{ const arr=Array.isArray(S.assignments[a])?S.assignments[a]:[], nw=[]; arr.forEach(n=>{ const x=al[n]||n; if(x!==n)ch=true; if(!nw.includes(x))nw.push(x); }); if(ch)S.assignments[a]=nw; });
+  S.sheets.forEach(sh=>{ if(sh&&sh.assignee&&al[sh.assignee]){ sh.assignee=al[sh.assignee]; ch=true; } });
+  if(!ch)return false;
+  try{ if(prevRaw){ localStorage.setItem(dataKey()+'_backup_rename_'+Date.now(),prevRaw); const ks=Object.keys(localStorage).filter(k=>k.startsWith(dataKey()+'_backup_rename_')).sort(); while(ks.length>3)localStorage.removeItem(ks.shift()); } }catch(e){ console.error(e); return false; }
+  saveS(); return true;
 }
 function saveS(){
   try{localStorage.setItem(dataKey(),JSON.stringify(S));}catch(e){console.error(e);alert('保存に失敗しました: '+e);}
