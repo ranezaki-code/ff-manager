@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>担当部門</title>
+<title>担当業務</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13,40 +13,67 @@
   --purple:#7c3aed;--purple-lt:#f5f3ff;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;padding-bottom:60px}
-.wrap{max-width:860px;margin:0 auto;padding:14px}
-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.wrap{max-width:900px;margin:0 auto;padding:14px}
+html.embedded-in-hub .wrap{padding:10px 10px 14px}
+header{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 header h1{font-size:18px;font-weight:700}
+html.embedded-in-hub header h1{display:none}
 header .spacer{flex:1}
 .mgr-toggle{font-size:12px;font-weight:600;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer;color:var(--sub)}
 .mgr-toggle.on{background:var(--purple-lt);border-color:#ddd6fe;color:var(--purple)}
-.subtabs{display:flex;gap:6px;margin-bottom:14px}
-.subtab{flex:1;text-align:center;font-size:14px;font-weight:600;color:var(--sub);background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer}
+.subtabs{display:flex;gap:6px;margin-bottom:12px}
+.subtab{flex:1;text-align:center;font-size:14px;font-weight:600;color:var(--sub);background:#fff;border:1px solid var(--border);border-radius:10px;padding:9px;cursor:pointer}
 .subtab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.group-title{font-size:13px;font-weight:700;margin:16px 0 6px;display:flex;align-items:center;gap:6px}
+.subtabs.single{display:none}
+/* 📌 今やること */
+.todo{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.todo-h{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.todo-h .clear{margin-left:auto;font-size:11px;color:var(--accent);cursor:pointer;background:none;border:none;font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.tchip{font-size:12px;font-weight:700;border-radius:999px;padding:6px 11px;border:1px solid var(--border);background:#f8fafc;color:var(--sub);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.tchip .n{font-size:13px}
+.tchip.amber{background:var(--amber-lt);color:var(--amber);border-color:#fde68a}
+.tchip.red{background:var(--red-lt);color:var(--red);border-color:#fecaca}
+.tchip.blue{background:var(--accent-lt);color:var(--accent-dk);border-color:#bfdbfe}
+.tchip.gray{opacity:.75}
+.tchip.on{outline:2px solid var(--accent);outline-offset:1px}
+.tchip select{font-family:inherit;font-size:12px;border:none;background:transparent;color:inherit;font-weight:700;cursor:pointer}
+.todo-ok{font-size:13px;color:var(--green);font-weight:600}
+/* 部門ボード */
+.group-title{font-size:13px;font-weight:700;margin:14px 0 6px;display:flex;align-items:center;gap:6px}
 .group-title .g-cond{font-size:11px;font-weight:500;color:var(--faint)}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
-.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
-.area-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap}
-.area-row:last-child{border-bottom:none}
-.area-main{flex:1;min-width:150px}
-.area-name{font-size:14px;font-weight:600}
-.area-cond{font-size:11px;color:var(--faint);margin-top:1px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.04);overflow:hidden}
+.area{border-bottom:1px solid var(--border)}
+.area:last-child{border-bottom:none}
+.area-row{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer}
+.area-row:hover{background:#fafbfc}
+.area.open .area-row{background:#f8fafc}
+.area-main{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.area-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;min-width:150px}
+.info{font-size:11px;color:var(--faint);cursor:help;font-weight:500}
 .assignees{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
-.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;background:var(--accent-lt);color:var(--accent-dk);border-radius:999px;padding:3px 9px;font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;background:var(--accent-lt);color:var(--accent-dk);border-radius:999px;padding:3px 9px;font-weight:600;cursor:pointer}
 .chip .av{width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
-.unassigned{font-size:12px;color:var(--faint);border:1px dashed #cbd5e1;border-radius:999px;padding:3px 10px}
-.btn{font-family:inherit;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;padding:7px 12px}
+.unassigned{font-size:12px;color:var(--sub);background:#fff;border:1px dashed #cbd5e1;border-radius:999px;padding:3px 10px;font-weight:600;cursor:pointer}
+.unassigned:hover{border-color:var(--accent);color:var(--accent)}
+.sum{display:flex;gap:4px;flex-wrap:wrap;align-items:center;flex-shrink:0;justify-content:flex-end}
+.sc{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.sc.none{color:var(--faint);font-weight:500}
+.chev{font-size:11px;color:var(--faint);width:14px;text-align:center}
+.area-body{display:none;padding:4px 12px 12px;background:#fbfcfe;border-top:1px dashed var(--border)}
+.area.open .area-body{display:block}
+.btn{font-family:inherit;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;padding:7px 12px;white-space:nowrap}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-pri{background:var(--accent);color:#fff}.btn-pri:hover{background:var(--accent-dk)}
 .btn-ghost{background:#f1f5f9;color:var(--text)}.btn-ghost:hover{background:#e2e8f0}
 .btn-green{background:var(--green);color:#fff}.btn-amber{background:var(--amber);color:#fff}.btn-red{background:var(--red);color:#fff}
 .btn-line{background:#fff;border:1px solid var(--border);color:var(--sub)}
-.sheet-count{font-size:11px;color:var(--sub);white-space:nowrap}
-/* 作戦シート一覧 */
-.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.filters select{font-family:inherit;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:7px 9px;background:#fff}
-.sheet{background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
-.sheet-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;cursor:pointer}
+.btn-line.danger{color:var(--red);border-color:#fecaca}
+/* 作戦シート カード */
+.sheet{background:#fff;border:1px solid var(--border);border-radius:10px;margin-top:8px;overflow:hidden}
+.sheet.hit{outline:2px solid var(--accent);outline-offset:-1px}
+.sheet-head{display:flex;align-items:center;gap:8px;padding:9px 12px;flex-wrap:wrap}
 .sheet-title{font-size:14px;font-weight:700;flex:1;min-width:120px}
 .badge{font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
 .b-draft{background:#f1f5f9;color:var(--sub)}
@@ -59,17 +86,20 @@ header .spacer{flex:1}
 .due-soon{background:var(--amber-lt);color:var(--amber)}
 .due-over{background:var(--red-lt);color:var(--red)}
 .sheet-meta{font-size:11px;color:var(--faint)}
-.sheet-body{padding:6px 14px 14px;display:none}
-.sheet.open .sheet-body{display:block}
-.step{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9}
+.sheet-toggle{font-size:12px;color:var(--accent);cursor:pointer;background:none;border:none;font-weight:600;padding:0 12px 6px}
+.sheet-body{padding:0 12px 10px;display:none}
+.sheet.showbody .sheet-body{display:block}
+.step{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9}
 .step:last-child{border-bottom:none}
 .step .n{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent-lt);color:var(--accent-dk);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .step .n.n4{background:var(--green-lt);color:var(--green)}
 .step .s-label{font-size:12px;font-weight:700;color:var(--sub)}
 .step .s-val{font-size:13px;white-space:pre-wrap;margin-top:1px}
 .step .s-val.empty{color:var(--faint)}
-.sheet-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-.empty-note{color:var(--faint);font-size:13px;text-align:center;padding:24px}
+.note{font-size:12px;color:var(--red);background:var(--red-lt);border-radius:8px;padding:6px 10px;margin:0 12px 8px}
+.sheet-actions{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 10px;align-items:center}
+.sheet-actions .spacer{flex:1}
+.empty-note{color:var(--faint);font-size:13px;text-align:center;padding:16px}
 /* 全体管理ダッシュボード */
 .mgr-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin-bottom:6px}
 .metric{background:#fff;border:1px solid var(--border);border-radius:12px;padding:11px 12px;text-align:center}
@@ -100,10 +130,24 @@ header .spacer{flex:1}
 .modal-actions .btn{flex:1;min-width:110px;padding:11px}
 .close-x{float:right;font-size:22px;background:none;border:none;color:var(--sub);cursor:pointer;line-height:1}
 .multi{display:flex;flex-wrap:wrap;gap:6px}
-.multi .opt{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:5px 11px;cursor:pointer;background:#fff;color:var(--sub)}
+.multi .opt{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:6px 11px;cursor:pointer;background:#fff;color:var(--sub);display:inline-flex;align-items:center;gap:5px}
 .multi .opt.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+.multi .opt .ok{font-size:10px;font-weight:700;color:var(--green)}
+.multi .opt.sel .ok,.multi .opt.sel .ng{color:#fff;opacity:.9}
+.multi .opt .ng{font-size:10px;font-weight:700;color:var(--amber)}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;opacity:0;transition:opacity .2s;z-index:2000;pointer-events:none}
 .toast.show{opacity:1}
+@media (max-width:560px){
+  /* スマホ：1行目＝▶ 部門名 ＋作戦／2行目＝担当／3行目＝作戦の状況 */
+  .area-row{flex-wrap:wrap;row-gap:6px}
+  .area-main{flex-direction:column;align-items:flex-start;gap:6px;flex-basis:0}
+  .area-name{min-width:0}
+  .area-main .assignees{order:5}
+  .area-row>.btn{order:2}
+  .sum{order:6;flex-basis:100%;justify-content:flex-start;padding-left:22px}
+  .sum:empty{display:none}
+  .sheet-head .sheet-title{flex-basis:100%;order:-1}
+}
 /* ===== 作戦シート 印刷（A4縦・PDF保存用） ===== */
 #print-area{display:none}
 @media print{
@@ -174,44 +218,22 @@ header .spacer{flex:1}
 <body>
 <div class="wrap">
   <header>
-    <h1>担当部門</h1>
+    <h1>担当業務</h1>
     <span class="spacer"></span>
+    <button class="btn btn-pri btn-sm" id="new-sheet-btn">＋ 作戦シート</button>
     <button class="mgr-toggle" id="mgr-toggle">🔓 全体管理</button>
   </header>
 
-  <div class="subtabs">
-    <div class="subtab active" data-view="list">担当一覧</div>
-    <div class="subtab" data-view="sheets">作戦シート</div>
-    <div class="subtab" data-view="mgr" id="subtab-mgr" style="display:none">📋 全体管理</div>
+  <div class="subtabs single" id="subtabs">
+    <div class="subtab active" data-view="board">🧭 部門ボード</div>
+    <div class="subtab" data-view="mgr" id="subtab-mgr">📋 全体管理</div>
   </div>
 
-  <div id="view-list"></div>
+  <div id="view-board">
+    <div class="todo" id="todo-strip"></div>
+    <div id="board"></div>
+  </div>
   <div id="view-mgr" style="display:none"></div>
-
-  <div id="view-sheets" style="display:none">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-      <button class="btn btn-pri" id="new-sheet-btn">＋ 新規作戦シート</button>
-      <span class="spacer" style="flex:1"></span>
-    </div>
-    <div class="filters">
-      <select id="f-group"><option value="">全グループ</option></select>
-      <select id="f-status">
-        <option value="">全状態</option>
-        <option value="draft">下書き</option>
-        <option value="submitted">提出済（承認待ち）</option>
-        <option value="returned">差し戻し</option>
-        <option value="doing">実行中</option>
-        <option value="done">達成</option>
-        <option value="retry">再挑戦</option>
-      </select>
-      <select id="f-assignee"><option value="">全担当</option></select>
-      <select id="f-sort">
-        <option value="updated">更新が新しい順</option>
-        <option value="due">期限が近い順</option>
-      </select>
-    </div>
-    <div id="sheet-list"></div>
-  </div>
 </div>
 
 <!-- 担当割当モーダル -->
@@ -221,7 +243,7 @@ header .spacer{flex:1}
     <h2>担当を割り当て</h2>
     <div class="mhint" id="assign-area-name"></div>
     <div class="field">
-      <label>担当者（ワークスケジュールの従業員から選択）</label>
+      <label>担当者 <span style="font-weight:500;color:var(--faint);font-size:11px">タップで選択（複数可）。✓＝条件を満たす／△＝条件未達（割当は可能）</span></label>
       <div class="ex" id="assign-staff-hint"></div>
       <div class="multi" id="assign-staff-multi"></div>
     </div>
@@ -292,7 +314,9 @@ header .spacer{flex:1}
 
 <script>
 // ============================================================
-// 担当部門システム（自走店舗作り）
+// 担当業務（自走店舗作り）
+//   1画面＝部門ボード：部門ごとに「担当」と「作戦シート」をまとめて見る。
+//   上の「📌 今やること」で 承認待ち／差し戻し／期限超過 などに一発で絞れる。
 // ============================================================
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -316,8 +340,6 @@ const SEED=[
     {id:'training',name:'新人教育',cond:''},
     {id:'three',name:'3つの徹底',cond:''},
   ]},
-  // 全体管理（PDCAバックチェック/評価/数字管理）は担当割当ではなく
-  // 「📋 全体管理」ダッシュボードで行うため、担当一覧の割当行からは外す。
 ];
 const GROUP_DOT={'売上利益拡大':'#2563eb','基準の維持':'#16a34a','全体管理':'#7c3aed'};
 function allAreas(){const a=[];SEED.forEach(g=>g.items.forEach(it=>a.push(Object.assign({group:g.group},it))));return a;}
@@ -336,14 +358,39 @@ function loadS(){
 function saveS(){
   try{localStorage.setItem(dataKey(),JSON.stringify(S));}catch(e){console.error(e);alert('保存に失敗しました: '+e);}
 }
-// WSの従業員（state.staff）を読む
+// クルー（クルータブの登録）— 名前とランク・ファンタジスタ。無ければWSの従業員
+function crewData(){
+  const s=storeId();
+  try{const raw=localStorage.getItem(s?'crew_v1_store_'+s:'crew_v1');if(raw){const c=JSON.parse(raw);if(Array.isArray(c.members)&&c.members.length)return {members:c.members,ranks:c.ranks||{}};}}catch(e){}
+  return null;
+}
 function wsStaff(){
   const s=storeId();const key=s?'ws_v1_store_'+s:'ws_v1';
   try{const raw=localStorage.getItem(key);if(raw){const st=JSON.parse(raw);if(Array.isArray(st.staff))return st.staff.slice();}}catch(e){}
-  // フォールバック：これまで割り当てた名前
-  const set=new Set();Object.values(S.assignments).forEach(arr=>(arr||[]).forEach(n=>set.add(n)));
+  return [];
+}
+// 担当候補：クルー登録があればクルー、無ければWS従業員。過去に割り当てた名前も落とさない
+function candidateNames(){
+  const set=new Set();
+  const cd=crewData(); if(cd)cd.members.forEach(m=>set.add(m.name)); else wsStaff().forEach(n=>set.add(n));
+  Object.values(S.assignments).forEach(arr=>(arr||[]).forEach(n=>set.add(n)));
   S.sheets.forEach(sh=>{if(sh.assignee)set.add(sh.assignee);});
-  return Array.from(set);
+  return Array.from(set).filter(Boolean);
+}
+// 担当条件（例「サブリーダークルー以上／FFファンタジスタ取得済」）をクルーのランク・ファンタジスタで判定
+const RANK_ORDER={rookie:0,regular:1,subleader:2,leader:3};
+const RANK_JA={'ルーキー':'rookie','レギュラー':'regular','サブリーダー':'subleader','リーダー':'leader'};
+const FANTA_JA=[['FF','ff'],['接客','sekkyaku'],['Machi Cafe','machicafe'],['マチカフェ','machicafe'],['まちかど厨房','machikado']];
+function eligibility(name,cond){
+  if(!cond)return {ok:true,why:''};
+  const cd=crewData(); if(!cd)return {ok:null,why:'クルー登録なし'};
+  const m=cd.members.find(x=>x.name===name); if(!m)return {ok:null,why:'クルー未登録'};
+  const r=cd.ranks[m.id]||{rank:'rookie',fanta:{}};
+  const lacks=[];
+  const rm=cond.match(/(ルーキー|レギュラー|サブリーダー|リーダー)クルー以上/);
+  if(rm){ const need=RANK_JA[rm[1]]; if((RANK_ORDER[r.rank]||0)<RANK_ORDER[need])lacks.push(rm[1]+'以上'); }
+  FANTA_JA.forEach(([ja,k])=>{ if(cond.indexOf(ja+'ファンタジスタ')>=0&&!(r.fanta&&r.fanta[k]))lacks.push(ja+'ファンタジスタ'); });
+  return lacks.length?{ok:false,why:lacks.join('・')+'が未達'}:{ok:true,why:''};
 }
 
 // ---- 全体管理モード（パスワード保護） ----
@@ -352,21 +399,19 @@ function isMgr(){return localStorage.getItem('bumon_manager_mode')==='1';}
 function renderMgr(){
   const b=$('mgr-toggle');const on=isMgr();
   if(on){b.classList.add('on');b.textContent='🔐 全体管理 ON';}else{b.classList.remove('on');b.textContent='🔓 全体管理';}
-  const st=$('subtab-mgr');if(st)st.style.display=on?'block':'none';
-  // モードOFFにしたとき全体管理ビューにいたら担当一覧へ戻す
-  if(!on && $('view-mgr').style.display==='block')switchView('list');
+  $('subtabs').classList.toggle('single',!on);
+  if(!on && $('view-mgr').style.display==='block')switchView('board');
 }
 
-// ---- 担当一覧ビュー ----
-function avatarText(n){return (n||'?').slice(0,1);}
+// ---- 状態・期限 ----
 function sheetsOfArea(id){return S.sheets.filter(s=>s.areaId===id);}
 function statusOf(sh){
   if(sh.phase==='draft')return {k:'draft',label:'下書き',cls:'b-draft'};
   if(sh.phase==='submitted')return {k:'submitted',label:'承認待ち',cls:'b-submitted'};
   if(sh.phase==='returned')return {k:'returned',label:'差し戻し',cls:'b-returned'};
   if(sh.phase==='done'){
-    if(sh.next==='A')return {k:'done',label:'達成（A継続）',cls:'b-done'};
-    if(sh.next==='B')return {k:'retry',label:'再挑戦（B更新）',cls:'b-retry'};
+    if(sh.next==='A')return {k:'done',label:'達成',cls:'b-done'};
+    if(sh.next==='B')return {k:'retry',label:'再挑戦へ',cls:'b-retry'};
     return {k:'done',label:'完了',cls:'b-done'};
   }
   return {k:'doing',label:'実行中',cls:'b-doing'};
@@ -380,98 +425,143 @@ function dueInfo(sh){
   const done=(sh.phase==='done');
   let cls='due-badge',txt='期限 '+fmtDate(sh.due);
   if(!done){
-    if(diff<0){cls='due-badge due-over';txt='期限 '+fmtDate(sh.due)+'・'+(-diff)+'日超過';}
-    else if(diff===0){cls='due-badge due-soon';txt='期限 今日まで';}
-    else if(diff<=3){cls='due-badge due-soon';txt='期限 '+fmtDate(sh.due)+'・あと'+diff+'日';}
-    else{cls='due-badge';txt='期限 '+fmtDate(sh.due)+'・あと'+diff+'日';}
+    if(diff<0){cls='due-badge due-over';txt=fmtDate(sh.due)+'・'+(-diff)+'日超過';}
+    else if(diff===0){cls='due-badge due-soon';txt='今日まで';}
+    else if(diff<=3){cls='due-badge due-soon';txt=fmtDate(sh.due)+'・あと'+diff+'日';}
+    else{cls='due-badge';txt=fmtDate(sh.due)+'・あと'+diff+'日';}
   }
   return {cls,txt,diff};
 }
-function renderList(){
-  const wrap=$('view-list');let h='';
-  SEED.forEach(g=>{
-    if(g.managerOnly && !isMgr())return; // 全体管理グループは全体管理モード時のみ表示
-    h+='<div class="group-title"><span class="dot" style="background:'+GROUP_DOT[g.group]+'"></span>'+esc(g.group)+(g.cond?' <span class="g-cond">'+esc(g.cond)+'</span>':'')+'</div>';
-    h+='<div class="card">';
-    g.items.forEach(it=>{
-      const as=S.assignments[it.id]||[];
-      const shs=sheetsOfArea(it.id);
-      const doneCnt=shs.filter(s=>s.phase==='done').length;
-      h+='<div class="area-row">';
-      h+='<div class="area-main"><div class="area-name">'+esc(it.name)+'</div>'+(it.cond?'<div class="area-cond">条件: '+esc(it.cond)+'</div>':'')+'</div>';
-      h+='<div class="assignees">';
-      if(as.length){as.forEach(n=>{h+='<span class="chip"><span class="av">'+esc(avatarText(n))+'</span>'+esc(n)+'</span>';});}
-      else{h+='<span class="unassigned">未割当</span>';}
-      h+='</div>';
-      h+='<button class="btn btn-line btn-sm" data-assign="'+it.id+'">割当</button>';
-      h+='<span class="sheet-count">シート'+shs.length+'件'+(doneCnt?'・完了'+doneCnt:'')+'</span>';
-      h+='<button class="btn btn-ghost btn-sm" data-newsheet="'+it.id+'">＋作戦</button>';
-      h+='</div>';
-    });
-    h+='</div>';
-  });
-  wrap.innerHTML=h;
+function isOverdue(sh){const di=dueInfo(sh);return !!(di&&sh.phase!=='done'&&di.diff<0);}
+function isSoon(sh){const di=dueInfo(sh);return !!(di&&sh.phase!=='done'&&di.diff>=0&&di.diff<=3);}
+
+// ---- 画面状態（開いている部門・絞り込み）はこのタブ内で保持 ----
+let _ui={open:[],flt:'all',name:'',body:[]};
+try{ _ui=Object.assign(_ui,JSON.parse(sessionStorage.getItem('bumon_ui')||'{}')); }catch(e){}
+function saveUi(){ try{sessionStorage.setItem('bumon_ui',JSON.stringify(_ui));}catch(e){} }
+const openAreas=()=>new Set(_ui.open||[]);
+
+// ---- 📌 今やること（絞り込みチップ） ----
+function matchFilter(sh){
+  if(_ui.name&&sh.assignee!==_ui.name)return false;
+  switch(_ui.flt){
+    case 'approve':return sh.phase==='submitted';
+    case 'returned':return sh.phase==='returned';
+    case 'overdue':return isOverdue(sh);
+    case 'soon':return isSoon(sh);
+    case 'doing':return sh.phase==='doing';
+    case 'draft':return sh.phase==='draft';
+    default:return true;
+  }
+}
+function renderTodo(){
+  const box=$('todo-strip'); if(!box)return;
+  const sheets=S.sheets;
+  const cnt={approve:sheets.filter(s=>s.phase==='submitted').length,returned:sheets.filter(s=>s.phase==='returned').length,
+    overdue:sheets.filter(isOverdue).length,soon:sheets.filter(isSoon).length,doing:sheets.filter(s=>s.phase==='doing').length,draft:sheets.filter(s=>s.phase==='draft').length};
+  const unassigned=allAreas().filter(a=>!(S.assignments[a.id]||[]).length).length;
+  const chip=(k,label,n,cls)=>n?`<button type="button" class="tchip ${cls} ${_ui.flt===k?'on':''}" data-filter="${k}"><span class="n">${n}</span>${label}</button>`:'';
+  const names=candidateNames();
+  const active=_ui.flt!=='all'||_ui.name;
+  let h=`<div class="todo-h">📌 今やること <span style="font-weight:500">タップで絞り込み</span>${active?'<button type="button" class="clear" data-filter="all">✕ 絞り込みを解除</button>':''}</div><div class="chips">`;
+  h+=chip('approve','承認待ち',cnt.approve,isMgr()?'amber':'gray');
+  h+=chip('returned','差し戻し → 直して再提出',cnt.returned,'red');
+  h+=chip('overdue','期限超過',cnt.overdue,'red');
+  h+=chip('soon','期限3日以内',cnt.soon,'amber');
+  h+=chip('doing','実行中',cnt.doing,'blue');
+  h+=chip('draft','下書き（未提出）',cnt.draft,'gray');
+  if(unassigned)h+=`<button type="button" class="tchip ${_ui.flt==='unassigned'?'on':''} ${unassigned?'gray':''}" data-filter="unassigned"><span class="n">${unassigned}</span>担当が未割当の部門</button>`;
+  if(names.length)h+=`<label class="tchip ${_ui.name?'on':''}">👤 <select data-namefilter><option value="">全員</option>${names.map(n=>`<option ${_ui.name===n?'selected':''}>${esc(n)}</option>`).join('')}</select></label>`;
+  const nothing=!cnt.approve&&!cnt.returned&&!cnt.overdue&&!cnt.soon&&!unassigned;
+  if(nothing)h+=`<span class="todo-ok">✅ 対応が必要なものはありません</span>`;
+  h+='</div>';
+  box.innerHTML=h;
 }
 
-// ---- 作戦シートビュー ----
-function fillFilterOptions(){
-  const fg=$('f-group');const curG=fg.value;
-  fg.innerHTML='<option value="">全グループ</option>'+SEED.filter(g=>!g.managerOnly||isMgr()).map(g=>'<option value="'+esc(g.group)+'">'+esc(g.group)+'</option>').join('');
-  fg.value=curG;
-  const fa=$('f-assignee');const cur=fa.value;fa.innerHTML='<option value="">全担当</option>'+wsStaff().map(n=>'<option>'+esc(n)+'</option>').join('');fa.value=cur;
+// ---- 部門ボード ----
+function areaSummary(shs){
+  if(!shs.length)return '<span class="sc none">作戦なし</span>';
+  const c={};shs.forEach(s=>{const k=statusOf(s).k;c[k]=(c[k]||0)+1;});
+  const order=[['submitted','承認待ち','b-submitted'],['returned','差し戻し','b-returned'],['doing','実行中','b-doing'],['draft','下書き','b-draft'],['retry','再挑戦へ','b-retry'],['done','達成','b-done']];
+  return order.filter(([k])=>c[k]).map(([k,l,cls])=>`<span class="sc ${cls}">${l} ${c[k]}</span>`).join('')+(shs.some(isOverdue)?'<span class="sc due-over">期限超過</span>':'');
 }
-function renderSheets(){
-  fillFilterOptions();
-  const fg=$('f-group').value, fs=$('f-status').value, fa=$('f-assignee').value, fsort=$('f-sort').value;
-  let list=S.sheets.slice();
-  if(fsort==='due'){
-    // 期限が近い順（未完了で期限あり→近い順、次に期限なし、最後に完了）
-    list.sort((a,b)=>{
-      const ad=(a.phase!=='done'&&a.due)?a.due:'';
-      const bd=(b.phase!=='done'&&b.due)?b.due:'';
-      if(ad&&bd)return ad<bd?-1:ad>bd?1:0;
-      if(ad)return -1; if(bd)return 1;
-      return (b.updatedAt||0)-(a.updatedAt||0);
+function renderBoard(){
+  const wrap=$('board');let h='';
+  const opens=openAreas();
+  const filtering=_ui.flt!=='all'||_ui.name;
+  let shown=0;
+  SEED.forEach(g=>{
+    let gh='';
+    g.items.forEach(it=>{
+      const as=S.assignments[it.id]||[];
+      const shsAll=sheetsOfArea(it.id);
+      const shs=filtering?shsAll.filter(matchFilter):shsAll;
+      if(filtering){
+        if(_ui.flt==='unassigned'){ if(as.length)return; }
+        else if(!shs.length)return;
+      }
+      shown++;
+      const open=(filtering&&_ui.flt!=='unassigned')?true:opens.has(it.id);
+      gh+=`<div class="area ${open?'open':''}" data-area="${it.id}">`;
+      gh+=`<div class="area-row" data-area-toggle="${it.id}">`;
+      gh+=`<span class="chev">${open?'▼':'▶'}</span>`;
+      gh+='<div class="area-main">';
+      gh+=`<div class="area-name">${esc(it.name)}${it.cond?` <span class="info" title="担当条件：${esc(it.cond)}">ℹ️</span>`:''}</div>`;
+      gh+='<div class="assignees" data-assign="'+it.id+'" title="タップで担当を変更">';
+      if(as.length){as.forEach(n=>{gh+='<span class="chip"><span class="av">'+esc((n||'?').slice(0,1))+'</span>'+esc(n)+'</span>';});}
+      else{gh+='<span class="unassigned">＋ 担当を決める</span>';}
+      gh+='</div>';
+      gh+='</div>';
+      gh+=`<div class="sum">${shsAll.length?areaSummary(shsAll):''}</div>`;
+      gh+=`<button class="btn btn-ghost btn-sm" data-newsheet="${it.id}" title="この部門の作戦シートを作る">＋作戦</button>`;
+      gh+='</div>';
+      // 中身：作戦シート（未完了を期限が近い順 → 完了は新しい順）
+      const sorted=shs.slice().sort((a,b)=>{
+        const ad=a.phase==='done',bd=b.phase==='done'; if(ad!==bd)return ad?1:-1;
+        if(!ad){ const x=a.due||'9999',y=b.due||'9999'; if(x!==y)return x<y?-1:1; }
+        return (b.updatedAt||0)-(a.updatedAt||0);
+      });
+      gh+='<div class="area-body">';
+      if(!sorted.length)gh+='<div class="empty-note">作戦シートはまだありません。「＋作戦」から作れます</div>';
+      else gh+=sorted.map(sheetHtml).join('');
+      gh+='</div></div>';
     });
-  }else{
-    list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-  }
-  list=list.filter(sh=>{
-    const ar=areaById(sh.areaId)||{};
-    if(fg&&ar.group!==fg)return false;
-    if(fa&&sh.assignee!==fa)return false;
-    if(fs){const st=statusOf(sh);if(st.k!==fs)return false;}
-    return true;
+    if(!gh)return;
+    h+='<div class="group-title"><span class="dot" style="background:'+GROUP_DOT[g.group]+'"></span>'+esc(g.group)+(g.cond?' <span class="g-cond">'+esc(g.cond)+'</span>':'')+'</div>';
+    h+='<div class="card">'+gh+'</div>';
   });
-  const box=$('sheet-list');
-  if(!list.length){box.innerHTML='<div class="empty-note">作戦シートはまだありません。「＋ 新規作戦シート」から作成してください。</div>';return;}
-  box.innerHTML=list.map(sh=>{
-    const ar=areaById(sh.areaId)||{name:'(不明)',group:''};
-    const st=statusOf(sh);
-    let h='<div class="sheet" data-id="'+sh.id+'">';
-    h+='<div class="sheet-head" data-toggle="'+sh.id+'">';
-    h+='<span class="badge '+st.cls+'">'+st.label+'</span>';
-    const di=dueInfo(sh); if(di)h+='<span class="'+di.cls+'">'+esc(di.txt)+'</span>';
-    h+='<span class="sheet-title">'+esc(sh.title||'(無題)')+'</span>';
-    h+='<span class="sheet-meta">'+esc(ar.group)+' / '+esc(ar.name)+(sh.assignee?' ・ '+esc(sh.assignee):'')+'</span>';
-    h+='</div><div class="sheet-body">';
-    h+=stepHtml(1,'現状の課題（客観的な事実）',sh.problem);
-    h+=stepHtml(2,'目的とゴール（あるべき状態）',sh.goal);
-    h+=stepHtml(3,'明日からの仕組み（いつ・誰が・何を）',sh.mechanism);
-    if(sh.result||sh.phase==='done')h+=stepHtml(4,'結果と次の一手',(sh.result||'')+(sh.next?'\n→ '+(sh.next==='A'?'A：継続・定着':'B：更新して再挑戦'):''));
-    h+='<div class="sheet-actions">'+actionsHtml(sh,st)+'</div>';
-    h+='</div></div>';
-    return h;
-  }).join('');
+  if(filtering&&!shown)h+='<div class="empty-note">この条件の作戦シートはありません</div>';
+  wrap.innerHTML=h;
+}
+function sheetHtml(sh){
+  const st=statusOf(sh), di=dueInfo(sh);
+  const showBody=(_ui.body||[]).includes(sh.id);
+  let h=`<div class="sheet ${showBody?'showbody':''}" data-id="${sh.id}">`;
+  h+='<div class="sheet-head">';
+  h+='<span class="badge '+st.cls+'">'+st.label+'</span>';
+  if(di)h+='<span class="'+di.cls+'">'+esc(di.txt)+'</span>';
+  h+='<span class="sheet-title">'+esc(sh.title||'(無題)')+'</span>';
+  h+='<span class="sheet-meta">'+(sh.assignee?'👤 '+esc(sh.assignee):'担当なし')+'</span>';
+  h+='</div>';
+  if(sh.phase==='returned'&&sh.approverNote)h+=`<div class="note">差し戻しの理由：${esc(sh.approverNote)}</div>`;
+  h+=`<button type="button" class="sheet-toggle" data-sheettoggle="${sh.id}">${showBody?'▾ 内容を閉じる':'▸ 内容（①②③）を見る'}</button>`;
+  h+='<div class="sheet-body">';
+  h+=stepHtml(1,'現状の課題（客観的な事実）',sh.problem);
+  h+=stepHtml(2,'目的とゴール（あるべき状態）',sh.goal);
+  h+=stepHtml(3,'明日からの仕組み（いつ・誰が・何を）',sh.mechanism);
+  if(sh.result||sh.phase==='done')h+=stepHtml(4,'結果と次の一手',(sh.result||'')+(sh.next?'\n→ '+(sh.next==='A'?'A：継続・定着':'B：更新して再挑戦'):''));
+  h+='</div>';
+  h+='<div class="sheet-actions">'+actionsHtml(sh,st)+'</div>';
+  h+='</div>';
+  return h;
 }
 function stepHtml(n,label,val){
   const empty=!val||!String(val).trim();
   return '<div class="step"><span class="n'+(n===4?' n4':'')+'">'+n+'</span><div><div class="s-label">'+esc(label)+'</div><div class="s-val'+(empty?' empty':'')+'">'+(empty?'（未記入）':esc(val))+'</div></div></div>';
 }
+// 主ボタン＝今この状態で次にやること。編集・印刷・削除は控えめに
 function actionsHtml(sh,st){
   let h='';
-  h+='<button class="btn btn-line btn-sm" data-edit="'+sh.id+'">✎ 編集</button>';
-  h+='<button class="btn btn-line btn-sm" data-print="'+sh.id+'">🖨 印刷/PDF</button>';
   if(sh.phase==='draft'||sh.phase==='returned')h+='<button class="btn btn-pri btn-sm" data-submit="'+sh.id+'">提出する</button>';
   if(sh.phase==='submitted'){
     if(isMgr()){
@@ -481,7 +571,9 @@ function actionsHtml(sh,st){
   }
   if(sh.phase==='doing')h+='<button class="btn btn-amber btn-sm" data-result="'+sh.id+'">結果を記入して完了</button>';
   if(sh.phase==='done'&&sh.next==='B')h+='<button class="btn btn-pri btn-sm" data-cycle="'+sh.id+'">次のサイクルを作成</button>';
-  h+='<button class="btn btn-line btn-sm" data-del="'+sh.id+'">削除</button>';
+  h+='<span class="spacer"></span>';
+  h+='<button class="btn btn-line btn-sm" data-edit="'+sh.id+'">✎ 編集</button>';
+  h+='<button class="btn btn-line btn-sm" data-print="'+sh.id+'">🖨 印刷</button>';
   return h;
 }
 
@@ -532,16 +624,16 @@ function printSheet(id){
 function metric(v,l,cls){return '<div class="metric '+(cls||'')+'"><div class="mv">'+v+'</div><div class="ml">'+esc(l)+'</div></div>';}
 function renderManager(){
   const box=$('view-mgr'); if(!box)return;
+  if(!isMgr()){box.innerHTML='';return;}   // 全体管理OFFのときはDOMにも承認ボタンを置かない
   const today=new Date();today.setHours(0,0,0,0);
   const sheets=S.sheets;
   const submitted=sheets.filter(s=>s.phase==='submitted');
-  const overdue=sheets.filter(s=>s.phase!=='done'&&s.due&&new Date(s.due+'T00:00:00')<today);
+  const overdue=sheets.filter(isOverdue);
   const returned=sheets.filter(s=>s.phase==='returned');
   const doing=sheets.filter(s=>s.phase==='doing');
   const doneA=sheets.filter(s=>s.phase==='done'&&s.next==='A');
   const doneB=sheets.filter(s=>s.phase==='done'&&s.next==='B');
   let h='';
-  // サマリー（メトリクス）
   h+='<div class="mgr-metrics">';
   h+=metric(submitted.length,'承認待ち',submitted.length?'amber':'');
   h+=metric(overdue.length,'期限超過',overdue.length?'warn':'');
@@ -549,7 +641,6 @@ function renderManager(){
   h+=metric(doneA.length,'達成','ok');
   h+=metric(doneB.length,'再挑戦','');
   h+='</div>';
-  // 承認待ち（PDCAバックチェックの入口）
   h+='<div class="mgr-sec">✅ 承認待ち（あなたの承認が必要）</div><div class="card">';
   if(!submitted.length)h+='<div class="empty-note">承認待ちはありません</div>';
   else submitted.forEach(sh=>{const ar=areaById(sh.areaId)||{};
@@ -558,7 +649,6 @@ function renderManager(){
     h+='<button class="btn btn-green btn-sm" data-approve="'+sh.id+'">承認</button>';
     h+='<button class="btn btn-red btn-sm" data-return="'+sh.id+'">差し戻し</button></div>';});
   h+='</div>';
-  // 要対応（期限超過・差し戻し）
   const att=overdue.concat(returned.filter(s=>overdue.indexOf(s)<0));
   h+='<div class="mgr-sec">⚠️ 要対応（期限超過・差し戻し）</div><div class="card">';
   if(!att.length)h+='<div class="empty-note">ありません</div>';
@@ -567,7 +657,6 @@ function renderManager(){
     h+='<div style="flex:1;min-width:120px"><b>'+esc(sh.title)+'</b><div class="sheet-meta">'+esc(ar.name||'')+(sh.assignee?' ・ '+esc(sh.assignee):'')+'</div></div>';
     h+='<button class="btn btn-line btn-sm" data-edit="'+sh.id+'">開く</button></div>';});
   h+='</div>';
-  // 評価（担当者別 達成状況）
   h+='<div class="mgr-sec">🏅 担当者別 達成状況（評価）</div><div class="card" style="padding:8px 12px;overflow:auto">';
   const names=Array.from(new Set(sheets.map(s=>s.assignee).filter(Boolean)));
   if(!names.length)h+='<div class="empty-note">作戦シートに担当者が設定されると集計されます</div>';
@@ -582,7 +671,6 @@ function renderManager(){
     h+='</table>';
   }
   h+='</div>';
-  // 部門別 進捗
   h+='<div class="mgr-sec">📊 部門別 進捗</div><div class="card">';
   let any=false;
   SEED.forEach(g=>{g.items.forEach(it=>{const shs=sheetsOfArea(it.id);if(!shs.length)return;any=true;
@@ -593,15 +681,17 @@ function renderManager(){
   box.innerHTML=h;
 }
 
-// ---- モーダル：担当割当 ----
+// ---- モーダル：担当割当（条件の適合を表示） ----
 let assignAreaId=null, assignSel=[];
 function openAssign(areaId){
   assignAreaId=areaId;const ar=areaById(areaId);
   assignSel=(S.assignments[areaId]||[]).slice();
   $('assign-area-name').textContent=ar.name+(ar.cond?'　（条件: '+ar.cond+'）':'');
-  const staff=wsStaff();
-  $('assign-staff-hint').textContent=staff.length?'タップで選択（複数可）':'※ワークスケジュールに従業員が未登録です。先にWSの「従業員管理」で登録すると、ここに出ます。';
-  $('assign-staff-multi').innerHTML=staff.map(n=>'<span class="opt'+(assignSel.includes(n)?' sel':'')+'" data-name="'+esc(n)+'">'+esc(n)+'</span>').join('')||'<span class="sheet-meta">（候補なし）</span>';
+  const names=candidateNames();
+  const cd=crewData();
+  $('assign-staff-hint').textContent=names.length?(cd?'候補はクルータブの登録から':'候補はワークスケジュールの従業員から（クルータブに登録するとランク・ファンタジスタで条件判定が出ます）'):'※クルータブ（またはワークスケジュール）に従業員を登録すると、ここに出ます。';
+  const rows=names.map(n=>({n,e:eligibility(n,ar.cond)})).sort((a,b)=>{const s=x=>x.e.ok===true?0:x.e.ok===null?1:2;return s(a)-s(b)||a.n.localeCompare(b.n,'ja');});
+  $('assign-staff-multi').innerHTML=rows.map(({n,e})=>'<span class="opt'+(assignSel.includes(n)?' sel':'')+'" data-name="'+esc(n)+'" title="'+esc(e.why||'')+'">'+esc(n)+(ar.cond?(e.ok===true?'<span class="ok">✓</span>':e.ok===false?'<span class="ng" title="'+esc(e.why)+'">△ '+esc(e.why)+'</span>':''):'')+'</span>').join('')||'<span class="sheet-meta">（候補なし）</span>';
   show('assign-overlay');
 }
 function toggleAssignName(n){const i=assignSel.indexOf(n);if(i>=0)assignSel.splice(i,1);else assignSel.push(n);
@@ -613,7 +703,9 @@ function newSheet(areaId){
   editId=null;sheetNext='';
   $('sheet-modal-title').textContent='新規作戦シート';
   fillAreaSelect($('s-area'),areaId||'');
-  fillAssigneeSelect($('s-assignee'),'');
+  // 担当者の初期値：その部門の担当が1人ならその人
+  const as=(S.assignments[areaId]||[]);
+  fillAssigneeSelect($('s-assignee'),as.length===1?as[0]:'');
   $('s-title').value='';$('s-due').value='';$('s-problem').value='';$('s-goal').value='';$('s-mechanism').value='';$('s-result').value='';
   $('result-block').style.display='none';
   setNextSel('');
@@ -635,8 +727,10 @@ function editSheet(id){
   let acts='<button class="btn btn-ghost" id="m-save">保存</button>';
   if(sh.phase==='draft'||sh.phase==='returned')acts+='<button class="btn btn-pri" id="m-submit">提出する</button>';
   if(sh.phase==='doing')acts+='<button class="btn btn-amber" id="m-complete">完了にする</button>';
+  acts+='<button class="btn btn-line danger" id="m-del" style="flex:0 0 auto;min-width:0">削除</button>';   // 削除はカードには置かず、編集画面の中だけ（誤タップ防止）
   $('sheet-modal-actions').innerHTML=acts;
   $('m-save').onclick=()=>saveSheet(sh.phase);
+  $('m-del').onclick=()=>{ hide('sheet-overlay'); delSheet(id); };
   if($('m-submit'))$('m-submit').onclick=()=>saveSheet('submitted');
   if($('m-complete'))$('m-complete').onclick=()=>{ if(!sheetNext){toast('「次の一手」A/Bを選んでください');return;} saveSheet('done'); };
   show('sheet-overlay');
@@ -644,11 +738,11 @@ function editSheet(id){
 function openResult(id){editSheet(id);$('result-block').style.display='block';$('s-result').focus();}
 function setNextSel(v){sheetNext=v;document.querySelectorAll('#s-next-multi .opt').forEach(o=>o.classList.toggle('sel',o.dataset.next===v));}
 function fillAreaSelect(sel,val){
-  sel.innerHTML=SEED.filter(g=>!g.managerOnly||isMgr()||g.items.some(it=>it.id===val)).map(g=>'<optgroup label="'+esc(g.group)+'">'+g.items.map(it=>'<option value="'+it.id+'"'+(it.id===val?' selected':'')+'>'+esc(it.name)+'</option>').join('')+'</optgroup>').join('');
+  sel.innerHTML=SEED.map(g=>'<optgroup label="'+esc(g.group)+'">'+g.items.map(it=>'<option value="'+it.id+'"'+(it.id===val?' selected':'')+'>'+esc(it.name)+'</option>').join('')+'</optgroup>').join('');
 }
 function fillAssigneeSelect(sel,val){
-  const staff=wsStaff();
-  sel.innerHTML='<option value="">（未設定）</option>'+staff.map(n=>'<option'+(n===val?' selected':'')+'>'+esc(n)+'</option>').join('');
+  const names=candidateNames(); if(val&&!names.includes(val))names.push(val);
+  sel.innerHTML='<option value="">（未設定）</option>'+names.map(n=>'<option'+(n===val?' selected':'')+'>'+esc(n)+'</option>').join('');
 }
 function saveSheet(phase){
   const areaId=$('s-area').value;
@@ -668,6 +762,8 @@ function saveSheet(phase){
   sh.phase=phase;sh.updatedAt=now;
   if(phase==='submitted')sh.submittedAt=now;
   if(phase==='done')sh.doneAt=now;
+  // 作った／直した部門は開いた状態にして、見失わない
+  if(!(_ui.open||[]).includes(areaId)){_ui.open=(_ui.open||[]).concat([areaId]);saveUi();}
   saveS();hide('sheet-overlay');renderAll();
   toast(phase==='submitted'?'提出しました（承認待ち）':phase==='done'?'完了にしました':'保存しました');
 }
@@ -677,30 +773,42 @@ function submitSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;
   if(!sh.problem||!sh.goal||!sh.mechanism){toast('提出には①②③の記入が必要です。編集から記入してください');editSheet(id);return;}
   sh.phase='submitted';sh.submittedAt=Date.now();sh.updatedAt=Date.now();saveS();renderAll();toast('提出しました（承認待ち）');}
 function approveSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;sh.phase='doing';sh.approvedAt=Date.now();sh.updatedAt=Date.now();saveS();renderAll();toast('承認しました。実行中になりました');}
-function returnSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;const note=prompt('差し戻しの理由（任意）');sh.phase='returned';sh.approverNote=note||'';sh.updatedAt=Date.now();saveS();renderAll();toast('差し戻しました');}
-function delSheet(id){if(!confirm('この作戦シートを削除しますか？'))return;S.sheets=S.sheets.filter(s=>s.id!==id);saveS();renderAll();toast('削除しました');}
+function returnSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!sh)return;const note=prompt('差し戻しの理由（担当者に表示されます）');if(note===null)return;sh.phase='returned';sh.approverNote=note||'';sh.updatedAt=Date.now();saveS();renderAll();toast('差し戻しました');}
+function delSheet(id){const sh=S.sheets.find(s=>s.id===id);if(!confirm(`作戦シート「${(sh&&sh.title)||''}」を削除しますか？（取り消せません）`))return;S.sheets=S.sheets.filter(s=>s.id!==id);saveS();renderAll();toast('削除しました');}
 function cycleSheet(id){
   const sh=S.sheets.find(s=>s.id===id);if(!sh)return;
   const now=Date.now();
   const ns={id:'sh_'+now+'_'+Math.random().toString(36).slice(2,6),createdAt:now,updatedAt:now,
     areaId:sh.areaId,assignee:sh.assignee,title:sh.title+'（再挑戦）',due:'',
     problem:sh.problem,goal:sh.goal,mechanism:sh.mechanism,result:'',next:'',phase:'draft'};
-  S.sheets.push(ns);saveS();renderAll();toast('次のサイクルの下書きを作成しました。①②③を見直して提出してください');
-  $('f-status').value='';renderSheets();
+  S.sheets.push(ns);saveS();
+  _ui.flt='all';_ui.body=(_ui.body||[]).concat([ns.id]);saveUi();
+  renderAll();toast('次のサイクルの下書きを作成しました。①②③を見直して提出してください');
+  editSheet(ns.id);
 }
 
 // ---- 共通 ----
 function show(id){$(id).classList.add('show');}
 function hide(id){$(id).classList.remove('show');}
-function renderAll(){renderList();renderSheets();renderManager();renderMgr();}
+function renderAll(){renderTodo();renderBoard();renderManager();renderMgr();}
 
 // ---- イベント ----
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-assign],[data-newsheet],[data-toggle],[data-edit],[data-print],[data-submit],[data-approve],[data-return],[data-result],[data-cycle],[data-del],[data-close],[data-name],[data-next]');
+  const t=e.target.closest('[data-assign],[data-newsheet],[data-area-toggle],[data-sheettoggle],[data-filter],[data-edit],[data-print],[data-submit],[data-approve],[data-return],[data-result],[data-cycle],[data-del],[data-close],[data-name],[data-next]');
   if(!t)return;
-  if(t.dataset.assign!=null)return openAssign(t.dataset.assign);
-  if(t.dataset.newsheet!=null){switchView('sheets');return newSheet(t.dataset.newsheet);}
-  if(t.dataset.toggle!=null){const s=t.closest('.sheet');if(s)s.classList.toggle('open');return;}
+  if(t.dataset.filter!=null){ _ui.flt=(t.dataset.filter==='all'||_ui.flt===t.dataset.filter)?'all':t.dataset.filter; if(t.dataset.filter==='all')_ui.name=''; saveUi(); renderTodo(); renderBoard(); return; }
+  if(t.dataset.assign!=null){ e.stopPropagation(); return openAssign(t.dataset.assign); }
+  if(t.dataset.newsheet!=null){ e.stopPropagation(); return newSheet(t.dataset.newsheet); }
+  if(t.dataset.areaToggle!=null){
+    const id=t.dataset.areaToggle; const o=new Set(_ui.open||[]); if(o.has(id))o.delete(id); else o.add(id); _ui.open=[...o]; saveUi();
+    const el=t.closest('.area'); if(el){ el.classList.toggle('open',o.has(id)); const ch=el.querySelector('.chev'); if(ch)ch.textContent=o.has(id)?'▼':'▶'; }
+    return;
+  }
+  if(t.dataset.sheettoggle!=null){
+    const id=t.dataset.sheettoggle; const b=new Set(_ui.body||[]); if(b.has(id))b.delete(id); else b.add(id); _ui.body=[...b]; saveUi();
+    const el=t.closest('.sheet'); if(el){ el.classList.toggle('showbody',b.has(id)); t.textContent=b.has(id)?'▾ 内容を閉じる':'▸ 内容（①②③）を見る'; }
+    return;
+  }
   if(t.dataset.edit!=null)return editSheet(t.dataset.edit);
   if(t.dataset.print!=null)return printSheet(t.dataset.print);
   if(t.dataset.submit!=null)return submitSheet(t.dataset.submit);
@@ -713,6 +821,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.name!=null)return toggleAssignName(t.dataset.name);
   if(t.dataset.next!=null)return setNextSel(t.dataset.next);
 });
+document.addEventListener('change',e=>{ const s=e.target.closest('[data-namefilter]'); if(s){ _ui.name=s.value; saveUi(); renderTodo(); renderBoard(); } });
 $('assign-save').onclick=()=>{
   if(!assignAreaId)return;
   S.assignments[assignAreaId]=assignSel.slice();
@@ -726,19 +835,17 @@ $('mgr-toggle').onclick=()=>{
   if(pw!==MGR_PW){toast('パスワードが違います');return;}
   localStorage.setItem('bumon_manager_mode','1');renderAll();toast('全体管理モードON（承認・全体管理の項目）');
 };
-['f-group','f-status','f-assignee','f-sort'].forEach(id=>$(id).addEventListener('change',renderSheets));
 document.querySelectorAll('.subtab').forEach(tb=>tb.addEventListener('click',()=>switchView(tb.dataset.view)));
 function switchView(v){
-  if(v==='mgr'&&!isMgr())v='list';
+  if(v==='mgr'&&!isMgr())v='board';
   document.querySelectorAll('.subtab').forEach(tb=>tb.classList.toggle('active',tb.dataset.view===v));
-  $('view-list').style.display=v==='list'?'block':'none';
-  $('view-sheets').style.display=v==='sheets'?'block':'none';
+  $('view-board').style.display=v==='board'?'block':'none';
   $('view-mgr').style.display=v==='mgr'?'block':'none';
   if(v==='mgr')renderManager();
 }
 
-// 別タブ/別端末でstateが変わったら再読込（統合アプリのリアルタイム反映）
-window.addEventListener('storage',e=>{ if(e.key===dataKey()||e.key==='current_store_id'){loadS();renderAll();} });
+// 別タブ/別端末でstateが変わったら読み直して描き直す（統合アプリのリアルタイム反映）
+window.addEventListener('storage',e=>{ if(e.key===dataKey()||e.key==='current_store_id'||/^(crew_v1|ws_v1)/.test(e.key||'')){loadS();renderAll();} });
 
 // 起動
 loadS();renderAll();
