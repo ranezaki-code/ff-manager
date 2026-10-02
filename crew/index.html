@@ -100,7 +100,90 @@ header .spacer{flex:1}
 .tidy-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
 .tidy-name{font-size:14px;font-weight:800;width:130px;flex-shrink:0;word-break:break-word}
 .tidy-row select{flex:1;min-width:190px;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:9px;padding:9px 10px;background:#fff}
-/* クルー情報 */
+/* クルー情報：一覧（列をそろえた表）／スキル表 */
+.toolbar2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.seg{display:inline-flex;background:#e2e8f0;border-radius:10px;padding:3px;gap:2px}
+.seg button{font-family:inherit;font-size:13px;font-weight:700;border:none;background:transparent;color:var(--sub);border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.seg button.on{background:#fff;color:var(--text);box-shadow:0 1px 2px rgba(15,23,42,.12)}
+.fchip{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--sub);border-radius:999px;padding:6px 11px;cursor:pointer}
+.fchip.on{background:var(--accent-lt);border-color:#bfdbfe;color:var(--accent-dk)}
+.ctable{overflow:hidden}
+.crow{display:grid;grid-template-columns:minmax(0,1.6fr) 104px minmax(0,1.3fr) 92px 86px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+.crow:last-child{border-bottom:none}
+.crow:hover{background:#fafcff}
+.crow.head{cursor:default;background:#f8fafc;font-size:11px;font-weight:700;color:var(--faint);padding:7px 14px}
+.crow.head:hover{background:#f8fafc}
+.c-name{display:flex;align-items:center;gap:10px;min-width:0}
+.c-name b{font-size:15px;font-weight:800;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-name small{font-size:11px;color:var(--faint);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avatar.sm{width:34px;height:34px;font-size:14px}
+.c-memo{display:flex;gap:5px;flex-wrap:wrap;align-items:center;font-size:12px}
+.c-talk{font-size:13px;color:#374151;white-space:nowrap}
+.c-talk.warn{color:var(--red);font-weight:700}
+.c-none{color:var(--faint);font-size:12px}
+.c-fix{background:var(--red-lt);color:var(--red)}.c-good{background:var(--green-lt);color:var(--green)}.c-doing{background:var(--amber-lt);color:var(--amber)}
+.c-lbl{display:none;font-size:10px;color:var(--faint);font-weight:700;margin-right:4px}
+.matrix-wrap{overflow:auto;-webkit-overflow-scrolling:touch}
+.matrix{border-collapse:collapse;font-size:13px;width:100%}
+.matrix th,.matrix td{border-bottom:1px solid #f1f5f9;padding:8px 6px;text-align:center;white-space:nowrap}
+.matrix th{font-size:11px;font-weight:700;color:var(--sub);background:#f8fafc;min-width:66px;white-space:normal;word-break:keep-all;line-height:1.3;vertical-align:bottom}
+.matrix .nm{text-align:left;position:sticky;left:0;background:#fff;font-weight:800;min-width:128px;z-index:1;cursor:pointer}
+.matrix th.nm{background:#f8fafc;cursor:default}
+.matrix td.sk{font-weight:800;font-size:15px;color:#cbd5e1}
+.matrix td.sk.lv1{background:var(--amber-lt);color:var(--amber)}
+.matrix td.sk.lv2{background:var(--green-lt);color:var(--green)}
+.matrix.editing td.sk{cursor:pointer;outline:1px dashed #cbd5e1;outline-offset:-3px}
+.matrix tfoot td{font-size:11px;font-weight:700;color:var(--sub);background:#f8fafc}
+.legend{font-size:12px;color:var(--sub);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+/* 人物画面：4つのタブ */
+.ptabs{display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin:4px 0 12px;overflow-x:auto}
+.ptab{font-family:inherit;font-size:13px;font-weight:700;border:none;background:none;color:var(--sub);padding:9px 12px;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-1.5px}
+.ptab.on{color:var(--accent-dk);border-bottom-color:var(--accent)}
+.ptab .cnt{display:inline-block;min-width:18px;text-align:center;font-size:11px;background:var(--red-lt);color:var(--red);border-radius:999px;padding:0 6px;margin-left:3px}
+/* 面談メモ（箇条書き） */
+.memo-add{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.memo-add input{flex:1;min-width:160px;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:9px;padding:9px 11px}
+.memo-add input:focus{outline:none;border-color:var(--accent)}
+.kseg button.on[data-memokind="fix"]{color:var(--red)}
+.kseg button.on[data-memokind="good"]{color:var(--green)}
+.memo{display:flex;align-items:flex-start;gap:9px;padding:9px 2px;border-bottom:1px solid #f1f5f9}
+.memo:last-child{border-bottom:none}
+.kpill{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.memo .tx{font-size:14px;font-weight:600;word-break:break-word}
+.memo .meta{font-size:11px;color:var(--faint);margin-top:1px}
+.memo.done .tx{color:var(--sub);font-weight:500}
+.memo .acts{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.link-btn{font-family:inherit;font-size:11px;font-weight:700;color:var(--faint);background:none;border:none;cursor:pointer;padding:4px;text-decoration:underline}
+.told-btn{width:100%;margin-top:10px;padding:12px;font-size:14px;white-space:normal;line-height:1.4}
+details.donebox{margin-top:12px;border:1px solid var(--border);border-radius:10px;padding:2px 10px;background:#fafafa}
+details.donebox summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--sub);padding:8px 0}
+/* 昇格条件・業務スキル：3段階（まだ／練習中／できる） */
+.lv3{display:inline-flex;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;flex-shrink:0;background:#fff}
+.lv3 button{font-family:inherit;font-size:12px;font-weight:700;border:none;background:#fff;color:var(--faint);padding:7px 10px;cursor:pointer;border-right:1px solid var(--border);white-space:nowrap}
+.lv3 button:last-child{border-right:none}
+.lv3 button.on[data-lv="0"]{background:#f1f5f9;color:var(--sub)}
+.lv3 button.on[data-lv="1"]{background:var(--amber-lt);color:var(--amber)}
+.lv3 button.on[data-lv="2"]{background:var(--green-lt);color:var(--green)}
+.crit{border:1px solid var(--border);border-radius:10px;padding:9px 10px;margin-bottom:6px;background:#fff}
+.crit.lv2{background:#f7fdf9;border-color:#bbf7d0}
+.crit.lv1{background:#fffdf5;border-color:#fde68a}
+.crit-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.crit-top .t{flex:1;min-width:150px;font-size:13px;font-weight:700}
+.crit-note{width:100%;margin-top:7px;font-family:inherit;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:7px 9px;background:#fff}
+.crit-note:focus{outline:none;border-color:var(--accent)}
+.skgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.skrow{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:4px 0}
+.skrow .t{font-size:13px;font-weight:700;min-width:0}
+@media(max-width:640px){
+  .crow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name rank" "memo act" "talk act";row-gap:6px}
+  .crow.head{display:none}
+  .c-name{grid-area:name}.c-rank{grid-area:rank;text-align:right}.c-memo{grid-area:memo}.c-talk{grid-area:talk;font-size:12px}.c-act{grid-area:act;align-self:center}
+  .c-lbl{display:inline}
+  .skgrid{grid-template-columns:1fr}
+  .ptab{padding:9px 7px;font-size:12px}
+  .ptab .ico{display:none}   /* スマホ：4つのタブが横に収まるよう絵文字を省く */
+}
+/* クルー情報（旧カード表示の名残：人物パネルのアバター等で使用） */
 .member{display:flex;gap:12px;padding:12px 14px;margin-bottom:9px;align-items:flex-start;cursor:pointer}
 .member:hover{background:#fafcff}
 .avatar{width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -247,7 +330,11 @@ header .spacer{flex:1}
         <button class="btn btn-pri" id="add-member-btn">＋ クルー追加</button>
         <button class="btn btn-line" id="info-lock-btn" title="クルー情報を閉じて、パスワードが必要な状態に戻します">🔒 ロックする</button>
       </div>
-      <div class="hint" style="margin-bottom:8px">タップ＝その人の全情報を開く（ランク・課題・面談ログもここで操作）　✏️＝プロフィール編集　／　10分操作がないと自動でロックします</div>
+      <div class="toolbar2">
+        <div class="seg" id="info-viewseg"><button type="button" data-infoview="list">📋 一覧</button><button type="button" data-infoview="skills">🧩 スキル表</button></div>
+        <span id="info-filters" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span>
+      </div>
+      <div class="hint" id="info-hint" style="margin-bottom:8px"></div>
       <div id="member-list"></div>
     </div>
   </div>
@@ -293,6 +380,9 @@ const DEFAULT_CRITERIA={
   subleader:['発注の補助ができる','新人に業務を教えられる','値引き・廃棄の判断ができる','まちかど厨房を一人で回せる','トラブルの一次対応ができる'],
   leader:['シフト内で指示出し・声かけができる','売場改善を提案して実行できる','売上・廃棄の数値を意識して運営できる','全部門の基本業務を網羅している','店長不在時に店舗を運営できる']
 };
+// 業務スキル表の初期項目（「⚙️ 業務を編集」で店舗ごとに変えられる）
+const DEFAULT_SKILLS=['レジ','接客・挨拶','品出し・前出し','清掃','ホットFF','中華まん・常温FF','まちかど厨房','マチカフェ','発注','検品・納品','値引き・廃棄','宅配・収納代行'];
+const LV_LABEL=['まだ','練習中','できる'], LV_MARK=['·','▲','●'];
 const NO_TALK_DAYS=30;   // 面談が空いたと判定する日数
 const NEAR_PCT=80;       // 昇格間近と判定する進捗%
 // aliases＝{古い表記: クルーID}。「この名前は○○さんと同じ人」の結びつけ。WS・担当業務はこれを読んで自分の記録の表記をそろえる
@@ -302,15 +392,18 @@ function loadS(){
   S={members:[],ranks:{},criteria:null,aliases:{}};
   const raw=localStorage.getItem(dataKey());
   if(raw){
-    try{ const o=JSON.parse(raw); if(o&&typeof o==='object'){ S.members=Array.isArray(o.members)?o.members:[]; S.ranks=(o.ranks&&typeof o.ranks==='object')?o.ranks:{}; S.criteria=(o.criteria&&typeof o.criteria==='object')?o.criteria:null; S.aliases=(o.aliases&&typeof o.aliases==='object'&&!Array.isArray(o.aliases))?o.aliases:{}; } }
+    try{ const o=JSON.parse(raw); if(o&&typeof o==='object'){ S.members=Array.isArray(o.members)?o.members:[]; S.ranks=(o.ranks&&typeof o.ranks==='object')?o.ranks:{}; S.criteria=(o.criteria&&typeof o.criteria==='object')?o.criteria:null; S.aliases=(o.aliases&&typeof o.aliases==='object'&&!Array.isArray(o.aliases))?o.aliases:{}; if(Array.isArray(o.skills))S.skills=o.skills.map(x=>String(x||'').trim()).filter(Boolean); } }
     catch(e){ console.error('crew load',e); try{localStorage.setItem(dataKey()+'_corrupt_backup_'+Date.now(),raw);}catch(_){}; }
   }
   if(!S.criteria) S.criteria=JSON.parse(JSON.stringify(DEFAULT_CRITERIA));
   ['regular','subleader','leader'].forEach(k=>{ if(!Array.isArray(S.criteria[k])) S.criteria[k]=DEFAULT_CRITERIA[k].slice(); });
   S.members.forEach(m=>{ if(!Array.isArray(m.days))m.days=[]; if(!Array.isArray(m.logs))m.logs=[]; });
+  if(!Array.isArray(S.skills)) S.skills=DEFAULT_SKILLS.slice();   // 未設定＝初期項目（保存は編集した時だけ）
 }
 function saveS(){ try{ localStorage.setItem(dataKey(),JSON.stringify(S)); }catch(e){ console.error('crew save',e); alert('保存に失敗しました（容量不足の可能性）: '+e); } }
-function rankRec(id){ if(!S.ranks[id]) S.ranks[id]={rank:'rookie',checks:{},fanta:{},fantaDate:{},issues:[],history:[]}; const r=S.ranks[id]; if(!r.checks)r.checks={}; if(!r.fanta)r.fanta={}; if(!r.fantaDate)r.fantaDate={}; if(!Array.isArray(r.issues))r.issues=[]; if(!Array.isArray(r.history))r.history=[]; if(!Array.isArray(r.sheetHistory))r.sheetHistory=[]; if(r.sheet&&typeof r.sheet!=='object')r.sheet=null; if(!NEXT.hasOwnProperty(r.rank))r.rank='rookie'; return r; }
+function rankRec(id){ if(!S.ranks[id]) S.ranks[id]={rank:'rookie',checks:{},fanta:{},fantaDate:{},issues:[],history:[]}; const r=S.ranks[id]; if(!r.checks)r.checks={}; if(!r.fanta)r.fanta={}; if(!r.fantaDate)r.fantaDate={}; if(!Array.isArray(r.issues))r.issues=[]; if(!Array.isArray(r.history))r.history=[]; if(!Array.isArray(r.sheetHistory))r.sheetHistory=[]; if(r.sheet&&typeof r.sheet!=='object')r.sheet=null;
+  // trying＝昇格条件「練習中」／critNote＝条件ごとのひとこと／skill＝業務スキル（1=練習中, 2=できる）。checks は「できる」のまま（進捗％は従来と同じ計算）
+  ['trying','critNote','skill'].forEach(k=>{ if(!r[k]||typeof r[k]!=='object'||Array.isArray(r[k]))r[k]={}; }); if(!NEXT.hasOwnProperty(r.rank))r.rank='rookie'; return r; }
 // ---- 紙の評価シート（ランクアップ用）：渡した→受け取った→評価した をシステムが記憶 ----
 const SHEET_NUDGE_DAYS=7;   // 配布後この日数を過ぎて未提出なら「回収する」に出す
 function sheetOf(id){ const r=rankRec(id); return (r.sheet&&r.sheet.status)?r.sheet:{status:'none'}; }
@@ -429,29 +522,53 @@ function renderInfo(){
   tb.style.display=stray.length?'':'none';
   tb.innerHTML=stray.length?`<span>⚠️ ワークスケジュール・担当業務に、クルー情報に無い名前が <b>${stray.length}件</b> あります（${esc(stray.slice(0,4).join('、'))}${stray.length>4?' ほか':''}）</span><button class="btn btn-pri btn-sm" id="tidy-open-btn">整理する</button>`:'';
   const q=($('info-q').value||'').trim();
-  const list=sortedMembers().filter(m=>!q||String(m.name||'').includes(q)||String(m.kana||'').includes(q));
+  const all=sortedMembers();
+  const hasMemo=m=>{ const s=memoStat(m.id); return s.fix+s.good>0; };
+  const noTalk=m=>{ const d=daysSince(lastLog(m)); return d===null||d>=NO_TALK_DAYS; };
+  const list=all.filter(m=>!q||String(m.name||'').includes(q)||String(m.kana||'').includes(q))
+    .filter(m=>_infoView!=='list'||_infoFilter==='all'||(_infoFilter==='memo'?hasMemo(m):noTalk(m)));
+  document.querySelectorAll('#info-viewseg [data-infoview]').forEach(b=>b.classList.toggle('on',b.dataset.infoview===_infoView));
+  $('info-filters').innerHTML=_infoView==='list'?[['all','すべて',all.length],['memo','話すことがある',all.filter(hasMemo).length],['talk',`面談が${NO_TALK_DAYS}日以上ない`,all.filter(noTalk).length]]
+    .map(([k,l,n])=>`<button type="button" class="fchip ${_infoFilter===k?'on':''}" data-infofilter="${k}">${l} ${n}</button>`).join(''):'';
+  $('info-hint').textContent=_infoView==='list'?'行をタップ＝その人の画面を開く　／　「＋メモ」＝気づいたことをすぐ書く　／　10分操作がないと自動でロックします':'誰が何をできるかの一覧です。名前をタップ＝その人の画面を開く';
   const box=$('member-list');
   if(!list.length){ box.innerHTML=`<div class="empty">${S.members.length?'該当するクルーがいません':'クルーがまだいません。「＋ クルー追加」で登録してください（ワークスケジュールに従業員がいれば「名前の整理」から取り込めます）。'}</div>`; return; }
-  box.innerHTML=list.map(m=>{
-    const r=rankRec(m.id), rk=rankOf(r.rank), pg=progressOf(m.id), oi=openIssues(m.id);
-    const fx=FANTA.filter(f=>r.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}${esc(f.label)}</span>`).join('');
-    const dow=m.days.length?`<span class="dow">${DOW.map((d,i)=>`<span class="${m.days.includes(i)?'on':''}">${d}</span>`).join('')}</span>`:'';
-    const ten=tenure(m.hireDate);
-    const l1=[ten?`勤続 ${esc(ten)}`:'', m.hours?`🕐 ${esc(m.hours)}`:'', m.weeklyHours?`週${esc(m.weeklyHours)}h`:''].filter(Boolean).map(s=>`<span>${s}</span>`).join('');
-    const sl=sheetLabel(m.id);
-    const status=[ (!pg.max&&pg.done>0)?`<span class="chip" style="background:${rk.bg};color:${rk.color}">次まで ${pg.pct}%</span>`:'', sl?`<span class="chip" style="${sl.status==='submitted'?'background:var(--green-lt);color:var(--green)':sl.status==='done'?'background:#f1f5f9;color:var(--sub)':'background:var(--purple-lt);color:var(--purple)'}">📄 ${esc(sl.text)}</span>`:'', oi?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">課題 ${oi}</span>`:'' ].join('');
-    return `<div class="member card" data-open="${esc(m.id)}">
-      <div class="avatar" style="background:${rk.color}">${esc((m.name||'?').slice(0,1))}</div>
-      <div class="m-body">
-        <div class="m-name">${esc(m.name)}${m.kana?`<span class="m-kana">${esc(m.kana)}</span>`:''}<span class="rank-badge" style="background:${rk.bg};color:${rk.color};border:1px solid ${rk.border}">${esc(rk.short)}</span>${fx}${status}</div>
-        ${(l1||dow)?`<div class="m-line">${l1}${dow}</div>`:''}
-        ${m.strengths?`<div class="m-line">💪 <span>${esc(m.strengths)}</span></div>`:''}
-        ${m.memo?`<div class="m-memo">${esc(m.memo)}</div>`:''}
-      </div>
-      <button class="icon-mini" data-edit="${esc(m.id)}" title="プロフィールを編集">✏️</button>
+  if(_infoView==='skills'){ box.innerHTML=renderSkillMatrix(list); return; }
+  // 一覧：列をそろえた表（名前｜ランク｜面談で話すこと｜最後の面談｜＋メモ）
+  box.innerHTML=`<div class="card ctable"><div class="crow head"><span>名前</span><span>ランク</span><span>面談で話すこと</span><span>最後の面談</span><span></span></div>`+list.map(m=>{
+    const r=rankRec(m.id), rk=rankOf(r.rank), ms=memoStat(m.id), d=daysSince(lastLog(m));
+    const memo=(ms.fix||ms.good||ms.doing)?`${ms.fix?`<span class="chip c-fix">改善 ${ms.fix}</span>`:''}${ms.good?`<span class="chip c-good">良い点 ${ms.good}</span>`:''}${ms.doing?`<span class="chip c-doing" title="伝えて、いま取り組んでいる改善点">取組中 ${ms.doing}</span>`:''}`:'<span class="c-none">なし</span>';
+    const talk=d===null?'記録なし':d<=0?'今日':`${d}日前`;
+    return `<div class="crow" data-open="${esc(m.id)}">
+      <div class="c-name"><div class="avatar sm" style="background:${rk.color}">${esc((m.name||'?').slice(0,1))}</div><span style="min-width:0"><b>${esc(m.name)}</b>${m.kana?`<small>${esc(m.kana)}</small>`:''}</span></div>
+      <div class="c-rank"><span class="rank-badge" style="background:${rk.bg};color:${rk.color};border:1px solid ${rk.border}">${esc(rk.short)}</span></div>
+      <div class="c-memo">${memo}</div>
+      <div class="c-talk ${(d===null||d>=NO_TALK_DAYS)?'warn':''}"><span class="c-lbl">最後の面談</span>${talk}</div>
+      <div class="c-act"><button class="btn btn-line btn-sm" data-memo="${esc(m.id)}" title="この人の面談メモを追加">＋ メモ</button></div>
     </div>`;
-  }).join('');
+  }).join('')+`</div>`;
 }
+// ---- 業務スキル表：誰が何をできるか（行＝クルー、列＝業務）。普段は見るだけ、「✏️ 編集する」の間だけタップで切り替え ----
+let _infoView='list', _infoFilter='all', _skillEdit=false;
+function renderSkillMatrix(list){
+  const sk=S.skills;
+  const cnt=sk.map(s=>S.members.filter(m=>(rankRec(m.id).skill[s]||0)===2).length);
+  return `<div class="toolbar2" style="justify-content:space-between">
+      <span class="legend"><span><b style="color:var(--green)">●</b> できる</span><span><b style="color:var(--amber)">▲</b> 練習中</span><span><b style="color:#cbd5e1">·</b> まだ</span></span>
+      <span style="display:inline-flex;gap:6px"><button class="btn ${_skillEdit?'btn-pri':'btn-line'} btn-sm" id="skill-edit-btn">${_skillEdit?'✓ 編集を終える':'✏️ 編集する'}</button><button class="btn btn-line btn-sm" id="edit-skills-btn">⚙️ 業務を編集</button></span>
+    </div>
+    ${_skillEdit?'<div class="lock-note" style="border-style:solid;background:var(--amber-lt);border-color:#fde68a;color:#92400e">マスをタップすると「まだ → 練習中 → できる」の順に切り替わります。終わったら「編集を終える」を押してください。</div>':''}
+    <div class="card matrix-wrap"><table class="matrix ${_skillEdit?'editing':''}"><thead><tr><th class="nm">名前</th>${sk.map(s=>`<th>${esc(s)}</th>`).join('')}</tr></thead>
+    <tbody>${list.map(m=>{ const r=rankRec(m.id); return `<tr><td class="nm" data-open-rank="${esc(m.id)}">${esc(m.name)}</td>${sk.map((s,i)=>{ const lv=r.skill[s]||0; return `<td class="sk lv${lv}" data-skcell="${esc(m.id)}" data-si="${i}" title="${esc(m.name)}：${esc(s)}＝${LV_LABEL[lv]}">${LV_MARK[lv]}</td>`; }).join('')}</tr>`; }).join('')}</tbody>
+    <tfoot><tr><td class="nm" style="cursor:default">できる人数</td>${cnt.map((n,i)=>`<td data-skcount="${i}">${n}人</td>`).join('')}</tr></tfoot></table></div>`;
+}
+function setSkill(id,s,lv){ const r=rankRec(id); if(lv>0)r.skill[s]=lv; else delete r.skill[s]; saveS(); }
+function openSkills(){
+  setModal(`<button class="close-x" data-close>×</button><h2>⚙️ 業務スキル表の項目を編集</h2><div class="muted" style="margin-bottom:10px">1行に1つ。名前を変えると、その業務の記録は引き継がれません（同じ名前のまま並べ替えるのは問題ありません）。</div>
+    <div class="field"><textarea id="skills-text" style="min-height:240px">${esc(S.skills.join('\n'))}</textarea></div>
+    <div class="btn-row"><button class="btn btn-ghost" data-skilldefault>初期値に戻す</button><button class="btn btn-pri" data-skillsave>保存</button></div>`);
+}
+function saveSkills(){ const list=[...new Set(($('skills-text').value||'').split('\n').map(s=>s.trim()).filter(Boolean))]; if(!list.length){alert('業務を1つ以上入力してください');return;} S.skills=list; saveS(); closeModal(); refresh(); toast('業務スキル表の項目を保存しました'); }
 function openMemberForm(id){
   if(!infoUnlocked()){ switchView('info'); return; }   // プロフィールの編集はクルー情報のロック解除が必要
   const m=id?member(id):null; const days=m?m.days:[];
@@ -522,13 +639,50 @@ function doImport(){
 // ============ 人物パネル（クルー情報／ランク 共通・1画面で全操作） ============
 let _selId=null;      // ランク画面で選択中
 let _personOpen=null; // モーダルで開いている人
-function renderPersonHtml(id){
-  const m=member(id); if(!m)return '<div class="empty">クルーが見つかりません</div>';
-  const r=rankRec(id), rk=rankOf(r.rank), nk=NEXT[r.rank], pg=progressOf(id);
-  const crit=nk?(S.criteria[nk]||[]):[];
-  const issues=[...r.issues].sort((a,b)=>(a.status==='done')-(b.status==='done'));
-  const logs=[...m.logs].sort((a,b)=>a.d<b.d?1:-1);
-  const fx=FANTA.filter(f=>r.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}${esc(f.label)}</span>`).join('');
+// ---- 面談メモ：日々気づいた「改善してほしい点」「良かった点」を箇条書きで貯め、面談でまとめて伝える ----
+//   データは従来の issues を引き継ぐ（消さない）。kind='good'＝良かった点（無ければ改善点）。
+//   status：todo＝まだ伝えていない／doing＝伝えた・取り組み中（改善点のみ）／done＝改善できた（良かった点は「伝えた」で done）
+const kindOf=i=>i.kind==='good'?'good':'fix';
+function memoStat(id){ const is=rankRec(id).issues; return { fix:is.filter(i=>kindOf(i)==='fix'&&i.status==='todo').length, good:is.filter(i=>kindOf(i)==='good'&&i.status==='todo').length, doing:is.filter(i=>i.status==='doing').length }; }
+let _ptab='memo', _memoKind='fix';
+function memoRow(id,i){
+  const k=kindOf(i), st=i.status;
+  const meta=`${esc(fmtD(i.created))} メモ`+(st==='todo'?'・まだ伝えていない':st==='doing'?`・${i.toldAt?esc(fmtD(i.toldAt))+' ':''}伝えた（取り組み中）`:(k==='good'?`・${esc(fmtD(i.toldAt||i.done))} 伝えた`:`・${esc(fmtD(i.done))} 改善できた`));
+  const main=st==='todo'?`<button class="btn btn-line btn-sm" data-step="${esc(i.id)}">伝えた</button>`:st==='doing'?`<button class="btn btn-line btn-sm" data-step="${esc(i.id)}" style="color:var(--green);border-color:#bbf7d0">改善できた</button>`:'';
+  const back=st==='todo'?'':`<button class="link-btn" data-back="${esc(i.id)}" title="1つ前の状態に戻す">戻す</button>`;
+  return `<div class="memo ${st==='done'?'done':''}"><span class="kpill ${k==='good'?'c-good':'c-fix'}">${k==='good'?'良い点':'改善'}</span>
+    <div style="flex:1;min-width:0"><div class="tx">${esc(i.text)}</div><div class="meta">${meta}</div></div>
+    <div class="acts">${main}${back}<button class="icon-mini" data-delissue="${esc(id)}|${esc(i.id)}" title="削除">🗑</button></div></div>`;
+}
+function memoTabHtml(id){
+  const r=rankRec(id), byNew=(a,b)=>String(b.created||'').localeCompare(String(a.created||''));
+  const untold=r.issues.filter(i=>i.status==='todo').sort((a,b)=>(kindOf(a)==='good')-(kindOf(b)==='good')||byNew(a,b));
+  const doing=r.issues.filter(i=>i.status==='doing').sort(byNew), done=r.issues.filter(i=>i.status==='done').sort(byNew);
+  return `<div class="memo-add">
+      <div class="seg kseg"><button type="button" class="${_memoKind==='fix'?'on':''}" data-memokind="fix">🔧 改善してほしい</button><button type="button" class="${_memoKind==='good'?'on':''}" data-memokind="good">👍 良かった点</button></div>
+      <input placeholder="気づいたことを1行で（Enterで追加）" data-memo-input="${esc(id)}"><button class="btn btn-pri" data-addmemo>追加</button>
+    </div>
+    <div class="sec" style="margin-top:0"><h3>📝 面談で話すこと <span class="chip" style="background:#f1f5f9;color:var(--sub)">まだ伝えていない ${untold.length}件</span></h3>
+      ${untold.length?untold.map(i=>memoRow(id,i)).join('')+`<button class="btn btn-pri told-btn" data-told="${esc(id)}">✅ 面談で伝えた（${untold.length}件を記録して面談ログに残す）</button>`
+        :'<div class="hint" style="padding:8px 2px">まだ伝えていないメモはありません。気づいた時に上の欄から1行で書いておくと、面談の時にここに並びます。</div>'}</div>
+    ${doing.length?`<div class="sec"><h3>🏃 伝えて、取り組み中 <span class="chip c-doing">${doing.length}件</span><span class="hint">改善できたらボタンで記録</span></h3>${doing.map(i=>memoRow(id,i)).join('')}</div>`:''}
+    ${done.length?`<details class="donebox"><summary>済み ${done.length}件（改善できた点・伝えた良い点）</summary>${done.map(i=>memoRow(id,i)).join('')}</details>`:''}`;
+}
+function rankTabHtml(id){
+  const r=rankRec(id), nk=NEXT[r.rank], pg=progressOf(id), crit=nk?(S.criteria[nk]||[]):[];
+  const locked=!infoUnlocked();   // ロック中は条件ごとの「ひとこと」（評価コメント）を出さない
+  const lvOf=c=>r.checks[c]?2:r.trying[c]?1:0, tryN=crit.filter(c=>lvOf(c)===1).length;
+  const lv3=(attr,val,lv)=>`<div class="lv3">${[0,1,2].map(n=>`<button type="button" class="${lv===n?'on':''}" ${attr}="${esc(val)}" data-lv="${n}">${LV_LABEL[n]}</button>`).join('')}</div>`;
+  return `<div class="sec sheet-sec" style="margin-top:0"><h3>📄 評価シート（ランクアップ用）${nk?`<span class="hint">${esc(rankOf(nk).short)}へ</span>`:''}<span class="hint">ボタン1つで記録・日付は自動</span></h3>${renderSheetBlock(id,nk)}</div>
+    <div class="sec"><h3>📈 ${nk?`${esc(rankOf(nk).short)}への昇格条件`:'最上位ランク'}${nk?`<span class="chip" style="background:${rankOf(nk).bg};color:${rankOf(nk).color}">できる ${pg.done}/${pg.total}（${pg.pct}%）</span>${tryN?`<span class="chip c-doing">練習中 ${tryN}</span>`:''}`:''}</h3>
+      ${nk?`<div class="bar" style="height:9px;margin-bottom:8px"><i style="width:${pg.pct}%;background:${rankOf(nk).color}"></i></div>${crit.map(c=>{ const lv=lvOf(c); return `<div class="crit lv${lv}"><div class="crit-top"><span class="t">${esc(c)}</span>${lv3('data-crit',c,lv)}</div>${locked?'':`<input class="crit-note" data-critnote="${esc(id)}|${esc(c)}" value="${esc(r.critNote[c]||'')}" placeholder="ひとこと（どこまでできているか・次に何を覚えるか）">`}</div>`; }).join('')||'<div class="hint">昇格条件が未設定です（クルーランク画面の「昇格条件を編集」）</div>'}${nk&&pg.total&&pg.done===pg.total?`<div class="chip" style="background:var(--green-lt);color:var(--green);margin-top:4px">✅ 条件クリア！下のランクから昇格できます</div>`:''}`:''}</div>
+    <div class="sec"><h3>🏅 ランク <span class="hint">変更時は確認が出ます</span></h3><div class="rankbtns">${RANKS.map(x=>`<button class="rankbtn ${x.k===r.rank?'on':''}" style="${x.k===r.rank?`background:${x.color};border-color:${x.color}`:''}" data-setrank="${esc(id)}|${x.k}">${esc(x.short)}</button>`).join('')}</div></div>
+    <div class="sec"><h3>✨ ファンタジスタ <span class="hint">外すときは確認が出ます・取得日は保持</span></h3><div class="rankbtns">${FANTA.map(f=>`<button class="fbtn ${r.fanta[f.k]?'on':''}" data-fanta="${esc(id)}|${f.k}">${f.icon} ${esc(f.label)}${r.fanta[f.k]&&r.fantaDate[f.k]?`<span class="muted" style="font-weight:500">${esc(fmtD(r.fantaDate[f.k]))}</span>`:''}</button>`).join('')}</div></div>
+    <div class="sec"><h3>🧩 業務スキル（何をどこまでできるか）<span class="chip" style="background:var(--green-lt);color:var(--green)">できる ${S.skills.filter(s=>(r.skill[s]||0)===2).length}/${S.skills.length}</span></h3>
+      <div class="skgrid">${S.skills.map(s=>`<div class="skrow"><span class="t">${esc(s)}</span>${lv3('data-skill',s,r.skill[s]||0)}</div>`).join('')}</div></div>`;
+}
+function profTabHtml(id){
+  const m=member(id);
   const prof=[
     m.hireDate?`<div><span class="k">勤続</span>${esc(tenure(m.hireDate))}（${esc(m.hireDate)}〜）</div>`:'',
     m.days.length?`<div><span class="k">曜日</span>${m.days.map(i=>DOW[i]).join('・')}</div>`:'',
@@ -540,30 +694,61 @@ function renderPersonHtml(id){
     m.cautions?`<div class="full"><span class="k">⚠️ 配慮</span>${esc(m.cautions)}</div>`:'',
     m.memo?`<div class="full"><span class="k">📝 メモ</span>${esc(m.memo)}</div>`:''
   ].filter(Boolean).join('');
-  const locked=!infoUnlocked();   // ロック中（クルーランク側から開いた時）はプロフィールと編集ボタンを出さない
-  return `<div class="person" data-person="${esc(id)}">
-    <div class="p-head"><div class="avatar" style="background:${rk.color}">${esc((m.name||'?').slice(0,1))}</div>
-      <div><div class="nm">${esc(m.name)}<span class="rank-badge" style="background:${rk.bg};color:${rk.color};border:1px solid ${rk.border}">${esc(rk.short)}</span>${fx}</div>${m.kana?`<div class="m-kana">${esc(m.kana)}</div>`:''}</div>
-      <div class="spacer"></div>${locked?'':`<button class="btn btn-line btn-sm" data-edit="${esc(id)}">✏️ プロフィール編集</button>`}</div>
-    ${locked?`<div class="lock-note">🔒 プロフィール（連絡先・誕生日・メモなど）は「クルー情報」タブでパスワードを入れると表示されます</div>`
-      :(prof?`<div class="prof">${prof}</div>`:`<div class="hint" style="margin-bottom:8px">プロフィール未入力（✏️から入力）</div>`)}
-    <div class="qa">
-      <div class="addrow"><input placeholder="🎯 課題を追加（Enterで登録）" data-issue-input></div>
-      <div class="addrow"><input placeholder="🗣 面談・声かけを記録（Enterで登録）" data-log-input></div>
-    </div>
-    <div class="sec sheet-sec"><h3>📄 評価シート（ランクアップ用）${nk?`<span class="hint">${esc(rankOf(nk).short)}へ</span>`:''}<span class="hint">ボタン1つで記録・日付は自動</span></h3>${renderSheetBlock(id,nk)}</div>
-    <div class="sec"><h3>🎯 課題・取り組み ${issues.length?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">未完了 ${openIssues(id)}</span>`:''}<span class="hint">状態をタップで 未着手→取組中→完了</span></h3>
-      ${issues.length?issues.map(i=>`<div class="issue ${i.status==='done'?'done':''}"><button class="st st-${i.status}" data-cycle="${esc(id)}|${esc(i.id)}">${i.status==='todo'?'未着手':i.status==='doing'?'取組中':'完了'}</button><div style="flex:1;min-width:0"><div class="tx">${esc(i.text)}</div><div class="meta">${esc(fmtD(i.created))}登録${i.done?`・${esc(fmtD(i.done))}完了`:''}</div></div><button class="icon-mini" data-delissue="${esc(id)}|${esc(i.id)}" title="削除">🗑</button></div>`).join(''):'<div class="hint">課題はありません。上の欄から追加できます</div>'}</div>
-    <div class="sec"><h3>📈 ${nk?`${esc(rankOf(nk).short)}への昇格条件`:'最上位ランク'}${nk?`<span class="chip" style="background:${rankOf(nk).bg};color:${rankOf(nk).color}">${pg.done}/${pg.total}（${pg.pct}%）</span>`:''}</h3>
-      ${nk?`<div class="bar" style="height:9px;margin-bottom:8px"><i style="width:${pg.pct}%;background:${rankOf(nk).color}"></i></div>${crit.map(c=>`<label class="chk ${r.checks[c]?'done':''}"><input type="checkbox" ${r.checks[c]?'checked':''} data-chk="${esc(id)}|${esc(c)}"><span class="t">${esc(c)}</span></label>`).join('')||'<div class="hint">昇格条件が未設定です（クルーランク画面の「昇格条件を編集」）</div>'}${nk&&pg.total&&pg.done===pg.total?`<div class="chip" style="background:var(--green-lt);color:var(--green);margin-top:4px">✅ 条件クリア！下のランクから昇格できます</div>`:''}`:''}</div>
-    <div class="sec"><h3>🏅 ランク <span class="hint">変更時は確認が出ます</span></h3><div class="rankbtns">${RANKS.map(x=>`<button class="rankbtn ${x.k===r.rank?'on':''}" style="${x.k===r.rank?`background:${x.color};border-color:${x.color}`:''}" data-setrank="${esc(id)}|${x.k}">${esc(x.short)}</button>`).join('')}</div></div>
-    <div class="sec"><h3>✨ ファンタジスタ <span class="hint">外すときは確認が出ます・取得日は保持</span></h3><div class="rankbtns">${FANTA.map(f=>`<button class="fbtn ${r.fanta[f.k]?'on':''}" data-fanta="${esc(id)}|${f.k}">${f.icon} ${esc(f.label)}${r.fanta[f.k]&&r.fantaDate[f.k]?`<span class="muted" style="font-weight:500">${esc(fmtD(r.fantaDate[f.k]))}</span>`:''}</button>`).join('')}</div></div>
-    <div class="sec"><h3>🗣 面談・声かけログ${logs.length?`<span class="hint">最終 ${esc(fmtD(logs[0].d))}</span>`:''}</h3>
-      ${logs.length?logs.map(l=>`<div class="logrow"><span class="d">${esc(fmtD(l.d))}</span><span style="flex:1;white-space:pre-wrap;word-break:break-word">${esc(l.text)}</span><button class="icon-mini" data-dellog="${esc(id)}|${esc(l.id)}" title="削除">🗑</button></div>`).join(''):'<div class="hint">まだ記録がありません。上の欄から記録できます</div>'}</div>
-    ${(r.history.length||r.sheetHistory.length)?`<div class="sec"><h3>📜 履歴</h3><div class="hist">${[...r.history].reverse().map(h=>`${esc(fmtD(h.d))}　ランク ${esc(rankOf(h.from).short)} → <b>${esc(rankOf(h.to).short)}</b>`).join('<br>')}${(r.history.length&&r.sheetHistory.length)?'<br>':''}${[...r.sheetHistory].reverse().map(h=>`📄 ${esc(rankOf(h.target).short)}用シート：配布${esc(fmtD(h.handedAt))}${h.submittedAt?`→提出${esc(fmtD(h.submittedAt))}`:''}${h.doneAt?`→評価${esc(fmtD(h.doneAt))}`:''}`).join('<br>')}</div></div>`:''}
-  </div>`;
+  return `${prof?`<div class="prof">${prof}</div>`:`<div class="hint" style="margin-bottom:8px">プロフィールはまだ入力されていません</div>`}
+    <button class="btn btn-line" data-edit="${esc(id)}">✏️ プロフィールを編集</button>`;
 }
-function openPerson(id){ if(!infoUnlocked()){ switchView('info'); return; } _personOpen=id; setModal(`<button class="close-x" data-close>×</button><div id="person-body">${renderPersonHtml(id)}</div>`); }
+function logTabHtml(id){
+  const m=member(id), r=rankRec(id), logs=[...m.logs].sort((a,b)=>a.d<b.d?1:-1);
+  return `<div class="addrow"><input placeholder="🗣 面談・声かけを記録（Enterで登録）" data-log-input="${esc(id)}"></div>
+    <div class="sec" style="margin-top:4px"><h3>🗣 面談・声かけログ${logs.length?`<span class="hint">最終 ${esc(fmtD(logs[0].d))}</span>`:''}</h3>
+      ${logs.length?logs.map(l=>`<div class="logrow"><span class="d">${esc(fmtD(l.d))}</span><span style="flex:1;white-space:pre-wrap;word-break:break-word">${esc(l.text)}</span><button class="icon-mini" data-dellog="${esc(id)}|${esc(l.id)}" title="削除">🗑</button></div>`).join(''):'<div class="hint">まだ記録がありません。上の欄から記録できます（面談メモの「面談で伝えた」でも自動で残ります）</div>'}</div>
+    ${(r.history.length||r.sheetHistory.length)?`<div class="sec"><h3>📜 履歴</h3><div class="hist">${[...r.history].reverse().map(h=>`${esc(fmtD(h.d))}　ランク ${esc(rankOf(h.from).short)} → <b>${esc(rankOf(h.to).short)}</b>`).join('<br>')}${(r.history.length&&r.sheetHistory.length)?'<br>':''}${[...r.sheetHistory].reverse().map(h=>`📄 ${esc(rankOf(h.target).short)}用シート：配布${esc(fmtD(h.handedAt))}${h.submittedAt?`→提出${esc(fmtD(h.submittedAt))}`:''}${h.doneAt?`→評価${esc(fmtD(h.doneAt))}`:''}`).join('<br>')}</div></div>`:''}`;
+}
+// 一人分の画面：縦に長い1枚をやめ、4つのタブ（面談メモ／ランク・スキル／プロフィール／記録）に分ける。
+// ロック中（クルーランク側から開いた時）は「ランク・スキル」だけを出し、面談メモ・プロフィール・記録は出さない。
+function renderPersonHtml(id){
+  const m=member(id); if(!m)return '<div class="empty">クルーが見つかりません</div>';
+  const r=rankRec(id), rk=rankOf(r.rank), ms=memoStat(id);
+  const fx=FANTA.filter(f=>r.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}${esc(f.label)}</span>`).join('');
+  const locked=!infoUnlocked();
+  const ten=tenure(m.hireDate);
+  const head=`<div class="p-head"><div class="avatar" style="background:${rk.color}">${esc((m.name||'?').slice(0,1))}</div>
+      <div><div class="nm">${esc(m.name)}<span class="rank-badge" style="background:${rk.bg};color:${rk.color};border:1px solid ${rk.border}">${esc(rk.short)}</span>${fx}</div>${(m.kana||(!locked&&ten))?`<div class="m-kana">${esc(m.kana||'')}${(!locked&&ten)?`${m.kana?'　':''}勤続 ${esc(ten)}`:''}</div>`:''}</div></div>`;
+  if(locked) return `<div class="person" data-person="${esc(id)}">${head}
+    <div class="lock-note">🔒 面談メモ・プロフィール・記録は「クルー情報」タブでパスワードを入れると表示されます</div>${rankTabHtml(id)}</div>`;
+  const ico=e=>`<span class="ico">${e} </span>`;
+  const tabs=[['memo',ico('📝')+'面談メモ',ms.fix+ms.good],['rank',ico('🏅')+'ランク・スキル',0],['prof',ico('👤')+'プロフィール',0],['log',ico('🗂')+'記録',0]];
+  if(!tabs.some(t=>t[0]===_ptab))_ptab='memo';
+  const body=_ptab==='rank'?rankTabHtml(id):_ptab==='prof'?profTabHtml(id):_ptab==='log'?logTabHtml(id):memoTabHtml(id);
+  return `<div class="person" data-person="${esc(id)}">${head}
+    <div class="ptabs">${tabs.map(([k,l,n])=>`<button type="button" class="ptab ${_ptab===k?'on':''}" data-ptab="${k}">${l}${n?`<span class="cnt">${n}</span>`:''}</button>`).join('')}</div>
+    ${body}</div>`;
+}
+function focusMemoInput(){ setTimeout(()=>{ const i=document.querySelector('#overlay.show [data-memo-input]')||document.querySelector('#rank-detail [data-memo-input]'); if(i)i.focus(); },60); }
+function openPerson(id,tab,focus){ if(!infoUnlocked()){ switchView('info'); return; } if(tab)_ptab=tab; _personOpen=id; setModal(`<button class="close-x" data-close>×</button><div id="person-body">${renderPersonHtml(id)}</div>`); if(focus)focusMemoInput(); }
+// ---- 面談メモの操作 ----
+function addMemo(id,text,kind){ text=(text||'').trim(); if(!text||!member(id))return false; rankRec(id).issues.push({id:uid('i'),text,kind:kind==='good'?'good':'fix',status:'todo',created:today()}); saveS(); refresh(); toast(kind==='good'?'👍 良かった点をメモしました':'🔧 改善点をメモしました'); return true; }
+function stepMemo(id,iid){ const i=rankRec(id).issues.find(x=>x.id===iid); if(!i)return; const t=today();
+  if(i.status==='todo'){ i.toldAt=t; if(kindOf(i)==='good'){ i.status='done'; i.done=t; } else i.status='doing'; }
+  else if(i.status==='doing'){ i.status='done'; i.done=t; }
+  saveS(); refresh(); }
+function backMemo(id,iid){ const i=rankRec(id).issues.find(x=>x.id===iid); if(!i)return;
+  if(i.status==='done'&&kindOf(i)==='fix'){ i.status='doing'; delete i.done; }
+  else { i.status='todo'; delete i.done; delete i.toldAt; }
+  saveS(); refresh(); }
+// 面談後の1タップ記録：まだ伝えていないメモを全部「伝えた」にして、話した内容を面談ログに残す
+function tellAll(id){
+  const m=member(id), r=rankRec(id); if(!m)return;
+  const items=r.issues.filter(i=>i.status==='todo'); if(!items.length)return;
+  if(!confirm(`${m.name} さんに、まだ伝えていない ${items.length}件 を面談で伝えましたか？\n\n「OK」で ${items.length}件 を「伝えた」にして、面談ログに記録します。`))return;
+  const t=today(), nf=items.filter(i=>kindOf(i)==='fix').length, ng=items.length-nf;
+  const lines=items.map(i=>`・${kindOf(i)==='good'?'良い点':'改善'}：${i.text}`).join('\n');
+  items.forEach(i=>{ i.toldAt=t; if(kindOf(i)==='good'){ i.status='done'; i.done=t; } else i.status='doing'; });
+  m.logs.push({id:uid('l'),d:t,text:`面談で伝えた（${[nf?`改善 ${nf}件`:'',ng?`良い点 ${ng}件`:''].filter(Boolean).join('・')}）\n${lines}`});
+  saveS(); refresh(); toast(`${items.length}件を「伝えた」にして、面談ログに記録しました`);
+}
+function setCrit(id,c,lv){ const r=rankRec(id); if(lv===2){ r.checks[c]=true; delete r.trying[c]; } else if(lv===1){ delete r.checks[c]; r.trying[c]=true; } else { delete r.checks[c]; delete r.trying[c]; } saveS(); refresh(); }
+function setCritNote(id,c,text){ const r=rankRec(id); text=String(text||'').trim(); if(text)r.critNote[c]=text; else delete r.critNote[c]; saveS(); }   // 再描画しない（入力中のフォーカスを動かさない）
 
 // ============ クルーランク（俯瞰＋ボード＋選択中の人物パネル） ============
 function renderRank(){
@@ -577,7 +762,7 @@ function renderRank(){
     else if(s.status==='handed'&&daysSince(s.handedAt)>=SHEET_NUDGE_DAYS) todo.push({p:2,tag:'回収する',cls:'t-collect',m,txt:`評価シートを渡してから${daysSince(s.handedAt)}日、まだ提出なし → 声かけ`});
     else if(s.status==='none'&&!pg.max&&pg.total>0&&pg.pct>=NEAR_PCT) todo.push({p:pg.pct>=100?2:3,tag:'渡す',cls:'t-hand',m,txt:`${rankOf(NEXT[r.rank]).short}の条件 ${pg.pct}%${pg.pct>=100?'（クリア）':''} → 評価シートを渡す`});
     const d=daysSince(lastLog(m)); if(d===null||d>=NO_TALK_DAYS) todo.push({p:4,tag:'声かけ',cls:'t-talk',m,txt:d===null?'面談の記録がまだない':`最後の面談から${d}日`});
-    const oi=openIssues(m.id); if(oi>=2) todo.push({p:5,tag:'課題',cls:'t-issue',m,txt:`未完了の課題が${oi}件`});
+    const mst=memoStat(m.id), un=mst.fix+mst.good; if(un>=1) todo.push({p:5,tag:'面談メモ',cls:'t-issue',m,txt:`まだ伝えていない面談メモが${un}件`});
   });
   todo.sort((a,b)=>a.p-b.p);
   $('rank-dash').innerHTML=S.members.length?`<div class="card todo"><h4>📌 今やること<span class="chip" style="background:#f1f5f9;color:var(--sub)">${todo.length}</span><span class="hint">上から順に。名前タップでその人へ</span></h4>${todo.length?todo.map(t=>`<div class="trow" data-sel="${esc(t.m.id)}"><span class="tag ${t.cls}">${t.tag}</span><b>${esc(t.m.name)}</b><span class="ttxt">${t.txt}</span></div>`).join(''):'<div class="hint" style="padding:6px 0">今は対応が必要なことはありません 🎉</div>'}</div>`:'';
@@ -588,11 +773,11 @@ function renderRank(){
       ${ins.length?ins.map(m=>{ const rr=rankRec(m.id), pg=progressOf(m.id), open=openIssues(m.id), sl=sheetLabel(m.id);
         return `<div class="mchip ${_selId===m.id?'sel':''}" data-sel="${esc(m.id)}"><div class="nm"><span>${esc(m.name)}</span><span class="pct">${pg.max?'MAX':(pg.done?pg.pct+'%':'')}</span></div>
           ${pg.max?'':`<div class="bar"><i style="width:${pg.pct}%;background:${r.color}"></i></div>`}
-          ${(FANTA.some(f=>rr.fanta[f.k])||open||sl)?`<div class="fx">${FANTA.filter(f=>rr.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}</span>`).join('')}${sl?`<span class="chip" style="${sl.status==='submitted'?'background:var(--green-lt);color:var(--green)':sl.status==='done'?'background:#f1f5f9;color:var(--sub)':'background:var(--purple-lt);color:var(--purple)'}">📄${sl.status==='handed'?'配布中':sl.status==='submitted'?'提出済':'完了'}</span>`:''}${open?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)">課題${open}</span>`:''}</div>`:''}</div>`; }).join('')
+          ${(FANTA.some(f=>rr.fanta[f.k])||open||sl)?`<div class="fx">${FANTA.filter(f=>rr.fanta[f.k]).map(f=>`<span class="fanta">${f.icon}</span>`).join('')}${sl?`<span class="chip" style="${sl.status==='submitted'?'background:var(--green-lt);color:var(--green)':sl.status==='done'?'background:#f1f5f9;color:var(--sub)':'background:var(--purple-lt);color:var(--purple)'}">📄${sl.status==='handed'?'配布中':sl.status==='submitted'?'提出済':'完了'}</span>`:''}${open?`<span class="chip" style="background:var(--amber-lt);color:var(--amber)" title="まだ伝えていない／取り組み中の面談メモ">メモ${open}</span>`:''}</div>`:''}</div>`; }).join('')
       :`<div class="hint" style="text-align:center;padding:8px 0">—</div>`}</div>`;
   }).join('');
   if(_selId&&!member(_selId))_selId=null;
-  $('rank-detail').innerHTML=_selId?`<div class="card">${renderPersonHtml(_selId)}</div>`:`<div class="empty">上の「今やること」やボードで名前をタップすると、その人の全情報（ランク・昇格条件・課題・面談ログ）をここで操作できます。${S.members.length?'':'<br>まず「クルー情報」でクルーを登録してください。'}</div>`;
+  $('rank-detail').innerHTML=_selId?`<div class="card">${renderPersonHtml(_selId)}</div>`:`<div class="empty">上の「今やること」やボードで名前をタップすると、その人のランク・昇格条件・業務スキルをここで操作できます（面談メモ・プロフィール・記録は「クルー情報」でパスワードを入れると表示されます）。${S.members.length?'':'<br>まず「クルー情報」でクルーを登録してください。'}</div>`;
 }
 // ---- 操作（誤タップ防止：ランク変更／ファンタジスタ解除は確認、取得日は保持） ----
 function setRank(id,k){ const r=rankRec(id); if(r.rank===k)return; const m=member(id); if(!confirm(`${m.name} のランクを\n${rankOf(r.rank).short} → ${rankOf(k).short}\nに変更しますか？`))return; r.history.push({d:today(),from:r.rank,to:k}); r.rank=k;
@@ -600,9 +785,7 @@ function setRank(id,k){ const r=rankRec(id); if(r.rank===k)return; const m=membe
   r.sheet=null; saveS(); refresh(); toast(`${m.name} → ${rankOf(k).short}`); }
 function toggleCheck(id,c,on){ const r=rankRec(id); if(on)r.checks[c]=true; else delete r.checks[c]; saveS(); refresh(); }
 function toggleFanta(id,k){ const r=rankRec(id); const f=FANTA.find(x=>x.k===k); if(r.fanta[k]){ if(!confirm(`${member(id).name} の「${f.label}ファンタジスタ」を外しますか？\n（取得日 ${fmtD(r.fantaDate[k])||'—'} は記録として保持されます）`))return; r.fanta[k]=false; } else { r.fanta[k]=true; if(!r.fantaDate[k])r.fantaDate[k]=today(); } saveS(); refresh(); }
-function addIssue(id,text){ text=(text||'').trim(); if(!text)return false; rankRec(id).issues.push({id:uid('i'),text,status:'todo',created:today()}); saveS(); refresh(); toast('課題を追加しました'); return true; }
-function cycleIssue(id,iid){ const i=rankRec(id).issues.find(x=>x.id===iid); if(!i)return; i.status=i.status==='todo'?'doing':i.status==='doing'?'done':'todo'; if(i.status==='done')i.done=today(); else delete i.done; saveS(); refresh(); }
-function delIssue(id,iid){ const r=rankRec(id); const i=r.issues.find(x=>x.id===iid); if(!i)return; if(!confirm(`課題「${i.text}」を削除しますか？`))return; r.issues=r.issues.filter(x=>x.id!==iid); saveS(); refresh(); }
+function delIssue(id,iid){ const r=rankRec(id); const i=r.issues.find(x=>x.id===iid); if(!i)return; if(!confirm(`面談メモ「${i.text}」を削除しますか？`))return; r.issues=r.issues.filter(x=>x.id!==iid); saveS(); refresh(); }
 function addLog(id,text){ const m=member(id); text=(text||'').trim(); if(!m||!text)return false; m.logs.push({id:uid('l'),d:today(),text}); saveS(); refresh(); toast('記録しました'); return true; }
 function delLog(id,lid){ const m=member(id); if(!m)return; const l=m.logs.find(x=>x.id===lid); if(!l)return; if(!confirm(`${fmtD(l.d)} の記録を削除しますか？`))return; m.logs=m.logs.filter(x=>x.id!==lid); saveS(); refresh(); }
 function openCriteria(){
@@ -622,6 +805,28 @@ document.addEventListener('click',e=>{
   const t=e.target;
   const st=t.closest('.subtab'); if(st){switchView(st.dataset.view);return;}
   if(t.closest('[data-close]')){closeModal();return;}
+  const pid=()=>{ const p=t.closest('.person'); return p?p.dataset.person:null; };
+  // 一覧・スキル表
+  const mm=t.closest('[data-memo]'); if(mm){openPerson(mm.dataset.memo,'memo',true);return;}
+  const orr=t.closest('[data-open-rank]'); if(orr){ if(!_skillEdit)openPerson(orr.dataset.openRank,'rank'); return; }
+  const iv=t.closest('[data-infoview]'); if(iv){_infoView=iv.dataset.infoview;_skillEdit=false;renderInfo();return;}
+  const ifl=t.closest('[data-infofilter]'); if(ifl){_infoFilter=ifl.dataset.infofilter;renderInfo();return;}
+  if(t.id==='skill-edit-btn'){_skillEdit=!_skillEdit;renderInfo();return;}
+  if(t.id==='edit-skills-btn'){openSkills();return;}
+  if(t.closest('[data-skillsave]')){saveSkills();return;}
+  if(t.closest('[data-skilldefault]')){$('skills-text').value=DEFAULT_SKILLS.join('\n');return;}
+  const sc=t.closest('[data-skcell]'); if(sc){ if(!_skillEdit)return;   // 編集中だけ：その場で切り替え（表を描き直さない＝横スクロール位置を保つ）
+    const id=sc.dataset.skcell, i=+sc.dataset.si, s=S.skills[i], nx=((rankRec(id).skill[s]||0)+1)%3; setSkill(id,s,nx);
+    sc.className='sk lv'+nx; sc.textContent=LV_MARK[nx]; const fc=document.querySelector(`[data-skcount="${i}"]`); if(fc)fc.textContent=S.members.filter(m=>(rankRec(m.id).skill[s]||0)===2).length+'人'; return; }
+  // 人物画面（タブ・面談メモ・3段階）
+  const pt=t.closest('[data-ptab]'); if(pt){_ptab=pt.dataset.ptab;refresh();return;}
+  const mk=t.closest('[data-memokind]'); if(mk){ _memoKind=mk.dataset.memokind; const p=mk.closest('.person'); if(p){ p.querySelectorAll('[data-memokind]').forEach(b=>b.classList.toggle('on',b.dataset.memokind===_memoKind)); const i=p.querySelector('[data-memo-input]'); if(i)i.focus(); } return; }
+  if(t.closest('[data-addmemo]')){ const p=t.closest('.person'), i=p&&p.querySelector('[data-memo-input]'); if(i)submitMemo(i); return; }
+  const stp=t.closest('[data-step]'); if(stp){stepMemo(pid(),stp.dataset.step);return;}
+  const bk=t.closest('[data-back]'); if(bk){backMemo(pid(),bk.dataset.back);return;}
+  const tl=t.closest('[data-told]'); if(tl){tellAll(tl.dataset.told);return;}
+  const cr=t.closest('[data-crit]'); if(cr){setCrit(pid(),cr.dataset.crit,+cr.dataset.lv);return;}
+  const sk=t.closest('[data-skill]'); if(sk){setSkill(pid(),sk.dataset.skill,+sk.dataset.lv);refresh();return;}
   const ed=t.closest('[data-edit]'); if(ed){openMemberForm(ed.dataset.edit);return;}
   const op=t.closest('[data-open]'); if(op){openPerson(op.dataset.open);return;}
   const se=t.closest('[data-sel]'); if(se){ _selId=se.dataset.sel; if(_view!=='rank'){openPerson(_selId);return;} renderRank(); const d=$('rank-detail'); if(d)d.scrollIntoView({behavior:'smooth',block:'start'}); return; }
@@ -629,7 +834,6 @@ document.addEventListener('click',e=>{
   const fa=t.closest('[data-fanta]'); if(fa){const [id,k]=sp(fa.dataset.fanta);toggleFanta(id,k);return;}
   const sa=t.closest('[data-sheetadv]'); if(sa){sheetAdvance(sa.dataset.sheetadv);return;}
   const su=t.closest('[data-sheetundo]'); if(su){sheetUndo(su.dataset.sheetundo);return;}
-  const cy=t.closest('[data-cycle]'); if(cy){const [id,iid]=sp(cy.dataset.cycle);cycleIssue(id,iid);return;}
   const di=t.closest('[data-delissue]'); if(di){const [id,iid]=sp(di.dataset.delissue);delIssue(id,iid);return;}
   const dl=t.closest('[data-dellog]'); if(dl){const [id,lid]=sp(dl.dataset.dellog);delLog(id,lid);return;}
   const sm=t.closest('[data-savemember]'); if(sm){saveMemberForm(sm.dataset.savemember||'');return;}
@@ -643,14 +847,20 @@ document.addEventListener('click',e=>{
   if(t.id==='import-btn'||t.id==='tidy-open-btn'){openImport();return;}
   if(t.id==='edit-criteria-btn'){openCriteria();return;}
 });
-document.addEventListener('change',e=>{ const c=e.target.closest('[data-chk]'); if(c){const [id,crit]=sp(c.dataset.chk);toggleCheck(id,crit,c.checked);} });
-// Enterで即登録（課題／面談ログ）。対象IDは同じ人物パネル内から取得
+document.addEventListener('change',e=>{
+  const c=e.target.closest('[data-chk]'); if(c){const [id,crit]=sp(c.dataset.chk);toggleCheck(id,crit,c.checked);return;}
+  const n=e.target.closest('[data-critnote]'); if(n){const [id,crit]=sp(n.dataset.critnote);setCritNote(id,crit,n.value);}   // 昇格条件のひとこと：欄を離れた時に保存
+});
+// 入力を登録して欄を空にする。先に change を流して「入力途中の退避」を消す（消さないと描き直し後に同じ文字が戻ってしまう）
+function _commitInput(inp){ const v=inp.value; inp.value=''; try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){} return v; }
+function submitMemo(inp){ const id=inp.dataset.memoInput; if(!inp.value.trim()){ inp.focus(); return; } const v=_commitInput(inp); if(addMemo(id,v,_memoKind)) focusMemoInput(); }
+// Enterで即登録（面談メモ／面談ログ）。日本語の変換確定の Enter では登録しない
 document.addEventListener('keydown',e=>{
-  if(e.key!=='Enter')return;
+  if(e.key!=='Enter'||e.isComposing||e.keyCode===229)return;
   const t=e.target; const panel=t.closest('.person'); if(!panel)return;
-  const id=panel.dataset.person||null; if(!id)return;   // 編集ボタンはロック中に出ないので、パネル自身の data-person から取る
-  if(t.hasAttribute('data-issue-input')){ e.preventDefault(); if(addIssue(id,t.value)) t.value=''; }
-  else if(t.hasAttribute('data-log-input')){ e.preventDefault(); if(addLog(id,t.value)) t.value=''; }
+  const id=panel.dataset.person||null; if(!id)return;
+  if(t.hasAttribute('data-memo-input')){ e.preventDefault(); submitMemo(t); }
+  else if(t.hasAttribute('data-log-input')){ e.preventDefault(); if(!t.value.trim())return; const v=_commitInput(t); if(addLog(id,v)) setTimeout(()=>{ const i=document.querySelector('#overlay.show [data-log-input]')||document.querySelector('#rank-detail [data-log-input]'); if(i)i.focus(); },60); }
 });
 $('info-q').addEventListener('input',renderInfo);
 $('info-lock-form').addEventListener('submit',e=>{ e.preventDefault(); submitInfoPw(); });
