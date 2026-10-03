@@ -841,7 +841,7 @@ function _keyHasRealData(k,raw){
   if(!o||typeof o!=='object')return false;
   const ne=v=>Array.isArray(v)?v.length>0:(v&&typeof v==='object'?Object.keys(v).length>0:false);
   if(/^ffv6_store_/.test(k))        return ne(o.PM)||ne(o.ji)||ne(o.checks)||ne(o.soldOuts);
-  if(/^ws_v1/.test(k))              return ne(o.staff)||ne(o.tasks)||ne(o.rec)||ne(o.records)||ne(o.shifts);
+  if(/^ws_v1/.test(k))              return ne(o.staff)||ne(o.tasks)||ne(o.rec)||ne(o.records)||ne(o.shifts)||ne(o.areaChecks);   // areaChecks＝売場マップの点検記録
   if(/shinmuraten-plan-v1/.test(k)) return Object.keys(o).length>0;
   if(/^bumon_v1/.test(k))           return ne(o.assignments)||ne(o.sheets);
   if(/^crew_v1/.test(k))            return ne(o.members);

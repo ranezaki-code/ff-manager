@@ -1282,6 +1282,82 @@ body.admin-mode .task-icon-btn.up,body.admin-mode .task-icon-btn.down,body.admin
 
 /* ビュー切替タブ */
 /* タブバー：横スクロール固定。画面比率が変わっても各タブの幅は不変 */
+/* ===== 🗺 売場マップ ===== */
+.am-wrap{padding:10px 12px 90px;max-width:1180px;margin:0 auto}
+.am-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.am-sum{display:flex;gap:6px;flex-wrap:wrap}
+.am-chip{font-size:13px;font-weight:700;border-radius:999px;padding:6px 12px;background:#f1f5f9;color:#475569;white-space:nowrap}
+.am-chip b{font-size:15px;margin-left:2px}
+.am-c-fire{background:#fee2e2;color:#b91c1c}.am-c-soon{background:#fef3c7;color:#92400e}.am-c-ok{background:#dcfce7;color:#166534}
+.am-seg{display:inline-flex;background:#e2e8f0;border-radius:10px;padding:3px;gap:2px;margin-left:auto}
+.am-seg button{font-family:inherit;font-size:13px;font-weight:700;border:none;background:transparent;color:#64748b;border-radius:8px;padding:7px 11px;cursor:pointer;white-space:nowrap}
+.am-seg button.on{background:#fff;color:#0f172a;box-shadow:0 1px 2px rgba(15,23,42,.12)}
+.am-cfgbtn{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--border);background:#fff;color:#475569;border-radius:8px;padding:7px 10px;cursor:pointer}
+.am-hint{font-size:12px;color:#64748b;margin-bottom:8px;line-height:1.6}
+.am-body{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(270px,1fr);gap:14px;align-items:start}
+.am-firebar{display:none;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.am-fbtn{font-family:inherit;font-size:13px;font-weight:800;background:#fee2e2;color:#b91c1c;border:1.5px solid #fca5a5;border-radius:999px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.am-body.am-nomapbody{grid-template-columns:1fr}
+.am-mapbox{background:#fff;border:1px solid var(--border);border-radius:12px;padding:8px;overflow:auto;-webkit-overflow-scrolling:touch}
+.am-svg{display:block;width:100%;height:auto}
+.am-mapbox.am-zoomed .am-svg{width:170%;max-width:none}
+.am-lbl{font-weight:700;fill:#1f2937;font-family:inherit;pointer-events:none}
+.am-flame{pointer-events:none}
+.am-cell.am-tap{cursor:pointer}
+.am-cell.am-tap:hover rect{filter:brightness(.96)}
+.am-cell.am-dim{opacity:.3}
+.am-cell.am-pulse rect{animation:amPulse 1.1s ease-in-out infinite}
+@keyframes amPulse{0%,100%{fill:#f87171}50%{fill:#fecaca}}
+.am-legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11px;color:#64748b;margin-top:6px}
+.am-legend i{display:inline-block;width:12px;height:12px;border:1.5px solid;border-radius:3px;vertical-align:-2px;margin-right:4px}
+.am-zoombtn{margin-left:auto;font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--border);background:#fff;color:#475569;border-radius:8px;padding:6px 10px;cursor:pointer}
+.am-nomap{background:#fff;border:1px dashed var(--border);border-radius:12px;padding:12px 14px;font-size:13px;color:#64748b;line-height:1.7;margin-bottom:10px}
+.am-list-h{font-size:14px;font-weight:800;color:#0f172a;margin:2px 0 8px}
+.am-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font-family:inherit;background:#fff;border:1.5px solid var(--border);border-radius:11px;padding:9px 11px;margin-bottom:6px;cursor:pointer;min-height:54px}
+.am-row.am-fire{background:#fef2f2;border-color:#fca5a5}
+.am-row.am-lv3{border-color:#dc2626;border-width:2px}
+.am-row.am-soon{background:#fffbeb;border-color:#fde68a}
+.am-row-ico{font-size:18px;min-width:30px;text-align:center;flex-shrink:0;white-space:nowrap}
+.am-row-main{flex:1;min-width:0}
+.am-row-main b{display:block;font-size:14px;font-weight:800;color:#0f172a}
+.am-row-main small{display:block;font-size:12px;color:#64748b;margin-top:1px}
+.am-ztag{font-size:10px;font-weight:800;color:#fff;border-radius:6px;padding:3px 7px;white-space:nowrap;flex-shrink:0}
+.am-ktag{font-size:10px;font-weight:800;color:#fff;background:#111827;border-radius:6px;padding:3px 7px;white-space:nowrap;margin-left:4px}
+.am-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-end;justify-content:center;z-index:9000}
+.am-overlay.show{display:flex}
+.am-modal{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:640px;max-height:92vh;overflow:auto;padding:18px 16px calc(20px + env(safe-area-inset-bottom));position:relative;-webkit-overflow-scrolling:touch}
+@media(min-width:680px){.am-overlay{align-items:center;padding:18px}.am-modal{border-radius:18px}}
+.am-x{position:absolute;top:8px;right:10px;font-size:24px;color:#64748b;background:none;border:none;cursor:pointer;padding:4px 8px}
+.am-title{font-size:19px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-right:34px}
+.am-sub{font-size:12px;color:#64748b;margin:3px 0 10px;line-height:1.6}
+.am-state{font-size:13px;font-weight:700;border-radius:10px;padding:8px 11px;margin-bottom:10px;background:#dcfce7;color:#166534}
+.am-state.am-fire{background:#fee2e2;color:#b91c1c}.am-state.am-soon{background:#fef3c7;color:#92400e}
+.am-items{list-style:none;counter-reset:am;margin:0;padding:0}
+.am-items li{counter-increment:am;position:relative;padding:8px 0 8px 34px;border-bottom:1px solid #f1f5f9}
+.am-items li::before{content:counter(am);position:absolute;left:0;top:8px;width:24px;height:24px;border:2px solid #111827;border-radius:50%;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.am-it{font-size:15px;font-weight:800;color:#0f172a;line-height:1.45}
+.am-ng{font-size:13px;color:#374151;background:#f3f4f6;border-radius:8px;padding:6px 9px;margin-top:5px;line-height:1.55}
+.am-ng span{display:inline-block;font-size:10px;font-weight:800;color:#fff;background:#8b949e;border-radius:5px;padding:2px 6px;margin-right:7px;vertical-align:1px}
+.am-done{margin-top:14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:11px}
+.am-done-h{font-size:13px;font-weight:800;color:#166534;margin-bottom:8px;line-height:1.5}
+.am-names{display:flex;flex-wrap:wrap;gap:8px}
+.am-name{font-family:inherit;font-size:15px;font-weight:800;padding:12px 16px;min-width:96px;flex:1;border-radius:11px;border:2px solid #16a34a;background:#fff;color:#166534;cursor:pointer}
+.am-name:active{background:#dcfce7}
+.am-name-anon{border-color:#cbd5e1;color:#475569;font-size:13px;font-weight:700}
+.am-hist{font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.6}
+.am-cfg label{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+.am-cfg label span{flex:1;min-width:0;font-weight:700}
+.am-cfg input{width:86px;font-family:inherit;font-size:15px;text-align:right;border:1.5px solid var(--border);border-radius:8px;padding:7px 8px}
+.am-cfg em{font-style:normal;font-size:12px;color:#64748b}
+.am-cfg-act{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.am-snack{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:14px;font-weight:700;padding:11px 14px 11px 18px;border-radius:999px;z-index:9500;display:none;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:calc(100vw - 24px)}
+.am-snack.show{display:flex}
+.am-snack button{font-family:inherit;font-size:13px;font-weight:800;background:#fff;color:#0f172a;border:none;border-radius:999px;padding:7px 13px;cursor:pointer;white-space:nowrap}
+@media(max-width:860px){
+  .am-body{grid-template-columns:1fr}
+  .am-seg{margin-left:0}
+  .am-firebar{display:flex}
+}
 #view-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);padding:8px 12px;gap:6px;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;scrollbar-width:thin;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
 #view-tabs::-webkit-scrollbar{height:6px}
 #view-tabs::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
@@ -1850,6 +1926,7 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
   </div>
 
   <div id="view-tabs">
+    <button id="tab-map" onclick="setView('map')">🗺 売場マップ <span id="tab-map-badge" class="tab-count-badge" style="display:none;background:#dc2626">0</span></button>
     <button id="tab-tl" onclick="setView('timeline')" class="active">📋 タイムライン</button>
     <button id="tab-staff" onclick="setView('staff')">👤 担当者別タスク</button>
     <button id="tab-request" onclick="setView('request')">📌 依頼タスク <span id="tab-request-badge" class="tab-count-badge" style="display:none">0</span></button>
@@ -1857,7 +1934,7 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
     <button id="tab-thanks" onclick="setView('thanks')">💌 感謝 <span id="tab-thanks-badge" class="tab-count-badge" style="display:none">0</span></button>
     <button id="tab-game" onclick="setView('game')">🎮 ゲーム</button>
     <button id="tab-store" onclick="setView('store')">🐾 みんなのペット <span id="tab-store-badge" class="tab-mood-badge" style="display:none">😺</span></button>
-    <button id="tab-floor" onclick="setView('floor')">🗺 売場状況 <span id="tab-floor-badge" class="tab-count-badge" style="display:none;background:#dc2626">0</span></button>
+    <button id="tab-floor" onclick="setView('floor')" title="タスクの完了実績から見た売場の状態（従来の一覧）">📘 QSC状況 <span id="tab-floor-badge" class="tab-count-badge" style="display:none;background:#dc2626">0</span></button>
     <button id="tab-db" onclick="setView('dashboard')">📊 ダッシュボード</button>
     <button id="tab-list" onclick="setView('tasklist')">📜 タスク一覧</button>
   </div>
@@ -1991,6 +2068,7 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
     <div id="thanks-view" style="display:none"></div>
     <div id="store-view" style="display:none"></div>
     <div id="floor-view" style="display:none"></div>
+    <div id="map-view" style="display:none"></div>
 
     <div id="game-view" style="display:none">
       <div class="dash-card">
@@ -2933,7 +3011,10 @@ function _wsLooksEmpty(s){
   const tasks=Object.values(s.tasks||{}).reduce((a,arr)=>a+(Array.isArray(arr)?arr.length:0),0);
   const staff=Array.isArray(s.staff)?s.staff.length:0;
   const rec=Array.isArray(s.recurringTasks)?s.recurringTasks.length:0;
-  return tasks===0 && staff===0 && rec===0;
+  // 売場マップの点検記録だけを使っている店舗も「データあり」として守る
+  // （件数ではなくエリアの有無で見る：最初の1件を「取り消す」した直後も、空データ扱いで保存が止まらないように）
+  const checks=(s.areaChecks&&typeof s.areaChecks==='object'&&!Array.isArray(s.areaChecks))?Object.keys(s.areaChecks).length:0;
+  return tasks===0 && staff===0 && rec===0 && checks===0;
 }
 function _wsHasMeaningfulExisting(raw){
   if(!raw||raw.length<200)return false;
@@ -5399,6 +5480,8 @@ function render(){
     renderDashboard();
   } else if(currentView === 'tasklist' && typeof renderTaskList === 'function'){
     renderTaskList();
+  } else if(currentView === 'map' && typeof renderMapView === 'function'){
+    renderMapView();   // 他端末の点検記録が届いた時など
   }
 }
 
@@ -8167,6 +8250,7 @@ function refreshCurrentView(){
   else if(currentView === 'thanks') renderThanksView();
   else if(currentView === 'store') renderStoreView();
   else if(currentView === 'floor') renderFloorView();
+  else if(currentView === 'map') renderMapView();
   else render();
   if(typeof updateRequestBadges === 'function') updateRequestBadges();
   if(typeof updateThanksBadge === 'function') updateThanksBadge();
@@ -9393,6 +9477,337 @@ function renderFloorView(){
   }
 }
 
+/* ========== 🗺 売場マップ（点検エリアの状態を図で見る） ==========
+   ねらい：文字の一覧や「◯時にこの作業」という時刻しばりではなく、
+   「最後に点検してからどれだけ経ったか」で売場マップに 🔥 を出す。クルーは火が出ている所から動けばよい。
+   ・点検エリア（CHECK_AREAS）＝店の点検カード1枚。確認項目と「NG時アクション」を持つ
+   ・各エリアには目安の間隔（分）があり、経過÷間隔で状態を決める
+       0.7未満＝OK／1未満＝🟡そろそろ／1以上＝🔥／1.5以上＝🔥🔥／2.5以上＝🔥🔥🔥
+   ・記録は state.areaChecks[エリアID] = [{at, by}]（直近40件）。間隔の変更は state.areaCfg.interval[エリアID]
+   ・マップ（STORE_MAPS）は店舗ごと。未登録の店舗はエリアの一覧だけで同じように使える */
+const CHECK_AREAS = [
+  {id:'toilet', name:'トイレ', icon:'🚻', zone:'red', kind:'点検・補充', interval:120, sub:'前室の床／便器・床・壁・消耗品・ゴミ箱・換気扇', items:[
+    ['前室の床に汚れ、水はねが無い','拭き取る'],
+    ['便器、ふた、便座に汚れが無い','トイレクリーナーを吹きかけ、トイレ用シートで拭き取る'],
+    ['床、壁に汚れ、水はねが無い','拭き取る'],
+    ['トイレットペーパーが切れていない','予備を補充する'],
+    ['ゴミ箱が青ラインを超えていない','袋を交換する（赤ラインを超えてしまう前に行う）'],
+    ['換気扇にホコリが無い','長ハタキでホコリを取る']]},
+  {id:'outside', name:'店外', icon:'🚗', zone:'red', kind:'点検', interval:240, sub:'駐車場・植栽／軒下・ガラス面／犬走り', items:[
+    ['ゴミ、吸い殻が落ちていない','拾って店内のゴミ箱へ'],
+    ['軒下にクモの巣が無い','払い落とす'],
+    ['ガラス面に手跡、テープ跡が無い','ガラス用クロスで拭く'],
+    ['膝より高い雑草が生えていない','抜く（無理なら店長へ）']]},
+  {id:'floor_red', name:'床（赤ゾーン）', icon:'🧹', zone:'red', kind:'点検', interval:120, sub:'赤ゾーンの売場の床・通路／店頭マット', items:[
+    ['こぼれ、水濡れが無い','すぐ拭き取る'],
+    ['ゴミが落ちていない','拾う'],
+    ['段ボール、台車が通路に置かれていない','片づける'],
+    ['マットに破損、めくれが無い','直す／店長に伝える']]},
+  {id:'atm', name:'ATM・Loppi・コピー機', icon:'🏧', zone:'red', kind:'点検・補充', interval:240, sub:'壁面のサービス機器', items:[
+    ['タッチパネル・テンキー・タッチペンに汚れ、べたつきが無い','青クロスとアルコールスプレーで清掃'],
+    ['発券口に紙詰まり、出しっぱなしの券が無い','取り除いて所定の場所へ'],
+    ['周辺の床、置き忘れの紙類が無い','ゴミは片づけ、忘れ物は所定の場所へ'],
+    ['コピー機の本体、ガラス面、操作パネルにホコリ、汚れが無い','青クロスとアルコールスプレーで清掃'],
+    ['コピー機の用紙が切れていない','用紙を補充する'],
+    ['排紙トレイに取り忘れが無い','']]},
+  {id:'face_red', name:'前陳：その他（赤ゾーン）', icon:'📦', zone:'red', kind:'前陳', interval:180, sub:'スープ／常温酒／即席麺／米菓・珍味／加工食品／日用品③／冷凍食品アイス①②／冷温／酒類・ソフトドリンク', items:[
+    ['棚のフチまで前に出ている','棚のフチまで前に出す'],
+    ['商品の顔が正面を向いている','正面に向け直す'],
+    ['穴が空いていない','隣の商品を広げて埋める（プライスカードは商品の左側）。穴にプライスカードが残っていたら外して回収ボックスへ'],
+    ['プライスカードが必要な商品にすべて取り付けられている','保管ファイルから探して取り付ける。無ければ作成して取り付ける']]},
+  {id:'stock_red', name:'品出し（赤ゾーン）', icon:'📥', zone:'red', kind:'品出し', interval:240, sub:'平場（スープ島／日用品③）／ウォークイン（ソフトドリンク・酒）／チルド飲料／ホットドリンク（冷温）', items:[
+    ['棚の奥まで補充されている','棚の奥まで補充する'],
+    ['売場に無い商品が残っていない','該当カテゴリのゴンドラにスペースを作って補充する。施策・売場計画中の商品は縮小させない'],
+    ['プライスカードが取り付けられている','保管ボックスと売場計画ファイルから探す。無ければ新規作成して取り付ける']]},
+  {id:'face_daily', name:'前陳：米飯・日配・ベーカリー', icon:'🍙', zone:'both', kind:'前陳', interval:120, sub:'米飯／調理パン／調理麺／デリカ／デザート（米飯ケース側）／ベーカリー／生鮮品', items:[
+    ['商品が中央からフェイスアップされている','中央から手前に出す'],
+    ['棚のフチまで前に出ている','棚のフチまで前に出す'],
+    ['在庫が奥にある場合はフェイスを広げ、積み重ねられる商品は積み重ねている','フェイスを広げる／積み重ねてボリュームを出す'],
+    ['穴が空いていない','隣の商品のフェイスを広げる']]},
+  {id:'face_ff', name:'前陳：ファストフーズ・まちかど厨房', icon:'🍗', zone:'both', kind:'前陳', interval:120, sub:'ホットFF／常温FF／まちかど厨房', items:[
+    ['棚のフチまで前に出ている','棚のフチまで前に出す'],
+    ['在庫が奥にある場合はフェイスを広げ、積み重ねられる商品は積み重ねている','フェイスを広げる／積み重ねてボリュームを出す'],
+    ['穴が空いていない','隣の商品を広げて埋める。穴のプライスカードは計画外なら保管ボックスへ／計画品なら計画を確認'],
+    ['プライスカードが正しいものが商品の左側に取り付けられている','正しいものに直す。無ければリーダークルーまたは店長に連絡（FFのカードは作成できない）']]},
+  {id:'counter', name:'カウンター内', icon:'💴', zone:'blue', kind:'点検・補充', interval:180, sub:'レジ機器／ゴミ箱／レジ袋・備品／手洗いシンク／床', items:[
+    ['レジ・端末・トレイにホコリ、汚れ、手跡が無い','青クロスとアルコールスプレーで清掃'],
+    ['レシートロールが切れそうになっていない','赤ラインが出たらロールを交換する'],
+    ['レシートゴミ箱が赤ラインを超えていない','袋を交換する'],
+    ['レジ内ゴミ箱が青ラインを超えていない','袋を交換する（赤ラインを超えてしまう前に行う）'],
+    ['レジ袋が各サイズ補充されている','補充する'],
+    ['不要な備品や私物がカウンター周辺に散乱していない','備品は定位置に戻す／私物はロッカーへ'],
+    ['手洗いシンクに水滴、黒ずみ汚れが無い','拭き取る／こすり洗い'],
+    ['ペーパー、手洗い用洗剤が補充されている','補充する'],
+    ['足元にゴミ、汚れが無い／段ボール・台車が置きっぱなしでない','掃いてから拭く／片づける']]},
+  {id:'trash', name:'ゴミ箱・上台周辺', icon:'🗑', zone:'blue', kind:'点検・補充', interval:120, sub:'本体・投入口・中箱／台上・電子レンジ・ポット', items:[
+    ['青ラインを超えていない','袋を交換する（赤ラインを超えてしまう前に行う）'],
+    ['投入口周辺・内部・中箱に汚れ、ゴミが無い','黄クロスとアルコールスプレーで清掃'],
+    ['飲み残し捨てタンクが青ラインを超えていない','中身を捨てる（赤ラインを超えてしまう前に行う）'],
+    ['台上に汚れ、ゴミが無い','青クロスとアルコールスプレーで清掃'],
+    ['電子レンジの外部・内部に汚れが無い','青クロスとアルコールスプレーで清掃'],
+    ['ポットのお湯が8割以上残っている','お湯を追加する']]},
+  {id:'coffee', name:'コーヒーマシン', icon:'☕', zone:'blue', kind:'点検・補充', interval:120, sub:'本体・抽出口・タンク・豆・コンディメント・ゴミ箱', items:[
+    ['本体、周辺にホコリ、汚れが無い','青クロスとアルコールスプレーで清掃'],
+    ['抽出口、排水トレイに汚れが無い','青クロスで拭き取る'],
+    ['排水タンクが青ラインを超えていない','中身を捨てる（赤ラインを超えてしまう前に行う）'],
+    ['豆が赤い線より下になっていない','豆を補充する'],
+    ['コンディメント什器が整頓され、赤い線が見えていない','満タンに補充して赤テープを隠す'],
+    ['ゴミ箱が青ラインを超えていない','袋を交換する（赤ラインを超えてしまう前に行う）']]},
+  {id:'floor_blue', name:'床（青ゾーン）', icon:'🧹', zone:'blue', kind:'点検', interval:120, sub:'青ゾーンの売場の床・通路／店内マット', items:[
+    ['こぼれ、水濡れが無い','すぐ拭き取る'],
+    ['ゴミが落ちていない','拾う'],
+    ['段ボール、台車が通路に置かれていない','片づける'],
+    ['マットに破損、めくれが無い','直す／店長に伝える']]},
+  {id:'supply', name:'消耗品', icon:'🥢', zone:'blue', kind:'補充', interval:180, sub:'はし・スプーン・フォーク／ストロー・おしぼり等', items:[
+    ['満タンに補充されていて、赤い線が見えていない','満タンに補充して赤テープを隠す']]},
+  {id:'tobacco', name:'タバコ', icon:'🚬', zone:'blue', kind:'補充', interval:240, sub:'カウンター内 タバコ棚', items:[
+    ['黄色いテープが出ていない','黄色いテープが隠れるまで補充する']]},
+  {id:'copy', name:'コピー機（カウンター横）', icon:'🖨', zone:'blue', kind:'点検・補充', interval:240, sub:'本体・ガラス面・操作パネル・給紙トレイ', items:[
+    ['本体、ガラス面、操作パネルにホコリ、汚れが無い','青クロスとアルコールスプレーで清掃'],
+    ['用紙が切れていない','用紙を補充する'],
+    ['排紙トレイに取り忘れが無い','']]},
+  {id:'face_blue', name:'前陳：その他（青ゾーン）', icon:'📦', zone:'blue', kind:'前陳', interval:180, sub:'常温和菓子／菓子（スナック・オリジナル・NL・ポケ菓子）／玩具／無印良品／日用品①②／栄養ドリンク／シーズンエンド①', items:[
+    ['棚のフチまで前に出ている','棚のフチまで前に出す'],
+    ['商品の顔が正面を向いている','正面に向け直す'],
+    ['穴が空いていない','隣の商品を広げて埋める（プライスカードは商品の左側）。穴にプライスカードが残っていたら外して回収ボックスへ'],
+    ['プライスカードが必要な商品にすべて取り付けられている','保管ファイルから探して取り付ける。無ければ作成して取り付ける']]},
+  {id:'stock_blue', name:'品出し（青ゾーン）', icon:'📥', zone:'blue', kind:'品出し', interval:240, sub:'平場（菓子／日用品①②／ポケ菓子など）／栄養ドリンク', items:[
+    ['棚の奥まで補充されている','棚の奥まで補充する'],
+    ['売場に無い商品が残っていない','該当カテゴリのゴンドラにスペースを作って補充する。施策・売場計画中の商品は縮小させない'],
+    ['プライスカードが取り付けられている','保管ボックスと売場計画ファイルから探す。無ければ新規作成して取り付ける']]}
+];
+const AM_ZONE = {
+  blue:{label:'カウンター周辺点検', short:'周辺', color:'#2f5fb5', fill:'#e6eefc', stroke:'#b9cbee'},
+  red: {label:'カウンター外点検',   short:'外',   color:'#b3443c', fill:'#fdeceb', stroke:'#efbdb9'},
+  both:{label:'両方',               short:'両方', color:'#4b5563', fill:'#ececec', stroke:'#c8c8c8'},
+  none:{label:'',                   short:'',     color:'#9ca3af', fill:'#ffffff', stroke:'#d6d6d6'}
+};
+/* 店舗ごとの売場マップ。座標は元のレイアウト図（1416×2000px）の画素。[ID, 表示名, x1, y1, x2, y2, ゾーン, 関係する点検エリア] */
+const STORE_MAPS = {
+  omachi: {
+    match: /大町/, ox:217, oy:100, w:985, h:1612,   // 下端の事務室・フライヤーは点検の対象外なので省いて、マップを見やすい高さにしている
+    cells: [
+      ['souji','清掃\n用具入れ',217,123,376,236,'none',[]],
+      ['wc1','トイレ①',566,123,799,349,'red',['toilet']],
+      ['wc2','トイレ②',802,123,1095,258,'red',['toilet']],
+      ['walkin','ウォークイン',296,351,959,396,'red',['stock_red']],
+      ['sake','酒類',296,398,588,464,'red',['face_red','stock_red']],
+      ['soft','ソフトドリンク',591,398,959,464,'red',['face_red','stock_red']],
+      ['ice1','冷凍\n食品\nアイス\n①',217,511,295,783,'red',['face_red']],
+      ['reion','冷温',217,786,295,875,'red',['face_red','stock_red']],
+      ['wayo','常\n温\n菓\n子\n・\n生\n鮮',386,557,430,806,'red',['face_red','face_daily']],
+      ['ice2','冷凍食品\nアイス②',434,511,587,875,'red',['face_red']],
+      ['soup','スープ',726,511,885,555,'red',['face_red','stock_red']],
+      ['josake','常温酒',726,557,799,691,'red',['face_red','stock_red']],
+      ['sokuseki','即席麺',802,557,885,691,'red',['face_red','stock_red']],
+      ['beika','米菓\n珍味',726,694,799,828,'red',['face_red','stock_red']],
+      ['kako','加工\n食品',802,694,885,828,'red',['face_red','stock_red']],
+      ['nichi3','日用品③',726,831,885,875,'red',['face_red','stock_red']],
+      ['gift','ギフト\nカード',1017,511,1095,600,'red',[]],
+      ['copyw','コピー機',1017,603,1095,691,'red',['atm']],
+      ['loppi','Loppi',1017,694,1095,783,'red',['atm']],
+      ['atm','ATM',1017,786,1095,875,'red',['atm']],
+      ['zasshi','雑誌',1017,878,1095,966,'red',[]],
+      ['inu','店\n外\n・\n犬\n走\nり',1099,100,1198,1705,'red',['outside']],
+      ['chilled','チルド\n飲料',217,878,295,966,'both',['stock_red']],
+      ['nippai','日配\n食品',217,969,295,1058,'both',['face_daily']],
+      ['reizo','冷蔵\nケース',217,1061,295,1263,'both',['face_daily']],
+      ['beihan','米飯',217,1266,295,1355,'both',['face_daily']],
+      ['machi','まちかど\n厨房',217,1358,295,1446,'both',['face_ff']],
+      ['bakery','ベーカ\nリー',434,969,513,1171,'both',['face_daily']],
+      ['dessert1','デザート\n①',434,1174,513,1308,'both',['face_daily']],
+      ['jff','常温FF',217,1471,319,1537,'both',['face_ff']],
+      ['hff','ホットFF',322,1471,432,1537,'both',['face_ff']],
+      ['wagashi','常温和菓子',434,923,587,966,'blue',['face_blue','stock_blue']],
+      ['snack','スナック',516,969,587,1103,'blue',['face_blue','stock_blue']],
+      ['orig','オリジ\nナル\n菓子',516,1106,587,1240,'blue',['face_blue','stock_blue']],
+      ['nl','NL菓子',516,1243,587,1308,'blue',['face_blue','stock_blue']],
+      ['dessert2','デザート②',434,1311,587,1355,'blue',['face_blue']],
+      ['nichi2','日用品②',726,923,885,966,'blue',['face_blue','stock_blue']],
+      ['toy','玩具',726,969,799,1035,'blue',['face_blue','stock_blue']],
+      ['poke','ポケ\n菓子',726,1038,799,1308,'blue',['face_blue','stock_blue']],
+      ['muji','無印',802,969,885,1240,'blue',['face_blue','stock_blue']],
+      ['eiyo','栄養\nドリンク',802,1243,885,1308,'blue',['face_blue','stock_blue']],
+      ['season','シーズン\nエンド①',726,1311,885,1355,'blue',['face_blue','stock_blue']],
+      ['nichi1','日用品\n①',1017,969,1095,1171,'blue',['face_blue','stock_blue']],
+      ['gomi','ゴミ箱\nレンジ',1017,1174,1095,1286,'blue',['trash']],
+      ['shinbun','新聞',1017,1289,1095,1331,'blue',[]],
+      ['iriguchi','入口',1017,1334,1095,1468,'none',[]],
+      ['counter','カウンター',486,1471,935,1537,'blue',['counter']],
+      ['shomo','消耗品',940,1471,1015,1537,'blue',['supply']],
+      ['chubo','厨房',217,1540,432,1700,'none',[]],
+      ['sink','手洗\nシンク',434,1631,535,1697,'blue',['counter']],
+      ['tabako','タバコ',538,1631,752,1697,'blue',['tobacco']],
+      ['copyc','コピー機',755,1631,827,1697,'blue',['copy']],
+      ['cup','カップ\n類',831,1631,908,1697,'blue',['coffee']],
+      ['coffee','コーヒー\nマシン',912,1586,1015,1697,'blue',['coffee']],
+      // 通路に置く「床」の印（棚ではないので丸い札で表示）
+      ['pinfr','床',612,640,700,700,'red',['floor_red'],'pin'],
+      ['pinfb','床',612,1110,700,1170,'blue',['floor_blue'],'pin']
+    ]
+  }
+};
+function amStoreName(){ try{ const s=(_gs.stores||[]).find(x=>x.id===_STORE_ID); return (s&&s.name)||''; }catch(_){ return ''; } }
+function amMap(){ const n=amStoreName(); return Object.values(STORE_MAPS).find(m=>m.match.test(n))||null; }
+function amArea(id){ return CHECK_AREAS.find(a=>a.id===id); }
+function _amChecks(){ if(!state.areaChecks||typeof state.areaChecks!=='object'||Array.isArray(state.areaChecks)) state.areaChecks={}; return state.areaChecks; }
+function amInterval(a){ const v=+(((state.areaCfg||{}).interval||{})[a.id]); return v>0?v:a.interval; }
+function amLast(id){ const arr=_amChecks()[id]; return (Array.isArray(arr)&&arr.length)?arr[arr.length-1]:null; }
+/* lv：-1＝OK／0＝そろそろ／1〜3＝🔥の強さ。記録が1件も無いエリアは 🔥（まだ点検なし） */
+function amStatus(a, now){
+  const last=amLast(a.id), iv=amInterval(a);
+  if(!last) return {lv:1, never:true, min:null, ratio:null, last:null, iv};
+  const min=Math.max(0,Math.floor(((now||Date.now())-new Date(last.at).getTime())/60000)), r=min/iv;
+  return {lv:r<0.7?-1:r<1?0:r<1.5?1:r<2.5?2:3, never:false, min, ratio:r, last, iv};
+}
+function amAgo(min){ if(min==null)return ''; if(min<1)return 'たった今'; if(min<60)return `${min}分前`; if(min<1440){ const h=Math.floor(min/60), m=min%60; return m?`${h}時間${m}分前`:`${h}時間前`; } return `${Math.floor(min/1440)}日前`; }
+function amIvLabel(iv){ return iv%60===0?`${iv/60}時間`:(iv>60?`${Math.floor(iv/60)}時間${iv%60}分`:`${iv}分`); }
+function amFire(lv){ return lv>=1?'🔥'.repeat(Math.min(3,lv)):''; }
+let _amPatrol = sessionStorage.getItem('ws_am_patrol') || 'all';   // all / blue / red（巡回＝印刷した2枚の点検表と同じ分け方）
+let _amZoom = false;
+function amInPatrol(a){ return _amPatrol==='all' || a.zone==='both' || a.zone===_amPatrol; }
+function amSetPatrol(p){ _amPatrol=p; try{sessionStorage.setItem('ws_am_patrol',p);}catch(_){} renderMapView(); }
+function amToggleZoom(){ _amZoom=!_amZoom; renderMapView(); }
+function amStatusText(st){ return st.never?'まだ点検なし':`${amAgo(st.min)}${st.last&&st.last.by?'・'+st.last.by:''}`; }
+function amLvCls(lv){ return lv>=1?'am-fire am-lv'+Math.min(3,lv):lv===0?'am-soon':'am-ok'; }
+
+function renderMapView(){
+  const view=document.getElementById('map-view'); if(!view)return;
+  const now=Date.now(), map=amMap();
+  const sts={}; CHECK_AREAS.forEach(a=>{ sts[a.id]=amStatus(a,now); });
+  const inP=CHECK_AREAS.filter(amInPatrol);
+  const nFire=inP.filter(a=>sts[a.id].lv>=1).length, nSoon=inP.filter(a=>sts[a.id].lv===0).length, nOk=inP.length-nFire-nSoon;
+  // ---- マップ（SVG）----
+  let mapHtml='';
+  if(map){
+    const cells=map.cells.map(c=>{
+      const [id,label,x1,y1,x2,y2,zone,areas,shape]=c, x=x1-map.ox, y=y1-map.oy, w=x2-x1, h=y2-y1, z=AM_ZONE[zone];
+      const act=areas.filter(aid=>amInPatrol(amArea(aid)));
+      const lv=act.length?Math.max(...act.map(aid=>sts[aid].lv)):null;
+      const dim=(areas.length&&!act.length)||(_amPatrol!=='all'&&!areas.length&&zone!=='none'&&zone!=='both'&&zone!==_amPatrol);
+      let fill=z.fill, stroke=z.stroke, sw=1.5;
+      if(lv===0){ fill='#fef3c7'; stroke='#f59e0b'; sw=2.5; }
+      else if(lv>=1){ fill=['#fecaca','#fca5a5','#f87171'][Math.min(3,lv)-1]; stroke='#dc2626'; sw=3; }
+      const lines=String(label).split('\n'), maxLen=Math.max(...lines.map(s=>s.length));
+      const fire=lv>=1?amFire(lv):'', nf=Math.min(3,lv||0);
+      // 名前はマスの中央に、できるだけ大きく。🔥 は名前を小さくしないよう、横長のマスは右端・それ以外は上端に置く
+      const side=fire&&w>=140&&h<70, ff=fire?Math.min(side?17:22,Math.floor((w-6)/nf/1.1)):0;
+      const availW=side?(w-ff*nf*1.1-10):(w-8), shift=(fire&&!side&&h>=58)?Math.min(10,ff*0.5):0;
+      const fs=Math.max(11,Math.min(21,Math.floor(availW/Math.max(1,maxLen)),Math.floor((h-6-shift*2)/lines.length/1.15)));
+      const lh=fs*1.15, cx=side?x+availW/2+4:x+w/2, ty=y+(h-lines.length*lh)/2+shift;
+      const txt=lines.map((s,i)=>`<text x="${cx}" y="${ty+lh*(i+0.8)}" font-size="${fs}" text-anchor="middle" class="am-lbl">${escapeHtml(s)}</text>`).join('');
+      const fireTxt=!fire?'':side?`<text x="${x+w-5}" y="${y+h/2+ff*0.36}" font-size="${ff}" text-anchor="end" class="am-flame">${fire}</text>`
+        :`<text x="${x+w/2}" y="${y+ff*0.92+1}" font-size="${ff}" text-anchor="middle" class="am-flame">${fire}</text>`;
+      const rx=shape==='pin'?Math.min(w,h)/2:6;
+      const dash=(id==='inu'||id==='iriguchi')?' stroke-dasharray="8 6"':'';
+      return `<g class="am-cell${areas.length?' am-tap':''}${lv>=3?' am-pulse':''}${dim?' am-dim':''}" ${areas.length?`onclick="amCellTap('${id}')"`:''}>
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${dash}/>${fireTxt}${txt}</g>`;
+    }).join('');
+    mapHtml=`<div class="am-mapbox${_amZoom?' am-zoomed':''}"><svg viewBox="0 0 ${map.w} ${map.h}" class="am-svg" role="img" aria-label="売場マップ">
+      <rect x="1" y="1" width="${1095-map.ox}" height="${map.h-8}" fill="#fff" stroke="#111827" stroke-width="3"/>${cells}</svg></div>
+      <div class="am-legend"><span><i style="background:#fecaca;border-color:#dc2626"></i>🔥 点検が遅れている</span><span><i style="background:#fef3c7;border-color:#f59e0b"></i>そろそろ</span><span><i style="background:${AM_ZONE.blue.fill};border-color:${AM_ZONE.blue.stroke}"></i>カウンター周辺</span><span><i style="background:${AM_ZONE.red.fill};border-color:${AM_ZONE.red.stroke}"></i>カウンター外</span><span><i style="background:${AM_ZONE.both.fill};border-color:${AM_ZONE.both.stroke}"></i>両方</span>
+        <button type="button" class="am-zoombtn" onclick="amToggleZoom()">${_amZoom?'🔎 全体表示に戻す':'🔍 拡大する'}</button></div>`;
+  } else {
+    mapHtml=`<div class="am-nomap">この店舗の売場マップはまだ登録されていません。下の一覧で、マップと同じように点検の状態を確認・記録できます。</div>`;
+  }
+  // ---- 一覧（遅れている順）----
+  const rank=a=>{ const s=sts[a.id]; return s.never?1.2:(s.ratio||0); };
+  const list=inP.slice().sort((a,b)=>(sts[b.id].lv-sts[a.id].lv)||(rank(b)-rank(a)));
+  const rows=list.map(a=>{ const s=sts[a.id], z=AM_ZONE[a.zone];
+    return `<button type="button" class="am-row ${amLvCls(s.lv)}" onclick="amOpenArea('${a.id}')">
+      <span class="am-row-ico">${s.lv>=1?amFire(s.lv):s.lv===0?'🟡':'✅'}</span>
+      <span class="am-row-main"><b>${a.icon} ${escapeHtml(a.name)}</b><small>${escapeHtml(amStatusText(s))}　目安 ${amIvLabel(s.iv)}ごと</small></span>
+      <span class="am-ztag" style="background:${z.color}">${z.short}</span></button>`; }).join('');
+  // 画面が狭い時（マップの下に一覧が回る時）は、遅れている所だけをマップの上に並べる
+  const fireBar=list.filter(a=>sts[a.id].lv>=1).map(a=>`<button type="button" class="am-fbtn" onclick="amOpenArea('${a.id}')">${amFire(sts[a.id].lv)} ${escapeHtml(a.name)}</button>`).join('');
+  const seg=[['all','すべて'],['blue','🔵 カウンター周辺'],['red','🔴 カウンター外']].map(([k,l])=>`<button type="button" class="${_amPatrol===k?'on':''}" onclick="amSetPatrol('${k}')">${l}</button>`).join('');
+  view.innerHTML=`<div class="am-wrap">
+    <div class="am-head">
+      <div class="am-sum"><span class="am-chip am-c-fire">🔥 遅れている <b>${nFire}</b></span><span class="am-chip am-c-soon">🟡 そろそろ <b>${nSoon}</b></span><span class="am-chip am-c-ok">✅ OK <b>${nOk}</b></span></div>
+      <div class="am-seg">${seg}</div>
+      ${isAdmin?`<button type="button" class="am-cfgbtn" onclick="amOpenConfig()">⚙️ 点検の間隔</button>`:''}
+    </div>
+    <div class="am-hint">🔥 が出ている所から回ってください。場所をタップすると確認する項目が出ます。終わったら名前をタップするだけで記録され、火が消えます。</div>
+    ${fireBar?`<div class="am-firebar">${fireBar}</div>`:''}
+    <div class="am-body${map?'':' am-nomapbody'}"><div class="am-mapcol">${mapHtml}</div><div class="am-listcol"><div class="am-list-h">${nFire?`いま対応が必要：${nFire}か所`:'いまは遅れている所はありません 🎉'}</div>${rows}</div></div></div>`;
+  updateMapBadge();
+}
+function updateMapBadge(){
+  const b=document.getElementById('tab-map-badge'); if(!b)return;
+  const now=Date.now(), n=CHECK_AREAS.filter(a=>amStatus(a,now).lv>=1).length;
+  if(n>0){ b.textContent=n; b.style.display=''; } else b.style.display='none';
+}
+/* ---- 画面下からのシート（エリアを選ぶ／点検カード／間隔の設定） ---- */
+function _amSheet(html){
+  let m=document.getElementById('am-sheet');
+  if(!m){ m=document.createElement('div'); m.id='am-sheet'; m.className='am-overlay'; document.body.appendChild(m); m.addEventListener('click',e=>{ if(e.target===m)amCloseSheet(); }); }
+  m.innerHTML=`<div class="am-modal">${html}</div>`; m.classList.add('show');
+}
+function amCloseSheet(){ const m=document.getElementById('am-sheet'); if(m)m.classList.remove('show'); }
+function amCellTap(cellId){
+  const map=amMap(); if(!map)return; const c=map.cells.find(x=>x[0]===cellId); if(!c)return;
+  const areas=c[7].map(amArea).filter(Boolean); if(!areas.length)return;
+  const act=areas.filter(amInPatrol), use=act.length?act:areas;
+  if(use.length===1) return amOpenArea(use[0].id);
+  const now=Date.now();
+  _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">${escapeHtml(String(c[1]).replace(/\n/g,''))}</div>
+    <div class="am-sub">この場所に関係する点検です。行うものを選んでください。</div>
+    ${use.map(a=>{ const s=amStatus(a,now); return `<button type="button" class="am-row ${amLvCls(s.lv)}" onclick="amOpenArea('${a.id}')"><span class="am-row-ico">${s.lv>=1?amFire(s.lv):s.lv===0?'🟡':'✅'}</span><span class="am-row-main"><b>${a.icon} ${escapeHtml(a.name)}</b><small>${escapeHtml(amStatusText(s))}</small></span></button>`; }).join('')}`);
+}
+function amOpenArea(id){
+  const a=amArea(id); if(!a)return; const s=amStatus(a), z=AM_ZONE[a.zone];
+  const hist=(_amChecks()[id]||[]).slice(-3).reverse();
+  const fmt=iso=>{ const d=new Date(iso); return isNaN(d)?'':`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+  const names=staffList();
+  const lastName=sessionStorage.getItem('ws_am_me')||'';
+  const ordered=lastName&&names.includes(lastName)?[lastName,...names.filter(n=>n!==lastName)]:names;
+  _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button>
+    <div class="am-title">${a.icon} ${escapeHtml(a.name)} <span class="am-ztag" style="background:${z.color}">${escapeHtml(z.label)}</span><span class="am-ktag">${escapeHtml(a.kind)}</span></div>
+    <div class="am-sub">${escapeHtml(a.sub)}</div>
+    <div class="am-state ${amLvCls(s.lv)}">${s.lv>=1?amFire(s.lv)+' ':s.lv===0?'🟡 ':'✅ '}${s.never?'まだ点検の記録がありません':`最後の点検：${amAgo(s.min)}${s.last.by?'（'+escapeHtml(s.last.by)+'）':''}`}　／　目安 ${amIvLabel(s.iv)}ごと</div>
+    <ol class="am-items">${a.items.map(([t,ng])=>`<li><div class="am-it">${escapeHtml(t)}</div>${ng?`<div class="am-ng"><span>NG時アクション</span>${escapeHtml(ng)}</div>`:''}</li>`).join('')}</ol>
+    <div class="am-done"><div class="am-done-h">✅ 確認して、NGは対応しましたか？　${ordered.length?'自分の名前をタップすると記録されます':''}</div>
+      <div class="am-names">${ordered.map(n=>`<button type="button" class="am-name" onclick="amRecord('${id}','${escapeHtml(n).replace(/'/g,"\\'")}')">${escapeHtml(n)}</button>`).join('')}
+        <button type="button" class="am-name am-name-anon" onclick="amRecord('${id}','')">${ordered.length?'名前なしで記録':'✅ 点検した'}</button></div></div>
+    ${hist.length?`<div class="am-hist">これまでの記録：${hist.map(h=>`${fmt(h.at)}${h.by?' '+escapeHtml(h.by):''}`).join('　／　')}</div>`:''}`);
+}
+let _amUndo=null, _amSnackT=null;
+function amRecord(id,name){
+  const a=amArea(id); if(!a)return;
+  const rec={at:new Date().toISOString(), by:name||''};
+  const all=_amChecks(); if(!Array.isArray(all[id])) all[id]=[];
+  all[id].push(rec); if(all[id].length>40) all[id]=all[id].slice(-40);
+  if(name){ try{sessionStorage.setItem('ws_am_me',name);}catch(_){} }
+  saveState(); amCloseSheet(); renderMapView();
+  _amUndo={id,at:rec.at}; amSnack(`✅ ${a.name} を点検しました${name?'（'+name+'）':''}`, true);
+}
+function amUndoLast(){
+  if(!_amUndo)return; const arr=_amChecks()[_amUndo.id]||[], i=arr.findIndex(r=>r.at===_amUndo.at);
+  if(i>=0){ arr.splice(i,1); saveState(); renderMapView(); amSnack('記録を取り消しました', false); }
+  _amUndo=null;
+}
+function amSnack(msg,undo){
+  let s=document.getElementById('am-snack'); if(!s){ s=document.createElement('div'); s.id='am-snack'; s.className='am-snack'; document.body.appendChild(s); }
+  s.innerHTML=`<span>${escapeHtml(msg)}</span>${undo?'<button type="button" onclick="amUndoLast()">取り消す</button>':''}`; s.classList.add('show');
+  clearTimeout(_amSnackT); _amSnackT=setTimeout(()=>s.classList.remove('show'), undo?7000:2500);
+}
+/* 管理者：エリアごとの点検の間隔（分）を店に合わせて変える */
+function amOpenConfig(){
+  if(!isAdmin)return;
+  _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">⚙️ 点検の間隔（目安）</div>
+    <div class="am-sub">最後の点検からこの時間が過ぎると 🔥 が出ます。7割を過ぎると 🟡 そろそろ になります。空欄にすると初期値に戻ります。</div>
+    <div class="am-cfg">${CHECK_AREAS.map(a=>`<label><span>${a.icon} ${escapeHtml(a.name)}</span><input type="number" min="10" step="10" inputmode="numeric" id="amcfg-${a.id}" value="${amInterval(a)}" placeholder="${a.interval}"><em>分</em></label>`).join('')}</div>
+    <div class="am-cfg-act"><button type="button" class="btn-secondary" onclick="amCloseSheet()">キャンセル</button><button type="button" class="btn-primary" onclick="amSaveConfig()">保存</button></div>`);
+}
+function amSaveConfig(){
+  if(!state.areaCfg||typeof state.areaCfg!=='object') state.areaCfg={};
+  const iv={};
+  CHECK_AREAS.forEach(a=>{ const el=document.getElementById('amcfg-'+a.id), v=el?parseInt(el.value,10):NaN; if(v>=10&&v!==a.interval) iv[a.id]=v; });
+  state.areaCfg.interval=iv; saveState(); amCloseSheet(); renderMapView(); amSnack('点検の間隔を保存しました', false);
+}
+// 時間の経過で火が育つので、30秒ごとにマップとタブの数字を更新する（シートを開いている間は裏のマップだけ更新）
+setInterval(()=>{ try{ if(currentView==='map') renderMapView(); else updateMapBadge(); }catch(_){} }, 30000);
+
 function setView(v){
   currentView = v;
   // 管理者でないのにダッシュボード/一覧に切り替わるのを防ぐ（ゲーム・担当者別は誰でもOK）
@@ -9417,6 +9832,11 @@ function setView(v){
   if(stv) stv.style.display = (currentView === 'store') ? '' : 'none';
   const flv = document.getElementById('floor-view');
   if(flv) flv.style.display = (currentView === 'floor') ? '' : 'none';
+  const mpv = document.getElementById('map-view');
+  if(mpv) mpv.style.display = (currentView === 'map') ? '' : 'none';
+  const tabMp = document.getElementById('tab-map');
+  if(tabMp) tabMp.classList.toggle('active', currentView === 'map');
+  if(currentView === 'map') renderMapView();
   document.getElementById('date-bar').style.display = isTimeline ? '' : 'none';
   document.getElementById('tab-tl').classList.toggle('active', currentView === 'timeline');
   document.getElementById('tab-staff').classList.toggle('active', currentView === 'staff');
@@ -12283,6 +12703,8 @@ async function start(){
   // 3) UI初期描画
   applyAdminMode();
   gistUpdateStatus();
+  // 3.5) 最初に開く画面は売場マップ（どこが遅れているかを図で見る）。時刻順の一覧は「タイムライン」タブ
+  try{ setView('map'); }catch(e){ console.error('map view', e); }
 
   // 4) 1分ごとに「今」のラインを更新
   if(nowTimer) clearInterval(nowTimer);
