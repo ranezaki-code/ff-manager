@@ -1332,7 +1332,24 @@ body.admin-mode .task-icon-btn.up,body.admin-mode .task-icon-btn.down,body.admin
 /* ワークスケジュール登録の表（店のスケジュール表と同じ並び） */
 .am-modal.am-wide{max-width:860px}
 .amw-table{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:8px 0 12px}
-.amw-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,64px) 82px;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid #f1f5f9}
+.amw-row{display:grid;grid-template-columns:minmax(0,1fr) 54px repeat(4,64px) 82px;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid #f1f5f9}
+/* 優先度（高・中・低）と、巡回の役割の説明 */
+.am-pri{display:inline-block;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;margin-left:7px;vertical-align:2px;white-space:nowrap}
+.am-pri3{background:#b91c1c;color:#fff}.am-pri2{background:#fef3c7;color:#92400e}.am-pri1{background:#e5e7eb;color:#4b5563}
+.amw-pri{font-family:inherit;font-size:14px;font-weight:800;border:none;border-radius:9px;min-height:40px;cursor:pointer}
+.am-roles{margin-bottom:10px}
+.am-roles>summary{cursor:pointer;font-size:13px;font-weight:800;color:#334155;padding:2px 0 6px;user-select:none}
+.am-roles-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:6px}
+.am-role{display:flex;flex-direction:column;align-items:flex-start;gap:5px;font-size:13px;line-height:1.55;color:#334155;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+.am-role .am-ztag{font-size:12px;padding:4px 10px;text-align:center}
+.am-role.on{border-color:#0f172a;box-shadow:0 0 0 1.5px #0f172a inset}
+.am-role-line{font-size:12px;color:#475569;background:#f8fafc;border:1px solid var(--border);border-radius:9px;padding:6px 10px;margin-bottom:8px;line-height:1.55}
+.am-list-h small{font-size:11px;font-weight:700;color:#64748b;margin-left:6px}
+.amw-roles{border:1px solid var(--border);border-radius:11px;padding:8px 12px;margin-bottom:12px}
+.amw-roles summary{cursor:pointer;font-size:13px;font-weight:800;color:#334155}
+.amw-roles label{display:flex;gap:9px;align-items:flex-start;margin-top:8px}
+.amw-roles .am-ztag{min-width:104px;text-align:center;font-size:12px;padding:4px 9px}
+.amw-roles textarea{flex:1;min-width:0;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;resize:vertical;line-height:1.5}
 .amw-row:last-child{border-bottom:none}
 .amw-head{background:#f8fafc;font-size:11px;font-weight:700;color:#64748b;position:sticky;top:0;z-index:1}
 .amw-band{display:flex;flex-direction:column;align-items:center;border-radius:8px;padding:3px 0;line-height:1.2}
@@ -1346,7 +1363,8 @@ body.admin-mode .task-icon-btn.up,body.admin-mode .task-icon-btn.down,body.admin
 .amw-cnt em{font-style:normal;color:#cbd5e1}
 .amw-edit{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--border);background:#fff;color:#475569;border-radius:8px;padding:8px 6px;cursor:pointer;white-space:nowrap}
 @media(max-width:620px){
-  .amw-row{grid-template-columns:minmax(0,1fr) repeat(4,44px) 54px;gap:4px;padding:6px}
+  .amw-row{grid-template-columns:minmax(0,1fr) 36px repeat(4,40px) 50px;gap:3px;padding:6px}
+  .am-role .am-ztag,.amw-roles .am-ztag{min-width:0}
   .amw-cnt i{width:11px;height:11px}
   .amw-3{grid-template-columns:70px 1fr}
   .amw-item{grid-template-columns:1fr 34px}.amw-item .amw-ng{grid-column:1}
@@ -1986,7 +2004,7 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
     <button id="tab-store" onclick="setView('store')">🐾 みんなのペット <span id="tab-store-badge" class="tab-mood-badge" style="display:none">😺</span></button>
     <button id="tab-floor" onclick="setView('floor')" title="タスクの完了実績から見た売場の状態（従来の一覧）">📘 QSC状況 <span id="tab-floor-badge" class="tab-count-badge" style="display:none;background:#dc2626">0</span></button>
     <button id="tab-db" onclick="setView('dashboard')">📊 ダッシュボード</button>
-    <button id="tab-list" onclick="setView('tasklist')">📜 タスク一覧</button>
+    <button id="tab-list" onclick="setView('tasklist')" title="プリセット・データの保存と復元・従業員の確認（管理者）">⚙️ 管理・データ</button>
   </div>
 
   <div id="date-bar">
@@ -2177,7 +2195,9 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
     </div>
 
     <div id="tasklist-view" style="display:none">
-      <div class="dash-card">
+      <!-- 旧「タスク一覧」（時刻つきタスクの表）は売場マップ＋ワークスケジュール登録に置き換えたため表示しない。
+           表を作る処理（renderTaskList）が参照するので要素だけ残してある。データは消していない -->
+      <div class="dash-card" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0;border:none">📜 タスク一覧</h3>
           <button class="btn-primary" onclick="openAddFromList()">＋ タスク追加</button>
@@ -2206,7 +2226,7 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
         </div>
         <div class="tl-stat" id="tl-stat">—</div>
       </div>
-      <div class="dash-card" style="padding:0">
+      <div class="dash-card" style="padding:0;display:none">
         <div style="overflow-x:auto" id="tl-table-wrap"></div>
       </div>
       <div class="dash-card">
@@ -2813,7 +2833,7 @@ html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
     <div class="form-group">
       <label>担当</label>
       <select id="m-tan"></select>
-      <div style="font-size:11px;color:var(--gray);margin-top:4px">💡 個人名は「タスク一覧 > 従業員管理」から追加できます</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:4px">💡 個人名は、クルータブの「クルー情報」に登録すると選べるようになります</div>
     </div>
     <div class="form-group">
       <label>カテゴリ <span style="color:var(--gray);font-weight:400">(複数選択可)</span></label>
@@ -9042,7 +9062,7 @@ function renderStaffView(){
   if(staff.length === 0){
     view.innerHTML = `<div class="staff-empty">
       従業員がまだ登録されていません<br>
-      <span style="font-size:12px">タスク一覧の「<strong>従業員管理</strong>」から登録してください</span>
+      <span style="font-size:12px">クルータブの「<strong>クルー情報</strong>」に登録してください</span>
     </div>`;
     return;
   }
@@ -9629,11 +9649,26 @@ const DEFAULT_WORKS = [
 ];
 /* ゾーンの色（元のレイアウト図と同じ：薄い塗り＋少し濃い枠、アイコンだけ色つき、文字は濃い灰色） */
 const AM_ZONE = {
-  blue:{label:'カウンター周辺点検', short:'周辺', color:'#2f5fb5', fill:'#edf1fa', stroke:'#b7c6e6', ink:'#5b7dbd'},
-  red: {label:'カウンター外点検',   short:'外',   color:'#b3443c', fill:'#fdeeec', stroke:'#ecbdb8', ink:'#c05a54'},
-  both:{label:'両方',               short:'両方', color:'#4b5563', fill:'#efefef', stroke:'#cdcdcd', ink:'#7b7f86'},
-  none:{label:'',                   short:'',     color:'#9ca3af', fill:'#ffffff', stroke:'#cfd3d8', ink:'#8b9097'}
+  blue:{label:'カウンター周辺点検', short:'カウンター周辺', color:'#2f5fb5', fill:'#edf1fa', stroke:'#b7c6e6', ink:'#5b7dbd',
+        role:'レジを見ながらできる範囲です。カウンター内・タバコ・コーヒーマシン・消耗品・ゴミ箱と、レジに近い売場（青い場所）。お客様が来たらすぐレジに戻れる人が担当します。'},
+  red: {label:'カウンター外点検',   short:'カウンター外',   color:'#b3443c', fill:'#fdeeec', stroke:'#ecbdb8', ink:'#c05a54',
+        role:'カウンターを離れて回る範囲です。トイレ・店外・ATMやLoppi・奥の売場（赤い場所）。レジを任せられる時に、もう一人が回ります。'},
+  both:{label:'両方',               short:'両方', color:'#4b5563', fill:'#efefef', stroke:'#cdcdcd', ink:'#7b7f86',
+        role:'米飯・日配・ファストフーズなど（灰色の場所）。どちらの担当も、近くを通った時に行います。'},
+  none:{label:'',                   short:'',     color:'#9ca3af', fill:'#ffffff', stroke:'#cfd3d8', ink:'#8b9097', role:''}
 };
+/* 巡回の役割の説明（マップの上に表示）。店ごとに書き換えられる（state.amRoles） */
+function amRole(k){ const v=((state.amRoles||{})[k]||'').trim(); return v||AM_ZONE[k].role; }
+// 役割の説明は最初から開いておく。閉じた／開いたは端末ごとに覚える（unified_ で始まるキーは同期されない）
+function amRolesOpen(){ try{ return localStorage.getItem('unified_ui_am_roles')!=='0'; }catch(_){ return true; } }
+function amRolesToggle(open){ try{ localStorage.setItem('unified_ui_am_roles',open?'1':'0'); }catch(_){} }
+/* 作業の優先順位（3段階）。同じ状態（🔥 どうし等）の中で、高いものを先に並べる */
+const AM_PRI = {3:{label:'高',cls:'am-pri3'}, 2:{label:'中',cls:'am-pri2'}, 1:{label:'低',cls:'am-pri1'}};
+function amPri(w){ return (w&&(w.pri===3||w.pri===1))?w.pri:2; }
+function amPriTag(w){ const p=amPri(w); return p===2?'':`<span class="am-pri ${AM_PRI[p].cls}">優先度 ${AM_PRI[p].label}</span>`; }
+const AM_GROUP = {fire:3, soon:2, todo:1, done:0, none:-1};
+/* 並び順：状態（🔥→そろそろ→これから→済）→ 優先順位の高い順 → 🔥 の多い順 → 最後の記録が古い順 */
+function amCmp(a,b,sts){ const sa=sts[a.id], sb=sts[b.id]; return (AM_GROUP[sb.st]-AM_GROUP[sa.st])||(amPri(b)-amPri(a))||((sb.lv||0)-(sa.lv||0))||((sb.min||0)-(sa.min||0)); }
 /* マスに描く線画アイコン（24×24の枠で描いた線）。元の図のアイコンに合わせてある */
 const AM_ICONS = {
   bottle:  {n:'ボトル（飲料・酒）', d:'<path d="M10 2.5h4v3.2l1.8 2.6V20a1.6 1.6 0 0 1-1.6 1.6H9.8A1.6 1.6 0 0 1 8.2 20V8.3L10 5.7z"/><path d="M8.2 13h7.6"/>'},
@@ -9805,7 +9840,8 @@ function amCellSvg(c, o){
   const ty=top+(isz?isz+4:0);
   const txt=(c.label?lines:[]).map((t,i)=>`<text x="${x+w/2}" y="${ty+lh*(i+0.82)}" font-size="${fs}" text-anchor="middle" fill="${txtc}" class="am-lbl${bold?' am-b':''}">${escapeHtml(t)}</text>`).join('');
   const nf=(s&&s.st==='fire')?Math.min(3,s.lv):0, ff=nf?Math.max(9,Math.min(17,Math.floor((w-4)/nf/1.12))):0;
-  const flame=nf?`<text x="${x+w-2}" y="${y+ff*0.95+1}" font-size="${ff}" text-anchor="end" class="am-flame">${amFire(nf)}</text>`:'';
+  const flame=(nf?`<text x="${x+w-2}" y="${y+ff*0.95+1}" font-size="${ff}" text-anchor="end" class="am-flame">${amFire(nf)}</text>`:'')
+    +(o.hi?`<circle cx="${x+12}" cy="${y+12}" r="11.5" fill="#b91c1c" stroke="#fff" stroke-width="1.5"/><text x="${x+12}" y="${y+17}" font-size="14" text-anchor="middle" fill="#fff" class="am-lbl am-b">高</text>`:'');   // 優先度 高 の印
   const rx=kind==='pin'?Math.min(w,h)/2:2;
   const sel=o.sel?`<rect x="${x-2}" y="${y-2}" width="${w+4}" height="${h+4}" rx="${rx+2}" fill="none" stroke="#2563eb" stroke-width="3"/><rect data-handle="1" x="${x+w-13}" y="${y+h-13}" width="26" height="26" rx="5" fill="#2563eb" stroke="#fff" stroke-width="2" class="am-handle"/>`:'';
   const cls='am-cell'+(o.tap?' am-tap':'')+(o.edit?' am-ed-cell':'')+((s&&s.st==='fire'&&s.lv>=3)?' am-pulse':'')+(o.dim?' am-dim':'');
@@ -9830,9 +9866,9 @@ function renderMapView(){
   if(map){
     const cells=amSvgInner(map, c=>{
       const ws=(c.works||[]).map(amWork).filter(Boolean), act=ws.filter(amInPatrol);
-      let best=null; act.forEach(a=>{ const s=sts[a.id]; if(!best||s.rank>best.rank) best=s; });
+      const top=act.slice().sort((a,b)=>amCmp(a,b,sts))[0]||null, best=top?sts[top.id]:null;   // このマスでいちばん急ぐ作業
       const dim=(ws.length&&!act.length)||(_amPatrol!=='all'&&!ws.length&&(c.zone==='blue'||c.zone==='red')&&c.zone!==_amPatrol);
-      return amCellSvg(c,{s:best,tap:ws.length>0,dim});
+      return amCellSvg(c,{s:best,tap:ws.length>0,dim,hi:!!(best&&(best.st==='fire'||best.st==='soon')&&amPri(top)===3)});
     });
     mapHtml=`<div class="am-mapbox${_amZoom?' am-zoomed':''}"><svg viewBox="0 0 ${map.w} ${map.h}" class="am-svg" role="img" aria-label="売場マップ">${cells}</svg></div>
       <div class="am-legend"><span><i style="background:#f9c5c0;border-color:#d92d20"></i>🔥 間に合っていない</span><span><i style="background:#fdf0c2;border-color:#e0a100"></i>そろそろ</span><span><i style="background:${AM_ZONE.blue.fill};border-color:${AM_ZONE.blue.stroke}"></i>カウンター周辺点検</span><span><i style="background:${AM_ZONE.red.fill};border-color:${AM_ZONE.red.stroke}"></i>カウンター外点検</span><span><i style="background:${AM_ZONE.both.fill};border-color:${AM_ZONE.both.stroke}"></i>両方</span>
@@ -9840,12 +9876,14 @@ function renderMapView(){
   } else {
     mapHtml=`<div class="am-nomap">この店舗の売場マップはまだ登録されていません。下の一覧で、マップと同じように状態の確認と記録ができます。${isAdmin?'<br>右上の「🗺 マップ登録」から、この店舗のマップを作れます。':'（管理者モードの「🗺 マップ登録」で作れます）'}</div>`;
   }
-  const list=inP.slice().sort((a,b)=>(sts[b.id].rank-sts[a.id].rank)||((sts[b.id].min||0)-(sts[a.id].min||0)));
+  const list=inP.slice().sort((a,b)=>amCmp(a,b,sts));
   const rows=list.map(a=>{ const s=sts[a.id], z=AM_ZONE[a.zone]||AM_ZONE.none;
     return `<button type="button" class="am-row ${amStCls(s)}" onclick="amOpenArea('${a.id}')">
       <span class="am-row-ico">${amStIcon(s)}</span>
-      <span class="am-row-main"><b>${escapeHtml(a.icon||'')} ${escapeHtml(a.name)}</b><small>${escapeHtml(amStatusText(s))}</small></span>
+      <span class="am-row-main"><b>${escapeHtml(a.icon||'')} ${escapeHtml(a.name)}${amPriTag(a)}</b><small>${escapeHtml(amStatusText(s))}</small></span>
       <span class="am-ztag" style="background:${z.color}">${z.short}</span></button>`; }).join('');
+  // 巡回の役割：カウンター周辺とカウンター外が「それぞれ何をする担当か」を常に見えるようにする
+  const roles=['blue','red','both'].map(k=>`<div class="am-role${_amPatrol===k?' on':''}"><span class="am-ztag" style="background:${AM_ZONE[k].color}">${AM_ZONE[k].short}</span><span>${escapeHtml(amRole(k))}</span></div>`).join('');
   const fireBar=list.filter(a=>sts[a.id].st==='fire').map(a=>`<button type="button" class="am-fbtn" onclick="amOpenArea('${a.id}')">${amFire(sts[a.id].lv)} ${escapeHtml(a.name)}</button>`).join('');
   const seg=[['all','すべて'],['blue','🔵 カウンター周辺'],['red','🔴 カウンター外']].map(([k,l])=>`<button type="button" class="${_amPatrol===k?'on':''}" onclick="amSetPatrol('${k}')">${l}</button>`).join('');
   const b=AM_BANDS.find(x=>{ const h=(new Date(now).getHours()+24-3)%24+3; return h>=x.s&&h<x.e; })||AM_BANDS[0];
@@ -9857,8 +9895,9 @@ function renderMapView(){
       ${isAdmin?`<button type="button" class="am-cfgbtn" onclick="amOpenWorks()">📝 ワークスケジュール登録</button><button type="button" class="am-cfgbtn" onclick="amEditMap()">🗺 マップ登録</button>`:''}
     </div>
     <div class="am-hint">🔥 が出ている所から回ってください。場所をタップすると確認する項目が出ます。終わったら自分の名前をタップするだけで記録され、火が消えます。</div>
+    <details class="am-roles"${amRolesOpen()?' open':''} ontoggle="amRolesToggle(this.open)"><summary>🔵 カウンター周辺・🔴 カウンター外 の役割</summary><div class="am-roles-grid">${roles}</div></details>
     ${fireBar?`<div class="am-firebar">${fireBar}</div>`:''}
-    <div class="am-body${map?'':' am-nomapbody'}"><div class="am-mapcol">${mapHtml}</div><div class="am-listcol"><div class="am-list-h">${nFire?`いま対応が必要：${nFire}か所`:'いまは間に合っていない所はありません 🎉'}</div>${rows}</div></div></div>`;
+    <div class="am-body${map?'':' am-nomapbody'}"><div class="am-mapcol">${mapHtml}</div><div class="am-listcol"><div class="am-list-h">${nFire?`いま対応が必要：${nFire}か所 <small>優先度の高い順</small>`:'いまは間に合っていない所はありません 🎉'}</div>${rows}</div></div></div>`;
   updateMapBadge();
 }
 function updateMapBadge(){
@@ -9881,7 +9920,7 @@ function amCellTap(cellId){
   const now=Date.now();
   _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">${escapeHtml(String(c.label).replace(/\n/g,''))}</div>
     <div class="am-sub">この場所に関係する作業です。行うものを選んでください。</div>
-    ${use.map(a=>{ const s=amStatus(a,now); return `<button type="button" class="am-row ${amStCls(s)}" onclick="amOpenArea('${a.id}')"><span class="am-row-ico">${amStIcon(s)}</span><span class="am-row-main"><b>${escapeHtml(a.icon||'')} ${escapeHtml(a.name)}</b><small>${escapeHtml(amStatusText(s))}</small></span></button>`; }).join('')}`);
+    ${(()=>{ const st={}; use.forEach(a=>{ st[a.id]=amStatus(a,now); }); return use.slice().sort((a,b)=>amCmp(a,b,st)); })().map(a=>{ const s=amStatus(a,now); return `<button type="button" class="am-row ${amStCls(s)}" onclick="amOpenArea('${a.id}')"><span class="am-row-ico">${amStIcon(s)}</span><span class="am-row-main"><b>${escapeHtml(a.icon||'')} ${escapeHtml(a.name)}${amPriTag(a)}</b><small>${escapeHtml(amStatusText(s))}</small></span></button>`; }).join('')}`);
 }
 function amOpenArea(id){
   const a=amWork(id); if(!a)return; const s=amStatus(a), z=AM_ZONE[a.zone]||AM_ZONE.none;
@@ -9890,7 +9929,8 @@ function amOpenArea(id){
   const names=staffList(), lastName=sessionStorage.getItem('ws_am_me')||'';
   const ordered=lastName&&names.includes(lastName)?[lastName,...names.filter(n=>n!==lastName)]:names;
   _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button>
-    <div class="am-title">${escapeHtml(a.icon||'')} ${escapeHtml(a.name)} ${z.label?`<span class="am-ztag" style="background:${z.color}">${escapeHtml(z.label)}</span>`:''}<span class="am-ktag">${escapeHtml(a.kind||'')}</span></div>
+    <div class="am-title">${escapeHtml(a.icon||'')} ${escapeHtml(a.name)} ${z.label?`<span class="am-ztag" style="background:${z.color}">${escapeHtml(z.label)}</span>`:''}<span class="am-ktag">${escapeHtml(a.kind||'')}</span>${amPriTag(a)}</div>
+    ${z.role?`<div class="am-role-line"><b>${escapeHtml(z.short)}の役割</b>　${escapeHtml(amRole(a.zone))}</div>`:''}
     <div class="am-sub">${escapeHtml(a.sub||'')}</div>
     <div class="am-state ${amStCls(s)}">${amStIcon(s)} ${escapeHtml(amStatusText(s))}　／　予定：${escapeHtml(amSchText(a))}</div>
     ${(a.items||[]).length?`<ol class="am-items">${a.items.map(([t,ng])=>`<li><div class="am-it">${escapeHtml(t)}</div>${ng?`<div class="am-ng"><span>NG時アクション</span>${escapeHtml(ng)}</div>`:''}</li>`).join('')}</ol>`:''}
@@ -9924,19 +9964,26 @@ function amSnack(msg,undo){
 function amOpenWorks(){
   if(!isAdmin)return;
   const works=amWorks();
-  const head=`<div class="amw-row amw-head"><span>作業</span>${AM_BANDS.map(b=>`<span class="amw-band" style="background:${b.bg};color:${b.color}"><b>${b.label}</b><small>${b.s}-${b.e>24?b.e-24:b.e}</small></span>`).join('')}<span></span></div>`;
+  const head=`<div class="amw-row amw-head"><span>作業</span><span style="text-align:center">優先度</span>${AM_BANDS.map(b=>`<span class="amw-band" style="background:${b.bg};color:${b.color}"><b>${b.label}</b><small>${b.s}-${b.e>24?b.e-24:b.e}</small></span>`).join('')}<span></span></div>`;
   const groups=AM_KINDS.map(k=>{ const ws=works.filter(w=>(AM_KINDS.includes(w.kind)?w.kind:'その他')===k); if(!ws.length)return '';
     return `<div class="amw-group">${escapeHtml(k)}</div>`+ws.map(w=>{ const z=AM_ZONE[w.zone]||AM_ZONE.none;
       return `<div class="amw-row"><span class="amw-name"><i style="background:${z.color}"></i>${escapeHtml(w.icon||'')} ${escapeHtml(w.name)}${(Array.isArray(w.days)&&w.days.length&&w.days.length<7)?`<small>${w.days.map(i=>'日月火水木金土'[i]).join('・')}</small>`:''}</span>
+        <button type="button" class="amw-pri ${AM_PRI[amPri(w)].cls}" onclick="amCyclePri('${w.id}')" title="タップで 中 → 高 → 低 と変わります">${AM_PRI[amPri(w)].label}</button>
         ${AM_BANDS.map((b,i)=>{ const n=+(w.sch||[])[i]||0; return `<button type="button" class="amw-cnt" style="--bc:${b.color}" onclick="amCycle('${w.id}',${i})" title="タップで回数を変える">${n?'<i></i>'.repeat(n):'<em>—</em>'}</button>`; }).join('')}
         <button type="button" class="amw-edit" onclick="amEditWork('${w.id}')">✏️ 内容</button></div>`; }).join(''); }).join('');
   _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">📝 ワークスケジュール登録</div>
     <div class="am-sub">作業ごとに、時間帯の中で<b>何回やるか</b>を決めます。□ をタップすると 0 → 1 → 2 → 3 → 4 → 0 回と変わります（変更はすぐ保存されます）。<br>
-      回数ぶんに時間帯を等分した枠ごとに1回です。枠の後半で 🟡、枠を過ぎても記録が無いと 🔥 が出ます。名前・確認項目・曜日は「✏️ 内容」から。</div>
+      回数ぶんに時間帯を等分した枠ごとに1回です。枠の後半で 🟡、枠を過ぎても記録が無いと 🔥 が出ます。名前・確認項目・曜日は「✏️ 内容」から。<br>
+      <b>優先度</b>は 高・中・低 の3段階です。🔥 が重なった時に、高いものが一覧の上に来て、マップには「高」の印が付きます。</div>
     <div class="amw-table">${head}${groups}</div>
+    <details class="amw-roles"><summary>✏️ 巡回の役割の説明を編集（マップの上に表示される文章）</summary>
+      ${['blue','red','both'].map(k=>`<label><span class="am-ztag" style="background:${AM_ZONE[k].color}">${AM_ZONE[k].short}</span><textarea rows="2" onchange="amSetRole('${k}',this.value)" placeholder="${escapeHtml(AM_ZONE[k].role)}">${escapeHtml(((state.amRoles||{})[k])||'')}</textarea></label>`).join('')}
+      <div class="am-sub" style="margin:4px 0 0">空欄にすると、うすく表示されている初期の文章が使われます。</div></details>
     <div class="am-cfg-act" style="justify-content:space-between"><button type="button" class="btn-secondary" onclick="amResetWorks()">初期値に戻す</button><span style="display:flex;gap:8px"><button type="button" class="btn-primary" onclick="amEditWork('')">＋ 作業を追加</button><button type="button" class="btn-secondary" onclick="amCloseSheet()">閉じる</button></span></div>`, true);
 }
 function amCycle(id,i){ const w=amWorksEdit().find(x=>x.id===id); if(!w)return; if(!Array.isArray(w.sch))w.sch=[0,0,0,0]; w.sch[i]=((+w.sch[i]||0)+1)%5; amSave(); amOpenWorks(); renderMapView(); }
+function amCyclePri(id){ const w=amWorksEdit().find(x=>x.id===id); if(!w)return; w.pri={2:3,3:1,1:2}[amPri(w)]; amSave(); amOpenWorks(); renderMapView(); }   // 中 → 高 → 低 → 中
+function amSetRole(k,v){ if(!state.amRoles||typeof state.amRoles!=='object') state.amRoles={}; v=String(v||'').trim(); if(v) state.amRoles[k]=v; else delete state.amRoles[k]; amSave(); renderMapView(); amSnack('役割の説明を保存しました',false); }
 function amResetWorks(){ if(!confirm('作業の登録を初期値（信濃大町駅前店の点検カードとスケジュール表）に戻しますか？\n\n追加・変更した作業は消えます。点検の記録は残ります。'))return; delete state.amWorks; amSave(); amOpenWorks(); renderMapView(); amSnack('作業の登録を初期値に戻しました',false); }
 function _amItemRow(t,ng){ return `<div class="amw-item"><input type="text" class="amw-it" value="${escapeHtml(t||'')}" placeholder="確認すること（例：床に汚れが無い）"><input type="text" class="amw-ng" value="${escapeHtml(ng||'')}" placeholder="NG時アクション（例：拭き取る）"><button type="button" title="この項目を消す" onclick="this.parentNode.remove()">×</button></div>`; }
 function amEditWork(id){
@@ -9947,7 +9994,8 @@ function amEditWork(id){
       <label><span>名前</span><input type="text" id="amw-name" value="${escapeHtml(w?w.name:'')}" placeholder="例：トイレ"></label>
       <div class="amw-3"><label><span>絵文字</span><input type="text" id="amw-icon" value="${escapeHtml(w?w.icon||'':'')}" placeholder="🧹" maxlength="4"></label>
         <label><span>種類</span><select id="amw-kind">${AM_KINDS.map(k=>`<option${(w?w.kind:'点検')===k?' selected':''}>${k}</option>`).join('')}</select></label>
-        <label><span>巡回</span><select id="amw-zone">${[['blue','カウンター周辺点検（青）'],['red','カウンター外点検（赤）'],['both','両方']].map(([k,l])=>`<option value="${k}"${(w?w.zone:'blue')===k?' selected':''}>${l}</option>`).join('')}</select></label></div>
+        <label><span>優先度</span><select id="amw-pri">${[3,2,1].map(p=>`<option value="${p}"${amPri(w)===p?' selected':''}>${AM_PRI[p].label}</option>`).join('')}</select></label></div>
+      <label><span>巡回（だれの担当か）</span><select id="amw-zone">${[['blue','カウンター周辺点検（青）'],['red','カウンター外点検（赤）'],['both','両方']].map(([k,l])=>`<option value="${k}"${(w?w.zone:'blue')===k?' selected':''}>${l}</option>`).join('')}</select></label>
       <label><span>対象の説明</span><input type="text" id="amw-sub" value="${escapeHtml(w?w.sub||'':'')}" placeholder="例：前室の床／便器・床・壁"></label>
       <div class="amw-lbl">時間帯ごとの回数</div>
       <div class="amw-4">${AM_BANDS.map((b,i)=>`<label style="background:${b.bg};color:${b.color}"><span>${b.label} ${b.s}-${b.e>24?b.e-24:b.e}時</span><select id="amw-sch-${i}">${[0,1,2,3,4].map(n=>`<option value="${n}"${(+(w?(w.sch||[])[i]:0)||0)===n?' selected':''}>${n?n+'回':'なし'}</option>`).join('')}</select></label>`).join('')}</div>
@@ -9964,7 +10012,7 @@ function amSaveWork(id){
   const days=[...document.querySelectorAll('.amw-day:checked')].map(c=>+c.value);
   if(!days.length){ alert('行う曜日を1つ以上選んでください'); return; }
   const items=[...document.querySelectorAll('#amw-items .amw-item')].map(r=>[r.querySelector('.amw-it').value.trim(), r.querySelector('.amw-ng').value.trim()]).filter(x=>x[0]);
-  const rec={name, icon:(g('amw-icon').value||'').trim(), kind:g('amw-kind').value, zone:g('amw-zone').value, sub:(g('amw-sub').value||'').trim(), sch:AM_BANDS.map((b,i)=>+g('amw-sch-'+i).value||0), days:days.length===7?null:days, items};
+  const rec={name, icon:(g('amw-icon').value||'').trim(), kind:g('amw-kind').value, pri:+g('amw-pri').value||2, zone:g('amw-zone').value, sub:(g('amw-sub').value||'').trim(), sch:AM_BANDS.map((b,i)=>+g('amw-sch-'+i).value||0), days:days.length===7?null:days, items};
   const list=amWorksEdit();
   if(id){ const w=list.find(x=>x.id===id); if(w)Object.assign(w,rec); } else list.push(Object.assign({id:'w_'+Date.now().toString(36)},rec));
   amSave(); amOpenWorks(); renderMapView(); amSnack(id?'作業を保存しました':'作業を追加しました（マップに出すには「マップ登録」でマスに結びつけます）',false);
