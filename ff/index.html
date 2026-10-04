@@ -572,7 +572,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
   <div id="tabs">
     <button class="tab-btn active" onclick="showTab(0)" data-i18n="tab.jisseki">①実績入力</button>
     <button class="tab-btn" onclick="showTab(1)" data-i18n="tab.product">②商品設定</button>
-    <button class="tab-btn" onclick="showTab(2)" data-i18n="tab.ext" style="display:none">③外部ファクト</button>
+    <button class="tab-btn" onclick="showTab(2)" data-i18n="tab.ext">③天気・イベント調整</button>
     <button class="tab-btn" onclick="showTab(3)" data-i18n="tab.make">④作成表</button>
     <button class="tab-btn" onclick="showTab(4)" data-i18n="tab.budget">⑤予算管理</button>
     <button class="tab-btn" onclick="showTab(5)" data-i18n="tab.order">⑥発注管理表</button>
@@ -679,8 +679,15 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
       </div>
     </div>
 
-    <!-- Tab 2: 外部ファクト -->
+    <!-- Tab 2: 天気・イベント調整（曜日×カテゴリ×作成時間帯）。中身は renderGaibuTab() が描く -->
     <div class="tab-panel" id="tab2">
+      <div id="gaibu-area"></div>
+      <input type="file" id="gaibu-file" accept=".json,application/json" style="display:none" onchange="gaibuFileChosen(this)">
+      <!-- 以前の方式（曜日ごと一律の補正）。入力欄は消さずにこの折りたたみの中に残す -->
+      <details id="gaibu-old" style="margin-bottom:12px">
+        <summary style="cursor:pointer;padding:12px;background:#fff;border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:700;color:#475569">以前の方式（曜日ごと一律の補正）<span id="gaibu-old-flag"></span></summary>
+        <div style="padding-top:10px">
+        <div id="gaibu-old-status"></div>
       <!-- 商圏リサーチ・お店づくり冊子 読み込みカード -->
       <div class="card" style="border-left:4px solid var(--accent)">
         <!-- 商圏リサーチ読み込み -->
@@ -741,6 +748,8 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         </div>
         <div id="rules-area"></div>
       </div>
+        </div>
+      </details>
     </div>
 
     <!-- Tab 3: 作成表 -->
@@ -1024,13 +1033,14 @@ const DEF_JISSEKI = {
 };
 
 const DEF_EXT = [
+  // 新しい店舗の初期値は補正なし（以前は見本の補正 +15/−10/+10/+20/+15 が入っていて、気づかないまま作る数に効いていた）
   {weather:'晴れ',temp:20,event:'',correction:0},
-  {weather:'晴れ',temp:23,event:'上高地開山祭',correction:15},
-  {weather:'曇り',temp:18,event:'',correction:-10},
-  {weather:'晴れ',temp:22,event:'',correction:0},
-  {weather:'晴れ',temp:25,event:'キッセイ公演',correction:10},
-  {weather:'晴れ',temp:20,event:'',correction:20},
-  {weather:'晴れ',temp:21,event:'',correction:15},
+  {weather:'晴れ',temp:20,event:'',correction:0},
+  {weather:'晴れ',temp:20,event:'',correction:0},
+  {weather:'晴れ',temp:20,event:'',correction:0},
+  {weather:'晴れ',temp:20,event:'',correction:0},
+  {weather:'晴れ',temp:20,event:'',correction:0},
+  {weather:'晴れ',temp:20,event:'',correction:0},
 ];
 
 // ============================================================
@@ -1045,7 +1055,7 @@ const I18N = {
     // Tabs
     'tab.jisseki':'①実績入力',
     'tab.product':'②商品設定',
-    'tab.ext':'③外部ファクト',
+    'tab.ext':'③天気・イベント調整',
     'tab.make':'④作成表',
     'tab.budget':'⑤予算管理',
     'tab.order':'⑥発注管理表',
@@ -1306,7 +1316,7 @@ const I18N = {
     'app.lang':'Language',
     'tab.jisseki':'① Sales',
     'tab.product':'② Products',
-    'tab.ext':'③ Factors',
+    'tab.ext':'③ Weather/Events',
     'tab.make':'④ Production',
     'tab.budget':'⑤ Budget',
     'tab.order':'⑥ Orders',
@@ -1530,7 +1540,7 @@ const I18N = {
     'app.lang':'भाषा',
     'tab.jisseki':'१ बिक्री',
     'tab.product':'२ उत्पादन',
-    'tab.ext':'३ बाह्य कारक',
+    'tab.ext':'३ मौसम/कार्यक्रम',
     'tab.make':'४ उत्पादन तालिका',
     'tab.budget':'५ बजेट',
     'tab.order':'६ अर्डर',
@@ -1774,6 +1784,7 @@ let S = {
   cust:DEF_CUST.map(r=>[...r]),
   ext:DEF_EXT.map(e=>({...e})),
   rules:[],
+  gaibu:{},   // 天気・イベント調整（週キーごと）。{ '2026.10.6': {src,wx,ev,sug,val,why} }
   checks:{},
   skipped:{}, // 「作れなかった（在庫切れ等）」マーク。checksとは別管理
   orderChecks:{},
@@ -1847,6 +1858,7 @@ function _ffSaveObj(){
     ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,
     rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,leftovers:S.leftovers,hourRate:S.hourRate,deleted:S.deleted,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
     施策:S.施策,
+    gaibu:S.gaibu,
     booklets:S.booklets,bookletDisplayMonths:S.bookletDisplayMonths,
     weekStart:S.weekStart,weeks:S.weeks,activeWeek:S.activeWeek
   };
@@ -1915,6 +1927,8 @@ function saveS(){
         const conflicts=[];
         _mergeTomb=_tombOf(out,fresh);
         try{ out=_merge3(out,fresh,base,3,'',conflicts); }finally{ _mergeTomb=null; }
+        // 天気・イベント調整：古い版の端末が保存した直後（gaibu という項目ごと無い）でも、この端末の調整を落とさない
+        if(out&&out.gaibu===undefined&&S.gaibu&&typeof S.gaibu==='object')out.gaibu=S.gaibu;
         Object.assign(S,out);
         logOp('MERGE_STALE_SAVE',{conflicts:conflicts.slice(0,20)});
         if(conflicts.length)console.warn('FF管理: 他端末の更新と同じ項目を変更していたため、この端末の値を採用しました',conflicts);
@@ -2247,6 +2261,7 @@ function _scheduleAutoReload(){
       if(typeof renderBudgetTab==='function'&&currentTab===4)renderBudgetTab();
       if(typeof renderOrderTable==='function'&&currentTab===5)renderOrderTable();
       if(typeof renderProdDayContent==='function'&&currentTab===3)renderProdDayContent(currentProdDay);
+      if(typeof renderGaibuTab==='function'&&currentTab===2){renderGaibuTab();renderGaibuOld();}
     }catch(e){console.warn('auto reload failed',e);}
   };
   // 軽くdebounceして連続更新時の負荷を抑える
@@ -2805,6 +2820,7 @@ function loadS(){
   if(!S.orderChecks)S.orderChecks={};
   if(!S.soldOuts)S.soldOuts={};
   if(!S.discountSchedule)S.discountSchedule={};
+  if(!S.gaibu||typeof S.gaibu!=='object'||Array.isArray(S.gaibu))S.gaibu={};   // 天気・イベント調整（無い古いデータは空＝係数1）
   // 現在の週から orderChecks/soldOuts を復元
   if(S.activeWeek&&S.weeks[S.activeWeek]?.soldOuts){
     S.soldOuts=JSON.parse(JSON.stringify(S.weeks[S.activeWeek].soldOuts));
@@ -2929,6 +2945,7 @@ function showApp(){
   _uiRestoreState();   // 作り直し前に開いていたカード等を復元してから描画
   renderAll();
   _uiRestoreView();    // 作り直し前に開いていたタブ・位置へ戻す
+  gaibuAutoLoad();     // ミルの外部要因データ（../gaibu/<週の開始日>.json）があれば取り込む。無ければ何もしない
 }
 
 function renderAll(){
@@ -2992,6 +3009,7 @@ function showTab(n){
   document.getElementById('fab-bot').classList.toggle('show',n===3);
   document.getElementById('bottom-bar').style.display=n===3?'flex':'none';
   document.body.classList.toggle('has-bottombar',n===3);  // 固定下部バーの分だけ本文に余白を確保
+  if(n===2){ renderGaibuTab(); renderGaibuOld(); gaibuAutoLoad(); }
   if(n===3) renderProdDayContent(currentProdDay);
   if(n===4) renderBudgetTab();
   if(n===5) renderOrderTable();
@@ -3032,7 +3050,7 @@ function _uiRestoreState(){
 function _uiRestoreView(){
   const u=_uiLoad(); if(!u)return;
   try{
-    if(typeof u.tab==='number'&&u.tab!==2&&u.tab!==currentTab)showTab(u.tab);
+    if(typeof u.tab==='number'&&u.tab!==currentTab)showTab(u.tab);
     if(u.jsub==='rank')switchJisubTab('rank');
     if(u.y>0)setTimeout(()=>window.scrollTo(0,u.y),80);
   }catch(e){console.warn('FF管理: 画面状態の復元に失敗',e);}
@@ -3250,7 +3268,8 @@ function getProdCntDetail(pid,dayIdx,slotH){
   const adj=getLearnAdj(pid,dayIdx,slotH);
   const ct=getCorrTarget(pid,dayIdx);
   // 週客数が無い(wt=0)時は自然算出0として続行（早期returnしない）→品切れ防止を効かせる
-  let natural=(wt>0)?roundCnt(ct*sc*k*adj/wt):0;
+  // 天気・イベント調整（③）：今開いている週のデータが無ければ必ず ×1（＝今までと同じ結果）
+  let natural=(wt>0)?roundCnt(ct*sc*k*adj/wt*gaibuFactor(mainCatOf(p.category),dayIdx,slotH)):0;
   // 損益分岐ガード（段階化）：品切れ防止ONならスキップ
   const wl=getWithdraw(pid);
   if(wl>0 && !noStockout){
@@ -3420,7 +3439,7 @@ function openCellMenu(pid,dayIdx,slotH){
     ${rows}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
       完売・余りの記録は、同じ曜日・同じ時間帯で<b>直近4週のうち2週以上続いた時だけ</b>、来週以降の数を自動で増減します（1回だけなら変わりません）<br>
-      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}
+      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>（③のタブで変えられます）`:''}
     </div>
     <button type="button" onclick="closeCellMenu()" style="width:100%;margin-top:12px;padding:13px;font-size:15px;font-weight:700;border:none;border-radius:10px;background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit">閉じる</button>
   </div>`;
@@ -3935,6 +3954,7 @@ function switchWeek(key){
   renderWeekSelector();
   renderJissekiTab();
   renderCustGrid();
+  gaibuWeekChanged();   // 天気・イベント調整は週ごと。別の週の調整は効かせない
 }
 function addWeek(dateStr){
   syncActiveWeek();
@@ -3956,6 +3976,7 @@ function addWeek(dateStr){
   renderWeekSelector();
   renderJissekiTab();
   renderCustGrid();
+  gaibuWeekChanged();   // 天気・イベント調整は週ごと。別の週の調整は効かせない
 }
 function deleteWeek(key){
   const keys=Object.keys(S.weeks);
@@ -5081,7 +5102,339 @@ function delProduct(pid){
 }
 
 // ============================================================
-// TAB 2: 外部ファクト
+// TAB 2: 天気・イベント調整（曜日 × カテゴリ × 作成時間帯）
+//   S.gaibu = { '<週キー(S.activeWeek)>': { src, wx[7], ev[7], sug, val, why } }
+//     sug＝ミルの提案、val＝いま効いている値。どちらも { dayIdx: { 主カテゴリ: { slotH: pct } } }
+//     「手で直した」＝ val と sug が違うマス（印は別に持たない）
+//   作成数には getProdCntDetail の1か所だけで掛かる（gaibuFactor）。今の週のデータが無ければ必ず ×1。
+//   週キーごとに分けているので、別の週の調整が残って効き続けることはない。
+//   画面のイベントはすべてインラインの onclick（morphInto の差分更新で二重登録しないため）
+// ============================================================
+const GB_CATS=['ホットFF','常温FF','中華まん','まちかど厨房'];
+let _gbCat=null,_gbSel=[],_gbOff=false,_gbFetching='';
+function _gbCur(){ const g=S.gaibu; if(!g||typeof g!=='object'||!S.activeWeek)return null; const w=g[S.activeWeek]; return (w&&typeof w==='object')?w:null; }
+function _gbEnsure(){
+  if(!S.activeWeek)return null;
+  if(!S.gaibu||typeof S.gaibu!=='object'||Array.isArray(S.gaibu))S.gaibu={};
+  if(!S.gaibu[S.activeWeek]||typeof S.gaibu[S.activeWeek]!=='object')S.gaibu[S.activeWeek]={src:null,wx:[],ev:[],sug:{},val:{},why:{}};
+  const w=S.gaibu[S.activeWeek];
+  ['sug','val','why'].forEach(f=>{ if(!_isPlainObj(w[f]))w[f]={}; });
+  if(!Array.isArray(w.wx))w.wx=[]; if(!Array.isArray(w.ev))w.ev=[];
+  return w;
+}
+function _gbClamp(v){ v=Math.round(Number(v)||0); return Math.max(-50,Math.min(100,v)); }
+function _gbGet(o,d,cat,h){ const v=o&&o[d]&&o[d][cat]?o[d][cat][h]:null; return (v==null||!isFinite(Number(v)))?0:_gbClamp(v); }
+function _gbPut(o,d,cat,h,v){ if(!_isPlainObj(o[d]))o[d]={}; if(!_isPlainObj(o[d][cat]))o[d][cat]={}; o[d][cat][h]=v; }
+function _gbDel(o,d,cat,h){ if(!o[d]||!o[d][cat])return; delete o[d][cat][h]; if(!Object.keys(o[d][cat]).length)delete o[d][cat]; if(!Object.keys(o[d]).length)delete o[d]; }
+// いま効いている調整（%）。データが無ければ 0
+function gaibuPct(cat,dayIdx,slotH){ if(_gbOff)return 0; const w=_gbCur(); if(!w)return 0; return _gbGet(w.val,dayIdx,mainCatOf(cat),slotH); }
+// 作成数に掛ける係数（−50〜+100% の範囲）。データが無ければ 1
+function gaibuFactor(cat,dayIdx,slotH){ return 1+gaibuPct(cat,dayIdx,slotH)/100; }
+function _gbFmt(p){ return (p>0?'+':(p<0?'−':''))+Math.abs(p)+'%'; }
+// 作成表に出す小さな印（調整が 0 の時は何も出さない）
+function gaibuBadge(cat,dayIdx,slotH){
+  const p=gaibuPct(cat,dayIdx,slotH); if(!p)return '';
+  return `<span title="天気・イベント調整（③のタブで変えられます）" style="font-size:10px;font-weight:700;border-radius:8px;padding:0 6px;white-space:nowrap;${p>0?'background:#dcfce7;color:#166534':'background:#dbeafe;color:#1e40af'}">調整 ${_gbFmt(p)}</span>`;
+}
+// 主カテゴリに属する設定（本体と「新商品」）。activeOnly＝ON で商品がある物だけ
+function _gbVariants(cat,activeOnly){
+  return [cat,cat+'新商品'].filter(c=>S.catCfg&&S.catCfg[c]&&Array.isArray(S.catCfg[c].slots)&&(!activeOnly||(S.catOn&&S.catOn[c]&&(S.PM||[]).some(p=>p&&p.enabled&&p.category===c))));
+}
+function _gbSlots(cat,activeOnly){ const s=new Set(); _gbVariants(cat,activeOnly).forEach(c=>S.catCfg[c].slots.forEach(h=>s.add(h))); return [...s].sort((a,b)=>a-b); }
+function _gbRange(cat,h){ for(const c of [..._gbVariants(cat,true),..._gbVariants(cat,false)]){ const r=getCatSlotRange(c,h); if(r)return r; } return null; }
+function _gbCatsShown(){ return GB_CATS.filter(c=>_gbSlots(c,true).length>0); }
+function _gbDates(){
+  const ws=S.weekStart||(S.activeWeek?weekKeyToDateStr(S.activeWeek):''); if(!ws)return [];
+  const b=parseLocalDate(ws); return DAYS.map((_,i)=>{ const d=new Date(b); d.setDate(d.getDate()+i); return d; });
+}
+function _gbYmd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function _gbWeekStartStr(){ const ds=_gbDates(); return ds.length?_gbYmd(ds[0]):''; }
+function _gbMd(s){ const m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(String(s||'')); return m?`${+m[2]}/${+m[3]}`:String(s||''); }
+function _gbStore(){ return /大町/.test(S.storeName||'')?'大町':'新村'; }
+// そのカテゴリ・その日・その時間帯の作成数合計。off=true で「調整なし（×1）」の時の数
+function _gbTotal(cat,d,h,off){
+  const prev=_gbOff; _gbOff=!!off;
+  try{ let s=0; (S.PM||[]).forEach(p=>{ if(!p||!p.enabled||mainCatOf(p.category||'')!==cat)return; s+=getProdCnt(p.id,d,h)+getInvestExtra(p.id,d,h); }); return s; }
+  finally{ _gbOff=prev; }
+}
+function _gbCount(cat){ const w=_gbCur(); if(!w)return 0; let n=0; const sl=_gbSlots(cat,true); for(let d=0;d<7;d++)sl.forEach(h=>{ if(_gbGet(w.val,d,cat,h))n++; }); return n; }
+// そのカテゴリで値か提案が入っているマスの一覧（今は無い時間帯の分も含む）
+function _gbCells(w,cat){
+  const set=new Set();
+  [w.val,w.sug].forEach(o=>{ Object.keys(o||{}).forEach(d=>{ Object.keys((o[d]||{})[cat]||{}).forEach(h=>set.add(d+'|'+h)); }); });
+  return [...set].map(k=>k.split('|').map(Number));
+}
+function _gbSkyIcon(sky){
+  const s=String(sky||''); if(!s)return '';
+  const c=s.charAt(0), mix=s.length>1;
+  if(c==='晴')return mix?(/雨|雪/.test(s)?'🌦️':'🌤️'):'☀️';
+  if(c==='曇')return /雨/.test(s)?'🌧️':(/雪/.test(s)?'🌨️':(/晴/.test(s)?'⛅':'☁️'));
+  if(c==='雨')return '☔';
+  if(c==='雪')return '⛄';
+  return '';
+}
+
+// ---- 取り込み ----
+// j＝ミルの外部要因データ（JSON）。via＝'file'|'auto'。戻り値 {ok:true,n,kept} / {ok:false,msg}
+function gaibuImport(j,via){
+  if(!j||typeof j!=='object'||!j.week||typeof j.week.start!=='string'||!Array.isArray(j.days))return {ok:false,msg:'このファイルは、ミルの外部要因データではないようです。'};
+  const ws=_gbWeekStartStr();
+  if(!ws||!S.activeWeek)return {ok:false,msg:'週が選ばれていません。'};
+  if(j.week.start!==ws)return {ok:false,msg:`このデータは ${_gbMd(j.week.start)} 週のものです。今開いているのは ${_gbMd(ws)} 週です。\n（読み込みませんでした）`};
+  const st=_gbStore(), dates=_gbDates().map(_gbYmd);
+  const num=v=>(v==null||v===''||!isFinite(Number(v)))?null:Number(v);
+  const dayOf=d=>(j.days||[]).find(x=>x&&x.date===d)||null;
+  const wx=dates.map(d=>{ const day=dayOf(d), x=(day&&day.weather&&day.weather[st])||{}; return {sky:x.sky?String(x.sky):null,hi:num(x.hi),lo:num(x.lo),pop:num(x.pop)}; });
+  const ev=dates.map(d=>{
+    const day=dayOf(d), a=[];
+    ((day&&day.labels)||[]).forEach(s=>{ if(s)a.push(String(s)); });
+    (Array.isArray(j.items)?j.items:[]).forEach(it=>{
+      if(!it||it.date!==d)return;
+      if(it.dateEnd&&it.dateEnd!==it.date)return;             // 何日も続く物は出さない（その日だけの出来事）
+      if(it.store&&it.store!==st&&it.store!=='共通')return;
+      const s=it.short||it.title; if(s)a.push(String(s));
+    });
+    return [...new Set(a)].map((s,i)=>({s,i})).sort((x,y)=>x.s.length-y.s.length||x.i-y.i).map(x=>x.s).slice(0,6);
+  });
+  // ミルの提案（ff）→ マスへ。同じマスに複数当たれば合計
+  const sug={}, whyArr={};
+  (Array.isArray(j.ff)?j.ff:[]).forEach(f=>{
+    if(!f)return;
+    const d=dates.indexOf(f.date); if(d<0)return;
+    if(f.store&&f.store!==st&&f.store!=='共通')return;
+    const pct=Number(f.pct); if(!isFinite(pct)||!pct)return;
+    const from=num(f.from)==null?0:num(f.from), to=num(f.to)==null?24:num(f.to);
+    const cats=(!f.cat||f.cat==='全部')?GB_CATS:GB_CATS.filter(c=>c===mainCatOf(String(f.cat)));
+    cats.forEach(cat=>{
+      _gbSlots(cat,false).forEach(h=>{
+        const r=_gbRange(cat,h); if(!r)return;
+        if(!(r[0]<to&&from<r[1]))return;                      // 売る時間帯が重ならない
+        _gbPut(sug,d,cat,h,(sug[d]&&sug[d][cat]&&sug[d][cat][h]||0)+pct);
+        if(f.reason){ const k=d+'|'+cat+'|'+h; (whyArr[k]=whyArr[k]||[]).push(String(f.reason)); }
+      });
+    });
+  });
+  let n=0;
+  Object.keys(sug).forEach(d=>Object.keys(sug[d]).forEach(cat=>Object.keys(sug[d][cat]).forEach(h=>{
+    const v=_gbClamp(sug[d][cat][h]); if(v){ sug[d][cat][h]=v; n++; } else _gbDel(sug,d,cat,h);
+  })));
+  const why={}; Object.keys(whyArr).forEach(k=>{ why[k]=[...new Set(whyArr[k])].join('／'); });
+  // いま効いている値：手で直したマス（前の val ≠ 前の sug）は店長の値を残す。それ以外は新しい提案
+  const w=_gbEnsure(); if(!w)return {ok:false,msg:'週が選ばれていません。'};
+  const val=JSON.parse(JSON.stringify(sug)); let kept=0;
+  GB_CATS.forEach(cat=>{
+    _gbCells(w,cat).forEach(([d,h])=>{
+      const ov=_gbGet(w.val,d,cat,h), os=_gbGet(w.sug,d,cat,h);
+      if(ov===os)return;
+      const ns=_gbGet(sug,d,cat,h);
+      if(ov===0&&ns===0){ _gbDel(val,d,cat,h); return; }
+      _gbPut(val,d,cat,h,ov); if(ov!==ns)kept++;
+    });
+  });
+  w.src={week:j.week.start,createdAt:String(j.updatedAt||j.createdAt||''),loadedAt:Date.now(),via:via==='auto'?'auto':'file'};
+  w.wx=wx; w.ev=ev; w.sug=sug; w.val=val; w.why=why;
+  saveS();
+  return {ok:true,n,kept};
+}
+function _gbAfterImport(res,quiet){
+  _gbSel=[];
+  if(currentTab===2)renderGaibuTab();
+  if(currentTab===3)renderProdDayContent(currentProdDay);
+  if(!quiet||res.n)showToast(`ミルのデータを読み込みました（提案 ${res.n}マス${res.kept?`・手で直した ${res.kept}マスはそのまま`:''}）`,'success');
+}
+function gaibuPickFile(){ const f=document.getElementById('gaibu-file'); if(f){ f.value=''; f.click(); } }
+function gaibuFileChosen(inp){
+  const f=inp.files&&inp.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    let j=null;
+    try{ j=JSON.parse(String(r.result).replace(/^﻿/,'')); }catch(e){ alert('ファイルを読めませんでした（中身が壊れているか、別の種類のファイルです）。'); return; }
+    const res=gaibuImport(j,'file');
+    if(!res.ok){ alert(res.msg); return; }
+    _gbAfterImport(res,false);
+  };
+  r.onerror=()=>alert('ファイルを読めませんでした。');
+  r.readAsText(f,'utf-8');
+  inp.value='';
+}
+// 自動：../gaibu/<週の開始日>.json があり、前に取り込んだ物より新しい時だけ取り込む。無い・失敗は何も出さない
+function gaibuAutoLoad(){
+  try{
+    if(location.protocol==='file:')return;
+    const ws=_gbWeekStartStr(), wk=S.activeWeek; if(!ws||!wk)return;
+    if(_gbFetching===ws)return; _gbFetching=ws;
+    fetch('../gaibu/'+ws+'.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+      if(!j||S.activeWeek!==wk||_gbWeekStartStr()!==ws)return;
+      const stamp=String(j.updatedAt||j.createdAt||'');
+      const cur=_gbCur(), old=(cur&&cur.src)?String(cur.src.createdAt||''):null;
+      if(old!==null&&(stamp===old||stamp<old))return;          // 同じ物・古い物は取り込まない
+      const res=gaibuImport(j,'auto'); if(res.ok)_gbAfterImport(res,true);
+    }).catch(()=>{}).then(()=>{ if(_gbFetching===ws)_gbFetching=''; });
+  }catch(_){}
+}
+function gaibuWeekChanged(){
+  _gbSel=[];
+  if(currentTab===2){ renderGaibuTab(); renderGaibuOld(); }
+  if(currentTab===3){ renderProdDayTabs(); renderProdDayContent(currentProdDay); }
+  gaibuAutoLoad();
+}
+
+// ---- 画面 ----
+function renderGaibuTab(){
+  const el=document.getElementById('gaibu-area'); if(!el)return;
+  const cats=_gbCatsShown();
+  if(!_gbCat||!cats.includes(_gbCat))_gbCat=cats[0]||null;
+  const cat=_gbCat, w=_gbCur(), dates=_gbDates();
+  const wkLabel=dates.length?`${dates[0].getMonth()+1}/${dates[0].getDate()}`:'';
+  const stHtml=(w&&w.src)
+    ?`<b style="color:#166534">ミルの ${wkLabel}週データを反映済み</b>（${w.src.via==='auto'?'自動':'ファイル'}）${w.src.createdAt?`<span style="color:var(--gray);font-size:11px;margin-left:6px">作成 ${escapeHtmlP(_gbMd(w.src.createdAt))}</span>`:''}`
+    :`<b style="color:#92400e">${wkLabel}週：まだデータがありません</b><span style="color:var(--gray);font-size:11px;margin-left:6px">（手で調整はできます）</span>`;
+  let html=`<div class="card" style="border-left:4px solid var(--accent)">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="font-size:13px;line-height:1.6">${stHtml}</div>
+      <button type="button" onclick="gaibuPickFile()" style="padding:9px 14px;min-height:40px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">ミルのデータを読み込む</button>
+    </div>
+    <div style="font-size:12px;color:var(--gray);margin-top:6px;line-height:1.6">天気やイベントに合わせて、作る数を「日・時間帯ごと」に増やしたり減らしたりできます。0% のマスは今までどおりです。</div>
+  </div>`;
+  // 以前の方式の補正が残っている間は、いちばん上に出す（折りたたみの中だけだと気づけないため）
+  const _old=_gbOldLeft();
+  if(_old.days.length||_old.rnz){
+    html+=`<div class="card" style="border:2px solid #ef4444;background:#fef2f2">
+      <div style="font-size:14px;font-weight:800;color:#991b1b">以前の補正が残っています（今も作る数に効いています）</div>
+      <div style="font-size:13px;line-height:1.8;color:#334155;margin-top:4px">${_old.days.length?'曜日ごと：'+_old.days.map(x=>`<b>${x.d} ${_gbFmt(x.c)}</b>`).join('　'):''}${_old.rnz?`　ルールの補正 <b>${_old.rnz}</b> 件`:''}</div>
+      <div style="margin-top:8px;text-align:right"><button type="button" onclick="gbZeroOld()" style="padding:9px 14px;min-height:40px;background:#fff;color:#b91c1c;border:2px solid #ef4444;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">以前の補正を全部0%にする</button></div>
+    </div>`;
+  }
+  if(!cat){
+    html+=`<div class="card" style="text-align:center;color:#9ca3af;padding:20px">商品が入っているカテゴリがありません（②商品設定で登録してください）</div>`;
+    morphInto(el,html); return;
+  }
+  const slots=_gbSlots(cat,true);
+  const selSet=new Set(_gbSel.filter(k=>{ const a=k.split('|').map(Number); return a[0]>=0&&a[0]<7&&slots.includes(a[1]); }));
+  _gbSel=[...selSet];
+  html+=`<div class="card">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${cats.map(c=>{ const n=_gbCount(c), on=c===cat; return `<button type="button" onclick="gbSetCat('${c}')" style="padding:8px 14px;min-height:40px;font-size:13px;font-weight:700;border-radius:20px;cursor:pointer;border:2px solid ${on?'var(--main)':'#e2e8f0'};background:${on?'var(--main)':'#fff'};color:${on?'#fff':'#334155'}">${c}${n?`（調整 ${n}）`:''}</button>`; }).join('')}</div>
+    <div class="overflow-auto"><table style="min-width:690px">
+      <thead><tr><th style="width:92px;font-size:11px;position:sticky;left:0;z-index:1">作る時間<div style="font-weight:400;color:#64748b;font-size:10px">押すと横1列</div></th>${DAYS.map((dn,i)=>{
+        const dt=dates[i], x=(w&&w.wx&&w.wx[i])||{}, evs=((w&&w.ev&&w.ev[i])||[]).filter(Boolean);
+        const dayOn=slots.length>0&&slots.every(h=>selSet.has(i+'|'+h));
+        const temp=(x.hi!=null||x.lo!=null)?`${x.hi!=null?x.hi:'-'}/${x.lo!=null?x.lo:'-'}℃`:'';
+        const sky=x.sky?`${_gbSkyIcon(x.sky)}${escapeHtmlP(x.sky)}`:((w&&w.src)?'予報なし':'');
+        return `<th onclick="gbSelDay(${i})" title="${escapeHtmlP(evs.join('\n'))}" style="cursor:pointer;vertical-align:top;padding:6px 3px;${dayOn?'background:#bfdbfe':''}">
+          <div style="font-size:15px;font-weight:800;line-height:1.2">${dn}<span style="font-size:11px;font-weight:600;margin-left:3px">${dt?`${dt.getMonth()+1}/${dt.getDate()}`:''}</span></div>
+          <div style="font-size:11px;font-weight:600;color:#334155;line-height:1.4;min-height:16px">${sky}</div>
+          <div style="font-size:11px;font-weight:600;color:#334155;line-height:1.4;min-height:16px">${temp}</div>
+          ${evs.slice(0,2).map(s=>`<div style="font-size:10px;font-weight:400;color:#475569;line-height:1.3;margin-top:2px;text-align:left">・${escapeHtmlP(s)}</div>`).join('')}
+        </th>`; }).join('')}</tr></thead>
+      <tbody>${slots.map(h=>{
+        const r=_gbRange(cat,h);
+        return `<tr><th onclick="gbSelRow(${h})" style="cursor:pointer;white-space:nowrap;padding:6px 3px;position:sticky;left:0;z-index:1"><span style="font-size:14px;font-weight:800">${fmtHour(h)}</span> 作成${r?`<div style="font-size:10px;font-weight:400;color:#64748b">${fmtHour(r[0])}〜${fmtHour(r[1])} の分</div>`:''}</th>${DAYS.map((_,d)=>{
+          const p=_gbGet(w&&w.val,d,cat,h), sg=_gbGet(w&&w.sug,d,cat,h);
+          const bg=p>0?(p>=20?'#bbf7d0':'#dcfce7'):(p<0?(p<=-20?'#bfdbfe':'#dbeafe'):'#fff');
+          const fg=p>0?'#166534':(p<0?'#1e40af':'#cbd5e1');
+          return `<td onclick="gbSel(${d},${h})" style="cursor:pointer;height:50px;font-size:16px;font-weight:800;background:${bg};color:${fg};${p!==sg?'outline:2px dashed #f59e0b;outline-offset:-4px;':''}${selSet.has(d+'|'+h)?'box-shadow:inset 0 0 0 3px #1d4ed8;':''}">${_gbFmt(p)}</td>`;
+        }).join('')}</tr>`; }).join('')}</tbody>
+    </table></div>
+    <div style="font-size:11px;color:var(--gray);margin-top:6px;line-height:1.6">緑＝増やす　青＝減らす　<span style="outline:2px dashed #f59e0b;outline-offset:1px;padding:0 4px">点線</span>＝手で直した所　／　マスを押して選ぶ。日付を押すと、その日をまとめて選べます。</div>
+    ${_gbPanelHtml(cat,w,dates,slots)}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:flex-end">
+      <button type="button" onclick="gbResetToSug()" class="btn-secondary" style="padding:9px 14px;font-size:12px;min-height:40px">ミルの提案に戻す</button>
+      <button type="button" onclick="gbZeroCat()" class="btn-secondary" style="padding:9px 14px;font-size:12px;min-height:40px">このカテゴリを全部0%にする</button>
+    </div>
+  </div>`;
+  morphInto(el,html);
+}
+// 表の下の操作欄（選んだマスの −5／＋5、個数の変化、ミルの理由）
+function _gbPanelHtml(cat,w,dates,slots){
+  const cells=_gbSel.map(k=>k.split('|').map(Number));
+  if(!cells.length)return `<div style="margin-top:10px;padding:14px;border:2px dashed #cbd5e1;border-radius:12px;text-align:center;color:#64748b;font-size:13px">上の表のマスを押すと、ここで増やす・減らすができます</div>`;
+  const dLabel=d=>{ const dt=dates[d]; return `${dt?`${dt.getMonth()+1}/${dt.getDate()}`:''}（${DAYS[d]}）`; };
+  const ds=[...new Set(cells.map(c=>c[0]))], hs=[...new Set(cells.map(c=>c[1]))];
+  let where;
+  if(cells.length===1)where=`${dLabel(ds[0])}　${fmtHour(hs[0])} 作成`;
+  else if(ds.length===1)where=`${dLabel(ds[0])}　全部の時間帯`;
+  else if(hs.length===1)where=`${DAYS[0]}〜${DAYS[6]} 毎日　${fmtHour(hs[0])} 作成`;
+  else where=`${cells.length}マス`;
+  const vals=cells.map(c=>_gbGet(w&&w.val,c[0],cat,c[1]));
+  const same=vals.every(v=>v===vals[0]);
+  let base=0,now=0; cells.forEach(c=>{ base+=_gbTotal(cat,c[0],c[1],true); now+=_gbTotal(cat,c[0],c[1],false); });
+  const diff=now-base;
+  const whys=[...new Set(cells.flatMap(c=>String((w&&w.why&&w.why[c[0]+'|'+cat+'|'+c[1]])||'').split('／')).filter(Boolean))];
+  const sugs=cells.map(c=>_gbGet(w&&w.sug,c[0],cat,c[1]));
+  const sugTxt=(w&&w.src&&cells.length===1&&(sugs[0]||vals[0]!==sugs[0]))?`ミルの提案は ${_gbFmt(sugs[0])}`:'';
+  const btn=(delta,label,col)=>`<button type="button" onclick="gbStep(${delta})" style="flex:1;min-width:64px;min-height:64px;font-size:24px;font-weight:800;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid ${col};background:#fff;color:${col}">${label}</button>`;
+  return `<div style="margin-top:10px;padding:12px;border:2px solid #1d4ed8;border-radius:12px;background:#f8fafc">
+    <div style="font-size:14px;font-weight:800;color:#0f172a">${where}　<span style="font-weight:600;color:#475569">${cat}</span></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+      ${btn(-5,'−5','#1e40af')}
+      <div style="flex:1.2;text-align:center;min-width:0">
+        <div style="font-size:28px;font-weight:800;line-height:1.1;color:${same?(vals[0]>0?'#166534':(vals[0]<0?'#1e40af':'#475569')):'#475569'}">${same?_gbFmt(vals[0]):'まちまち'}</div>
+        <div style="font-size:13px;color:#334155;margin-top:4px"><b style="white-space:nowrap">${base}個 → ${now}個</b>${diff?`<span style="white-space:nowrap;display:inline-block;color:${diff>0?'#166534':'#1e40af'}">（${diff>0?'+':'−'}${Math.abs(diff)}）</span>`:''}</div>
+      </div>
+      ${btn(5,'＋5','#166534')}
+    </div>
+    ${(whys.length||sugTxt)?`<div style="margin-top:10px;padding:8px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;color:#475569;line-height:1.6">${sugTxt?`<div><b>${sugTxt}</b></div>`:''}${whys.map(s=>`<div>理由：${escapeHtmlP(s)}</div>`).join('')}</div>`:''}
+  </div>`;
+}
+function gbSetCat(c){ _gbCat=c; _gbSel=[]; renderGaibuTab(); }
+function gbSel(d,h){ _gbSel=[d+'|'+h]; renderGaibuTab(); }
+function gbSelDay(d){ if(!_gbCat)return; _gbSel=_gbSlots(_gbCat,true).map(h=>d+'|'+h); renderGaibuTab(); }
+function gbSelRow(h){ _gbSel=DAYS.map((_,d)=>d+'|'+h); renderGaibuTab(); }
+function _gbSetVal(w,d,cat,h,nv){ if(nv===0&&_gbGet(w.sug,d,cat,h)===0)_gbDel(w.val,d,cat,h); else _gbPut(w.val,d,cat,h,nv); }
+function gbStep(delta){
+  if(!_gbCat||!_gbSel.length)return;
+  const w=_gbEnsure(); if(!w)return;
+  _gbSel.forEach(k=>{ const a=k.split('|').map(Number); _gbSetVal(w,a[0],_gbCat,a[1],_gbClamp(_gbGet(w.val,a[0],_gbCat,a[1])+delta)); });
+  saveS(); renderGaibuTab();
+}
+function gbResetToSug(){
+  const cat=_gbCat, w=_gbCur(); if(!cat)return;
+  const cells=w?_gbCells(w,cat).filter(c=>_gbGet(w.val,c[0],cat,c[1])!==_gbGet(w.sug,c[0],cat,c[1])):[];
+  if(!cells.length){ showToast('手で直した所はありません','info'); return; }
+  if(!confirm(`「${cat}」の調整を、ミルの提案に戻しますか？\n手で直した ${cells.length} か所が元に戻ります。`))return;
+  cells.forEach(c=>_gbSetVal(w,c[0],cat,c[1],_gbGet(w.sug,c[0],cat,c[1])));
+  saveS(); renderGaibuTab(); showToast('ミルの提案に戻しました','success');
+}
+function gbZeroCat(){
+  const cat=_gbCat, w=_gbCur(); if(!cat)return;
+  const cells=w?_gbCells(w,cat).filter(c=>_gbGet(w.val,c[0],cat,c[1])!==0):[];
+  if(!cells.length){ showToast('このカテゴリは、もう全部 0% です','info'); return; }
+  if(!confirm(`「${cat}」の調整を、全部 0% にしますか？\n（${cells.length} か所。ほかのカテゴリは変わりません）`))return;
+  cells.forEach(c=>_gbSetVal(w,c[0],cat,c[1],0));
+  saveS(); renderGaibuTab(); showToast(`「${cat}」を全部 0% にしました`,'success');
+}
+// ---- 以前の方式（曜日ごと一律の補正 S.ext[].correction と S.rules）の残り具合 ----
+function _gbOldLeft(){
+  const ext=Array.isArray(S.ext)?S.ext:[], rules=Array.isArray(S.rules)?S.rules:[];
+  const days=DAYS.map((d,i)=>({d,c:Number(ext[i]&&ext[i].correction)||0})).filter(x=>x.c);
+  const rnz=rules.filter(r=>r&&(parseFloat(r.correction)||0)!==0).length;
+  return {days,rules:rules.length,rnz};
+}
+function renderGaibuOld(){
+  const el=document.getElementById('gaibu-old-status'); if(!el)return;
+  const o=_gbOldLeft(), left=o.days.length>0||o.rnz>0;
+  const flag=document.getElementById('gaibu-old-flag');
+  if(flag)flag.innerHTML=left?'<span style="margin-left:8px;background:#fee2e2;color:#991b1b;border-radius:10px;padding:2px 10px;font-size:12px">以前の補正が残っています</span>':'';
+  el.innerHTML=`<div class="card" style="${left?'border:2px solid #ef4444;background:#fef2f2':''}">
+    ${left?'<div style="font-size:14px;font-weight:800;color:#991b1b;margin-bottom:6px">以前の補正が残っています（今も作る数に効いています）</div>':''}
+    <div style="font-size:13px;line-height:1.8;color:#334155">
+      <div>曜日ごとの補正：${o.days.length?o.days.map(x=>`<b>${x.d} ${_gbFmt(x.c)}</b>`).join('　'):'全部 0%'}</div>
+      <div>カテゴリ別投資ルール：${o.rules} 件${o.rnz?`（うち補正あり <b>${o.rnz}</b> 件）`:''}</div>
+    </div>
+    ${left?'<div style="margin-top:10px;text-align:right"><button type="button" onclick="gbZeroOld()" style="padding:9px 14px;min-height:40px;background:#fff;color:#b91c1c;border:2px solid #ef4444;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">以前の補正を全部0%にする</button></div>':'<div style="font-size:12px;color:var(--gray);margin-top:4px">以前の方式の補正は入っていません。下の入力欄は残してありますが、ふだんは使いません。</div>'}
+  </div>`;
+}
+function gbZeroOld(){
+  const o=_gbOldLeft(); if(!o.days.length&&!o.rnz)return;
+  if(!confirm(`以前の補正を全部 0% にしますか？\n・曜日ごとの補正 ${o.days.length} 日分\n・ルールの補正 ${o.rnz} 件\n（天気やイベントのメモ・ルールそのものは消しません）`))return;
+  _backupCurrent('emergency');   // 念のため直前の状態を退避（「データ復元」から戻せる）
+  (Array.isArray(S.ext)?S.ext:[]).forEach(e=>{ if(e&&e.correction)e.correction=0; });
+  (Array.isArray(S.rules)?S.rules:[]).forEach(r=>{ if(r&&(parseFloat(r.correction)||0)!==0)r.correction=0; });
+  saveS(); renderExtTab(); showToast('以前の補正を全部 0% にしました','success');
+}
+
+// ============================================================
+// TAB 2: 外部ファクト（以前の方式。③の下の折りたたみの中）
 // ============================================================
 function renderExtTab(){
   renderResearchCard();
@@ -5150,7 +5503,7 @@ function renderExtDayContent(i){
 
 function setExt(i,key,val){
   if(!S.ext[i])S.ext[i]={weather:'晴れ',temp:20,event:'',correction:0};
-  S.ext[i][key]=val;saveS();renderExtDayContent(i);
+  S.ext[i][key]=val;saveS();renderExtDayContent(i);renderGaibuOld();
 }
 function getSeasonalTemp(){
   const m=new Date().getMonth()+1;
@@ -5162,13 +5515,13 @@ function getSeasonalTemp(){
 function resetExtField(i,key,defaultVal){
   if(!S.ext[i])S.ext[i]={weather:'晴れ',temp:getSeasonalTemp().temp,event:'',correction:0};
   const val=(key==='temp')?getSeasonalTemp().temp:defaultVal;
-  S.ext[i][key]=val;saveS();renderExtDayContent(i);
+  S.ext[i][key]=val;saveS();renderExtDayContent(i);renderGaibuOld();
 }
 function resetExtDay(i){
   const {temp,label}=getSeasonalTemp();
   if(!confirm(`${DAYS[i]}曜日の外部ファクトを全てリセットしますか？\n気温は${label}のデフォルト（${temp}℃）になります。`))return;
   S.ext[i]={weather:'晴れ',temp,event:'',correction:0};
-  saveS();renderExtDayContent(i);
+  saveS();renderExtDayContent(i);renderGaibuOld();
 }
 function resetExt(){
   const {temp,label}=getSeasonalTemp();
@@ -6239,7 +6592,7 @@ function renderSlotGroupedView(dayIdx){
       }).join('');
       cats+=`<div style="margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap">
-          <span style="font-size:14px;font-weight:800;color:#1f2937">${cat}</span>
+          <span style="font-size:14px;font-weight:800;color:#1f2937">${cat}</span>${gaibuBadge(cat,di,slotH)}
           <span style="font-size:11px;color:#64748b;margin-left:auto">完成 ${fmtHour(doneH)}／廃棄 ${fmtHour(disposeH)}</span>
         </div>${rowsHtml}</div>`;
     });
@@ -6553,6 +6906,7 @@ function renderProdDayContent(dayIdx){
         <div style="display:flex;flex-direction:column;gap:2px;line-height:1.2;align-items:center">
           <span style="white-space:nowrap"><span style="font-size:10px;color:#64748b">作成</span> <span style="font-size:17px;font-weight:800;color:#1d4ed8">${fmtHour(h)}</span></span>
           <span style="font-size:10px;color:#64748b;white-space:nowrap">完成 ${fmtHour(doneH)}${discOn?`　値引 ${fmtHour(md)}〜`:''}</span>
+          ${gaibuBadge(cat,dayIdx,h)}
         </div>
       </th>`;
     });
@@ -6604,6 +6958,7 @@ function renderProdDayContent(dayIdx){
           `基準との差：${diff>0?'+'+diff:diff}\n`+
           (slotK!==1?`時間帯購入率の係数：×${slotK.toFixed(2)}\n`:'')+
           (learnAdj!==1?`学習（完売/余り）：×${learnAdj.toFixed(2)}\n`:'')+
+          (gaibuPct(cat,dayIdx,slotH)?`天気・イベント調整：${_gbFmt(gaibuPct(cat,dayIdx,slotH))}\n`:'')+
           `最低引出客数：${Math.round(wl)}人（実客${sc}人 / ${wl>0&&sc>=wl?'OK':'不足'}）\n`+
           (discOn?`値引開始：${fmtHour(mdTime)}`:`値引：なし（この曜日は値引OFF）`);
         // 完売イベント（追加作成履歴）
@@ -8213,7 +8568,7 @@ function switchStore(id){
     '常温FF':{ah:10,slots:[10]},'常温FF新商品':{ah:10,slots:[10]},
     '中華まん':{ah:10,slots:[6,10]},'中華まん新商品':{ah:10,slots:[6,10]},
     'まちかど厨房':{ah:8,slots:[8,12,15]},'まちかど厨房新商品':{ah:8,slots:[8,12,15]}
-  })),ji:{},prevJi:{},cust:DEF_CUST.map(r=>[...r]),ext:DEF_EXT.map(e=>({...e})),rules:[],checks:{},budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{},investDays:{}},discHist:[],weekStart:'',weeks:{},activeWeek:''};
+  })),ji:{},prevJi:{},cust:DEF_CUST.map(r=>[...r]),ext:DEF_EXT.map(e=>({...e})),rules:[],gaibu:{},checks:{},budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{},investDays:{}},discHist:[],weekStart:'',weeks:{},activeWeek:''};
   Object.assign(S,fresh);
   loadS();
   closeStoreManager();
