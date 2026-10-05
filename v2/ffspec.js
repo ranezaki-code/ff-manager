@@ -27,7 +27,9 @@
     // 「開いている週」の2か所持ちを1本にした形（いまの保存処理 syncActiveWeek と同じ重ね方）
     normalize: function (st) {
       st = clone(st || {}); var act = st.activeWeek;
-      if (act && isObj(st.weeks)) { var w = isObj(st.weeks[act]) ? st.weeks[act] : {}; MIR.forEach(function (m) { if (st[m] !== undefined) w[m] = st[m]; }); st.weeks[act] = w; }
+      if (act && isObj(st.weeks)) { var w = isObj(st.weeks[act]) ? st.weeks[act] : {}; MIR.forEach(function (m) { if (st[m] !== undefined) w[m] = st[m]; }); st.weeks[act] = w;
+        // 古い形のデータ：外側に無くて週の中にだけある項目（売れ残りの記録など）は、週の中身を外側にも持つ形にそろえる（組み立て直しと同じ形・中身は消さない）
+        MIR.forEach(function (m) { if (st[m] === undefined && w[m] !== undefined) st[m] = clone(w[m]); }); }
       return st;
     },
     split: function (st0, prev, coll) {
