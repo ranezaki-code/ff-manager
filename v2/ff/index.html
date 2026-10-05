@@ -5474,16 +5474,16 @@ function _gbFmt(p){ return (p>0?'+':(p<0?'−':''))+Math.abs(p)+'%'; }
 // 調整の理由（ミルの提案の文）。無ければ ''
 function gaibuWhy(cat,dayIdx,slotH){ const w=_gbCur(); if(!w||!w.why)return ''; return String(w.why[dayIdx+'|'+mainCatOf(cat)+'|'+slotH]||''); }
 // 作成表のマス（商品×時間帯）に出す小さな印。理由はタップ（記録メニュー）か長押し（title）で見える
-function gaibuCellBadge(cat,dayIdx,slotH){
+function gaibuCellBadge(cat,dayIdx,slotH,abs){   // abs=true：マスの左上の角に固定（数字やチェックの位置を動かさない）
   const p=gaibuPct(cat,dayIdx,slotH); if(!p)return '';
   const why=gaibuWhy(cat,dayIdx,slotH);
-  return `<span title="天気・イベント調整 ${_gbFmt(p)}${why?'：'+escapeHtmlP(why):''}（③のタブで変えられます）" style="font-size:10px;font-weight:800;border-radius:8px;padding:0 5px;white-space:nowrap;${p>0?'background:#dcfce7;color:#166534':'background:#dbeafe;color:#1e40af'}">${_gbFmt(p)}</span>`;
+  return `<span title="天気・イベント調整 ${_gbFmt(p)}${why?'：'+escapeHtmlP(why):''}（③のタブで変えられます）" style="${abs?'position:absolute;left:2px;top:2px;z-index:1;font-size:9px;padding:0 3px;':'font-size:10px;padding:0 5px;'}font-weight:800;border-radius:8px;white-space:nowrap;${p>0?'background:#dcfce7;color:#166534':'background:#dbeafe;color:#1e40af'}">${_gbFmt(p)}</span>`;
 }
 // 調整が効いているマスの背景（薄い色）。印と合わせて、一目で分かるように
 function gaibuCellStyle(cat,dayIdx,slotH){ const p=gaibuPct(cat,dayIdx,slotH); return p>0?';background:#f0fdf4':(p<0?';background:#eff6ff':''); }
 // サーマル番号（常温FF・まちかど厨房だけ。商品設定で入力）
 function hasThermal(p){ const m=mainCatOf((p&&p.category)||''); return m==='常温FF'||m==='まちかど厨房'; }
-function thermalBadge(p,small){ if(!hasThermal(p)||!(p.thermalNo||'').trim())return ''; return `<span title="サーマル番号" style="font-size:${small?10:11}px;font-weight:700;color:#7c2d12;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:0 5px;white-space:nowrap">No.${escapeHtmlP(p.thermalNo)}</span>`; }
+function thermalBadge(p,small,abs){ if(!hasThermal(p)||!(p.thermalNo||'').trim())return ''; return `<span title="サーマル番号" style="${abs?'position:absolute;right:2px;top:2px;z-index:1;':''}font-size:${small?10:11}px;font-weight:700;color:#7c2d12;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:0 5px;white-space:nowrap">No.${escapeHtmlP(p.thermalNo)}</span>`; }
 function gaibuBadge(cat,dayIdx,slotH){
   const p=gaibuPct(cat,dayIdx,slotH); if(!p)return '';
   return `<span title="天気・イベント調整（③のタブで変えられます）" style="font-size:10px;font-weight:700;border-radius:8px;padding:0 6px;white-space:nowrap;${p>0?'background:#dcfce7;color:#166534':'background:#dbeafe;color:#1e40af'}">調整 ${_gbFmt(p)}</span>`;
@@ -7332,13 +7332,12 @@ function renderProdDayContent(dayIdx){
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
         const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
         // マスは「数字（タップ＝記録メニュー）」と「完了チェック」だけ。完売／余り／在庫欠品は openCellMenu の文字つきボタンで記録
-        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':`
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':gaibuCellBadge(cat,dayIdx,slotH,true)+thermalBadge(p,true,true)}${isZero?'':`
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
             <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${dayIdx},${slotH})" aria-label="${escapeHtmlP(p.name)} ${fmtHour(slotH)} の記録メニュー">
               <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
             </button>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
-            ${gaibuCellBadge(cat,dayIdx,slotH)}${thermalBadge(p,true)}
             ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">在庫欠品</span>`:''}
             ${leftover?`<span style="background:#ffedd5;color:#9a3412;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">余り</span>`:''}
             ${learnAdj!==1?`<span style="background:#ede9fe;color:#5b21b6;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700" title="完売/余りの記録から自動調整">学習${learnAdj>1?'+':''}${Math.round((learnAdj-1)*100)}%</span>`:''}
