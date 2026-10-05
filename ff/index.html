@@ -1818,6 +1818,10 @@ function weekKeyFromDate(dateStr){
   const d=parseLocalDate(dateStr);
   return`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
 }
+// 週キー（例 2026.10.6）を日付の順に並べる。文字の順（.sort()）だと「2026.10.6」が「2026.9.29」より前になり、
+// 「最新の週」「直近4週」が正しく選ばれない（2026-10-05 修正）
+function weekKeyNum(k){ const p=String(k).split('.'); return (+p[0]||0)*10000+(+p[1]||0)*100+(+p[2]||0); }
+function sortWeekKeys(keys){ return keys.slice().sort((a,b)=>weekKeyNum(a)-weekKeyNum(b)); }
 function weekKeyToDateStr(key){
   const [y,m,d]=key.split('.');
   return`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -2777,7 +2781,7 @@ function loadS(){
     S.weekStart=defaultTuesday;
     S.activeWeek=key;
   } else if(!S.activeWeek){
-    const keys=Object.keys(S.weeks).sort();
+    const keys=sortWeekKeys(Object.keys(S.weeks));
     S.activeWeek=keys[keys.length-1];
   }
   // データ移行: 火曜日以外の週開始日を自動で火曜日に修正
@@ -3309,12 +3313,10 @@ function getRecentAvgTeika(pid, windowSize){
   // activeWeek（今表示中の週＝直近実績）
   const cur = S.ji[pid];
   if(cur && (cur.teika||0) > 0) list.push(cur.teika);
-  // 過去週（古い順にソート→新しい順）
-  const keys = Object.keys(S.weeks||{})
-    .filter(k => k !== S.activeWeek)
-    .sort();
-  // 「アクティブ週より前の週」だけを対象に（順番に意味があるよう、古い順から「アクティブの直前」を辿る）
-  // ここでは単純に keys を新しい順にソートして上位 (windowSize-1) 件
+  // 過去週：開いている週より前の週だけを、日付の新しい順に（文字の順で並べない。上の sortWeekKeys の説明を参照）
+  const curNum = S.activeWeek ? weekKeyNum(S.activeWeek) : Infinity;
+  const keys = sortWeekKeys(Object.keys(S.weeks||{})
+    .filter(k => k !== S.activeWeek && weekKeyNum(k) < curNum));
   keys.reverse();
   for(const k of keys){
     if(list.length >= windowSize) break;
@@ -3862,7 +3864,7 @@ function setJi(pid,key,val){
 function renderWeekSelector(){
   const el=document.getElementById('week-selector');
   if(!el)return;
-  const keys=Object.keys(S.weeks).sort();
+  const keys=sortWeekKeys(Object.keys(S.weeks));
   const DOW=['日','月','火','水','木','金','土'];
   const fmtLabel=(key)=>{
     const w=S.weeks[key];
@@ -3991,7 +3993,7 @@ function deleteWeek(key){
     delete S.weeks[key];
     if(!S.deleted)S.deleted={}; if(!S.deleted.weeks)S.deleted.weeks={}; S.deleted.weeks[key]=Date.now();
     if(S.activeWeek===key){
-      const remaining=Object.keys(S.weeks).sort();
+      const remaining=sortWeekKeys(Object.keys(S.weeks));
       switchWeek(remaining[remaining.length-1]);
     } else {
       saveS();renderWeekSelector();
@@ -4009,7 +4011,7 @@ function deleteWeek(key){
   }
 }
 function showAddWeekDialog(){
-  const keys=Object.keys(S.weeks).sort();
+  const keys=sortWeekKeys(Object.keys(S.weeks));
   const lastKey=keys[keys.length-1];
   const lastWeekStart=S.weeks[lastKey]?.weekStart||weekKeyToDateStr(lastKey);
   const defaultDate=getNextTuesday(lastWeekStart);
