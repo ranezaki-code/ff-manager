@@ -15,7 +15,7 @@
   if (TEST) loadedAt -= 3600000;
   var KEY = '__autoupdate::' + location.pathname;
   var CHECK_MS = TEST ? 4000 : 5 * 60 * 1000, CONFIRM_MS = TEST ? 3000 : 60 * 1000, LIMIT_MS = 10 * 60 * 1000;
-  var hits = 0, lastInput = 0, checking = false, waiting = false;
+  var firstHit = 0, lastInput = 0, checking = false, waiting = false;
 
   function note(){ lastInput = Date.now(); }
   ['keydown', 'input', 'compositionstart', 'compositionupdate'].forEach(function(ev){ document.addEventListener(ev, note, true); });
@@ -50,9 +50,11 @@
       var lm = Date.parse(r.headers.get('Last-Modified') || '');
       if (!lm) return;
       if (lm - loadedAt > 5000) {
-        hits++;
-        if (hits >= 2) tryReload(); else setTimeout(check, CONFIRM_MS);
-      } else hits = 0;
+        // 1回目に気づいてから CONFIRM_MS 以上あけた2回目でも「新しい」時だけ読み込み直す
+        // （画面に戻った時の確認などが続けて走っても、間をあけずに2回と数えない）
+        if (!firstHit) { firstHit = Date.now(); setTimeout(check, CONFIRM_MS + 200); }
+        else if (Date.now() - firstHit >= CONFIRM_MS) tryReload();
+      } else firstHit = 0;
     }).catch(function(){ checking = false; });
   }
 
