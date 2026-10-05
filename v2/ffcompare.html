@@ -116,7 +116,7 @@ small{color:#64748b}
         ['ffv6_gist_token','ffv6_gist_id'].forEach(k=>put(k,null));
         data.stores.forEach(x=>{ put('ffv6_store_'+x.id,data.states[x.id]); put('ffv6_setup_'+x.id,data.setup[x.id]?'1':null); });
         const open=async()=>{
-          const [a,b]=await Promise.all([load(fo,'../ff/index.html?embedded=1&cmp='+Date.now()),load(fn,'ff/index.html?embedded=1&mem=1&wait=1&cmp='+Date.now())]);
+          const [a,b]=await Promise.all([load(fo,(new URLSearchParams(location.search).get('old')||'../ff/index.html')+'?embedded=1&cmp='+Date.now()),load(fn,'ff/index.html?embedded=1&mem=1&wait=1&cmp='+Date.now())]);
           [a,b].forEach(w=>{ w.alert=()=>{}; w.confirm=()=>true; w.print=()=>{}; w.open=()=>null; });
           await b.__v2go({stores:data.stores,current:s.id,states:data.states,setup:data.setup});
           for(let i=0;i<200&&!(b.__v2ready&&a.eval('typeof currentStoreId!=="undefined"&&!!currentStoreId&&document.querySelectorAll(".tab-panel").length>0'));i++)await sleep(50);
