@@ -16,7 +16,7 @@ const V2FF = (function () {
   'use strict';
   const MEM = /[?&]mem=1/.test(location.search);
   const LOCAL = /^(ffv6_lang|ffv6_collapsed_cats|ffv6_prodMasterSort|claude_api_key|gd_client_id|gd_access_token|gd_token_expiry)$/;
-  const S = JSON.stringify, mem = {}, colls = {}, cache = {};
+  const S = JSON.stringify, mem = {}, colls = {}, cache = {}, seen = {};   // seen＝画面がいま持っている中身（店舗ごと）
   let host = null, store = null, stores = [], sid = '', booted = false, warned = false;
   const idOf = (k, p) => (k.indexOf(p) === 0 && colls[k.slice(p.length)]) ? k.slice(p.length) : null;
   function hasData(id) { return Object.keys(colls[id].view()).some(r => r !== 's:__setup'); }
@@ -28,7 +28,7 @@ const V2FF = (function () {
     k = String(k);
     if (LOCAL.test(k)) return __realLS.getItem(k);
     if (k === 'ffv6_current' || k === 'current_store_id') return (k in mem) ? mem[k] : (sid || null);
-    let id = idOf(k, 'ffv6_store_'); if (id) return stateStr(id);
+    let id = idOf(k, 'ffv6_store_'); if (id) { seen[id] = stateStr(id); return seen[id]; }
     id = idOf(k, 'ffv6_setup_'); if (id) return ('s:__setup' in colls[id].view()) ? '1' : null;
     return (k in mem) ? mem[k] : null;
   }
@@ -39,7 +39,7 @@ const V2FF = (function () {
     if (id) {
       const c = colls[id]; let st; try { st = JSON.parse(v); } catch (e) { console.error('v2：保存する中身を読めません', e); return; }
       if (!c.synced) { console.warn('v2：まだ読み込めていないので保存しません'); return; }
-      c.setState(st); c._state = null; delete cache[id];     // 開いている週だけ変わった時（記録は変わらない）も、組み立て直す
+      c.setState(st); c._state = null; delete cache[id]; seen[id] = stateStr(id);     // 開いている週だけ変わった時（記録は変わらない）も、組み立て直す
       if (!MEM && c.local.activeWeek) { try { __realLS.setItem('v2ff_week_' + id, c.local.activeWeek); } catch (e) {} }
       return;
     }
@@ -77,7 +77,9 @@ const V2FF = (function () {
   function wire(id) {
     const c = colls[id];
     if (!MEM) { try { const w = __realLS.getItem('v2ff_week_' + id); if (w) c.local.activeWeek = w; } catch (e) {} }
-    const off = c.onChange(remote => { delete cache[id]; if (remote && booted) { try { window.dispatchEvent(new StorageEvent('storage', { key: 'ffv6_store_' + id })); } catch (e) { console.warn(e); } } });
+    const off = c.onChange(remote => { delete cache[id];
+      // 自分の保存が送り終わった知らせでは、中身は画面と同じ。同じなら画面を描き直さない（描き直すと、商品設定でカテゴリを変えたカードが別の場所へ飛ぶ）
+      if (remote && booted && stateStr(id) !== seen[id]) { try { window.dispatchEvent(new StorageEvent('storage', { key: 'ffv6_store_' + id })); } catch (e) { console.warn(e); } } });
     window.addEventListener('pagehide', off);
   }
   // seed（答え合わせ・試験用）＝{stores:[{id,name}], current:'id', states:{id:文字列}, setup:{id:true}, store:共通の保存先（省くと新しく作る）}
