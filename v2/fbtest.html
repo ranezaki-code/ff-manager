@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新しいシステム：本物の保存先での試験</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.6}
+h1{font-size:18px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;font-size:13px}
+th{background:#f8fafc;text-align:left;padding:6px 10px} td{padding:6px 10px;border-top:1px solid #e2e8f0;vertical-align:top}
+.ok{color:#16a34a;font-weight:700} .ng{color:#dc2626;font-weight:700} #sum{font-size:16px;font-weight:800;margin:10px 0}
+button{font:inherit;padding:10px 16px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<h1>🧪 新しいシステム：本物の保存先（Firebase）での試験</h1>
+<div class="sub">試し用の場所（この画面が自分で作る、長いでたらめな合言葉の場所）にだけ読み書きします。いまのアプリのデータの場所にはさわりません。入れるのは見本の予定だけです。<br>
+試し用の場所に書いた物は消せないので、確かめたい時だけ押してください（1回で 文書 約70個）。</div>
+<button id="go">試験を始める</button>
+<div id="sum"></div>
+<table><thead><tr><th style="width:60px">番号</th><th>確かめたこと</th><th style="width:70px">結果</th><th>くわしく</th></tr></thead><tbody id="rows"></tbody></table>
+<script src="core.js"></script>
+<script>
+(function(){
+  const rows=document.getElementById('rows'), R=[]; const J=JSON.stringify;
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  function check(no,what,ok,detail){ R.push({no,what,ok:!!ok,detail:detail||''}); const tr=document.createElement('tr'); tr.innerHTML=`<td>${no}</td><td>${what}</td><td class="${ok?'ok':'ng'}">${ok?'○ 合格':'× 不合格'}</td><td>${String(detail||'').replace(/</g,'&lt;')}</td>`; rows.appendChild(tr); }
+  // 「この端末だけネットが切れた」を作る戸（本物の保存先の手前に置く）
+  function Gate(be){ this.be=be; this.online=true; this.subs=[]; }
+  Gate.prototype._chk=function(){ if(!this.online){ const e=new Error('offline'); e.offline=true; throw e; } };
+  Gate.prototype.get=function(id){ try{this._chk();}catch(e){return Promise.reject(e);} return this.be.get(id); };
+  Gate.prototype.txn=function(ids,fn){ try{this._chk();}catch(e){return Promise.reject(e);} return this.be.txn(ids,fn); };
+  Gate.prototype.watch=function(id,cb,er){ const self=this, s={id,cb}; this.subs.push(s); return this.be.watch(id,d=>{ if(self.online)cb(d); },er); };
+  Gate.prototype.setOnline=function(on){ this.online=!!on; const self=this; if(on){ this.subs.forEach(s=>self.be.get(s.id).then(d=>s.cb(d)).catch(()=>{})); if(this.store){ this.store.offline=false; this.store.flush(); } } };
+  Object.defineProperty(Gate.prototype,'reads',{get(){return this.be.reads;}}); Object.defineProperty(Gate.prototype,'writes',{get(){return this.be.writes;}});
+
+  async function run(){
+    document.getElementById('go').disabled=true; document.getElementById('sum').textContent='試験中…（1分ほど）';
+    let pass=null; try{ pass=localStorage.getItem('v2_test_pass'); }catch(_){}
+    if(!pass){ const a=new Uint8Array(24); crypto.getRandomValues(a); pass='test-'+Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join(''); try{ localStorage.setItem('v2_test_pass',pass); }catch(_){} }
+    const coll='cal~t'+V2.rid();     // 毎回、新しい入れ物（前の試験の物と混ざらない）
+    try{
+      const app=firebase.apps.length?firebase.app():null;
+      const s0=await V2.connect(pass,{kv:new V2.MemKV(),device:'tA',snapshot:true});
+      const space=s0.space, db=firebase.firestore();
+      const mk=(name,snap)=>{ const g=new Gate(new V2.FirestoreBackend(db,'keiei_stores')); const st=new V2.Store({backend:g,space,device:name,kv:new V2.MemKV(),snapshot:!!snap}); g.store=st; return {be:g,store:st,name}; };
+      const sync=async(...ds)=>{ for(let i=0;i<3;i++){ for(const d of ds){ if(d.be.online) await d.store.settle(30000); } await sleep(900); } };
+      const ev=(id,title,x)=>Object.assign({id,date:'2026-10-10',time:'',cat:'plan',title,note:''},x||{});
+      const get=(d,id)=>d.c.getState().events.find(e=>e.id===id);
+      const titles=d=>d.c.getState().events.map(e=>e.id+':'+e.title).join(',');
+      const edit=(d,id,p)=>{ const s=d.c.getState(); Object.assign(s.events.find(x=>x.id===id),p); return d.c.setState(s); };
+
+      // いまの決まりで何ができるか
+      const probe=space+'~x~probe~'+V2.rid(); const beP=new V2.FirestoreBackend(db,'keiei_stores');
+      let r0=null,e0=''; try{ r0=await beP.get(probe); }catch(e){ e0=String(e.code||e); }
+      check('決-1','まだ無い文書を読める（「無い」と分かる）',r0===null&&!e0,e0);
+      let e1=''; try{ await beP.txn([probe],d=>({writes:{[probe]:{n:1,d:'あ'}}})); }catch(e){ e1=String(e.code||e); }
+      check('決-2','新しい名前の文書を作れる（まとめ書き）',!e1,e1);
+      let e2='',r2=null; try{ await beP.txn([probe],d=>({writes:{[probe]:{n:(d[probe].n||0)+1,d:'い'}}})); r2=await beP.get(probe); }catch(e){ e2=String(e.code||e); }
+      check('決-3','読んでから書き換えられる（版を比べてから書く）',!e2&&r2&&r2.n===2,e2||J({n:r2&&r2.n}));
+      let got=0,e3=''; const un=beP.watch(probe,d=>{got++;},e=>{e3=String(e.code||e);}); await sleep(1200); await beP.txn([probe],d=>({writes:{[probe]:{n:3,d:'う'}}})); await sleep(1500); un();
+      check('決-4','文書1件を見張って、変わったらすぐ知れる',got>=2&&!e3,'知らせ '+got+' 回 '+e3);
+      let e4=''; try{ await db.collection('keiei_stores').doc(probe).delete(); }catch(e){ e4=String(e.code||e); }
+      check('決-5','削除はできない（記録どおり）→ 消す時は「消した印」を使う',!!e4,e4||'削除できた');
+      let e5=''; try{ await db.collection('keiei_stores').limit(1).get(); }catch(e){ e5=String(e.code||e); }
+      check('決-6','一覧はできない（記録どおり）→「索引」の文書を使う',!!e5,e5||'一覧できた');
+      let e6=''; try{ const big='あ'.repeat(230000); await beP.txn([probe+'~big'],d=>({writes:{[probe+'~big']:{d:big}}})); }catch(e){ e6=String(e.code||e); }
+      check('決-7','約690KB の文書を1件で書ける（全体の写しの1かけらの大きさ）',!e6,e6);
+
+      const A=mk('tA',true), B=mk('tB',false);
+      const rd0=A.be.reads+B.be.reads, wr0=A.be.writes+B.be.writes;
+      A.c=await A.store.open(coll,'cal'); B.c=await B.store.open(coll,'cal');
+      A.c.setState({events:[ev('e1','一'),ev('e2','二'),ev('e3','三')]}); await sync(A,B);
+      check('①-1','A が入れた3件が、B に届く',J(A.c.getState())===J(B.c.getState())&&B.c.getState().events.length===3,titles(B));
+      const w1=A.be.writes; edit(A,'e2',{title:'二あ'}); const t0=Date.now(); await A.store.settle(30000); const ms=Date.now()-t0;
+      let waited=0; while(get(B,'e2').title!=='二あ'&&waited<8000){ await sleep(100); waited+=100; }
+      check('①-2','1件変えた時に書く文書は4つ',A.be.writes-w1===4,'書いた文書 '+(A.be.writes-w1)+' 個・保存 '+ms+'ミリ秒');
+      check('①-3','B にすぐ届く',get(B,'e2').title==='二あ','保存の後 '+waited+'ミリ秒以内');
+      A.be.setOnline(false); B.be.setOnline(false); edit(A,'e1',{title:'一A'}); edit(B,'e3',{title:'三B'}); A.be.setOnline(true); B.be.setOnline(true); await sync(A,B);
+      check('②-1','別の記録を同時に変えた → 両方残る',get(A,'e1').title==='一A'&&get(A,'e3').title==='三B'&&J(A.c.getState())===J(B.c.getState()),titles(A));
+      A.be.setOnline(false); B.be.setOnline(false); edit(A,'e1',{time:'10:00'}); edit(B,'e1',{note:'メモB'}); A.be.setOnline(true); B.be.setOnline(true); await sync(A,B);
+      check('②-2','同じ記録の別の項目を同時に変えた → 両方残る',get(A,'e1').time==='10:00'&&get(A,'e1').note==='メモB'&&J(get(A,'e1'))===J(get(B,'e1')),J(get(A,'e1')));
+      A.be.setOnline(false); B.be.setOnline(false); edit(A,'e2',{title:'先A'}); await sleep(30); edit(B,'e2',{title:'後B'}); B.be.setOnline(true); await sync(B); A.be.setOnline(true); await sync(A,B);
+      const ch=await A.c.changes(1); const le=ch.find(x=>x.lost); const h=le?await A.c.historyOf(le.id,le.h||le.rev):null;
+      check('②-3','同じ項目を同時に変えた → あとから入力したほうが残り、負けた入力は履歴に残る',get(A,'e2').title==='後B'&&get(B,'e2').title==='後B'&&!!h&&/先A/.test(J(h)),get(A,'e2').title+(h?'・履歴あり':'・履歴なし'));
+      B.be.setOnline(false); const stale=B.c.getState(); edit(A,'e3',{title:'新しい入力'}); await sync(A);
+      const n=B.c.setState(stale); edit(B,'e1',{note:'Bの別のメモ'}); B.be.setOnline(true); await sync(A,B);
+      check('③-1','古い端末が古い中身のまま保存 → 何も送られない。別の所を変えても、新しい入力は消えない',n===0&&get(A,'e3').title==='新しい入力'&&get(B,'e3').title==='新しい入力'&&get(A,'e1').note==='Bの別のメモ',titles(A));
+      B.be.setOnline(false); const s=B.c.getState(); s.events.push(ev('e5','五（切れている間）')); B.c.setState(s); edit(A,'e1',{title:'一（その間にA）'}); await sync(A);
+      const pend=B.store.status().pending; B.be.setOnline(true); await sync(A,B);
+      check('④-1','切れている間の変更が、戻った時に送られ、その間のほかの端末の変更も消えない',pend===1&&!!get(A,'e5')&&get(B,'e1').title==='一（その間にA）',titles(A));
+      B.be.setOnline(false); { const s2=A.c.getState(); s2.events=s2.events.filter(e=>e.id!=='e5'); A.c.setState(s2); } await sync(A); edit(B,'e5',{title:'消されたのを知らずに'}); B.be.setOnline(true); await sync(A,B);
+      check('⑤-1','消した記録は、古い端末の保存で戻らない',!get(A,'e5')&&!get(B,'e5'),titles(B));
+      const ch2=await A.c.changes(1); const e=ch2.find(x=>x.id==='e:e3'&&x.op==='edit'); await A.c.restoreBefore(e.id,e.rev); await sync(A,B);
+      check('⑥-1','履歴から前の状態に戻せる',get(A,'e3').title==='三B'&&get(B,'e3').title==='三B',titles(B));
+      const snaps=await A.c.snapshots(2);
+      check('⑥-2','1日1回の全体の写しができている',snaps.length===1,J(snaps.map(x=>({day:x.day,n:x.n}))));
+      const srv=await A.c.readServer();
+      check('突-1','ネット上を直接読み直した中身が、画面の中身と同じ',J(V2.SPECS.cal.join(srv))===J(A.c.getState()),Object.keys(srv).length+' 件');
+      const rd=A.be.reads+B.be.reads-rd0, wr=A.be.writes+B.be.writes-wr0;
+      check('数','この試験（2台ぶん）で使った回数','true','読み取り '+rd+' 回・書き込み '+wr+' 回（無料の枠：1日 読み取り 50,000・書き込み 20,000）');
+      window.__counts={reads:rd,writes:wr};
+    }catch(e){ check('—','試験の途中で止まった',false,String(e&&(e.code||e.stack)||e)); }
+    const ng=R.filter(r=>!r.ok).length;
+    document.getElementById('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
+    window.__results={total:R.length,ng,rows:R};
+  }
+  document.getElementById('go').addEventListener('click',run);
+})();
+</script>
+</body>
+</html>

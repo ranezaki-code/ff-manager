@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>店舗運営管理システム（新・試し中）</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f1f5f9; --panel:#ffffff; --text:#0f172a; --sub:#64748b; --border:#e2e8f0;
+  --accent:#2563eb; --accent-dk:#1d4ed8; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic",sans-serif;
+  background:var(--bg); color:var(--text); height:100vh; height:100dvh; display:flex; flex-direction:column;
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+header{
+  background:var(--panel); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:14px; padding:8px 14px;
+  padding-top:max(8px,env(safe-area-inset-top)); flex-shrink:0; flex-wrap:wrap;
+}
+.store-switcher{position:relative}
+.store-trigger{
+  display:inline-flex; align-items:center; gap:8px; font-size:18px; font-weight:600;
+  background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:7px 12px; cursor:pointer;
+  font-family:inherit; color:var(--text);
+}
+.store-trigger:hover{background:#f1f5f9}
+.store-trigger .chev{font-size:11px;color:var(--sub)}
+.store-menu{
+  display:none; position:absolute; top:100%; left:0; margin-top:6px; min-width:240px;
+  background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 32px rgba(15,23,42,.16); padding:6px; z-index:200;
+}
+.store-switcher.open .store-menu{display:block}
+.store-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+.store-item:hover{background:#f1f5f9}
+.store-item.current{background:#eff6ff;color:var(--accent-dk);font-weight:600}
+.store-item .check{width:16px;text-align:center;color:var(--accent-dk)}
+.store-divider{height:1px;background:var(--border);margin:6px 4px}
+.store-action{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--sub);display:flex;gap:8px;align-items:center}
+.store-action:hover{background:#f1f5f9;color:var(--text)}
+.spacer{flex:1}
+.trial{font-size:11px;font-weight:700;color:#92400e;background:#fef3c7;border:1px solid #f59e0b;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.trial .ts{display:none}
+.sync{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--sub);background:#f8fafc;border:1px solid var(--border);border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.sync .dot{width:9px;height:9px;border-radius:50%;background:#cbd5e1;flex-shrink:0}
+.sync.ok .dot{background:var(--green)}
+.sync.saving .dot{background:var(--amber);animation:pulse 1s infinite}
+.sync.off .dot{background:#cbd5e1}
+.sync.err .dot{background:var(--red)}
+.sync.off.has,.sync.err{border-color:#f59e0b;background:#fffbeb;color:#92400e;font-weight:700}
+@keyframes pulse{50%{opacity:.3}}
+.icon-btn{background:#f8fafc;border:1px solid var(--border);border-radius:10px;width:38px;height:38px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:#f1f5f9}
+nav.tabs{background:var(--panel); border-bottom:1px solid var(--border); display:flex; gap:4px; padding:0 10px; flex-shrink:0; overflow-x:auto;}
+.tab{appearance:none; border:none; background:transparent; font-family:inherit; font-size:14px; font-weight:600; color:var(--sub);
+  padding:12px 18px; cursor:pointer; border-bottom:2.5px solid transparent; white-space:nowrap; display:flex; align-items:center; gap:7px;}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab .emoji{font-size:16px}
+.tab-note{align-self:center;font-size:12px;color:var(--sub);padding:0 10px;white-space:nowrap}
+main{flex:1;position:relative;background:#fff;overflow:hidden}
+.frame{position:absolute;inset:0;width:100%;height:100%;border:none;display:none;background:#fff}
+.frame.active{display:block}
+.frame-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:14px;z-index:1;background:#fff;text-align:center;padding:20px;line-height:1.8}
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:18px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:26px;position:relative}
+.modal.wide{max-width:720px}
+.modal h2{font-size:20px;margin-bottom:8px}
+.modal p{font-size:14px;color:var(--sub);line-height:1.7;margin-bottom:14px}
+.btn{appearance:none;border:none;font-family:inherit;font-size:15px;font-weight:600;border-radius:10px;padding:13px 18px;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff;width:100%}
+.btn-primary:hover{background:var(--accent-dk)}
+.btn-ghost{background:#f1f5f9;color:var(--text)}
+.btn-ghost:hover{background:#e2e8f0}
+.warn-box{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;font-size:13px;color:#92400e;line-height:1.6;margin:12px 0}
+.muted{font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);gap:10px}
+.settings-row:last-child{border-bottom:none}
+.settings-row .label{font-size:14px;font-weight:600}
+.settings-row .desc{font-size:12px;color:var(--sub);margin-top:2px}
+.settings-row .btn{font-size:13px;padding:9px 14px;white-space:nowrap}
+.close-x{position:absolute;top:14px;right:16px;font-size:22px;color:var(--sub);cursor:pointer;background:none;border:none}
+.pass-card{max-width:440px}
+.pass-input{width:100%;font-size:18px;padding:13px 14px;border:1.5px solid var(--border);border-radius:10px;text-align:center;letter-spacing:2px;margin:6px 0 4px}
+.pass-input:focus{outline:none;border-color:var(--accent)}
+.h-sec{font-size:14px;font-weight:800;margin:16px 0 6px}
+.h-row{display:grid;grid-template-columns:92px 64px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--border);font-size:13px}
+.h-row .when{color:var(--sub);font-size:12px}
+.h-row .op{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;text-align:center;background:#f1f5f9;color:#334155}
+.h-row .op.del{background:#fee2e2;color:#991b1b} .h-row .op.add{background:#dcfce7;color:#166534} .h-row .op.lost{background:#fef3c7;color:#92400e} .h-row .op.restore{background:#e0e7ff;color:#3730a3}
+.h-row .what{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h-row .what small{color:var(--sub)}
+.h-row .btn{font-size:12px;padding:7px 10px}
+@media (max-width:520px){
+  .store-trigger{font-size:16px}
+  .tab{padding:11px 13px;font-size:13px}
+  .sync span.txt{display:none}
+  header{gap:8px;padding:8px 10px}
+  .trial .tl{display:none} .trial .ts{display:inline}
+  .tab-note{display:none}
+  .sync.off.has span.txt,.sync.err span.txt{display:inline}
+  .h-row{grid-template-columns:76px 56px 1fr}
+  .h-row .btn{grid-column:1 / -1}
+}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="../autoupdate.js" defer></script>
+<script src="core.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="store-switcher" id="store-switcher">
+    <button class="store-trigger" id="store-trigger" type="button">
+      <span id="store-name">読み込み中…</span><span class="chev">▼</span>
+    </button>
+    <div class="store-menu" id="store-menu"></div>
+  </div>
+  <span class="trial" title="いまのアプリとは別の、新しい保存のしくみで動いています。いまのアプリのデータは変わりません"><span class="tl">新しいシステム（試し中）</span><span class="ts">新・試し中</span></span>
+  <div class="spacer"></div>
+  <div class="sync off" id="sync" title="タップで設定を開く">
+    <span class="dot"></span><span class="txt" id="sync-text">接続前</span>
+  </div>
+  <button class="icon-btn" id="settings-btn" title="設定">⚙️</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-sys="cal"><span class="emoji">📅</span>カレンダー</button>
+  <span class="tab-note">ほかの画面は、順番に入ります</span>
+</nav>
+
+<main id="main">
+  <div class="frame-loading" id="frame-loading">読み込み中…</div>
+</main>
+
+<div class="overlay" id="pass-overlay">
+  <div class="modal pass-card">
+    <h2>🔐 合言葉を入力</h2>
+    <p>いまのアプリと<b>同じ合言葉</b>を入れてください。同じ合言葉を入れた端末どうしで、同じデータを見ます。<br>（新しいシステムのデータは、いまのアプリとは別の場所に保存されます。いまのアプリのデータは変わりません）</p>
+    <input type="text" class="pass-input" id="pass-input" placeholder="あいことば" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn btn-primary" id="pass-go-btn">✅ 開始</button>
+    <div class="warn-box" id="pass-status" style="display:none"></div>
+  </div>
+</div>
+
+<div class="overlay" id="settings-overlay">
+  <div class="modal">
+    <button class="close-x" data-close="settings-overlay">×</button>
+    <h2>⚙️ 設定</h2>
+    <div class="settings-row"><div><div class="label">🕘 履歴・前の状態に戻す</div><div class="desc">だれが・いつ・何を変えたか。まちがえた変更を、前の状態に戻せます</div></div><button class="btn btn-ghost" id="history-btn">開く</button></div>
+    <div class="settings-row"><div><div class="label">この端末の名前</div><div class="desc" id="devname-desc">履歴に「だれの端末か」として出ます</div></div><button class="btn btn-ghost" id="devname-btn">変更</button></div>
+    <div class="settings-row"><div><div class="label">控えを書き出す</div><div class="desc">新しいシステムの、いま開いている店舗のデータを1つのファイルに</div></div><button class="btn btn-ghost" id="export-btn">📤 書出</button></div>
+    <div class="settings-row"><div><div class="label">いまのアプリのデータを写す</div><div class="desc">書き出したファイルを読んで、新しいシステムへ写します（元は変わりません）</div></div><a class="btn btn-ghost" href="migrate.html" target="_blank" rel="noopener" style="text-decoration:none">開く</a></div>
+    <div class="settings-row"><div><div class="label">🔐 合言葉を入れ直す</div><div class="desc">別の合言葉の場所に切り替えます</div></div><button class="btn btn-ghost" id="change-pass-btn">変更</button></div>
+    <div class="settings-row"><div><div class="label">いまのアプリを開く</div><div class="desc">これまでの統合アプリ（別の画面で開きます）</div></div><a class="btn btn-ghost" href="../app.html" target="_blank" rel="noopener" style="text-decoration:none">開く</a></div>
+    <div class="muted" id="settings-status"></div>
+  </div>
+</div>
+
+<div class="overlay" id="history-overlay">
+  <div class="modal wide">
+    <button class="close-x" data-close="history-overlay">×</button>
+    <h2>🕘 履歴・前の状態に戻す</h2>
+    <p id="history-sub">カレンダー</p>
+    <div id="history-body">読み込み中…</div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// 新しいシステムの入口。画面の並びは いまの統合アプリ（app.html）と同じ。
+// ちがい：本物のデータはネット上の1か所（1件ずつ）。この画面が1本だけ接続を持ち、中の各画面はそれを使う。
+// =====================================================================
+const SYSTEMS={ cal:{url:'./cal/index.html',label:'カレンダー',spec:'cal'} };
+const BUILD=Date.now();
+const frames={};
+let store=null, meta=null, activeSys='cal', curStore='';
+const $=id=>document.getElementById(id);
+function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function openOverlay(id){$(id).classList.add('show');}
+function closeOverlay(id){$(id).classList.remove('show');}
+function ls(k,v){ try{ if(v===undefined)return localStorage.getItem(k); if(v===null)localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(_){ return null; } return v; }
+
+// 中の画面（iframe）が使う窓口
+window.V2APP={
+  storeId:()=>curStore,
+  open:sys=>store.open(sys+'~'+curStore,SYSTEMS[sys].spec),
+  store:()=>store
+};
+
+// ---------- 店舗 ----------
+function stores(){ const m=meta?meta.getState():{}; return Array.isArray(m.stores)?m.stores:[]; }
+function saveStores(list){ const m=meta.getState(); m.stores=list; meta.setState(m); }
+function renderSwitcher(){
+  const list=stores();
+  if(!curStore||!list.find(s=>s.id===curStore))curStore=(list[0]||{}).id||'';
+  $('store-name').textContent=(list.find(s=>s.id===curStore)||{}).name||'(店舗なし)';
+  $('store-menu').innerHTML=list.map(s=>`<div class="store-item ${s.id===curStore?'current':''}" data-id="${escapeHtml(s.id)}">
+      <span class="check">${s.id===curStore?'✓':''}</span><span style="flex:1">${escapeHtml(s.name)}</span>
+      <span class="ico-rename" data-id="${escapeHtml(s.id)}" style="opacity:.5;cursor:pointer;font-size:13px;padding:2px 6px">✏️</span></div>`).join('')+
+    `<div class="store-divider"></div><div class="store-action" id="add-store-btn"><span>＋</span>店舗を追加</div>`;
+}
+function setCurrent(id){ if(!stores().find(s=>s.id===id))return; curStore=id; ls('v2_store',id); renderSwitcher(); reloadFrames(); }
+function addStore(name){ const list=stores(); const id='store_'+Date.now(); list.push({id,name:(name||'').trim()||'新店舗',createdAt:Date.now()}); saveStores(list); setCurrent(id); }
+function renameStore(id,n){ const list=stores(); const s=list.find(x=>x.id===id); if(!s)return; s.name=(n||'').trim()||s.name; saveStores(list); renderSwitcher(); }
+
+// ---------- タブ / iframe ----------
+function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1&v='+BUILD;}
+function showSystem(sys){
+  activeSys=sys;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.sys===sys));
+  Object.values(frames).forEach(f=>f.classList.remove('active'));
+  if(!curStore){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='店舗がまだありません。<br>左上の「▼」から「＋ 店舗を追加」を押すか、⚙️ →「いまのアプリのデータを写す」で写してください。'; return; }
+  $('frame-loading').style.display='none';
+  if(!frames[sys]){ const ifr=document.createElement('iframe'); ifr.className='frame'; ifr.src=sysUrl(sys); $('main').appendChild(ifr); frames[sys]=ifr; }
+  frames[sys].classList.add('active');
+}
+function reloadFrames(){ Object.keys(frames).forEach(k=>{ frames[k].remove(); delete frames[k]; }); showSystem(activeSys); }
+
+// ---------- 保存の状態 ----------
+function renderStatus(s){
+  const el=$('sync'); el.className='sync '+s.state+(s.pending?' has':'');
+  $('sync-text').textContent = s.state==='err' ? (s.error||'保存できません')
+    : s.state==='off' ? (s.pending?`ネットなし・未送信 ${s.pending}件（つながると送ります）`:'ネットなし（見るだけ）')
+    : s.state==='saving' ? `保存中…${s.pending?` ${s.pending}件`:''}` : '保存済み';
+}
+
+// ---------- 起動 ----------
+function devName(){ return ls('v2_device_name')||''; }
+function deviceLabel(){ const id=V2.deviceId(); const n=devName(); return (n?n:'端末')+'#'+id.slice(-4); }
+function passFromUrl(){ try{ const m=(location.hash||'').match(/[#&]k=([^&]+)/); if(m)return decodeURIComponent(m[1]).trim(); }catch(_){} return ''; }
+async function start(pass){
+  $('sync-text').textContent='接続中…'; $('sync').className='sync saving';
+  store=await V2.connect(pass,{device:deviceLabel()});
+  store.onStatus(renderStatus);
+  meta=await store.open('meta','meta');
+  // 店舗の一覧がまだ無ければ、この端末の いまのアプリの一覧（名前だけ）を写す。いまのアプリ側は読むだけ
+  if(meta.synced&&!stores().length){
+    let old=[]; try{ old=JSON.parse(ls('global_stores')||'[]')||[]; }catch(_){}
+    old=old.filter(s=>s&&s.id).map(s=>({id:s.id,name:s.name||'店舗',createdAt:s.createdAt||0}));
+    if(old.length)saveStores(old);
+  }
+  curStore=ls('v2_store')||ls('current_store_id')||'';
+  meta.onChange(()=>{ const before=curStore; renderSwitcher(); if(before!==curStore||!frames[activeSys])showSystem(activeSys); });
+  renderSwitcher();
+  let init='cal'; try{ const q=new URLSearchParams(location.search).get('sys'); if(q&&SYSTEMS[q])init=q; }catch(_){}
+  showSystem(init);
+  renderStatus(store.status());
+  if(!meta.synced){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='ネットにつながっていないため、まだ読み込めていません。<br>つながると自動で表示します。'; }
+}
+async function boot(){
+  const up=passFromUrl(); if(up){ ls('v2_pass',up); try{history.replaceState(null,'',location.pathname+location.search);}catch(_){} }
+  const saved=ls('v2_pass')||ls('unified_pass');     // この端末で いまのアプリに入っている合言葉があれば、そのまま使う（同じ合言葉・別の場所）
+  if(saved){ try{ await start(saved); return; }catch(e){ console.error(e); $('pass-status').style.display='block'; $('pass-status').textContent='接続できませんでした：'+(e&&e.message||e); } }
+  openOverlay('pass-overlay'); setTimeout(()=>{ try{$('pass-input').focus();}catch(_){} },200);
+}
+
+// ---------- 履歴・前の状態に戻す ----------
+const OPS={add:'追加',edit:'変更',del:'削除',lost:'負けた入力'};
+function fmtT(t){ const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function curColl(){ return store.open(activeSys+'~'+curStore,SYSTEMS[activeSys].spec); }
+let _hist=[];
+async function openHistory(){
+  closeOverlay('settings-overlay'); openOverlay('history-overlay');
+  $('history-sub').textContent=`${(stores().find(s=>s.id===curStore)||{}).name||''}・${SYSTEMS[activeSys].label}　直近7日の変更（新しい順）`;
+  $('history-body').textContent='読み込み中…';
+  try{
+    const c=await curColl(); const [ch,snaps]=await Promise.all([c.changes(7),c.snapshots(30)]); _hist=ch;
+    let html='<div class="h-sec">1件ずつ戻す</div>';
+    if(!ch.length)html+='<div class="muted">この7日間の変更はありません。</div>';
+    html+=ch.slice(0,200).map((e,i)=>{ const isR=/restore/.test(e.why||''); const cls=isR?'restore':e.op; const nm=isR?'戻した':(OPS[e.op]||e.op);
+      const btn=e.op==='add'&&!isR?'この追加を取り消す':(e.op==='lost'?'この入力を採用する':'この変更の前に戻す');
+      return `<div class="h-row"><span class="when">${fmtT(e.t)}</span><span class="op ${cls}">${nm}</span><span class="what" title="${escapeHtml(e.s)}">${escapeHtml(e.s||e.id)} <small>${escapeHtml(e.by||'')}${e.lost&&e.op!=='lost'?'・同時の変更あり':''}</small></span><button class="btn btn-ghost" data-hi="${i}">${btn}</button></div>`; }).join('');
+    html+='<div class="h-sec">その日の状態に、全部まとめて戻す</div>';
+    if(!snaps.length)html+='<div class="muted">まだ全体の写しがありません（データがある日に、その日の最初に開いた端末が1つ残します）。</div>';
+    html+=snaps.map(s=>`<div class="h-row"><span class="when">${escapeHtml(s.day)}</span><span class="op">${s.n}件</span><span class="what">その日の最初に開いた時の状態 <small>${escapeHtml(s.by||'')}</small></span><button class="btn btn-ghost" data-snap="${escapeHtml(s.day)}">この日の状態に戻す</button></div>`).join('');
+    html+='<div class="muted">戻すことも1つの変更として履歴に残ります（戻したのを、また戻せます）。全部の端末に反映されます。</div>';
+    $('history-body').innerHTML=html;
+  }catch(e){ $('history-body').textContent='履歴を読み込めませんでした（ネットを確かめてください）：'+(e&&e.message||e); }
+}
+async function onHistoryClick(ev){
+  const b=ev.target.closest('[data-hi],[data-snap]'); if(!b)return;
+  const c=await curColl();
+  try{
+    if(b.dataset.hi!==undefined){
+      const e=_hist[+b.dataset.hi];
+      if(!confirm(`「${e.s||e.id}」\n${fmtT(e.t)} の「${OPS[e.op]||e.op}」${e.op==='lost'?'の入力を採用します':'の前の状態に戻します'}。\n全部の端末に反映されます。よろしいですか？`))return;
+      await c.restoreBefore(e.id,e.h||e.rev);
+    }else{
+      const day=b.dataset.snap; const body=await c.readSnapshot(day); const now=Object.keys(c.view()).length;
+      if(!confirm(`${day} の状態に、全部まとめて戻します。\nいま ${now} 件 → 戻した後 ${Object.keys(body).length} 件。\nその日より後の変更は消えます（履歴には残り、また戻せます）。全部の端末に反映されます。\nよろしいですか？`))return;
+      if(!confirm('もう一度だけ確かめます。本当に '+day+' の状態に戻しますか？'))return;
+      await c.restoreSnapshot(day);
+    }
+    await store.settle(20000); openHistory();
+  }catch(e){ alert('戻せませんでした：'+(e&&e.message||e)); }
+}
+async function doExport(){
+  const out={app:'店舗運営管理システム v2',savedAt:new Date().toISOString(),storeId:curStore,stores:stores(),data:{}};
+  for(const sys of Object.keys(SYSTEMS)){ const c=await store.open(sys+'~'+curStore,SYSTEMS[sys].spec); out.data[sys]=c.getState(); }
+  const d=new Date(), a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,1)],{type:'application/json'}));
+  a.download=`新システムの控え_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.json`;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },4000);
+  $('settings-status').textContent='書き出しました。「ダウンロード」を確かめてください。';
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  $('tabs').addEventListener('click',e=>{ const t=e.target.closest('.tab'); if(t)showSystem(t.dataset.sys); });
+  const sw=$('store-switcher');
+  $('store-trigger').addEventListener('click',e=>{ e.stopPropagation(); sw.classList.toggle('open'); });
+  document.addEventListener('click',e=>{ if(!sw.contains(e.target))sw.classList.remove('open'); });
+  $('store-menu').addEventListener('click',e=>{
+    e.stopPropagation(); if(!meta)return;
+    const rn=e.target.closest('.ico-rename');
+    if(rn){ const cur=stores().find(s=>s.id===rn.dataset.id); const nn=prompt('店舗名を変更',cur?cur.name:''); if(nn!==null&&nn.trim())renameStore(rn.dataset.id,nn); return; }
+    const item=e.target.closest('.store-item'); if(item){ setCurrent(item.dataset.id); sw.classList.remove('open'); return; }
+    if(e.target.closest('#add-store-btn')){ const n=prompt('追加する店舗名を入力'); if(n&&n.trim())addStore(n); sw.classList.remove('open'); }
+  });
+  const openSettings=()=>{ $('devname-desc').textContent='履歴に「だれの端末か」として出ます（いま：'+deviceLabel()+'）'; $('settings-status').textContent=''; openOverlay('settings-overlay'); };
+  $('sync').addEventListener('click',openSettings); $('settings-btn').addEventListener('click',openSettings);
+  document.addEventListener('click',e=>{ const c=e.target.closest('[data-close]'); if(c)closeOverlay(c.dataset.close); });
+  $('history-btn').addEventListener('click',()=>{ if(store&&curStore)openHistory(); });
+  $('history-body').addEventListener('click',onHistoryClick);
+  $('export-btn').addEventListener('click',()=>{ if(store&&curStore)doExport(); });
+  $('devname-btn').addEventListener('click',()=>{ const n=prompt('この端末の名前（例：事務所のパソコン、新村のiPad）',devName()); if(n!==null){ ls('v2_device_name',n.trim()||null); if(store)store.device=deviceLabel(); $('devname-desc').textContent='履歴に「だれの端末か」として出ます（いま：'+deviceLabel()+'）'; } });
+  $('change-pass-btn').addEventListener('click',()=>{ if(store&&store.status().pending){ alert('まだ送っていない変更があります。ネットにつないで「保存済み」になってから変更してください。'); return; } if(!confirm('合言葉を入れ直します。別の合言葉を入れると、別のデータの場所に切り替わります。よろしいですか？'))return; ls('v2_pass',null); closeOverlay('settings-overlay'); $('pass-input').value=''; openOverlay('pass-overlay'); });
+  $('pass-go-btn').addEventListener('click',async()=>{
+    const v=($('pass-input').value||'').trim(), st=$('pass-status'); st.style.display='block';
+    if(!v){ st.textContent='合言葉を入力してください'; return; }
+    if(store){ ls('v2_pass',v); location.reload(); return; }
+    st.textContent='接続中…';
+    try{ await start(v); ls('v2_pass',v); closeOverlay('pass-overlay'); }catch(e){ console.error(e); st.textContent='接続できませんでした。ネット接続を確かめてください。（'+(e&&e.message||e)+'）'; }
+  });
+  $('pass-input').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.isComposing)$('pass-go-btn').click(); });
+  boot();
+});
+</script>
+</body>
+</html>

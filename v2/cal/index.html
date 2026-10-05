@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>カレンダー</title>
+<script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
+<script>
+/* 入力途中の値を守る共通ガード（全システム共通・同期対象外）
+   - 文字を打つたびに sessionStorage へ退避し、画面の作り直し・再描画の後に同じ欄へ戻す（フォーカスも戻す）
+   - 欄が確定（change）されたら退避を消す。30分で失効
+   → 統合アプリの同期や他タブの保存で画面が描き直されても、入力途中の文字が構造的に消えない */
+(function(){
+  var KEY='__draft::'+location.pathname, TTL=30*60*1000, drafts={}, lastFocusKey=null, timer=null;
+  try{ drafts=JSON.parse(sessionStorage.getItem(KEY)||'{}')||{}; lastFocusKey=sessionStorage.getItem(KEY+'#focus')||null; }catch(e){ drafts={}; }
+  function isText(el){ if(!el||!el.tagName)return false; var t=el.tagName; if(t==='TEXTAREA')return true; if(t!=='INPUT')return false; var ty=(el.type||'text').toLowerCase(); return ['text','number','search','tel','url','email','date','time','month'].indexOf(ty)>=0; }
+  function keyOf(el){
+    if(el.id)return '#'+el.id;
+    var a=el.getAttribute('onchange')||el.getAttribute('oninput')||el.getAttribute('onblur'); if(a)return 'h:'+a;
+    var ds=(el.dataset&&Object.keys(el.dataset).length)?JSON.stringify(el.dataset):''; if(ds)return 'd:'+ds;
+    var anc=el.closest('[id],[data-pid],[data-id],[data-key]'); var base=anc?(anc.id?'#'+anc.id:JSON.stringify(anc.dataset)):'body';
+    var list=(anc||document.body).querySelectorAll('input,textarea'); return 'p:'+base+'/'+Array.prototype.indexOf.call(list,el);
+  }
+  function persist(){ try{ sessionStorage.setItem(KEY,JSON.stringify(drafts)); sessionStorage.setItem(KEY+'#focus',lastFocusKey||''); }catch(e){} }
+  function prune(){ var now=Date.now(); Object.keys(drafts).forEach(function(k){ if(now-(drafts[k].t||0)>TTL)delete drafts[k]; }); }
+  document.addEventListener('input',function(e){ var el=e.target; if(!isText(el)||el.__draftRestoring)return; var k=keyOf(el); lastFocusKey=k; drafts[k]={v:el.value,t:Date.now()}; persist(); },true);
+  document.addEventListener('change',function(e){ var el=e.target; if(!isText(el))return; var k=keyOf(el); if(drafts[k]){ delete drafts[k]; persist(); } },true);
+  document.addEventListener('focusin',function(e){ if(isText(e.target))lastFocusKey=keyOf(e.target); },true);
+  function restore(){
+    timer=null; prune(); var keys=Object.keys(drafts); if(!keys.length)return;
+    var els=document.querySelectorAll('input,textarea'), map={}, i;
+    for(i=0;i<els.length;i++){ if(isText(els[i]))map[keyOf(els[i])]=els[i]; }
+    var refocus=null;
+    keys.forEach(function(k){ var el=map[k]; if(!el)return; var d=drafts[k];
+      if(el.value!==d.v){ el.__draftRestoring=true; el.value=d.v; try{ el.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} el.__draftRestoring=false; }
+      if(k===lastFocusKey)refocus=el; });
+    // 描き直しでフォーカスが外れていたら、同じ欄の末尾へ戻す
+    if(refocus&&(!document.activeElement||document.activeElement===document.body)){ try{ refocus.focus(); var n=refocus.value.length; if(refocus.setSelectionRange)refocus.setSelectionRange(n,n); }catch(e){} }
+  }
+  function schedule(){ if(!timer)timer=setTimeout(restore,60); }
+  function start(){ try{ new MutationObserver(function(ms){ for(var i=0;i<ms.length;i++){ if(ms[i].addedNodes&&ms[i].addedNodes.length){ schedule(); return; } } }).observe(document.body,{childList:true,subtree:true}); }catch(e){} schedule(); }
+  if(document.body)start(); else document.addEventListener('DOMContentLoaded',start);
+  window.addEventListener('pagehide',persist);
+})();
+</script>
+<script>if(!window.__EMBEDDED&&!/[?&]mem=1/.test(location.search)){document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('div');b.id='standalone-warn';b.style.cssText='position:sticky;top:0;z-index:9999;background:#fef3c7;color:#92400e;border-bottom:2px solid #f59e0b;padding:9px 12px;font-size:13px;font-weight:700;display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex-shrink:0';b.innerHTML='⚠️ このページ単体では<b>データを読み書きできません</b>。全端末で共有するには、新しいシステムの入口から開いてください。<a href="../index.html?sys=cal" style="margin-left:auto;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:6px 12px;font-weight:800;white-space:nowrap">入口から開く →</a>';document.body.insertBefore(b,document.body.firstChild);});}</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f1f5f9;--panel:#fff;--text:#0f172a;--sub:#64748b;--faint:#94a3b8;--border:#e2e8f0;
+  --accent:#2563eb;--accent-dk:#1d4ed8;--accent-lt:#eff6ff;
+  --green:#16a34a;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;
+}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:12px 12px 90px}
+/* ヘッダー */
+header{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+header h1{font-size:18px;font-weight:800;display:flex;align-items:center;gap:7px}
+header .spacer{flex:1}
+.hub-link{font-size:13px;color:var(--sub);text-decoration:none;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px}
+.embedded-in-hub .hub-link{display:none}
+/* 今日パネル */
+.today-panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.today-date{display:flex;flex-direction:column;line-height:1.2}
+.today-date .d{font-size:30px;font-weight:800}
+.today-date .m{font-size:12px;color:var(--sub);font-weight:600}
+.today-info{flex:1;min-width:180px;display:flex;flex-direction:column;gap:5px}
+.today-info .lbl{font-size:11px;color:var(--faint);font-weight:700}
+.today-chips{display:flex;gap:6px;flex-wrap:wrap}
+.mini-chip{font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;display:inline-flex;gap:5px;align-items:center}
+.today-empty{font-size:12px;color:var(--faint)}
+/* 月ナビ */
+.month-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.month-title{font-size:19px;font-weight:800;min-width:150px;text-align:center}
+.nav-btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;width:40px;height:40px;font-size:17px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center}
+.nav-btn:hover{background:#f1f5f9}
+.today-btn{font-family:inherit;font-size:13px;font-weight:700;border:1px solid var(--border);background:#fff;border-radius:10px;padding:9px 14px;cursor:pointer}
+.today-btn:hover{background:#f1f5f9}
+/* 自動表示（ほかの画面で管理している期限） */
+.auto-toggle{margin-left:auto;font-size:12px;font-weight:700;color:#0f766e;background:#f0fdfa;border:1px solid #99f6e4;border-radius:999px;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.auto-toggle input{width:16px;height:16px;margin:0;accent-color:#0f766e}
+.auto-src{font-size:10px;font-weight:700;color:#0f766e;background:#f0fdfa;border:1px solid #99f6e4;border-radius:999px;padding:2px 8px;white-space:nowrap;flex-shrink:0}
+/* カレンダーグリッド */
+.cal{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.dow{display:grid;grid-template-columns:repeat(7,1fr);background:#f8fafc;border-bottom:1px solid var(--border)}
+.dow div{text-align:center;font-size:12px;font-weight:700;color:var(--sub);padding:8px 0}
+.dow div.sun{color:var(--red)}
+.dow div.sat{color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}   /* minmax(0,…)：長い予定名で列幅が広がって曜日とずれるのを防ぐ */
+.cell{min-width:0;min-height:96px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px 5px 6px;cursor:pointer;position:relative;display:flex;flex-direction:column;gap:3px;background:#fff}
+.cell:nth-child(7n){border-right:none}
+.cell.other{background:#fafafa}
+.cell.other .num{color:#cbd5e1}
+.cell:hover{background:#f8fafc}
+.cell .num{font-size:13px;font-weight:700;color:var(--text);width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0}
+.cell.sun .num{color:var(--red)}
+.cell.sat .num{color:var(--accent)}
+.cell.today .num{background:var(--accent);color:#fff}
+.ev{font-size:11px;line-height:1.35;border-radius:5px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;border-left:3px solid transparent}
+.more{font-size:10px;color:var(--faint);font-weight:700;padding-left:3px}
+/* これからの予定 */
+.up-sec{margin-top:16px}
+.up-sec h2{font-size:14px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.up-list{display:flex;flex-direction:column;gap:7px}
+.up-item{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:9px 12px;display:flex;gap:11px;align-items:center;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+.up-when{flex-shrink:0;text-align:center;width:52px}
+.up-when .wd{font-size:11px;font-weight:700;color:var(--sub)}
+.up-when .dd{font-size:19px;font-weight:800;line-height:1}
+.up-body{flex:1;min-width:0}
+.up-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.up-cat{font-size:10px;font-weight:700;border-radius:999px;padding:1px 8px}
+.up-note{font-size:12px;color:var(--sub);margin-top:1px;white-space:pre-wrap;word-break:break-word}
+.up-time{font-size:12px;font-weight:700;color:var(--accent-dk)}
+.up-empty{color:var(--faint);font-size:13px;text-align:center;padding:18px;background:var(--panel);border:1px dashed var(--border);border-radius:11px}
+.icon-mini{background:none;border:none;font-size:15px;cursor:pointer;color:var(--faint);padding:3px}
+.icon-mini:hover{color:var(--text)}
+/* FAB */
+.fab{position:fixed;right:18px;bottom:18px;bottom:calc(18px + env(safe-area-inset-bottom));background:var(--accent);color:#fff;border:none;border-radius:999px;padding:14px 20px;font-size:15px;font-weight:800;box-shadow:0 8px 24px rgba(37,99,235,.4);cursor:pointer;z-index:50;display:flex;align-items:center;gap:7px}
+.fab:hover{background:var(--accent-dk)}
+/* モーダル */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-end;justify-content:center;z-index:1000;padding:0}
+.overlay.show{display:flex}
+@media(min-width:600px){.overlay{align-items:center;padding:18px}}
+.modal{background:#fff;border-radius:18px 18px 0 0;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:20px 18px calc(20px + env(safe-area-inset-bottom))}
+@media(min-width:600px){.modal{border-radius:18px}}
+.modal h2{font-size:17px;font-weight:800;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.modal .m-sub{font-size:12px;color:var(--sub);margin-bottom:14px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:5px}
+.field input,.field textarea,.field select{width:100%;font-family:inherit;font-size:15px;border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;background:#fff;color:var(--text)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:64px}
+.cat-row{display:flex;gap:6px;flex-wrap:wrap}
+.cat-opt{font-size:12px;font-weight:700;border-radius:999px;padding:7px 12px;cursor:pointer;border:1.5px solid transparent}
+.btn{appearance:none;border:none;font-family:inherit;font-size:15px;font-weight:700;border-radius:11px;padding:13px;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff;flex:1}
+.btn-primary:hover{background:var(--accent-dk)}
+.btn-ghost{background:#f1f5f9;color:var(--text)}
+.btn-ghost:hover{background:#e2e8f0}
+.btn-del{background:#fef2f2;color:var(--red)}
+.btn-row{display:flex;gap:9px;margin-top:6px}
+.close-x{position:absolute;top:12px;right:14px;font-size:22px;color:var(--sub);cursor:pointer;background:none;border:none}
+.modal{position:relative}
+/* 日モーダルの予定リスト */
+.day-ev{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid var(--border);border-radius:11px;margin-bottom:7px;border-left:4px solid transparent}
+.day-ev .de-body{flex:1;min-width:0}
+.day-ev .de-title{font-size:14px;font-weight:700}
+.day-ev .de-meta{font-size:12px;color:var(--sub)}
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;z-index:2000;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:.95}
+@media(max-width:520px){
+  .cell{min-height:74px}
+  .today-date .d{font-size:26px}
+  .wrap{padding:10px 8px 90px}
+}
+</style>
+<script src="../../autoupdate.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📅 カレンダー</h1>
+    <div class="spacer"></div>
+    <a href="../index.html?sys=cal" class="hub-link">← ハブ</a>
+  </header>
+
+  <div class="today-panel" id="today-panel"></div>
+
+  <div class="month-bar">
+    <button class="nav-btn" id="prev-btn" title="前の月">‹</button>
+    <div class="month-title" id="month-title"></div>
+    <button class="nav-btn" id="next-btn" title="次の月">›</button>
+    <button class="today-btn" id="jump-today">今日</button>
+    <label class="auto-toggle" title="担当業務の作戦シートの期限と、クルーランクの評価シートの回収目安を、カレンダーに自動で表示します"><input type="checkbox" id="auto-toggle" checked> 🎯 作戦シート・評価シートの期限を表示</label>
+  </div>
+
+  <div class="cal">
+    <div class="dow">
+      <div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="up-sec">
+    <h2>📋 これからの予定</h2>
+    <div class="up-list" id="up-list"></div>
+  </div>
+</div>
+
+<button class="fab" id="fab">＋ 予定</button>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="../core.js"></script>
+<script>
+// ============ 店舗 / 保存 ============
+// 【新しいシステム】ここ（保存と読み込み）だけを差し替え。画面・計算は いまのカレンダー（cal/index.html）と同じ。
+//   本物のデータはネット上の1か所。予定1件＝記録1件で、変わった予定だけを送る（v2/core.js）。
+const MEM=/[?&]mem=1/.test(location.search);    // 答え合わせ用：ネットにつながず、この画面の中だけで動かす
+let _coll=null,_sid='';
+function storeId(){return _sid;}
+function dataKey(){const s=storeId();return s?'cal_v1_store_'+s:'cal_v1';}
+let S={events:[]};
+function loadS(){
+  S={events:[]};
+  if(!_coll)return;
+  try{const o=_coll.getState();if(o&&typeof o==='object'){S.events=Array.isArray(o.events)?o.events:[];}}catch(e){console.error('cal load',e);}
+}
+function saveS(){
+  if(!_coll||!_coll.synced){alert('まだデータを読み込めていません（ネットにつながると読み込みます）。この変更は保存されていません。');return;}
+  try{_coll.setState(S);}
+  catch(e){console.error('cal save',e);alert('保存に失敗しました: '+e);}
+}
+
+// ============ カテゴリ ============
+const CATS=[
+  {k:'plan',    label:'予定',            color:'#2563eb',bg:'#eff6ff'},
+  {k:'event',   label:'イベント・キャンペーン',color:'#7c3aed',bg:'#f5f3ff'},
+  {k:'order',   label:'発注・締切',       color:'#d97706',bg:'#fffbeb'},
+  {k:'shelf',   label:'棚替え・改装',     color:'#16a34a',bg:'#ecfdf5'},
+  {k:'important',label:'重要',            color:'#dc2626',bg:'#fef2f2'},
+  {k:'memo',    label:'メモ',            color:'#64748b',bg:'#f1f5f9'}
+];
+function cat(k){return k==='auto'?AUTO_CAT:(CATS.find(c=>c.k===k)||CATS[0]);}
+
+// ============ 自動表示：ほかの画面で管理している「期限」 ============
+//   ・担当業務の作戦シートの期限（未完了のもの）
+//   ・クルーランクの評価シートの回収目安（渡してから7日。まだ提出されていないもの）
+//   カレンダーには保存しない（元の画面のデータを読んで出すだけ）。期限を過ぎたものは「今日」に出して見落とさない。
+//   誕生日などクルー情報の個人情報は出さない（クルー情報はパスワード保護のため）。
+const AUTO_CAT={k:'auto',label:'期限（自動）',color:'#0f766e',bg:'#f0fdfa'};
+const AUTO_KEY='unified_ui_cal_auto';   // 表示のオン／オフ（端末ごと。unified_ で始まるキーは同期されない）
+const SHEET_DUE_DAYS=7;
+function showAuto(){ try{return localStorage.getItem(AUTO_KEY)!=='0';}catch(_){return true;} }
+function readJson(key){ try{ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):null; }catch(e){ return null; } }
+function autoEvents(){
+  if(!showAuto())return [];
+  const s=storeId(), ts=todayStr(), out=[];
+  const put=(id,due,title,note,src)=>{ if(!due||!/^\d{4}-\d{2}-\d{2}$/.test(due))return; const over=due<ts?Math.round((parseYmd(ts)-parseYmd(due))/86400000):0;
+    out.push({id:'auto_'+id,auto:true,src,cat:'auto',date:over?ts:due,time:'',title:title+(over?`（${over}日超過）`:''),note:(note||'')+(over?`${note?'・':''}本来の期限 ${+due.slice(5,7)}/${+due.slice(8,10)}`:'')}); };
+  const b=readJson(s?'bumon_v1_store_'+s:'bumon_v1');
+  if(b&&Array.isArray(b.sheets)) b.sheets.forEach(sh=>{ if(sh&&sh.due&&sh.phase!=='done') put('sh_'+sh.id,sh.due,'🎯 作戦シート期限：'+(sh.title||'(無題)'),sh.assignee?'担当 '+sh.assignee:'','担当業務'); });
+  const c=readJson(s?'crew_v1_store_'+s:'crew_v1');
+  if(c&&Array.isArray(c.members)&&c.ranks) c.members.forEach(m=>{ const sheet=(c.ranks[m.id]||{}).sheet; if(sheet&&sheet.status==='handed'&&sheet.handedAt) put('ev_'+m.id,addDays(sheet.handedAt,SHEET_DUE_DAYS),'📄 評価シート回収：'+(m.name||''),'渡した日 '+(+sheet.handedAt.slice(5,7))+'/'+(+sheet.handedAt.slice(8,10)),'クルーランク'); });
+  return out;
+}
+function allEvents(){ return S.events.concat(autoEvents()); }
+
+// ============ 日付ヘルパー ============
+const WD=['日','月','火','水','木','金','土'];
+function pad(n){return (n<10?'0':'')+n;}
+function ymd(dt){return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());}
+function parseYmd(s){const p=String(s||'').split('-');return new Date(+p[0],(+p[1]||1)-1,+p[2]||1);}
+function todayStr(){return ymd(new Date());}
+let view=new Date(); view.setDate(1);
+
+// ============ 描画 ============
+function render(){
+  loadS();
+  renderTodayPanel();
+  renderMonth();
+  renderUpcoming();
+}
+function renderTodayPanel(){
+  const now=new Date(), ts=todayStr();
+  const evs=allEvents().filter(e=>e.date===ts).sort(byTime);
+  let chips='';
+  evs.forEach(e=>{const c=cat(e.cat);chips+=`<span class="mini-chip" style="background:${c.bg};color:${c.color}">${e.time?escapeHtml(e.time)+' ':''}${escapeHtml(e.title)}</span>`;});
+  if(!chips)chips=`<span class="today-empty">今日の予定はありません</span>`;
+  document.getElementById('today-panel').innerHTML=
+    `<div class="today-date"><span class="d">${now.getDate()}</span><span class="m">${now.getFullYear()}年${now.getMonth()+1}月 (${WD[now.getDay()]})</span></div>
+     <div class="today-info"><span class="lbl">今日のできごと</span><div class="today-chips">${chips}</div></div>`;
+}
+function renderMonth(){
+  const y=view.getFullYear(), m=view.getMonth();
+  document.getElementById('month-title').textContent=`${y}年 ${m+1}月`;
+  const first=new Date(y,m,1);
+  const start=new Date(y,m,1-first.getDay());          // 週頭(日曜)まで戻す
+  const ts=todayStr();
+  const all=allEvents();
+  const tg=document.getElementById('auto-toggle'); if(tg)tg.checked=showAuto();
+  let html='';
+  for(let i=0;i<42;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const inMonth=d.getMonth()===m;
+    const ds=ymd(d), dow=d.getDay();
+    const cls=['cell']; if(!inMonth)cls.push('other'); if(ds===ts)cls.push('today'); if(dow===0)cls.push('sun'); if(dow===6)cls.push('sat');
+    const evs=all.filter(e=>e.date===ds).sort(byTime);
+    let inner=`<span class="num">${d.getDate()}</span>`;
+    const room=3;
+    evs.slice(0,room).forEach(e=>{const c=cat(e.cat);inner+=`<span class="ev" style="background:${c.bg};color:${c.color};border-left-color:${c.color}">${e.time?escapeHtml(e.time)+' ':''}${escapeHtml(e.title)}</span>`;});
+    if(evs.length>room)inner+=`<span class="more">+${evs.length-room}件</span>`;
+    html+=`<div class="${cls.join(' ')}" data-d="${ds}">${inner}</div>`;
+  }
+  document.getElementById('grid').innerHTML=html;
+}
+function renderUpcoming(){
+  const ts=todayStr();
+  const list=allEvents().filter(e=>e.date>=ts).sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):byTime(a,b)).slice(0,30);
+  const box=document.getElementById('up-list');
+  if(!list.length){box.innerHTML=`<div class="up-empty">これからの予定はまだありません。「＋予定」から追加できます。</div>`;return;}
+  box.innerHTML=list.map(e=>{
+    const c=cat(e.cat), d=parseYmd(e.date);
+    const today=e.date===ts;
+    return `<div class="up-item">
+      <div class="up-when" style="${today?'color:var(--accent-dk)':''}">
+        <div class="wd">${e.date===ts?'今日':(e.date===addDays(ts,1)?'明日':(d.getMonth()+1)+'月')}</div>
+        <div class="dd">${d.getDate()}</div>
+      </div>
+      <div class="up-body">
+        <div class="up-title">${e.time?`<span class="up-time">${escapeHtml(e.time)}</span>`:''}<span>${escapeHtml(e.title)}</span><span class="up-cat" style="background:${c.bg};color:${c.color}">${escapeHtml(c.label)}</span></div>
+        ${e.note?`<div class="up-note">${escapeHtml(e.note)}</div>`:''}
+      </div>
+      ${e.auto?`<span class="auto-src" title="この予定は「${escapeHtml(e.src)}」で管理しています。完了・変更は元の画面で行ってください">${escapeHtml(e.src)}で管理</span>`
+        :`<button class="icon-mini" data-edit="${e.id}" title="編集">✏️</button>
+      <button class="icon-mini" data-del="${e.id}" title="削除">🗑</button>`}
+    </div>`;
+  }).join('');
+}
+function byTime(a,b){const ta=a.time||'99:99', tb=b.time||'99:99';return ta<tb?-1:ta>tb?1:0;}
+function addDays(ds,n){const d=parseYmd(ds);d.setDate(d.getDate()+n);return ymd(d);}
+
+// ============ モーダル：日ビュー ============
+function openDay(ds){
+  const d=parseYmd(ds);
+  const evs=allEvents().filter(e=>e.date===ds).sort(byTime);
+  let body='';
+  if(evs.length){
+    body+=evs.map(e=>{const c=cat(e.cat);return `<div class="day-ev" style="border-left-color:${c.color}">
+      <div class="de-body"><div class="de-title">${escapeHtml(e.title)}</div>
+      <div class="de-meta">${e.time?escapeHtml(e.time)+'・':''}<span style="color:${c.color};font-weight:700">${escapeHtml(c.label)}</span>${e.note?'<br>'+escapeHtml(e.note):''}</div></div>
+      ${e.auto?`<span class="auto-src">${escapeHtml(e.src)}で管理</span>`:`<button class="icon-mini" data-edit="${e.id}">✏️</button>
+      <button class="icon-mini" data-del="${e.id}">🗑</button>`}</div>`;}).join('');
+  }else{
+    body+=`<div style="color:var(--faint);font-size:13px;text-align:center;padding:14px">この日の予定はありません</div>`;
+  }
+  setModal(`<button class="close-x" data-close>×</button>
+    <h2>📆 ${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 (${WD[d.getDay()]})</h2>
+    <div class="m-sub">予定をタップで編集できます</div>
+    ${body}
+    <div class="btn-row"><button class="btn btn-primary" data-add="${ds}">＋ この日に予定を追加</button></div>`);
+}
+
+// ============ モーダル：予定フォーム ============
+function openForm(ds,id){
+  const ev=id?S.events.find(e=>e.id===id):null;
+  const date=ev?ev.date:(ds||todayStr());
+  const curCat=ev?ev.cat:'plan';
+  setModal(`<button class="close-x" data-close>×</button>
+    <h2>${ev?'✏️ 予定を編集':'＋ 予定を追加'}</h2>
+    <div class="m-sub">${ev?'内容を変更して保存':'日付・内容を入力して保存'}</div>
+    <div class="field"><label>日付</label><input type="date" id="f-date" value="${date}"></div>
+    <div class="field"><label>時刻（任意）</label><input type="time" id="f-time" value="${ev&&ev.time?ev.time:''}"></div>
+    <div class="field"><label>種類</label><div class="cat-row" id="f-cats">
+      ${CATS.map(c=>`<span class="cat-opt" data-cat="${c.k}" style="background:${c.bg};color:${c.color};border-color:${c.k===curCat?c.color:'transparent'}">${escapeHtml(c.label)}</span>`).join('')}
+    </div><input type="hidden" id="f-cat" value="${curCat}"></div>
+    <div class="field"><label>内容</label><input type="text" id="f-title" placeholder="例：新商品発売、棚替え、キャンペーン開始" value="${ev?escapeAttr(ev.title):''}"></div>
+    <div class="field"><label>メモ（任意）</label><textarea id="f-note" placeholder="詳細や補足">${ev?escapeHtml(ev.note||''):''}</textarea></div>
+    <div class="btn-row">
+      ${ev?`<button class="btn btn-del" data-delform="${ev.id}">削除</button>`:''}
+      <button class="btn btn-primary" data-save="${ev?ev.id:''}">保存</button>
+    </div>`);
+  setTimeout(()=>{const t=document.getElementById('f-title');if(t&&!ev)t.focus();},60);
+}
+function saveForm(id){
+  const date=document.getElementById('f-date').value;
+  const title=document.getElementById('f-title').value.trim();
+  if(!date){alert('日付を入力してください');return;}
+  if(!title){alert('内容を入力してください');return;}
+  const rec={
+    id:id||('ev_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
+    date, time:document.getElementById('f-time').value||'',
+    cat:document.getElementById('f-cat').value||'plan',
+    title, note:document.getElementById('f-note').value.trim()
+  };
+  if(id){const i=S.events.findIndex(e=>e.id===id);if(i>=0)S.events[i]=rec;else S.events.push(rec);}
+  else S.events.push(rec);
+  saveS();closeModal();render();toast(id?'更新しました':'追加しました');
+}
+function delEvent(id){
+  const e=S.events.find(x=>x.id===id);
+  if(!confirm('この予定を削除しますか？\n「'+((e&&e.title)||'')+'」'))return;
+  S.events=S.events.filter(x=>x.id!==id);
+  saveS();closeModal();render();toast('削除しました');
+}
+
+// ============ モーダル制御 ============
+function setModal(html){document.getElementById('modal').innerHTML=html;document.getElementById('overlay').classList.add('show');}
+function closeModal(){document.getElementById('overlay').classList.remove('show');}
+let _toastT=null;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('show'),1800);}
+
+// ============ ユーティリティ ============
+function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function escapeAttr(s){return escapeHtml(s).replace(/"/g,'&quot;');}
+
+// ============ イベント配線 ============
+document.getElementById('prev-btn').addEventListener('click',()=>{view.setMonth(view.getMonth()-1);renderMonth();});
+document.getElementById('next-btn').addEventListener('click',()=>{view.setMonth(view.getMonth()+1);renderMonth();});
+document.getElementById('jump-today').addEventListener('click',()=>{view=new Date();view.setDate(1);renderMonth();});
+document.getElementById('fab').addEventListener('click',()=>openForm(todayStr()));
+document.getElementById('grid').addEventListener('click',e=>{const c=e.target.closest('.cell');if(c)openDay(c.dataset.d);});
+document.getElementById('up-list').addEventListener('click',e=>{
+  const ed=e.target.closest('[data-edit]'),de=e.target.closest('[data-del]');
+  if(ed)openForm(null,ed.dataset.edit);else if(de)delEvent(de.dataset.del);
+});
+// モーダル内クリック（委譲）
+document.getElementById('modal').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.closest('[data-close]')){closeModal();return;}
+  const add=t.closest('[data-add]'); if(add){openForm(add.dataset.add);return;}
+  const save=t.closest('[data-save]'); if(save){saveForm(save.dataset.save||'');return;}
+  const df=t.closest('[data-delform]'); if(df){delEvent(df.dataset.delform);return;}
+  const ed=t.closest('[data-edit]'); if(ed){openForm(null,ed.dataset.edit);return;}
+  const de=t.closest('[data-del]'); if(de){delEvent(de.dataset.del);return;}
+  const co=t.closest('[data-cat]'); if(co){
+    document.getElementById('f-cat').value=co.dataset.cat;
+    document.querySelectorAll('#f-cats .cat-opt').forEach(x=>{const c=cat(x.dataset.cat);x.style.borderColor=(x.dataset.cat===co.dataset.cat)?c.color:'transparent';});
+    return;
+  }
+});
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+// 店舗切替 / 多タブ同期
+window.addEventListener('storage',e=>{if(e.key===dataKey()||e.key==='current_store_id'||e.key==='ffv6_current'||/^(bumon_v1|crew_v1)/.test(e.key||''))render();});   // 担当業務・クルーの期限が変わったら自動表示も更新
+document.getElementById('auto-toggle').addEventListener('change',e=>{ try{localStorage.setItem(AUTO_KEY,e.target.checked?'1':'0');}catch(_){} render(); toast(e.target.checked?'期限の自動表示をオンにしました':'期限の自動表示をオフにしました'); });
+
+// 【新しいシステム】起動：データが届くのを待ってから描く。ほかの端末の変更が届いたら描き直す
+function _waitNote(on){
+  let n=document.getElementById('v2-wait');
+  if(on&&!n){ n=document.createElement('div'); n.id='v2-wait'; n.style.cssText='position:sticky;top:0;z-index:50;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;margin-bottom:10px'; n.textContent='データを読み込んでいます…（ネットにつながると表示されます。それまでは入力できません）'; const w=document.querySelector('.wrap'); w.insertBefore(n,w.firstChild); }
+  if(!on&&n)n.remove();
+}
+(async function _start(){
+  render();
+  try{
+    if(MEM){
+      const st=new V2.Store({backend:new V2.MemoryCloud().device(),space:'MEM',device:'mem',kv:new V2.MemKV(),snapshot:false});
+      _sid=new URLSearchParams(location.search).get('store')||'s'; _coll=await st.open('cal~'+_sid,'cal'); window.__v2={store:st,coll:_coll};
+    }else{
+      const host=(window.parent&&window.parent!==window)?window.parent.V2APP:null;
+      if(!host)return;                                   // 入口のページ（v2/index.html）の中で開く。単体で開いた時は上の帯から入口へ
+      _waitNote(true);
+      _sid=host.storeId(); _coll=await host.open('cal');
+    }
+    const off=_coll.onChange(()=>{ _waitNote(!_coll.synced); render(); });
+    window.addEventListener('pagehide',off);
+    _waitNote(!_coll.synced); render();
+    window.__v2ready=true;
+  }catch(e){ console.error('cal start',e); const n=document.getElementById('v2-wait'); if(n)n.textContent='データを読み込めませんでした：'+(e&&e.message||e); }
+})();
+</script>
+</body>
+</html>

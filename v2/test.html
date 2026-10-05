@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新しいシステム：土台の自動試験</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.6}
+h1{font-size:18px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;font-size:13px}
+th{background:#f8fafc;text-align:left;padding:6px 10px} td{padding:6px 10px;border-top:1px solid #e2e8f0;vertical-align:top}
+.ok{color:#16a34a;font-weight:700} .ng{color:#dc2626;font-weight:700} #sum{font-size:16px;font-weight:800;margin:10px 0}
+tr.grp td{background:#eff6ff;font-weight:700}
+</style>
+</head>
+<body>
+<h1>🧪 新しいシステム：土台の自動試験</h1>
+<div class="sub">ネットにつながない試験用の保存先で、何台かの端末のふりをして動かします。本物のデータにも Firebase にもさわりません。開くたびに全部やり直します。</div>
+<div id="sum">試験中…</div>
+<table><thead><tr><th style="width:60px">番号</th><th>確かめたこと</th><th style="width:70px">結果</th><th>くわしく</th></tr></thead><tbody id="rows"></tbody></table>
+<script src="core.js"></script>
+<script>
+(async function(){
+  const rows=document.getElementById('rows'), R=[]; let grp='';
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  function group(name){ grp=name; const tr=document.createElement('tr'); tr.className='grp'; tr.innerHTML=`<td colspan="4">${name}</td>`; rows.appendChild(tr); }
+  function check(no,what,ok,detail){ R.push({no,grp,what,ok:!!ok,detail:detail||''}); const tr=document.createElement('tr'); tr.innerHTML=`<td>${no}</td><td>${what}</td><td class="${ok?'ok':'ng'}">${ok?'○ 合格':'× 不合格'}</td><td>${String(detail||'').replace(/</g,'&lt;')}</td>`; rows.appendChild(tr); }
+  const J=JSON.stringify;
+  function mk(cloud,name,kv){ const be=cloud.device(); const store=new V2.Store({backend:be,space:'TEST',device:name,kv:kv||new V2.MemKV(),snapshot:false}); return {be,store,name,kv:store.kv}; }
+  async function open(d,coll){ d.c=await d.store.open(coll||'cal~s1','cal'); return d; }
+  async function sync(...ds){ for(let i=0;i<3;i++){ for(const d of ds){ if(d.be.online) await d.store.settle(5000); } await sleep(40); } }
+  const ev=(id,title,extra)=>Object.assign({id,date:'2026-10-0'+(1+(id.charCodeAt(1)%8)),time:'',cat:'plan',title,note:''},extra||{});
+  const titles=d=>d.c.getState().events.map(e=>e.id+':'+e.title).join(',');
+  const get=(d,id)=>d.c.getState().events.find(e=>e.id===id);
+  function edit(d,id,patch){ const s=d.c.getState(); const e=s.events.find(x=>x.id===id); Object.assign(e,patch); return d.c.setState(s); }
+  function add(d,e){ const s=d.c.getState(); s.events.push(e); return d.c.setState(s); }
+  function del(d,id){ const s=d.c.getState(); s.events=s.events.filter(e=>e.id!==id); return d.c.setState(s); }
+  async function base3(){ const cloud=new V2.MemoryCloud(); const A=await open(mk(cloud,'A')); A.c.setState({events:[ev('e1','一'),ev('e2','二'),ev('e3','三')]}); await sync(A); const B=await open(mk(cloud,'B')); await sync(A,B); return {cloud,A,B}; }
+
+  try{
+    // ---------- 0. 合成の部品 ----------
+    group('0. 部品（3方向の合成・分けて組み立てる）');
+    { const lost=[]; const r=V2.merge3({a:1,b:1},{a:2,b:1},{a:1,b:3},false,4,'',lost); check('0-1','片方ずつが別の項目を変えたら、両方残る',J(r)===J({a:1,b:3})||(r.a===2&&r.b===3),J(r)); }
+    { const lost=[]; const r=V2.merge3({a:1},{a:2},{a:3},false,4,'',lost); check('0-2','同じ項目を両方が変えたら、負けた側が「負けた入力」に入る',r.a===3&&lost.length===1&&lost[0].mine===2,J(lost)); }
+    { const lost=[]; const r=V2.merge3({a:1,b:2},{a:1},{a:1,b:2,c:5},false,4,'',lost); check('0-3','自分が項目を消し、相手が別の項目を足したら、両方反映',J(r)===J({a:1,c:5}),J(r)); }
+    { const sp=V2.SPECS.cal; const st={events:[ev('e9','九'),ev('e1','一'),ev('e5','五')]}; const recs=sp.split(st,{}); const back=sp.join(recs); check('0-4','分けて組み立て直すと、元と1文字も違わない（並び順も）',J(back)===J(st),Object.keys(recs).length+' 件');
+      const st2={events:[st.events[0],st.events[2]]}; const recs2=sp.split(st2,recs); check('0-5','1件消しても、ほかの記録の中身は変わらない',recs2['e:e9']===recs['e:e9']&&recs2['e:e5']===recs['e:e5']&&!('e:e1' in recs2));
+      const st3={events:st.events.concat([ev('e7','七')])}; const recs3=sp.split(st3,recs); check('0-6','1件足しても、ほかの記録の中身は変わらない',['e:e9','e:e1','e:e5'].every(k=>recs3[k]===recs[k])&&J(sp.join(recs3))===J(st3)); }
+
+    // ---------- 1. 1件ずつの保存 ----------
+    group('① 1件ずつの保存と読み直し');
+    { const {cloud,A,B}=await base3();
+      check('1-1','A が入れた3件を、B が読み直すと同じ',J(B.c.getState())===J(A.c.getState())&&B.c.getState().events.length===3,titles(B));
+      const w0=cloud.writes; edit(A,'e2',{title:'二あ'}); await sync(A,B);
+      check('1-2','1件変えた時に書くのは、その記録・履歴・索引・その日の一覧の4つだけ',cloud.writes-w0===4,'書いた文書 '+(cloud.writes-w0)+' 個');
+      check('1-3','B にすぐ届く',get(B,'e2').title==='二あ',titles(B));
+      const w1=cloud.writes; A.c.setState(A.c.getState()); await sync(A,B);
+      check('1-4','何も変えずに「全部を保存」しても、何も書かない',cloud.writes===w1,'書いた文書 '+(cloud.writes-w1)+' 個');
+      const C=await open(mk(cloud,'C',A.kv)); check('1-5','端末を開き直しても同じ（端末の中の控えから）',J(C.c.getState())===J(A.c.getState())); }
+
+    // ---------- 2. 同時の変更 ----------
+    group('② 2台が同時に変えた時');
+    { const {A,B}=await base3(); A.be.setOnline(false); B.be.setOnline(false);
+      edit(A,'e1',{title:'一A'}); edit(B,'e2',{title:'二B'}); A.be.setOnline(true); B.be.setOnline(true); await sync(A,B);
+      check('2-1','別の記録を同時に変えた → 両方残る',get(A,'e1').title==='一A'&&get(A,'e2').title==='二B'&&J(A.c.getState())===J(B.c.getState()),titles(A)); }
+    { const {A,B}=await base3(); A.be.setOnline(false); B.be.setOnline(false);
+      edit(A,'e1',{title:'一A'}); edit(B,'e1',{note:'メモB'}); A.be.setOnline(true); B.be.setOnline(true); await sync(A,B);
+      const a=get(A,'e1'), b=get(B,'e1');
+      check('2-2','同じ記録の別の項目を同時に変えた → 両方残る',a.title==='一A'&&a.note==='メモB'&&J(a)===J(b),J(a)); }
+    { const {A,B}=await base3(); A.be.setOnline(false); B.be.setOnline(false);
+      edit(A,'e1',{title:'先に入れたA'}); await sleep(15); edit(B,'e1',{title:'後から入れたB'});
+      B.be.setOnline(true); await sync(B); A.be.setOnline(true); await sync(A,B);
+      const ch=await A.c.changes(2); const lostE=ch.find(x=>x.lost);
+      let h=null; if(lostE) h=await A.c.historyOf(lostE.id,lostE.h||lostE.rev);
+      check('2-3','同じ項目を同時に変えた → あとから入力したほうが残る（送った順ではない）',get(A,'e1').title==='後から入れたB'&&get(B,'e1').title==='後から入れたB',get(A,'e1').title);
+      check('2-4','負けた側の入力は、履歴に残っている',!!h&&/先に入れたA/.test(J(h)),h?'履歴あり':'履歴なし'); }
+
+    // ---------- 3. 古い状態の端末 ----------
+    group('③ 古い状態の端末が、あとから保存した時');
+    { const {A,B}=await base3(); B.be.setOnline(false); const stale=B.c.getState();
+      edit(A,'e1',{title:'新しい入力'}); add(A,ev('e4','四（Aが足した）')); await sync(A);
+      const n=B.c.setState(stale);
+      B.be.setOnline(false); edit(B,'e2',{note:'Bのメモ'});
+      B.be.setOnline(true); await sync(A,B);
+      check('3-1','古い端末が、古い中身のまま「全部を保存」しても、何も送られない',n===0,'送る列に入った数 '+n);
+      check('3-2','古い端末が別の所を変えて保存しても、新しい入力は消えない',get(A,'e1').title==='新しい入力'&&!!get(A,'e4')&&get(A,'e2').note==='Bのメモ',titles(A));
+      check('3-3','2台の中身が同じになる',J(A.c.getState())===J(B.c.getState())); }
+    { const {A,B}=await base3(); B.be.setOnline(false);
+      edit(A,'e1',{title:'Aの新しい題',note:'Aのメモ'}); await sync(A); await sleep(10);
+      const s=B.c.getState(); s.events.find(e=>e.id==='e1').time='09:00'; B.c.setState(s);   // B は古い題・古いメモを持ったまま、時刻だけ変えた
+      B.be.setOnline(true); await sync(A,B); const a=get(A,'e1');
+      check('3-4','古い端末が同じ記録の別の項目だけ変えた → 古い題・古いメモで上書きしない',a.title==='Aの新しい題'&&a.note==='Aのメモ'&&a.time==='09:00',J(a)); }
+
+    // ---------- 4. ネットが切れている間 ----------
+    group('④ ネットが切れている間の変更');
+    { const {cloud,A,B}=await base3(); B.be.setOnline(false);
+      add(B,ev('e5','五（切れている間にB）')); edit(B,'e2',{title:'二（切れている間にB）'});
+      edit(A,'e3',{title:'三（その間にA）'}); await sync(A);
+      check('4-1','切れている間も、自分の画面には自分の変更が出ている',!!get(B,'e5')&&get(B,'e2').title==='二（切れている間にB）','未送信 '+B.store.status().pending+' 件');
+      check('4-2','切れている間は「未送信」として数えられている',B.store.status().pending===2&&B.store.status().state==='off',J(B.store.status()));
+      B.be.setOnline(true); await sync(A,B);
+      check('4-3','つながったら送られ、その間のほかの端末の変更も消えない',!!get(A,'e5')&&get(A,'e2').title==='二（切れている間にB）'&&get(A,'e3').title==='三（その間にA）'&&get(B,'e3').title==='三（その間にA）',titles(A));
+      check('4-4','送り終わると未送信は 0',B.store.status().pending===0); }
+    { const {cloud,A,B}=await base3(); B.be.setOnline(false); add(B,ev('e6','六（送る前に閉じた）')); await sleep(30);
+      const B2=mk(cloud,'B',B.kv); B2.be.setOnline(false); await open(B2);     // 送る前に画面を閉じ、開き直した（まだ切れている）
+      const had=!!get(B2,'e6'); B2.be.setOnline(true); await sync(A,B2);
+      check('4-5','送る前に画面を閉じても、開き直せば残っていて、つながったら送られる',had&&!!get(A,'e6'),titles(A)); }
+    { const {cloud,A,B}=await base3(); const w0=cloud.writes;
+      const B2=mk(cloud,'B',B.kv); await open(B2); B.be.setOnline(false); B2.be.setOnline(false);
+      add(B,ev('e7','七')); await sleep(30); const B3=mk(cloud,'B',B.kv); await open(B3);   // 同じ変更を2つの画面が持っている
+      B.be.setOnline(true); await sync(B,B3,A);
+      check('4-6','同じ変更が2回送られても、2重に入らない',A.c.getState().events.filter(e=>e.id==='e7').length===1&&B3.store.status().pending===0,titles(A)); }
+
+    // ---------- 5. 消した記録 ----------
+    group('⑤ 消した記録が、古い端末の保存で戻らないこと');
+    { const {A,B}=await base3(); B.be.setOnline(false); const stale=B.c.getState();
+      del(A,'e1'); await sync(A);
+      B.c.setState(stale); B.be.setOnline(true); await sync(A,B);
+      check('5-1','古い端末が古い中身のまま保存 → 消した記録は戻らない',!get(A,'e1')&&!get(B,'e1'),titles(A)); }
+    { const {A,B}=await base3(); B.be.setOnline(false);
+      del(A,'e1'); await sync(A); edit(B,'e1',{title:'消されたのを知らずに変えた'});
+      B.be.setOnline(true); await sync(A,B);
+      const ch=await A.c.changes(2); const lostE=ch.find(x=>x.op==='lost'); const h=lostE?await A.c.historyOf(lostE.id,lostE.h):null;
+      check('5-2','古い端末が、消された記録を変えて保存 → 消したまま',!get(A,'e1')&&!get(B,'e1'),titles(B));
+      check('5-3','その時の入力は履歴に残っていて、あとで戻せる',!!h&&/消されたのを知らずに変えた/.test(J(h)));
+      if(lostE){ await A.c.restoreBefore(lostE.id,lostE.h); await sync(A,B); check('5-4','履歴から戻すと、2台とも戻る',!!get(A,'e1')&&get(B,'e1')&&get(B,'e1').title==='消されたのを知らずに変えた',titles(B)); } }
+    { const {A,B}=await base3(); B.be.setOnline(false);
+      edit(A,'e2',{title:'Aが先に変えた'}); await sync(A); del(B,'e2'); B.be.setOnline(true); await sync(A,B);
+      check('5-5','古い端末の「消す」は、先に入った新しい変更を消さない（消したい時はもう一度消す）',!!get(A,'e2')&&get(B,'e2').title==='Aが先に変えた',titles(B)); }
+
+    // ---------- 6. 履歴 ----------
+    group('⑥ 履歴から戻せること');
+    { const cloud=new V2.MemoryCloud(); const be=cloud.device(); const store=new V2.Store({backend:be,space:'TEST',device:'A',kv:new V2.MemKV(),snapshot:true}); const A={be,store}; A.c=await store.open('cal~s1','cal');
+      A.c.setState({events:[ev('e1','一'),ev('e2','二'),ev('e3','三')]}); await sync(A);
+      const B=await open(mk(cloud,'B')); await sync(A,B);      // B が開いた時に、その日の全体の写しができる
+      const B2be=cloud.device(); const s2=new V2.Store({backend:B2be,space:'TEST',device:'S',kv:new V2.MemKV(),snapshot:true}); const Sx={be:B2be,store:s2}; Sx.c=await s2.open('cal~s1','cal'); await sleep(80);
+      const snaps=await A.c.snapshots(3);
+      check('6-1','1日1回の全体の写しができている',snaps.length===1&&snaps[0].n===3,J(snaps));
+      edit(A,'e2',{title:'まちがえて変えた'}); await sync(A,B);
+      let ch=await A.c.changes(2); const e=ch.find(x=>x.id==='e:e2'&&x.op==='edit');
+      await A.c.restoreBefore(e.id,e.rev); await sync(A,B);
+      check('6-2','変える前の状態に戻せる（ほかの端末にも届く）',get(A,'e2').title==='二'&&get(B,'e2').title==='二',titles(B));
+      del(A,'e3'); await sync(A,B); ch=await A.c.changes(2); const d=ch.find(x=>x.id==='e:e3'&&x.op==='del');
+      await A.c.restoreBefore(d.id,d.rev); await sync(A,B);
+      check('6-3','消した記録を戻せる',!!get(A,'e3')&&!!get(B,'e3'),titles(B));
+      ch=await A.c.changes(2);
+      check('6-4','戻したことも履歴に残る（戻したのを取り消せる）',ch.filter(x=>x.why==='restore').length===2,ch.length+' 件の変更');
+      del(A,'e1'); edit(A,'e2',{title:'ぐちゃぐちゃ'}); add(A,ev('e8','よけいな予定')); await sync(A,B);
+      await A.c.restoreSnapshot(snaps[0].day); await sync(A,B);
+      check('6-5','「その日の状態に全部戻す」で、写しを取った時と同じ中身になる',titles(A)==='e1:一,e2:二,e3:三'&&J(A.c.getState())===J(B.c.getState()),titles(A)); }
+
+    // ---------- 7. 店ごとの分かれ ----------
+    group('⑦ そのほか');
+    { const cloud=new V2.MemoryCloud(); const A=mk(cloud,'A'); const c1=await A.store.open('cal~s1','cal'); const c2=await A.store.open('cal~s2','cal');
+      c1.setState({events:[ev('e1','新村の予定')]}); c2.setState({events:[ev('e1','大町の予定')]}); await A.store.settle();
+      check('7-1','店舗ごとに別の入れ物（同じ名前の記録でも混ざらない）',c1.getState().events[0].title==='新村の予定'&&c2.getState().events[0].title==='大町の予定');
+      const srv=await c1.readServer(); check('7-2','ネット上を直接読み直した中身が、画面の中身と同じ',J(V2.SPECS.cal.join(srv))===J(c1.getState())); }
+    { const cloud=new V2.MemoryCloud(); const A=await open(mk(cloud,'A')); const evs=[]; for(let i=0;i<120;i++)evs.push({id:'x'+i,date:'2026-11-01',time:'',cat:'memo',title:'予定'+i,note:''});
+      A.c.setState({events:evs}); await A.store.settle(); const B=await open(mk(cloud,'B')); await sync(A,B);
+      check('7-3','120件を一度に入れても、順番どおり全部届く',J(B.c.getState())===J({events:evs}),B.c.getState().events.length+' 件'); }
+  }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
+
+  const ng=R.filter(r=>!r.ok).length;
+  document.getElementById('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
+  window.__results={total:R.length,ng,rows:R};
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新しいシステム：答え合わせ（カレンダー）</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.6}
+h1{font-size:18px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;font-size:13px}
+th{background:#f8fafc;text-align:left;padding:6px 10px} td{padding:6px 10px;border-top:1px solid #e2e8f0;vertical-align:top}
+.ok{color:#16a34a;font-weight:700} .ng{color:#dc2626;font-weight:700} #sum{font-size:16px;font-weight:800;margin:10px 0}
+.frames{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0} .frames div{font-size:12px;color:#64748b}
+iframe{width:100%;height:520px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+</style>
+</head>
+<body>
+<h1>🧮 答え合わせ：いまのカレンダー と 新しいカレンダー</h1>
+<div class="sub">同じ見本のデータを両方に入れ、同じ操作をして、画面に出た中身（文字・色・並び）を1か所ずつ機械で比べます。この確認用のパソコンの中だけで動き、本物のデータにも Firebase にもさわりません。</div>
+<div id="sum">準備中…</div>
+<div class="frames"><div>いまのカレンダー（手を付けていない元の画面）<iframe id="fo"></iframe></div><div>新しいカレンダー<iframe id="fn"></iframe></div></div>
+<table><thead><tr><th>見本のデータ</th><th style="width:90px">比べた数</th><th style="width:80px">結果</th><th>ちがった所</th></tr></thead><tbody id="rows"></tbody></table>
+<script>
+(async function(){
+  const sum=document.getElementById('sum'), rows=document.getElementById('rows');
+  if(!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){ sum.innerHTML='<span class="ng">この答え合わせは、確認用のパソコン（localhost）でだけ動かします。</span>公開されたページでは、本物のデータを守るため動きません。'; return; }
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const SID='__cmp__', KEY='cal_v1_store_'+SID;
+  const keep={c:localStorage.getItem('current_store_id'),f:localStorage.getItem('ffv6_current'),a:localStorage.getItem('unified_ui_cal_auto')};
+  const pad=n=>(n<10?'0':'')+n, ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const D=n=>{ const d=new Date(); d.setDate(d.getDate()+n); return ymd(d); };
+  const E=(id,date,title,x)=>Object.assign({id,date,time:'',cat:'plan',title,note:''},x||{});
+  const many=[]; for(let i=0;i<40;i++)many.push(E('m'+i,D(i%35),'予定その'+i,{time:i%3?pad(8+i%10)+':'+pad((i*7)%60):'',cat:['plan','event','order','shelf','important','memo'][i%6],note:i%4?'':'メモ'+i}));
+  const SETS=[
+    ['空（予定0件）',[]],
+    ['今日に1件',[E('a1',D(0),'今日の予定')]],
+    ['同じ日に5件（3件を越える）',[E('b1',D(2),'五'),E('b2',D(2),'一番',{time:'07:00'}),E('b3',D(2),'二番',{time:'09:30'}),E('b4',D(2),'時刻なしA'),E('b5',D(2),'三番',{time:'23:59'})]],
+    ['全部の種類と、知らない種類',[E('c1',D(1),'予定',{cat:'plan'}),E('c2',D(1),'イベント',{cat:'event'}),E('c3',D(3),'発注',{cat:'order'}),E('c4',D(4),'棚替え',{cat:'shelf'}),E('c5',D(5),'重要',{cat:'important'}),E('c6',D(6),'メモ',{cat:'memo'}),E('c7',D(7),'知らない種類',{cat:'zzz'})]],
+    ['過去・月またぎ・年またぎ',[E('d1',D(-40),'40日前'),E('d2',D(-1),'きのう'),E('d3',D(1),'あした'),E('d4',D(31),'31日後'),E('d5',D(62),'62日後'),E('d6','2026-12-31','大みそか'),E('d7','2027-01-01','元日'),E('d8','2027-02-28','2月の終わり')]],
+    ['記号・長い文字・改行',[E('e1',D(0),'<b>太字</b> & "引用" \'一重\'',{note:'1行目\n2行目 <script>x</'+'script>'}),E('e2',D(1),'とても長い題'.repeat(12),{note:'長いメモ'.repeat(30)}),E('e3',D(1),'絵文字🎉🍗',{time:'00:00'})]],
+    ['40件（これからの予定が30件を越える）',many],
+    ['id が無い・日付が変な予定',[{date:D(0),title:'idなし',time:'',cat:'plan',note:''},E('f2','2026-13-45','変な日付'),E('f3','','日付なし'),E('f4',D(0),'')]]
+  ];
+  const fo=document.getElementById('fo'), fn=document.getElementById('fn');
+  const load=(f,url)=>new Promise(res=>{ f.onload=()=>res(f.contentWindow); f.src=url; });
+  const norm=s=>String(s).replace(/ev_\d+_[a-z0-9]+/g,'ev_ID');
+  const PARTS=['today-panel','month-title','grid','up-list','modal','toast'];
+  let totalAll=0, ngAll=0;
+  try{
+    for(const [name,events] of SETS){
+      const data={events:JSON.parse(JSON.stringify(events))};
+      localStorage.setItem(KEY,JSON.stringify(data)); localStorage.setItem('current_store_id',SID); localStorage.setItem('unified_ui_cal_auto','1');
+      const [wo,wn]=await Promise.all([load(fo,'../cal/index.html?embedded=1&cmp='+Date.now()),load(fn,'cal/index.html?embedded=1&mem=1&store='+SID+'&cmp='+Date.now())]);
+      for(let i=0;i<100&&!wn.__v2ready;i++)await sleep(50);
+      wn.__v2.coll.setState(JSON.parse(JSON.stringify(data))); wn.render();
+      [wo,wn].forEach(w=>{ w.alert=m=>{ w.__alerts=(w.__alerts||[]); w.__alerts.push(String(m)); }; w.confirm=m=>{ w.__alerts=(w.__alerts||[]); w.__alerts.push('確認:'+String(m)); return true; }; });
+      let n=0; const diffs=[];
+      const cmp=label=>{ PARTS.forEach(id=>{ n++; const a=norm(wo.document.getElementById(id).innerHTML), b=norm(wn.document.getElementById(id).innerHTML); if(a!==b)diffs.push(label+'／'+id); });
+        n++; if(norm(JSON.stringify(wo.__alerts||[]))!==norm(JSON.stringify(wn.__alerts||[])))diffs.push(label+'／出た確認の文');
+        n++; const so=norm(wo.eval('JSON.stringify(S)')), sn=norm(wn.eval('JSON.stringify(S)')); if(so!==sn)diffs.push(label+'／持っているデータ'); };
+      const both=fnc=>{ [wo,wn].forEach(w=>{ try{ fnc(w); }catch(e){ w.__alerts=(w.__alerts||[]); w.__alerts.push('ERR '+e.message); } }); };
+      const click=(w,id)=>w.document.getElementById(id).click();
+      cmp('開いた直後');
+      both(w=>click(w,'next-btn')); cmp('次の月'); both(w=>click(w,'next-btn')); cmp('その次の月'); both(w=>click(w,'next-btn')); both(w=>click(w,'next-btn')); cmp('4か月先');
+      both(w=>click(w,'jump-today')); cmp('今日へ戻る'); both(w=>click(w,'prev-btn')); both(w=>click(w,'prev-btn')); cmp('2か月前'); both(w=>click(w,'jump-today'));
+      [D(0),D(1),D(2),D(-1)].forEach(ds=>{ both(w=>w.openDay(ds)); cmp('日を開く '+ds); both(w=>w.closeModal()); });
+      events.slice(0,4).forEach(e=>{ if(!e.id)return; both(w=>w.openForm(null,e.id)); cmp('編集の画面 '+e.id); both(w=>w.closeModal()); });
+      // 追加（入力不足 → 警告、正しく入力 → 追加）
+      both(w=>{ w.openForm(D(3)); w.saveForm(''); }); cmp('内容が空のまま保存');
+      both(w=>{ w.document.getElementById('f-date').value=D(3); w.document.getElementById('f-time').value='12:34'; w.document.getElementById('f-title').value='足した予定'; w.document.getElementById('f-note').value=' メモ '; w.document.querySelector('#f-cats [data-cat="order"]').click(); w.saveForm(''); }); await sleep(30); cmp('予定を追加');
+      both(w=>{ w.openForm(D(0)); w.document.getElementById('f-title').value='今日に足した'; w.saveForm(''); }); await sleep(30); cmp('今日に追加');
+      // 変更
+      if(events[0]&&events[0].id){ const id=events[0].id; both(w=>{ w.openForm(null,id); w.document.getElementById('f-title').value='書き換えた題'; w.document.getElementById('f-date').value=D(5); w.document.getElementById('f-time').value='08:00'; w.saveForm(id); }); await sleep(30); cmp('予定を変更'); }
+      // 削除
+      if(events[1]&&events[1].id){ const id=events[1].id; both(w=>w.delEvent(id)); await sleep(30); cmp('予定を削除'); }
+      both(w=>{ const t=w.document.getElementById('auto-toggle'); t.checked=false; t.dispatchEvent(new w.Event('change')); }); cmp('期限の自動表示をオフ');
+      both(w=>{ const t=w.document.getElementById('auto-toggle'); t.checked=true; t.dispatchEvent(new w.Event('change')); }); cmp('期限の自動表示をオン');
+      // 新しいほう：分けて組み立て直した中身が、画面の持つデータと同じか
+      n++; if(JSON.stringify(wn.__v2.coll.getState())!==wn.eval('JSON.stringify(S)'))diffs.push('保存した中身と画面のデータ');
+      totalAll+=n; if(diffs.length)ngAll++;
+      const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}（${events.length}件）</td><td>${n} か所</td><td class="${diffs.length?'ng':'ok'}">${diffs.length?'× ちがう':'○ 同じ'}</td><td>${diffs.slice(0,12).join('<br>').replace(/</g,'&lt;').replace(/&lt;br>/g,'<br>')}</td>`; rows.appendChild(tr);
+    }
+    sum.innerHTML=ngAll?`<span class="ng">× ちがう所がありました</span>（${SETS.length} 種の見本・${totalAll} か所）`:`<span class="ok">○ 全部同じ</span>（${SETS.length} 種の見本・${totalAll} か所を比べました）`;
+  }catch(e){ sum.innerHTML='<span class="ng">途中で止まりました</span> '+String(e&&e.stack||e).replace(/</g,'&lt;'); ngAll=-1; }
+  finally{
+    localStorage.removeItem(KEY);
+    ['current_store_id','ffv6_current','unified_ui_cal_auto'].forEach((k,i)=>{ const v=[keep.c,keep.f,keep.a][i]; if(v===null)localStorage.removeItem(k); else localStorage.setItem(k,v); });
+  }
+  window.__results={total:totalAll,ngSets:ngAll};
+})();
+</script>
+</body>
+</html>
