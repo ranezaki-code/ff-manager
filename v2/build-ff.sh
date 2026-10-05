@@ -13,6 +13,7 @@ BOOT=$(grep -n "^window.addEventListener('DOMContentLoaded',async()=>{$" "$SRC" 
 sed \
   -e "${MAIN}i <!-- 【v2 差し替え1】保存と読み込みの行き先を、新しい保存先に替える「つなぎ」。本体より先に読み込む -->\n<script src=\"../core.js\"></script>\n<script src=\"../ffspec.js\"></script>\n<script src=\"../ffshim.js\"></script>" \
   -e "${BOOT}s#.*#window.__v2boot=(async()=>{   // 【v2 差し替え2】起動：データが届いてから始める（始めるのは v2/ffshim.js）。中身は元のまま#" \
+  -e 's#^    if(fromHub){$#    if(fromHub\&\&!window.__EMBEDDED){   // 【v2 差し替え6】入口の中で開いた時は「← 戻る」を出さない（押すと、枠の中に入口がもう1つ開く）#' \
   -e 's#<script src="\.\./autoupdate\.js" defer></script>#<script src="../../autoupdate.js" defer></script><!-- 【v2 差し替え3】自動更新の場所 -->#' \
   -e 's#\.\./app\.html?sys=ff#../index.html?sys=ff#g' \
   -e "s#fetch('\.\./gaibu/'#fetch('../../gaibu/'/* 【v2 差し替え5】ミルの外部要因データの場所（フォルダが1つ深くなった分） */#" \

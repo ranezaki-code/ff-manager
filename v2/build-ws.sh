@@ -12,6 +12,7 @@ NEXT=$(sed -n "$((MAIN+1))p" "$SRC" | tr -d '\r')
 [ -n "$MAIN" ] && [ "$NEXT" = "'use strict';" ] || { echo "差し替える場所が見つかりません（いまのワークスケジュールの形が変わった可能性）。止めます。"; exit 1; }
 sed \
   -e "${MAIN}s#.*#<!-- 【v2 差し替え1】保存と読み込みの行き先を、新しい保存先に替える「つなぎ」。本体より先に読み込む -->\n<script src=\"../core.js\"></script>\n<script src=\"../wsspec.js\"></script>\n<script src=\"../wsshim.js\"></script>\n<!-- 【v2 差し替え2】本体は、データが届いてから動かす（動かすのは v2/wsshim.js）。中身は元のまま -->\n<script type=\"text/plain\" id=\"v2-main\">#" \
+  -e 's#^    if(fromHub){$#    if(fromHub\&\&!window.__EMBEDDED){   // 【v2 差し替え5】入口の中で開いた時は「← 戻る」を出さない（押すと、枠の中に入口がもう1つ開く）#' \
   -e 's#<script src="\.\./autoupdate\.js" defer></script>#<script src="../../autoupdate.js" defer></script><!-- 【v2 差し替え3】自動更新の場所 -->#' \
   -e 's#\.\./app\.html?sys=ws#../index.html?sys=ws#g' \
   -e "s#^<script>if(!window.__EMBEDDED){document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('div');b.id='standalone-warn'#<script>/* 【v2 差し替え4】単体で開いた時の帯の行き先 */if(!window.__EMBEDDED\&\&!/[?\&]mem=1/.test(location.search)){document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('div');b.id='standalone-warn'#" \

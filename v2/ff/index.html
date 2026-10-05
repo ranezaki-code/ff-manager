@@ -470,7 +470,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
     var ref=document.referrer||'';
     var refIsHub=ref.endsWith('/index.html')||/\/(?:ff-manager|%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0|システム)\/$/.test(ref);
     var fromHub=refIsHub||sessionStorage.getItem('_fromHub')==='1';
-    if(fromHub){
+    if(fromHub&&!window.__EMBEDDED){   // 【v2 差し替え6】入口の中で開いた時は「← 戻る」を出さない（押すと、枠の中に入口がもう1つ開く）
       sessionStorage.setItem('_fromHub','1');
       if(refIsHub)sessionStorage.setItem('_hubUrl',ref);
       var btn=document.getElementById('hub-back-btn');
