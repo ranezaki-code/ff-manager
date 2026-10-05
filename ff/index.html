@@ -816,6 +816,14 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         </div>
       </div>
 
+      <!-- 📈 今週の投資（週ごと・曜日×時間帯のマス目） -->
+      <div id="bud-grid" class="bud-sub">
+        <div class="card">
+          <div class="section-title">📈 今週の投資 <span style="font-size:11px;font-weight:400;color:var(--gray)">曜日×時間帯のマスに、追加で作る数を入れます</span></div>
+          <div id="bud-grid-body"></div>
+        </div>
+      </div>
+
       <!-- ⚙️ 投資・設定 -->
       <div id="bud-invest" class="bud-sub">
         <div class="card">
@@ -1843,7 +1851,10 @@ function getRecentTuesday(fromDateStr){
 }
 function syncActiveWeek(){
   if(!S.activeWeek)return;
+  const _prevWeek=S.weeks[S.activeWeek]||{};
   S.weeks[S.activeWeek]={
+    // 今週の投資（曜日×時間帯のマス目）は週のデータの中に持つ。ここで作り直す時に落とさない
+    ...(_isPlainObj(_prevWeek.invest)?{invest:_prevWeek.invest}:{}),
     ji:JSON.parse(JSON.stringify(S.ji||{})),
     cust:(S.cust||[]).map(r=>[...r]),
     checks:{...(S.checks||{})},
@@ -3477,9 +3488,28 @@ function getInvestSlots(p){
   const on=cfg.slots.filter(h=>getSlotMake(p,h));
   return on.length?on:cfg.slots.slice();
 }
-// 投資の種類：'invest'＝定番投資／'new'＝新商品／null＝どちらでもない（getInvestExtra と同じ判定。予算の表の二重計上を防ぐ）
+// ---------- 今週の投資（週ごと・曜日×時間帯のマス目） ----------
+//   S.weeks[週キー].invest = { 商品ID: { 曜日idx: { 時刻: 個数 } } }   ※開いている週（S.activeWeek）の分だけが効く。来週には引き継がない
+//   その週に商品IDの項目がある＝「マス目で入力中」。マスの数をそのまま使う（均等割り・まとめ単位の切り上げはしない）。
+//   {}（空）は「今週は 0」。項目が無い商品は、今までどおり毎週効く設定（S.budget.investCounts / investDays / newProductCounts）で計算する。
+function investGridOf(pid){
+  const w=S.activeWeek&&S.weeks&&S.weeks[S.activeWeek];
+  const g=w&&_isPlainObj(w.invest)?w.invest[pid]:null;
+  return _isPlainObj(g)?g:null;
+}
+function _igCell(g,d,h){ const v=g&&g[d]?g[d][h]:0; const n=Math.round(Number(v)||0); return n>0?n:0; }
+// 毎週効く設定（以前の入れ方）の種類。マス目は見ない
+function investLegacyKind(p){
+  if(!p)return null;
+  if(p.isInvest&&(S.budget.investCounts?.[p.id]||0)>0)return 'invest';
+  if((p.category||'').endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)return 'new';
+  return null;
+}
+// 投資の種類：'invest'＝定番投資／'new'＝新商品／null＝どちらでもない（getInvestExtra はこの判定を使う。予算の表の二重計上を防ぐ）
+//   マス目がある商品は、種別の印（p.isInvest）が無くても投資として数える。区分はカテゴリ名で決める（「…新商品」＝新商品、ほか＝定番投資）
 function investKind(p){
   if(!p)return null;
+  if(investGridOf(p.id))return (p.category||'').endsWith('新商品')?'new':'invest';
   if(p.isInvest&&(S.budget.investCounts?.[p.id]||0)>0)return 'invest';
   if((p.category||'').endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)return 'new';
   return null;
@@ -3499,8 +3529,12 @@ function getInvestExtra(pid,dayIdx,slotH){
   const p=getP(pid);if(!p||!p.enabled)return 0;
   const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.length)return 0;
   if(cfg.slots.indexOf(slotH)<0)return 0;
-  const isInvest=p.isInvest&&(S.budget.investCounts?.[p.id]||0)>0;
-  const isNew=p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0;
+  // 今週のマス目がある商品：マスの数をそのまま返す（作らない時間帯のマスは数えない）
+  const grid=investGridOf(pid);
+  if(grid)return getSlotMake(p,slotH)?_igCell(grid,dayIdx,slotH):0;
+  // マス目が無い商品：毎週効く設定（以前の入れ方）
+  const kind=investLegacyKind(p);
+  const isInvest=kind==='invest', isNew=kind==='new';
   if(!isInvest&&!isNew)return 0;
   // 曜日指定（投資のみ）：選択外の曜日は0
   if(isInvest){
@@ -3998,6 +4032,7 @@ function switchWeek(key){
   renderJissekiTab();
   renderCustGrid();
   gaibuWeekChanged();   // 天気・イベント調整は週ごと。別の週の調整は効かせない
+  _igSelCell=null; if(currentTab===4)renderBudgetTab();   // 今週の投資（マス目）も週ごと。開いている週の分に描き直す
 }
 function addWeek(dateStr){
   syncActiveWeek();
@@ -4020,6 +4055,7 @@ function addWeek(dateStr){
   renderJissekiTab();
   renderCustGrid();
   gaibuWeekChanged();   // 天気・イベント調整は週ごと。別の週の調整は効かせない
+  _igSelCell=null; if(currentTab===4)renderBudgetTab();   // 今週の投資（マス目）も週ごと。開いている週の分に描き直す
 }
 function deleteWeek(key){
   const keys=Object.keys(S.weeks);
@@ -7043,7 +7079,7 @@ function renderProdDayContent(dayIdx){
           html+=`<tr><td colspan="${_mkColspan}" style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:5px 8px;text-align:left;border-top:2px solid #fcd34d">${_g.label}</td></tr>`;
         }
       }
-      const hasExtra=p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0);
+      const hasExtra=p.isInvest||!!investKind(p);
       // グローバル番号（カテゴリ横断・1始まり）
       const gIdx=globalOrderMap?.get(p.id);
       const orderBadge=(gIdx!=null)?`<span style="font-size:13px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(gIdx)}</span>`:'';
@@ -7452,13 +7488,13 @@ function checkCurrentSlot(){
 // ============================================================
 let _budSub='plan';   // 予算管理のサブタブ：actual=先週実績 / plan=来週の計画 / invest=投資・設定
 function applyBudSub(){
-  const tabs=[['actual','📊 先週実績'],['plan','🎯 来週の計画'],['invest','⚙️ 投資・設定']];
+  const tabs=[['actual','📊 先週実績'],['plan','🎯 来週の計画'],['grid','📈 今週の投資'],['invest','⚙️ 投資・設定']];
   const bar=document.getElementById('bud-subtabs');
   if(bar) bar.innerHTML=tabs.map(([k,l])=>{
     const on=k===_budSub;
     return `<button onclick="switchBudSub('${k}')" style="flex:1;min-width:96px;padding:9px 6px;font-size:13px;font-weight:700;border-radius:8px;border:1px solid ${on?'var(--main)':'#e5e7eb'};background:${on?'var(--main)':'#fff'};color:${on?'#fff':'#475569'};cursor:pointer">${l}</button>`;
   }).join('');
-  ['actual','plan','invest'].forEach(k=>{ const el=document.getElementById('bud-'+k); if(el)el.style.display=(k===_budSub)?'':'none'; });
+  ['actual','plan','grid','invest'].forEach(k=>{ const el=document.getElementById('bud-'+k); if(el)el.style.display=(k===_budSub)?'':'none'; });
 }
 function switchBudSub(name){ _budSub=name; applyBudSub(); window.scrollTo(0,0); }
 function renderBudgetTab(){
@@ -7693,13 +7729,15 @@ function renderBudgetPlan(){
   //   ※以前は「1日あたり個数 × 7日 × 原価」。まとめ単位が2以上だと作成表の数と食い違うため、作成表と同じ関数から取る
   const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品')&&investKind(p)==='new')
     .reduce((s,p)=>s+getInvestWeekCnt(p.id)*p.cost,0);
-  const newBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
+  const newBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品')&&!investGridOf(p.id))   // 「個/日」は毎週の設定の数（マス目で入力中の商品は含めない）
     .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
   // 定番投資予算（正式）= 作成表に置かれる投資の数（週合計・getInvestWeekCnt）× 原価 の合計（以前は 1日あたり個数 × 選択曜日数 × 原価）
-  const investBudgetFormal=S.PM.filter(p=>p.enabled&&p.isInvest&&investKind(p)==='invest')
+  //   マス目に数がある商品は、種別の印（p.isInvest）が無くても数える
+  const investBudgetFormal=S.PM.filter(p=>p.enabled&&investKind(p)==='invest')
     .reduce((s,p)=>s+getInvestWeekCnt(p.id)*p.cost,0);
-  const investBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.isInvest)
+  const investBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.isInvest&&!investGridOf(p.id))
     .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
+  _igBud={max:newBudgetMax,used:newBudgetFormal+investBudgetFormal};
 
   // ===== 🎯 来週の計画：計算の流れをそのまま並べる（作成高 − 売変額 ＝ 売上高、売上高 − 原価 ＝ 利益） =====
   const box=(label,val,sub,color,cls)=>`<div class="bd-box ${cls||''}" style="${color?'--c:'+color:''}"><div class="bd-l">${label}</div><div class="bd-v">${val}</div>${sub?`<div class="bd-s">${sub}</div>`:''}</div>`;
@@ -7774,6 +7812,7 @@ function renderBudgetPlan(){
       <div style="font-size:11px;color:#999;margin-bottom:8px">②商品設定で「定番投資対象」ONの商品が表示されます</div>
       ${renderInvestBudgetTable(newBudgetMax,newBudgetFormal)}
     </div>`;
+  renderInvestGrid();   // 📈 今週の投資（マス目）
 }
 
 // 予算の表の小さな説明：入れた数（個×日）と、作成表に置かれる数（週合計）。食い違う時・置けない時は理由を出す
@@ -7787,6 +7826,202 @@ function _investNote(p,cnt,days,wk){
   if(cnt>0&&investNoMakeSlot(p)) s+=`<div class="inv-warn" style="color:var(--red);font-weight:700">⚠ 「作る時間帯」が全部オフです。投資の数は全部の時間帯に置いています（②商品設定で作る時間帯を選んでください）</div>`;
   return s;
 }
+// ============================================================
+// 今週の投資（⑤予算管理 →「📈 今週の投資」）：週ごと・曜日×時間帯のマス目で入れる1画面
+//   データ：S.weeks[S.activeWeek].invest = { 商品ID: { 曜日idx: { 時刻: 個数 } } }（investGridOf の説明を参照）
+//   画面の操作はすべてインラインの onclick / onchange（morphInto の差分更新で二重登録しないため。描画の中で addEventListener しない）
+// ============================================================
+let _igPid=null, _igSelCell=null;      // 選んでいる商品／選んでいるマス {d,h}
+let _igBud={max:0,used:0};             // 新商品・投資に使える予算と、使っている金額（renderBudgetPlan が入れる）
+function _igWeekObj(create){
+  if(!S.activeWeek)return null;
+  if(!S.weeks)S.weeks={};
+  if(!S.weeks[S.activeWeek]){ if(!create)return null; syncActiveWeek(); }
+  const w=S.weeks[S.activeWeek]; if(!w)return null;
+  if(create&&!_isPlainObj(w.invest))w.invest={};
+  return w;
+}
+function _igProds(){ return (S.PM||[]).filter(p=>p&&p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]&&S.catCfg[p.category].slots.length); }
+function _igGridSum(g){ let s=0; Object.keys(g||{}).forEach(d=>Object.keys(g[d]||{}).forEach(h=>{s+=_igCell(g,d,h);})); return s; }
+function _igAfter(){ saveS(); renderBudgetPlan(); }
+function _igWeekLabel(key){ try{ const d=parseLocalDate(weekKeyToDateStr(key)); return `${d.getMonth()+1}/${d.getDate()}週`; }catch(_){ return key; } }
+function igSelect(pid){ _igPid=pid||null; _igSelCell=null; renderInvestGrid(); }
+function igOpen(pid){ _igPid=pid||null; _igSelCell=null; switchBudSub('grid'); renderInvestGrid(); }
+// マスに数を入れる（0＝消す）。作らない時間帯・毎週の設定で動いている商品（マス目に写す前）には入れない
+function igSet(pid,d,h,raw){
+  const p=getP(pid); if(!p)return;
+  const cfg=S.catCfg[p.category]; if(!cfg||cfg.slots.indexOf(h)<0||!getSlotMake(p,h))return;
+  let g=investGridOf(pid);
+  if(!g&&investLegacyKind(p))return;
+  let n=parseInt(toHalf(String(raw==null?'':raw)).replace(/[^\d]/g,''),10); if(!isFinite(n)||n<0)n=0; n=Math.min(n,999);
+  if(_igCell(g,d,h)===n)return;
+  const w=_igWeekObj(true); if(!w)return;
+  if(!g){ g=w.invest[pid]={}; }
+  if(n>0){ if(!_isPlainObj(g[d]))g[d]={}; g[d][h]=n; }
+  else if(_isPlainObj(g[d])){ delete g[d][h]; if(!Object.keys(g[d]).length)delete g[d]; }
+  if(!Object.keys(g).length&&!investLegacyKind(p))delete w.invest[pid];   // 全部 0 で毎週の設定も無い商品は、項目ごと消す
+  _igAfter();
+}
+function igFocus(el,d,h){
+  _igSelCell={d,h}; try{ el.select(); }catch(_){}
+  const lb=document.getElementById('ig-sel-label'); if(lb)lb.textContent=`${DAYS[d]}曜 ${h}時`;
+}
+// Enter・→ で次のマス、← で前のマス、↑↓ で上下の時間帯
+function igKey(ev,el){
+  if(ev.isComposing)return;
+  const mv={Enter:1,ArrowRight:1,ArrowLeft:-1,ArrowDown:7,ArrowUp:-7}[ev.key]; if(!mv)return;
+  const all=Array.from(document.querySelectorAll('#bud-grid-body input[data-ig]')); const t=all[all.indexOf(el)+mv];
+  ev.preventDefault();
+  if(t){ t.focus(); } else el.blur();
+}
+function igStep(delta){
+  const p=getP(_igPid);
+  if(!p||!_igSelCell){ showToast('先にマスをタップして選んでください','info'); return; }
+  const cur=_igCell(investGridOf(p.id),_igSelCell.d,_igSelCell.h);
+  igSet(p.id,_igSelCell.d,_igSelCell.h,Math.max(0,cur+delta));
+}
+// この商品の今週の投資を 0 にする（確認つき）
+function igZero(pid){
+  const p=getP(pid); if(!p)return;
+  const g=investGridOf(pid), legacy=investLegacyKind(p);
+  if(!g&&!legacy){ showToast('この商品の今週の投資は入っていません','info'); return; }
+  if(g&&!legacy&&_igGridSum(g)===0){ const w0=_igWeekObj(false); if(w0&&w0.invest)delete w0.invest[pid]; _igAfter(); return; }
+  if(!confirm(`「${p.name||'(名称未設定)'}」の今週の投資を 0 にします。${legacy?'\n\n毎週効く設定は残ります（今週だけ 0 になります）。':''}\n\nよろしいですか？`))return;
+  const w=_igWeekObj(true); if(!w)return;
+  if(legacy)w.invest[pid]={}; else delete w.invest[pid];
+  _igSelCell=null; _igAfter();
+  showToast('今週の投資を 0 にしました','success');
+}
+// 1つ前の週（日付の順で、開いている週の直前）のマス目を今週に写す（確認つき）
+function igCopyPrev(pid){
+  const p=getP(pid); if(!p||!S.activeWeek)return;
+  const keys=sortWeekKeys(Object.keys(S.weeks||{})); const i=keys.indexOf(S.activeWeek); const prev=i>0?keys[i-1]:null;
+  const pw=prev?S.weeks[prev]:null; const pg=pw&&_isPlainObj(pw.invest)&&_isPlainObj(pw.invest[pid])?pw.invest[pid]:null;
+  const cfg=S.catCfg[p.category]; const ng={}; let sum=0, skipped=0;
+  if(pg&&cfg){ Object.keys(pg).forEach(d=>Object.keys(pg[d]||{}).forEach(h=>{ const n=_igCell(pg,d,h); if(!n)return; const hh=Number(h), dd=Number(d);
+    if(!(dd>=0&&dd<7)||cfg.slots.indexOf(hh)<0||!getSlotMake(p,hh)){ skipped+=n; return; }   // 今は無い時間帯・作らない時間帯の分は写さない
+    if(!ng[dd])ng[dd]={}; ng[dd][hh]=n; sum+=n; })); }
+  if(!sum){ showToast(skipped?'先週の投資は、今は作らない時間帯の分だけでした（写していません）':'先週の投資はありません','info'); return; }
+  const has=_igGridSum(investGridOf(pid))>0||(!investGridOf(pid)&&!!investLegacyKind(p));
+  if(!confirm(`先週（${_igWeekLabel(prev)}）の「${p.name||'(名称未設定)'}」の投資（計 ${sum}個）を、今週に写します。${has?'\n\n今週に入っている数は置き換わります。':''}\n\nよろしいですか？`))return;
+  const w=_igWeekObj(true); if(!w)return;
+  w.invest[pid]=ng; _igSelCell=null; _igAfter();
+  showToast(`先週の投資（計 ${sum}個）を写しました${skipped?`（今は作らない時間帯の ${skipped}個は写していません）`:''}`,'success');
+}
+// 毎週効く設定（以前の入れ方）で今週置かれている数を、そのまま今週のマス目に写す（数は1個も変わらない）
+function igFromLegacy(pid){
+  const p=getP(pid); if(!p||investGridOf(pid)||!investLegacyKind(p))return;
+  if(!S.catOn[p.category]){ alert('この商品のカテゴリがオフです。②商品設定でカテゴリをオンにしてから写してください。'); return; }
+  if(investNoMakeSlot(p)){ alert('この商品は「作る時間帯」が全部オフです。②商品設定で作る時間帯を選んでから写してください。'); return; }
+  const cfg=S.catCfg[p.category]; if(!cfg)return;
+  const ng={}; for(let d=0;d<7;d++)cfg.slots.forEach(h=>{ const n=getInvestExtra(pid,d,h); if(n>0){ if(!ng[d])ng[d]={}; ng[d][h]=n; } });
+  const w=_igWeekObj(true); if(!w)return;
+  w.invest[pid]=ng; _igPid=pid; _igSelCell=null; _igAfter();
+  showToast('今週のマス目に写しました（数は同じです）。ここからマスごとに直せます','success');
+}
+// 毎週効く設定を止める（確認つき）。止めた後は、マス目を入れた週だけ投資が効く
+function igStopLegacy(pid){
+  const p=getP(pid); const kind=investLegacyKind(p); if(!p||!kind)return;
+  const g=investGridOf(pid);
+  const cnt=kind==='invest'?(S.budget.investCounts[pid]||0):(S.budget.newProductCounts[pid]||0);
+  if(!confirm(`「${p.name||'(名称未設定)'}」の毎週効く設定（1日 ${cnt}個）を止めます。\n\n止めた後は、マス目を入れた週だけ投資が効きます。\n${g?'今週はマス目の数のままです。':'今週のマス目が無いので、今週の投資も 0 になります（残したい時は、先に「今週のマス目に写す」を押してください）。'}\n\nよろしいですか？`))return;
+  if(kind==='invest')S.budget.investCounts[pid]=0; else S.budget.newProductCounts[pid]=0;
+  const w=_igWeekObj(false);
+  if(w&&_isPlainObj(w.invest)&&_isPlainObj(w.invest[pid])&&!Object.keys(w.invest[pid]).length&&!investLegacyKind(p))delete w.invest[pid];
+  _igAfter();
+  showToast('毎週効く設定を止めました','success');
+}
+function renderInvestGrid(){
+  const el=document.getElementById('bud-grid-body'); if(!el)return;
+  if(!S.activeWeek){ morphInto(el,'<div style="color:#999;font-size:13px;padding:10px">週がありません。①実績入力で週を作ってください。</div>'); return; }
+  const dates=getWeekDates(), md=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const prods=_igProds();
+  if(_igPid&&!prods.some(p=>p.id===_igPid))_igPid=null;
+  const chips=prods.filter(p=>investGridOf(p.id)||p.id===_igPid);
+  if(!_igPid&&chips.length)_igPid=chips[0].id;
+  const p=_igPid?getP(_igPid):null;
+  const esc=escapeHtmlP;
+  const isNewCat=x=>(x.category||'').endsWith('新商品');
+  const chipHtml=chips.map(x=>{ const on=p&&x.id===p.id, n=getInvestWeekCnt(x.id);
+    return `<button type="button" data-key="igchip_${x.id}" onclick="igSelect('${x.id}')" style="padding:8px 12px;min-height:40px;font-size:13px;font-weight:700;border-radius:20px;cursor:pointer;font-family:inherit;border:2px solid ${on?'var(--main)':'#e2e8f0'};background:${on?'var(--main)':'#fff'};color:${on?'#fff':'#334155'}">${esc(x.name||'(名称未設定)')}${isNewCat(x)?`<span style="font-size:10px;margin-left:4px;padding:0 5px;border-radius:6px;background:${on?'rgba(255,255,255,.25)':'#dbeafe'};color:${on?'#fff':'#1e40af'}">新</span>`:''}<span style="font-size:11px;margin-left:6px;opacity:.85">${n>0?'+'+n:'0'}</span></button>`; }).join('');
+  const cats=CATS.filter(c=>prods.some(x=>x.category===c));
+  const pick=`<select data-key="igpick" onchange="igSelect(this.value);this.value=''" style="padding:8px 10px;min-height:40px;font-size:13px;font-weight:700;border-radius:20px;border:2px dashed #94a3b8;background:#fff;color:#334155;cursor:pointer;max-width:100%">
+      <option value="">＋ 商品を選ぶ</option>
+      ${cats.map(c=>`<optgroup label="${esc(tCat(c))}">${prods.filter(x=>x.category===c).map(x=>`<option value="${x.id}">${esc(x.name||'(名称未設定)')}</option>`).join('')}</optgroup>`).join('')}
+    </select>`;
+  let body='';
+  if(!p){
+    body=`<div style="color:#64748b;font-size:13px;padding:14px 4px">「＋ 商品を選ぶ」から、投資を入れる商品を選んでください。</div>`;
+  }else{
+    const cfg=S.catCfg[p.category], g=investGridOf(p.id), legacy=investLegacyKind(p), ro=!g&&!!legacy, batch=getBatchUnit(p);
+    let offBatch=0;
+    const rows=cfg.slots.map(h=>{
+      if(!getSlotMake(p,h)){ let st=0; if(g)for(let d=0;d<7;d++)st+=_igCell(g,d,h);
+        return `<tr><th style="font-size:13px;white-space:nowrap;padding:6px 4px;background:#f8fafc">${h}時</th><td colspan="7" style="text-align:center;font-size:12px;color:#94a3b8;background:#f1f5f9;padding:10px 4px">作らない${st?`<span style="color:#b45309">（入っていた +${st} は数えません）</span>`:''}</td></tr>`; }
+      return `<tr><th style="font-size:13px;white-space:nowrap;padding:6px 4px;background:#f8fafc">${h}時</th>${DAYS.map((_,d)=>{
+        const n=g?_igCell(g,d,h):getInvestExtra(p.id,d,h); const bad=!ro&&batch>1&&n>0&&n%batch!==0; if(bad)offBatch++;
+        return `<td style="padding:3px 2px"><input type="text" inputmode="numeric" data-ig="1" data-key="ig_${d}_${h}" value="${n>0?n:''}" placeholder="0" ${ro?'disabled':''} aria-label="${DAYS[d]}曜 ${h}時 の投資"
+          onfocus="igFocus(this,${d},${h})" onkeydown="igKey(event,this)" onchange="igSet('${p.id}',${d},${h},this.value)"
+          style="width:100%;min-width:0;box-sizing:border-box;padding:8px 0;text-align:center;font-size:16px;font-weight:800;border-radius:8px;border:2px solid ${bad?'#f59e0b':(n>0?'#fcd34d':'#e2e8f0')};background:${ro?'#f1f5f9':(n>0?'#fffbeb':'#fff')};color:${n>0?'#b45309':'#334155'}">${bad?'<div style="font-size:9px;color:#b45309;text-align:center;line-height:1.2">※</div>':''}</td>`; }).join('')}</tr>`;
+    }).join('');
+    let stale=''; if(g){ const st={}; Object.keys(g).forEach(d=>Object.keys(g[d]||{}).forEach(h=>{ if(cfg.slots.indexOf(Number(h))<0&&_igCell(g,d,h))st[h]=(st[h]||0)+_igCell(g,d,h); }));
+      const ks=Object.keys(st); if(ks.length)stale=`<div style="font-size:12px;color:#b45309;margin-top:6px">⚠ 今は無い時間帯（${ks.map(h=>h+'時 +'+st[h]).join('、')}）の数が残っています。数えていません。</div>`; }
+    const sum=getInvestWeekCnt(p.id), amt=sum*(Number(p.cost)||0), rest=_igBud.max-_igBud.used;
+    const tile=(l,v,c)=>`<div style="flex:1 1 90px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:11px;color:#64748b">${l}</div><div style="font-size:18px;font-weight:800;color:${c||'#0f172a'}">${v}</div></div>`;
+    const btn=(fn,label,col)=>`<button type="button" onclick="${fn}" style="flex:1 1 140px;padding:10px 8px;min-height:44px;font-size:13px;font-weight:700;border-radius:10px;border:1px solid ${col||'#cbd5e1'};background:#fff;color:${col||'#334155'};cursor:pointer;font-family:inherit">${label}</button>`;
+    body=`
+      <div style="font-size:14px;font-weight:800;color:#0f172a;margin:10px 0 4px">${esc(p.name||'(名称未設定)')} <span style="font-size:11px;font-weight:600;color:#64748b">${esc(tCat(p.category))}・原価 ${fmt(p.cost)}円${batch>1?`・まとめ ${batch}個`:''}</span></div>
+      ${ro?`<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 10px;font-size:12px;color:#92400e;line-height:1.6;margin-bottom:6px">この商品は<b>毎週効く設定</b>（以前の入れ方）で入っています。下は今週の置かれ方です。マスごとに直す時は、先に写してください。
+        <div style="margin-top:6px"><button type="button" onclick="igFromLegacy('${p.id}')" style="padding:8px 14px;min-height:40px;font-size:13px;font-weight:700;border-radius:8px;border:1px solid #b45309;background:#fff;color:#92400e;cursor:pointer;font-family:inherit">今週のマス目に写す（数は同じ）</button></div></div>`:''}
+      <div class="overflow-auto"><table style="width:100%;table-layout:fixed;border-collapse:collapse;min-width:300px">
+        <thead><tr><th style="width:44px;background:#f8fafc"></th>${DAYS.map((d,i)=>`<th style="padding:4px 0;font-size:13px;background:#f8fafc;line-height:1.2">${d}<div style="font-size:10px;font-weight:400;color:#64748b">${md(dates[i])}</div></th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      ${offBatch?`<div style="font-size:12px;color:#b45309;margin-top:6px">※ まとめ単位（${batch}個）の倍数でないマスが ${offBatch}つあります。入れた数のまま作成表に出ます。</div>`:''}
+      ${stale}
+      ${ro?'':`<div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:#475569;flex-wrap:wrap">選んだマス：<b id="ig-sel-label" style="min-width:70px">${_igSelCell?`${DAYS[_igSelCell.d]}曜 ${_igSelCell.h}時`:'（マスをタップ）'}</b>
+        <button type="button" onclick="igStep(-1)" aria-label="選んだマスを1減らす" style="width:56px;min-height:40px;font-size:16px;font-weight:800;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer">−1</button>
+        <button type="button" onclick="igStep(1)" aria-label="選んだマスを1増やす" style="width:56px;min-height:40px;font-size:16px;font-weight:800;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer">+1</button>
+        <span style="color:#94a3b8">Enter・→ で次のマス</span></div>`}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        ${tile('この商品の投資',`${sum}<span style="font-size:11px">個</span>`,'#b45309')}
+        ${tile('原価',`${fmt(amt)}<span style="font-size:11px">円</span>`)}
+        ${tile('今週の投資の残り',`${fmt(rest)}<span style="font-size:11px">円</span>`,rest>=0?'#16a34a':'#dc2626')}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        ${btn(`igCopyPrev('${p.id}')`,'先週と同じにする')}
+        ${btn(`igZero('${p.id}')`,'この商品を0にする','#dc2626')}
+      </div>`;
+  }
+  // 毎週効く設定（以前の入れ方）が残っている商品
+  const legs=(S.PM||[]).filter(x=>x&&x.enabled&&investLegacyKind(x));
+  const legHtml=legs.length?`<div style="margin-top:18px;border-top:2px dashed #e5e7eb;padding-top:12px">
+      <div style="font-size:13px;font-weight:800;color:#334155">毎週効く設定（以前の入れ方）<span style="font-size:11px;font-weight:600;color:#64748b">　${legs.length}商品。止めるまで毎週効きます</span></div>
+      <div class="overflow-auto"><table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:12px">
+        <thead><tr><th style="text-align:left;padding:6px 8px;background:#f8fafc">商品</th><th style="text-align:left;padding:6px 8px;background:#f8fafc">毎週の設定</th><th style="text-align:left;padding:6px 8px;background:#f8fafc">今週</th><th style="padding:6px 8px;background:#f8fafc"></th></tr></thead><tbody>
+        ${legs.map(x=>{ const k=investLegacyKind(x), g=investGridOf(x.id);
+          const cnt=k==='invest'?(S.budget.investCounts[x.id]||0):(S.budget.newProductCounts[x.id]||0);
+          const days=k==='invest'?getInvestDays(x.id):[0,1,2,3,4,5,6];
+          const b=(fn,l,c)=>`<button type="button" onclick="${fn}" style="padding:7px 10px;min-height:36px;font-size:12px;font-weight:700;border-radius:8px;border:1px solid ${c};background:#fff;color:${c};cursor:pointer;font-family:inherit;white-space:nowrap">${l}</button>`;
+          return `<tr data-key="igleg_${x.id}" style="border-top:1px solid #eef2f7">
+            <td style="text-align:left;padding:6px 8px;font-weight:700">${esc(x.name||'(名称未設定)')}${isNewCat(x)?' <span style="font-size:10px;padding:0 5px;border-radius:6px;background:#dbeafe;color:#1e40af">新</span>':''}</td>
+            <td style="text-align:left;padding:6px 8px;white-space:nowrap">1日 ${cnt}個・${days.length===7?'毎日':(days.map(i=>DAYS[i]).join('')||'曜日なし')}</td>
+            <td style="text-align:left;padding:6px 8px;white-space:nowrap">${g?`<b style="color:#b45309">マス目が優先</b>（週 ${getInvestWeekCnt(x.id)}個）`:`週 ${getInvestWeekCnt(x.id)}個`}</td>
+            <td style="padding:6px 8px"><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${g?b(`igSelect('${x.id}')`,'マス目を開く','#334155'):b(`igFromLegacy('${x.id}')`,'今週のマス目に写す','#b45309')}${b(`igStopLegacy('${x.id}')`,'毎週の設定を止める','#dc2626')}</div></td></tr>`; }).join('')}
+      </tbody></table></div></div>`:'';
+  morphInto(el,`
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-size:16px;font-weight:800;color:var(--main)">${md(dates[0])}（${DAYS[0]}）〜${md(dates[6])}（${DAYS[6]}）</span>
+      <span style="font-size:12px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:8px;padding:2px 8px">来週には引き継ぎません</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${chipHtml}${pick}</div>
+    ${body}
+    ${legHtml}`);
+}
+// 予算の表で、マス目で入力中の商品の入力欄の代わりに出す表示（二重に入れられないように読み取り専用）
+function _igReadonlyCell(pid){
+  return `<div style="font-size:11px;font-weight:700;color:#b45309;margin-bottom:4px">マス目で入力中（週 ${getInvestWeekCnt(pid)}個）</div>
+    <button type="button" onclick="igOpen('${pid}')" style="padding:3px 10px;font-size:11px;background:#fff;color:#b45309;border:1px solid #b45309;border-radius:6px;cursor:pointer;white-space:nowrap">今週の投資を開く</button>`;
+}
 function renderNewProductBudgetTable(maxBudget){
   if(!S.budget.newProductCounts)S.budget.newProductCounts={};
   const NEW_CAT_SUFFIX='新商品';
@@ -7795,7 +8030,7 @@ function renderNewProductBudgetTable(maxBudget){
   // 金額は作成表に置かれる数（週合計）× 原価。定番投資としても数が入っている商品は、定番投資の表で数える（二重に数えない）
   const _wk=p=>investKind(p)==='new'?getInvestWeekCnt(p.id):0;
   const totalAmt=prods.reduce((s,p)=>s+_wk(p)*p.cost,0);
-  const totalCnt=prods.reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
+  const totalCnt=prods.reduce((s,p)=>s+(investGridOf(p.id)?0:(S.budget.newProductCounts[p.id]||0)),0);
   const over=totalAmt>maxBudget;
   let html=`<div style="font-size:11px;color:#666;margin-bottom:6px">
     📝 1日あたりの追加作成数を入力してください。<b>④作成表に黄色で反映</b>されます。
@@ -7814,13 +8049,13 @@ function renderNewProductBudgetTable(maxBudget){
     html+=`<tr>
       <td style="text-align:left;font-size:12px">${p.name}<br><span style="font-size:10px;color:#888">${p.category}</span></td>
       <td style="font-size:12px;color:#555">${fmt(p.cost)}円</td>
-      <td style="padding:6px 8px">
+      <td style="padding:6px 8px">${investGridOf(p.id)?_igReadonlyCell(p.id):`
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
           <input type="number" value="${cnt}" min="0" step="1" style="width:60px;text-align:right"
             onchange="setNewProductCount('${p.id}',parseInt(toHalf(this.value))||0)">
           <span style="font-size:12px;color:#555">個/日</span>
         </div>
-        <button onclick="setNewProductCount('${p.id}',${sug})" style="padding:3px 10px;font-size:11px;background:#eff6ff;color:var(--main);border:1px solid var(--main);border-radius:6px;cursor:pointer;white-space:nowrap">🤖 提案: ${sug}個</button>
+        <button onclick="setNewProductCount('${p.id}',${sug})" style="padding:3px 10px;font-size:11px;background:#eff6ff;color:var(--main);border:1px solid var(--main);border-radius:6px;cursor:pointer;white-space:nowrap">🤖 提案: ${sug}個</button>`}
       </td>
       <td style="font-size:12px;font-weight:600;color:var(--main)">${fmt(amt)}円</td>
     </tr>`;
@@ -7845,12 +8080,13 @@ function setNewProductCount(pid,cnt){
 function renderInvestBudgetTable(maxBudget,newBudgetFormal){
   if(!S.budget.investCounts)S.budget.investCounts={};
   if(!S.budget.investDays)S.budget.investDays={};
-  const prods=S.PM.filter(p=>p.enabled&&p.isInvest);
-  if(!prods.length)return '<div style="color:#999;font-size:12px">投資対象商品がありません（②商品設定で「📈 定番投資対象」をONにしてください）</div>';
+  // 種別の印（定番投資対象）が付いた商品と、今週のマス目で投資を入れた商品（印が無くても出す）
+  const prods=S.PM.filter(p=>p.enabled&&(p.isInvest||investKind(p)==='invest'));
+  if(!prods.length)return '<div style="color:#999;font-size:12px">投資対象商品がありません（「📈 今週の投資」で商品を選んで数を入れてください）</div>';
   // 金額は作成表に置かれる数（週合計）× 原価（作成表と同じ関数から取る）
   const _wk=p=>investKind(p)==='invest'?getInvestWeekCnt(p.id):0;
   const totalAmt=prods.reduce((s,p)=>s+_wk(p)*p.cost,0);
-  const totalCnt=prods.reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
+  const totalCnt=prods.reduce((s,p)=>s+(investGridOf(p.id)?0:(S.budget.investCounts[p.id]||0)),0);
   const availMax=Math.max(0,maxBudget-newBudgetFormal);
   const over=totalAmt>availMax;
   let html=`<div style="font-size:11px;color:#666;margin-bottom:6px">
@@ -7882,6 +8118,11 @@ function renderInvestBudgetTable(maxBudget,newBudgetFormal){
       <td style="font-size:11px;color:#555">${fmt(p.cost)}円<br>
         ${haikiPct!==null?`<span style="color:${haikiPct>=50?'var(--red)':'var(--orange)'}">廃棄${haikiPct}%</span>`:'<span style="color:#aaa">実績なし</span>'}
       </td>
+      ${investGridOf(p.id)?`<td style="padding:6px 8px">${_igReadonlyCell(p.id)}</td><td style="padding:6px 8px;font-size:11px;color:#999">曜日・時間帯はマス目で指定</td>
+      <td style="font-size:12px;font-weight:600;color:var(--orange)">${fmt(amt)}円
+        <div style="font-size:10px;color:#999;font-weight:400">マス目の合計 週 ${wk}個</div>
+      </td>
+    </tr>`:`
       <td style="padding:6px 8px">
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
           <input type="text" inputmode="numeric" value="${cnt}" style="width:60px;text-align:right"
@@ -7902,7 +8143,7 @@ function renderInvestBudgetTable(maxBudget,newBudgetFormal){
       <td style="font-size:12px;font-weight:600;color:var(--orange)">${fmt(amt)}円
         <div style="font-size:10px;color:#999;font-weight:400">${_investNote(p,cnt,days.length,wk)}</div>
       </td>
-    </tr>`;
+    </tr>`}`;
   });
   html+=`</tbody><tfoot><tr style="font-weight:700;background:#fff3e0">
     <td style="text-align:right">合計</td>
@@ -8156,7 +8397,7 @@ function renderOrderTable(){
       </div>`;
     })()}
     <div style="font-size:11px;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block">${t('order.checkHint')}</div>
-    ${S.PM.some(p=>p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0))?
+    ${S.PM.some(p=>p.isInvest||!!investKind(p))?
       `<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">${t('order.yellowNote')}</div>`:''}
     ${S.PM.some(p=>p.enabled&&p.orderEnding)?
       `<div style="font-size:11px;color:#7f1d1d;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;margin-top:6px;display:inline-block;margin-left:6px">${t('order.endingBannerNote')}</div>`:''}
@@ -8200,7 +8441,7 @@ function _legacyRemoved(){
         <tbody>`;
 
     prods.forEach((p,pi)=>{
-      const hasExtra=p.isInvest||(p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0);
+      const hasExtra=p.isInvest||!!investKind(p);
       const rowBg=pi%2===0?'#fff':'#fafafa';
 
       // 曜日別合計を計算
