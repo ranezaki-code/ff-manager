@@ -2924,7 +2924,14 @@ function loadSampleProducts(){
 
 function finishSetup(){
   S.storeName=document.getElementById('setup-store-name').value||'店舗';
+  // 新商品カテゴリが本体と同じ設定だった場合は、本体の変更に付いていく（新商品だけ古い時間のまま取り残さない）。
+  // 設定画面で新商品カテゴリ自体を変えた時は「別の時間にする」と明示したものとして扱う
+  const _wasSame={}, _oldNew={};
+  CATS.filter(c=>!c.endsWith('新商品')).forEach(c=>{ const n=S.catCfg[c+'新商品']; if(!n)return; _wasSame[c]=_newCatSame(c); _oldNew[c]=JSON.stringify([n.ah,n.slots]); });
   CATS.forEach(c=>{S.catOn[c]=setupCatOn[c];S.catCfg[c]={...setupCatCfg[c],slots:[...setupCatCfg[c].slots]};});
+  Object.keys(_wasSame).forEach(c=>{ const n=S.catCfg[c+'新商品'], m=S.catCfg[c]; if(!n||!m||!_wasSame[c])return;
+    if(JSON.stringify([n.ah,n.slots])===_oldNew[c]){ n.ah=m.ah; n.slots=[...m.slots]; }
+    else if(n.ah!==m.ah||JSON.stringify(n.slots)!==JSON.stringify(m.slots)) n.sameAsMain=false; });
   if(!S.PM||S.PM.length===0) S.PM=DEF_PRODUCTS.map(p=>({...p}));
   localStorage.setItem('ffv6_setup_'+currentStoreId,'1');
   // storeList の name を更新
@@ -3457,10 +3464,41 @@ function cellMenuAct(act){
   if(act==='skip'){ const was=!!(S.skipped&&S.skipped[c.key]); toggleSkipped(c.key); showToast(was?'「在庫がなくて作れなかった」の記録を取り消しました':'⊘「在庫がなくて作れなかった」を記録しました',was?'info':'success'); return; }
 }
 
+// ---------- 投資・新商品の数を置く時間帯 ----------
+// その商品を「作る」時間帯（②商品設定の「作る時間帯」＝getSlotMake）にだけ置く。
+// 「作る時間帯」が1つも無い商品は、今までどおりカテゴリの全時間帯に置く（投資が勝手に 0 にならないように。画面には注意を出す）。
+// 「作らない」時間帯を持たない商品は、今までと同じ結果になる。
+function investNoMakeSlot(p){
+  const cfg=p&&S.catCfg[p.category]; if(!cfg||!cfg.slots.length)return false;
+  return !cfg.slots.some(h=>getSlotMake(p,h));
+}
+function getInvestSlots(p){
+  const cfg=p&&S.catCfg[p.category]; if(!cfg||!cfg.slots.length)return [];
+  const on=cfg.slots.filter(h=>getSlotMake(p,h));
+  return on.length?on:cfg.slots.slice();
+}
+// 投資の種類：'invest'＝定番投資／'new'＝新商品／null＝どちらでもない（getInvestExtra と同じ判定。予算の表の二重計上を防ぐ）
+function investKind(p){
+  if(!p)return null;
+  if(p.isInvest&&(S.budget.investCounts?.[p.id]||0)>0)return 'invest';
+  if((p.category||'').endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0)return 'new';
+  return null;
+}
+// 投資・新商品で、実際に作成表へ置かれる数の週合計（まとめ単位で増えた分を含む）。
+// 予算の金額はここから計算する＝作成表の「投資+N」の合計と必ず同じ数になる。カテゴリがオフの商品は作成表に出ないので 0。
+function getInvestWeekCnt(pid){
+  const p=getP(pid); if(!p||!p.enabled||!S.catOn[p.category])return 0;
+  const cfg=S.catCfg[p.category]; if(!cfg)return 0;
+  let s=0; for(let d=0;d<7;d++)cfg.slots.forEach(h=>{s+=getInvestExtra(pid,d,h);});
+  return s;
+}
+// この時間帯の表・印刷にその商品を出すか：「作る」時間帯、または投資の数が置かれている時間帯（作る時間帯が1つも無い商品の投資を、画面によって出したり消したりしない）
+function slotShows(p,dayIdx,slotH){ return getSlotMake(p,slotH)||getInvestExtra(p.id,dayIdx,slotH)>0; }
+
 function getInvestExtra(pid,dayIdx,slotH){
   const p=getP(pid);if(!p||!p.enabled)return 0;
   const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.length)return 0;
-  const slotIdx=cfg.slots.indexOf(slotH);if(slotIdx<0)return 0;
+  if(cfg.slots.indexOf(slotH)<0)return 0;
   const isInvest=p.isInvest&&(S.budget.investCounts?.[p.id]||0)>0;
   const isNew=p.category.endsWith('新商品')&&(S.budget.newProductCounts?.[p.id]||0)>0;
   if(!isInvest&&!isNew)return 0;
@@ -3471,7 +3509,10 @@ function getInvestExtra(pid,dayIdx,slotH){
   }
   const perDay=isInvest?(S.budget.investCounts[p.id]||0):(S.budget.newProductCounts[p.id]||0);
   if(!perDay)return 0;
-  const numSlots=cfg.slots.length;
+  // 置く先は「作る」時間帯だけ（均等に割り、余りは早い時間帯から）
+  const slots=getInvestSlots(p);
+  const slotIdx=slots.indexOf(slotH);if(slotIdx<0)return 0;
+  const numSlots=slots.length;
   const batch=getBatchUnit(p);
   if(batch>1){
     // 最低作成数(バッチ)単位で配分：各スロットは batch の倍数になる（自然算出も batch 倍数なので合計が奇数化しない）
@@ -4324,8 +4365,74 @@ function _newCatSame(c){
   if(n.sameAsMain!==undefined)return !!n.sameAsMain;
   return n.ah===m.ah&&JSON.stringify(n.slots)===JSON.stringify(m.slots);
 }
-function _syncNewCat(c){ if(!c.endsWith('新商品')&&_newCatSame(c)){ const n=S.catCfg[_newCatOf(c)], m=S.catCfg[c]; n.ah=m.ah; n.slots=[...m.slots]; } }
+// 本体を変える「前」に、新商品カテゴリが本体と同じかを調べておく（変えた後に比べると必ず「違う」になり、新商品だけ古い時間のまま取り残されるため）
+function _newCatSameBefore(c){ return !c.endsWith('新商品')&&_newCatSame(c); }
+// 本体の設定を新商品カテゴリへ写す。same＝変える前に調べた結果（省略時は今の状態で判定）
+function _syncNewCat(c,same){
+  if(c.endsWith('新商品'))return;
+  if(same===undefined)same=_newCatSame(c);
+  if(!same)return;
+  const n=S.catCfg[_newCatOf(c)], m=S.catCfg[c]; if(!n||!m)return;
+  n.ah=m.ah; n.slots=[...m.slots];
+}
 function setNewCatSame(c,same){ const n=S.catCfg[_newCatOf(c)]; if(!n)return; n.sameAsMain=same; if(same)_syncNewCat(c); saveS(); renderCatCfgArea(); }
+// 「本体にそろえる」：新商品カテゴリの作成時間帯・許容時間を本体と同じにする（押した時だけ。勝手にはそろえない）
+function alignNewCat(c){
+  const nc=_newCatOf(c), n=S.catCfg[nc], m=S.catCfg[c]; if(!n||!m)return;
+  if(!confirm(`「${tCat(nc)}」の作成時間帯を、本体と同じ（${m.slots.map(h=>h+'時').join('・')||'未設定'}／許容 ${m.ah}時間）にします。\n\nよろしいですか？`))return;
+  const old=[...n.slots];
+  n.sameAsMain=true; _syncNewCat(c,true);
+  _carrySlotChange([nc],old,n.slots);
+  saveS(); renderCatCfgArea(); if(typeof renderProductCards==='function')renderProductCards();
+}
+
+// ---------- 作成時刻を変えた時、商品ごとの「この時間は作らない」（p.minSlots）を新しい時刻へ引き継ぐ ----------
+// 時刻をキーにしている商品側の設定は p.minSlots だけ（{時刻:false}＝その時刻は作らない）。
+// 外した時刻の設定は消さずに残す（その時刻を見に行く計算が無いので害は無い。同じ時刻を戻せば元どおり効く）。
+const _slotPend={};   // {カテゴリ:{removed:[時刻],added:[時刻]}}：この画面を開いてから外した／足した時刻（引き継ぎ先を探すため。保存しない）
+function _slotCats(cat,sameBefore){ return (!cat.endsWith('新商品')&&sameBefore)?[cat,_newCatOf(cat)]:[cat]; }
+function _minSlotOffProds(cats,h){ return (S.PM||[]).filter(p=>cats.includes(p.category)&&p.minSlots&&p.minSlots[h]===false); }
+function _carryMinSlots(cats,from,to){
+  let n=0;
+  (S.PM||[]).forEach(p=>{
+    if(!cats.includes(p.category)||!p.minSlots||p.minSlots[from]!==false)return;
+    if(p.minSlots[to]!==undefined)return;      // 新しい時刻に既に設定がある商品は触らない
+    p.minSlots[to]=false; delete p.minSlots[from]; n++;
+  });
+  return n;
+}
+function _askCarry(cats,from,to){
+  const ps=_minSlotOffProds(cats,from).filter(p=>p.minSlots[to]===undefined); if(!ps.length)return 0;
+  const names=ps.slice(0,5).map(p=>p.name||'(名称未設定)').join('、')+(ps.length>5?` ほか${ps.length-5}件`:'');
+  if(!confirm(`「${from}時は作らない」にしている商品が ${ps.length}件あります（${names}）。\n\n新しい ${to}時 にも「作らない」を引き継ぎますか？\n\nOK＝引き継ぐ（${to}時も作らない）\nキャンセル＝引き継がない（${to}時は作る）`))return 0;
+  const n=_carryMinSlots(cats,from,to);
+  if(n&&typeof showToast==='function')showToast(`${n}件の商品で「${from}時は作らない」を ${to}時 に引き継ぎました`,'success');
+  return n;
+}
+function _nearest(arr,h){ return arr.reduce((b,x)=>(b==null||Math.abs(x-h)<Math.abs(b-h))?x:b,null); }
+// 時刻を1つ足した／外した時（タップでの編集）。外した時刻と足した時刻を組にして引き継ぎを聞く
+function _carryOnToggle(cat,h,on,sameBefore){
+  const cats=_slotCats(cat,sameBefore);
+  const pd=_slotPend[cat]||(_slotPend[cat]={removed:[],added:[]});
+  if(on){
+    const i=pd.removed.indexOf(h); if(i>=0){ pd.removed.splice(i,1); return; }   // 同じ時刻を戻しただけ
+    const from=_nearest(pd.removed.filter(r=>_minSlotOffProds(cats,r).length),h);
+    if(from!=null){ pd.removed.splice(pd.removed.indexOf(from),1); _askCarry(cats,from,h); }
+    else pd.added.push(h);
+  }else{
+    const i=pd.added.indexOf(h); if(i>=0){ pd.added.splice(i,1); return; }       // 足したばかりの時刻を外しただけ
+    if(!_minSlotOffProds(cats,h).length)return;                                   // 引き継ぐ設定が無い
+    const to=_nearest(pd.added,h);
+    if(to!=null){ pd.added.splice(pd.added.indexOf(to),1); _askCarry(cats,h,to); }
+    else pd.removed.push(h);
+  }
+}
+// 時刻をまとめて入れ替えた時（提案の採用・本体にそろえる）。外れた数と足された数が同じ時だけ、早い順に組にして聞く
+function _carrySlotChange(cats,oldSlots,newSlots){
+  const rem=oldSlots.filter(h=>!newSlots.includes(h)).sort((a,b)=>a-b), add=newSlots.filter(h=>!oldSlots.includes(h)).sort((a,b)=>a-b);
+  if(!rem.length||rem.length!==add.length)return;
+  rem.forEach((from,i)=>_askCarry(cats,from,add[i]));
+}
 function _discDaysSummary(c){
   const on=DAYS.map((d,i)=>isDiscountOn(c,i)?d:null).filter(Boolean);
   if(on.length===7)return '毎日'; if(on.length===0)return 'なし';
@@ -4365,6 +4472,7 @@ function renderCatCfgArea(){
         <b class="cc-name">${tCat(c)}</b>
         <span class="cc-chips">${chips}</span>
         <span class="cc-info">許容 ${cfg.ah}h ・ 値引 ${_discDaysSummary(c)}</span>
+        ${(ncfg&&S.catOn[nc]&&!same)?`<span onclick="event.stopPropagation()" title="新商品カテゴリの作成時間帯が、本体と別になっています" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:2px 8px">⚠ 新商品は別の時間（${ncfg.slots.length?ncfg.slots.map(h=>h+'時').join('・'):'未設定'}${ncfg.ah!==cfg.ah?`／許容 ${ncfg.ah}h`:''}）<button type="button" onclick="alignNewCat('${c}')" style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;border:1px solid #b45309;background:#fff;color:#92400e;cursor:pointer;font-family:inherit">本体にそろえる</button></span>`:''}
         ${ncfg?`<span class="cc-newtg" onclick="event.stopPropagation()" title="${tCat(nc)} を使う/使わない">🆕新商品<label class="toggle sm"><input type="checkbox" ${S.catOn[nc]?'checked':''} onchange="toggleCat('${nc}',this.checked)"><span class="slider"></span></label></span>`:''}
         <span class="cc-edit">${open?'▲ 閉じる':'✏️ 編集'}</span>
       </div>${body}</div>`;
@@ -4372,13 +4480,17 @@ function renderCatCfgArea(){
 }
 
 function setCatCfg(cat,key,val){
-  S.catCfg[cat][key]=val;_syncNewCat(cat);saveS();renderCatCfgArea();
+  const same=_newCatSameBefore(cat);
+  S.catCfg[cat][key]=val;_syncNewCat(cat,same);saveS();renderCatCfgArea();
 }
 function toggleCatSlot(cat,h,on){
+  const same=_newCatSameBefore(cat);          // 変える前に「新商品は本体と同じか」を見ておく
   const s=S.catCfg[cat].slots;
   if(on){if(!s.includes(h))s.push(h);s.sort((a,b)=>a-b);}
   else{const i=s.indexOf(h);if(i>=0)s.splice(i,1);}
-  _syncNewCat(cat);saveS();renderCatCfgArea();
+  _syncNewCat(cat,same);
+  _carryOnToggle(cat,h,on,same);              // 商品ごとの「この時間は作らない」を新しい時刻へ引き継ぐか聞く
+  saveS();renderCatCfgArea();
 }
 
 function suggestSlots(cat){
@@ -4399,7 +4511,10 @@ function suggestSlots(cat){
 }
 
 function adoptSuggest(cat,slots){
-  S.catCfg[cat].slots=slots.sort((a,b)=>a-b);_syncNewCat(cat);saveS();renderCatCfgArea();
+  const same=_newCatSameBefore(cat), old=[...S.catCfg[cat].slots];
+  S.catCfg[cat].slots=slots.sort((a,b)=>a-b);_syncNewCat(cat,same);
+  _carrySlotChange(_slotCats(cat,same),old,S.catCfg[cat].slots);
+  saveS();renderCatCfgArea();
 }
 
 let _dragPid=null, _dragOverPid=null;
@@ -6039,7 +6154,7 @@ function mkPrepPrintRows(di,slotH){
   let bento=0, hasMk=false;
   mkCats.forEach(cat=>{
     if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
-    S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH)).forEach(p=>{
+    S.PM.filter(p=>p.enabled&&p.category===cat&&slotShows(p,di,slotH)).forEach(p=>{
       const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
       hasMk=true;
       if(p.mkType==='弁当')bento+=cnt;
@@ -6199,7 +6314,7 @@ function printMakePlan(){
     CATS.forEach(cat=>{
       if(!S.catOn[cat])return;
       const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
-      const rows=S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH))
+      const rows=S.PM.filter(p=>p.enabled&&p.category===cat&&slotShows(p,di,slotH))
         .map(p=>({p,cnt:getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH)}))
         .filter(o=>o.cnt>0);
       if(!rows.length)return;
@@ -6354,10 +6469,11 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   if(dayIdx<6){
     const nd=dayIdx+1,thawAgg={};
     prods.forEach(p=>{let tot=0;cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));if(tot<=0)return;getIngs(p).forEach(ing=>{if(ing.pt){const u=ingUse(ing);if(u!=='tekiryo')thawAgg[ing.n]=(thawAgg[ing.n]||0)+tot*(_USE_FACTOR[u]||1);}});});
-    const thawItems=Object.keys(thawAgg).map(n=>`${n}<span style="color:#1d4ed8;font-weight:700"> ×${_fmtQ(thawAgg[n])}</span>`);
+    // 食材は必ず 1食材＝1行（縦並び）。横に「、」でつながない
+    const thawItems=Object.keys(thawAgg).map(n=>`<div data-thaw-item style="padding:1px 0">${n}<span style="color:#1d4ed8;font-weight:700"> ×${_fmtQ(thawAgg[n])}</span></div>`);
     if(thawItems.length)thawHtml=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 11px;margin-top:10px">
       <div style="color:#1e40af;font-weight:700;font-size:13px">❄️ 明日（${DAYS[nd]||''}）の事前解凍　<span style="font-size:11px;font-weight:600;color:#3b82f6">今日のうちに解凍しておく分</span></div>
-      <div style="font-size:13px;color:#1e3a8a;line-height:1.7;margin-top:2px">${thawItems.join('、')}</div></div>`;
+      <div style="font-size:13px;color:#1e3a8a;line-height:1.7;margin-top:2px">${thawItems.join('')}</div></div>`;
   }
   return `<div style="margin-top:10px;border-top:2px dashed #fed7aa;padding-top:10px">
     <div style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none" onclick="toggleMkPrep()">
@@ -6533,7 +6649,7 @@ function mkSlotPrepRows(dayIdx,slotH){
   let bento=0, hasMk=false;
   mkCats.forEach(cat=>{
     if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
-    S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH)).forEach(p=>{
+    S.PM.filter(p=>p.enabled&&p.category===cat&&slotShows(p,di,slotH)).forEach(p=>{
       const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
       hasMk=true;
       if(p.mkType==='弁当')bento+=cnt;
@@ -6572,7 +6688,7 @@ function renderSlotGroupedView(dayIdx){
       if(!S.catOn[cat])return;
       const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
       const rows=[];
-      S.PM.filter(p=>p.enabled&&p.category===cat&&getSlotMake(p,slotH)).forEach(p=>{
+      S.PM.filter(p=>p.enabled&&p.category===cat&&slotShows(p,di,slotH)).forEach(p=>{
         const grandTotal=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH)+getSoldOutTotal(p.id,di,slotH);
         if(grandTotal<=0)return;
         rows.push({p,grandTotal,extra:getInvestExtra(p.id,di,slotH)});
@@ -7573,14 +7689,15 @@ function renderBudgetPlan(){
   const budTot=bud.reduce((a,b)=>({teika:a.teika+b.teika,target:a.target+b.target,make:a.make+b.make,opt:a.opt+b.opt,max:a.max+b.max,diff:a.diff+b.diff}),{teika:0,target:0,make:0,opt:0,max:0,diff:0});
   budTot.rate=budTot.target?budTot.teika/budTot.target:0;
   const newBudgetMax=Math.max(0,budTot.diff);   // 新商品・投資に使える予算（売変予算の 最大 − 最適）
-  // 新商品予算（正式）= 1日あたり個数 × 7日 × 原価 の合計
-  const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
-    .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*7*p.cost,0);
+  // 新商品予算（正式）= 作成表に置かれる投資の数（週合計・getInvestWeekCnt）× 原価 の合計
+  //   ※以前は「1日あたり個数 × 7日 × 原価」。まとめ単位が2以上だと作成表の数と食い違うため、作成表と同じ関数から取る
+  const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品')&&investKind(p)==='new')
+    .reduce((s,p)=>s+getInvestWeekCnt(p.id)*p.cost,0);
   const newBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品'))
     .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
-  // 定番投資予算（正式）= 1日あたり個数 × 選択曜日数 × 原価 の合計
-  const investBudgetFormal=S.PM.filter(p=>p.enabled&&p.isInvest)
-    .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*getInvestDays(p.id).length*p.cost,0);
+  // 定番投資予算（正式）= 作成表に置かれる投資の数（週合計・getInvestWeekCnt）× 原価 の合計（以前は 1日あたり個数 × 選択曜日数 × 原価）
+  const investBudgetFormal=S.PM.filter(p=>p.enabled&&p.isInvest&&investKind(p)==='invest')
+    .reduce((s,p)=>s+getInvestWeekCnt(p.id)*p.cost,0);
   const investBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.isInvest)
     .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
 
@@ -7659,12 +7776,25 @@ function renderBudgetPlan(){
     </div>`;
 }
 
+// 予算の表の小さな説明：入れた数（個×日）と、作成表に置かれる数（週合計）。食い違う時・置けない時は理由を出す
+function _investNote(p,cnt,days,wk){
+  let s=`${cnt}個 × ${days}日`;
+  if(wk!==cnt*days){
+    const why=!S.catOn[p.category]?'カテゴリがオフのため作成表に出ません'
+      :(getBatchUnit(p)>1?`まとめ単位 ${getBatchUnit(p)}個のため`:'');
+    s+=` → <b style="color:#b45309">作成表は週 ${wk}個</b>${why?`（${why}）`:''}`;
+  }
+  if(cnt>0&&investNoMakeSlot(p)) s+=`<div class="inv-warn" style="color:var(--red);font-weight:700">⚠ 「作る時間帯」が全部オフです。投資の数は全部の時間帯に置いています（②商品設定で作る時間帯を選んでください）</div>`;
+  return s;
+}
 function renderNewProductBudgetTable(maxBudget){
   if(!S.budget.newProductCounts)S.budget.newProductCounts={};
   const NEW_CAT_SUFFIX='新商品';
   const prods=S.PM.filter(p=>p.enabled&&p.category.endsWith(NEW_CAT_SUFFIX));
   if(!prods.length)return '<div style="color:#999;font-size:12px">新商品カテゴリの商品がありません（②商品設定で「ホットFF新商品」等のカテゴリを設定してください）</div>';
-  const totalAmt=prods.reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0)*7*p.cost,0);
+  // 金額は作成表に置かれる数（週合計）× 原価。定番投資としても数が入っている商品は、定番投資の表で数える（二重に数えない）
+  const _wk=p=>investKind(p)==='new'?getInvestWeekCnt(p.id):0;
+  const totalAmt=prods.reduce((s,p)=>s+_wk(p)*p.cost,0);
   const totalCnt=prods.reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
   const over=totalAmt>maxBudget;
   let html=`<div style="font-size:11px;color:#666;margin-bottom:6px">
@@ -7679,7 +7809,7 @@ function renderNewProductBudgetTable(maxBudget){
   </tr></thead><tbody>`;
   prods.forEach(p=>{
     const cnt=S.budget.newProductCounts[p.id]||0;
-    const amt=cnt*7*p.cost;
+    const wk=_wk(p), amt=wk*p.cost;
     const sug=suggestInvestPerDay(p.id);
     html+=`<tr>
       <td style="text-align:left;font-size:12px">${p.name}<br><span style="font-size:10px;color:#888">${p.category}</span></td>
@@ -7717,7 +7847,9 @@ function renderInvestBudgetTable(maxBudget,newBudgetFormal){
   if(!S.budget.investDays)S.budget.investDays={};
   const prods=S.PM.filter(p=>p.enabled&&p.isInvest);
   if(!prods.length)return '<div style="color:#999;font-size:12px">投資対象商品がありません（②商品設定で「📈 定番投資対象」をONにしてください）</div>';
-  const totalAmt=prods.reduce((s,p)=>s+(S.budget.investCounts[p.id]||0)*getInvestDays(p.id).length*p.cost,0);
+  // 金額は作成表に置かれる数（週合計）× 原価（作成表と同じ関数から取る）
+  const _wk=p=>investKind(p)==='invest'?getInvestWeekCnt(p.id):0;
+  const totalAmt=prods.reduce((s,p)=>s+_wk(p)*p.cost,0);
   const totalCnt=prods.reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
   const availMax=Math.max(0,maxBudget-newBudgetFormal);
   const over=totalAmt>availMax;
@@ -7735,7 +7867,7 @@ function renderInvestBudgetTable(maxBudget,newBudgetFormal){
   prods.forEach(p=>{
     const cnt=S.budget.investCounts[p.id]||0;
     const days=getInvestDays(p.id);
-    const amt=cnt*days.length*p.cost;
+    const wk=_wk(p), amt=wk*p.cost;
     const ji=getJiAllWeeks(p.id);
     const haikiPct=ji.total?Math.round(ji.haiki/ji.total*100):null;
     const sug=suggestInvestPerDay(p.id);
@@ -7768,7 +7900,7 @@ function renderInvestBudgetTable(maxBudget,newBudgetFormal){
         </div>
       </td>
       <td style="font-size:12px;font-weight:600;color:var(--orange)">${fmt(amt)}円
-        <div style="font-size:10px;color:#999;font-weight:400">${cnt}個 × ${days.length}日</div>
+        <div style="font-size:10px;color:#999;font-weight:400">${_investNote(p,cnt,days.length,wk)}</div>
       </td>
     </tr>`;
   });
@@ -7935,7 +8067,7 @@ function renderBudgetFormula(){
     <div><b>適正販売率</b> ＝ Σ定価販売数 ÷ Σ週の目標販売数（定価＋ゆとり）　※「ゆとり」の分だけ売れ残る想定</div>
     <div><b>売変予算（最適）</b> ＝ 作成高（基本作成分）×（100% − 適正販売率）　　<b>売変予算（最大）</b> ＝ 1日平均の作成高 × 0.5</div>
     <div><b>新商品・投資に使える予算</b> ＝ 売変予算の最大 − 最適</div>
-    <div><b>新商品予算（使用中）</b> ＝ 1日あたり追加数 × 7日 × 原価　　<b>定番投資（使用中）</b> ＝ 1日あたり追加数 × 対象曜日数 × 原価</div>
+    <div><b>新商品予算（使用中）</b>・<b>定番投資（使用中）</b> ＝ ④作成表に置かれる「投資+N」の週合計 × 原価　※まとめ単位が2以上の商品は、入れた数より多くなることがあります（作成表と同じ数で計算）</div>
     <div class="bd-sub" style="margin-top:4px">実績廃棄率・値引率は ①実績入力（全週の累計）から商品ごとに計算。実績が無い商品は廃棄100%で見積もります。曜日別サマリー・カテゴリ別の計画・上の集計はすべて同じ計算です。</div>`;
 }
 
