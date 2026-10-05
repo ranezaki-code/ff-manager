@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新しいシステム：ワークスケジュールを2台で同時に使う試験</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.6}
+h1{font-size:18px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;font-size:13px}
+th{background:#f8fafc;text-align:left;padding:6px 10px} td{padding:6px 10px;border-top:1px solid #e2e8f0;vertical-align:top}
+.ok{color:#16a34a;font-weight:700} .ng{color:#dc2626;font-weight:700} #sum{font-size:16px;font-weight:800;margin:10px 0}
+.frames{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0} .frames div{font-size:12px;color:#64748b}
+iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+</style>
+</head>
+<body>
+<h1>🧪 ワークスケジュールを2台で同時に使う試験（新しい画面そのものを2つ並べて動かす）</h1>
+<div class="sub">下の2つは、新しいワークスケジュールの画面そのものです（端末A・端末B のつもり）。ネットにつながない試験用の保存先を2台で共有し、片方ずつ「ネットが切れた・古い状態のまま」にして操作します。名前は全部 作り物です。本物のデータにも Firebase にもさわりません。</div>
+<div id="sum">試験中…（1〜2分）</div>
+<div class="frames"><div>端末A<iframe id="fa"></iframe></div><div>端末B<iframe id="fb"></iframe></div></div>
+<table><thead><tr><th style="width:50px">番号</th><th>確かめたこと</th><th style="width:70px">結果</th><th>くわしく</th></tr></thead><tbody id="rows"></tbody></table>
+<script src="core.js"></script>
+<script src="wsspec.js"></script>
+<script>
+(async function(){
+  const $=id=>document.getElementById(id), J=JSON.stringify, sleep=ms=>new Promise(r=>setTimeout(r,ms)), R=[];
+  function check(no,what,ok,detail){ R.push({no,what,ok:!!ok,detail:detail||''}); const tr=document.createElement('tr'); tr.innerHTML=`<td>${no}</td><td>${what}</td><td class="${ok?'ok':'ng'}">${ok?'○ 合格':'× 不合格'}</td><td>${String(detail||'').replace(/</g,'&lt;')}</td>`; $('rows').appendChild(tr); }
+  const pad=n=>(n<10?'0':'')+n, dk=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const K=dk(new Date()), K2=dk(new Date(Date.now()+864e5));
+  const T=(id,text,hour)=>({id,text,hour,min:0,endHour:hour+1,endMin:null,tan:'both',cats:[],zones:[],memo:'',manual:'',checklist:[],done:false,carryOvers:[],order:0,createdAt:'2026-10-01T00:00:00.000Z'});
+  const prof=()=>({points:10,totalEarned:10,totalCompleted:1,titles:[],items:[],completedCats:[],catCounts:{},monthlyEarned:10,currentMonth:K.slice(0,7),rankHistory:[],companions:[],unseenCompanions:[],taskStreak:0,taskStreakBest:0,viewedItems:[],viewedCompanions:[],journeySeason:1,journeyBaseEarned:0,seasonHistory:[],stamps:[],foodInventory:[]});
+  const st={tasks:{[K]:[T('t1','トイレ清掃',9),T('t2','床のモップがけ',10),T('t3','ゴミ出し',11)],[K2]:[T('u1','あしたの品出し',9)]},recurringTasks:[],staff:['見本 花子','見本 太郎'],categories:['清掃','補充'],presets:[],gameProfiles:{'見本 花子':prof(),'見本 太郎':prof()},
+    gameSettings:{pointsBase:2,pointsTimeBonus:2,pointsNoCarryBonus:1,pointsChecklistBonus:1,gachaCost:50,rarityRates:{common:.6,rare:.3,super:.08,legendary:.02}},customTitles:[],customItems:[],
+    requestTasks:[{id:'rq1',text:'POPの貼り替え',description:'',requestedBy:'見本 太郎',tan:'both',estimatedSeconds:null,dueDate:'',points:3,requestedAt:'2026-10-01T00:00:00.000Z',done:false,carryOvers:[]}],
+    breakSettings:{suggestedMinutes:15,warnIfNextTaskWithinMinutes:15},breakLogs:[],activeBreak:null,priorityTasks:[],amUsed:true};
+  const stores=[{id:'w1',name:'試験の店（大町）',createdAt:1}];
+  const load=(f,url)=>new Promise(res=>{ f.onload=()=>res(f.contentWindow); f.src=url; });
+  try{
+    const cloud=new V2.MemoryCloud();
+    const mk=async(fid,name,seed)=>{ const be=cloud.device(); const store=new V2.Store({backend:be,space:'T',device:name,kv:new V2.MemKV(),snapshot:false}); const win=await load($(fid),'ws/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null; await win.__v2go(Object.assign({store,stores,current:'w1'},seed||{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); return {be,store,win,name,ev:s=>win.eval(s)}; };
+    const A=await mk('fa','端末A',{state:J(st)});
+    const B=await mk('fb','端末B');
+    const sync=async()=>{ for(let i=0;i<3;i++){ for(const d of [A,B]){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(400); };
+    const nz=s=>{ const o=JSON.parse(s); delete o._modifiedAt; const z=x=>{ if(x&&typeof x==='object'){ if(Array.isArray(x))x.forEach(z); else { delete x._at; Object.keys(x).forEach(k=>z(x[k])); } } }; z(o); return J(o); };
+    const same=()=>nz(A.ev('JSON.stringify(state)'))===nz(B.ev('JSON.stringify(state)'));
+    const off=()=>{ A.be.setOnline(false); B.be.setOnline(false); }, on=()=>{ A.be.setOnline(true); B.be.setOnline(true); };
+    const task=(d,id,key)=>JSON.parse(d.ev(`JSON.stringify((state.tasks[${J(key||K)}]||[]).find(t=>t.id===${J(id)})||null)`));
+    const setT=(d,id,patch,key)=>d.ev(`(()=>{ const t=state.tasks[${J(key||K)}].find(t=>t.id===${J(id)}); Object.assign(t,${J(patch)}); saveState(); render(); })()`);
+    const addT=(d,t,key)=>d.ev(`(()=>{ const k=${J(key||K)}; if(!state.tasks[k])state.tasks[k]=[]; state.tasks[k].push(${J(t)}); saveState(); render(); })()`);
+    const ids=(d,key)=>d.ev(`(state.tasks[${J(key||K)}]||[]).map(t=>t.id).sort().join(',')`);
+    await sync();
+    check('0','はじめ：B に A と同じデータが届いている',same()&&ids(B)==='t1,t2,t3',ids(B));
+
+    off(); setT(A,'t1',{done:true,completedBy:'見本 花子'}); setT(B,'t2',{done:true,completedBy:'見本 太郎'}); on(); await sync();
+    check('1','同じ日の別のタスクを、2台が同時に完了にした → 両方残る',task(A,'t1').done&&task(A,'t2').done&&task(B,'t1').done&&task(B,'t2').done&&same(),`A:${task(A,'t1').done}/${task(A,'t2').done} B:${task(B,'t1').done}/${task(B,'t2').done}`);
+    off(); setT(A,'t3',{memo:'Aのメモ'}); setT(B,'t3',{hour:15,endHour:16}); on(); await sync();
+    check('2','同じタスクの別の欄を同時に変えた → 両方残る',task(A,'t3').memo==='Aのメモ'&&task(A,'t3').hour===15&&task(B,'t3').memo==='Aのメモ'&&same(),J({memo:task(B,'t3').memo,hour:task(B,'t3').hour}));
+    off(); setT(A,'t3',{text:'先に入れた名前'}); await sleep(30); setT(B,'t3',{text:'後から入れた名前'}); B.be.setOnline(true); await B.store.settle(); A.be.setOnline(true); await sync();
+    const c=A.win.__v2.coll, ch=await c.changes(1), le=ch.find(x=>x.lost), h=le?await c.historyOf(le.id,le.h||le.rev):null;
+    check('3','同じ欄を同時に変えた → あとから入力したほうが残り、負けた入力は履歴に残る',task(A,'t3').text==='後から入れた名前'&&task(B,'t3').text==='後から入れた名前'&&!!h&&/先に入れた名前/.test(J(h))&&same(),task(A,'t3').text+'・履歴 '+(h?'あり':'なし'));
+    off(); addT(A,T('a1','Aが足したタスク',13)); setT(B,'t3',{done:true,completedBy:'見本 太郎'}); on(); await sync();
+    check('4','A がタスクを足し、同時に B が同じ日の別のタスクを完了にした → 両方残る',!!task(A,'a1')&&!!task(B,'a1')&&task(A,'t3').done&&same(),ids(B));
+    off(); addT(A,T('a2','Aがもう1つ足した',14)); addT(B,T('b1','Bが足したタスク',16)); on(); await sync();
+    check('5','同じ日に、2台がそれぞれタスクを足した → 両方残る',!!task(A,'b1')&&!!task(B,'a2')&&same(),ids(A));
+    off(); setT(A,'t1',{memo:'今日'}); setT(B,'u1',{memo:'あした'},K2); on(); await sync();
+    check('6','別の日のタスクを同時に変えた → 両方残る',task(B,'t1').memo==='今日'&&task(A,'u1',K2).memo==='あした'&&same());
+    B.be.setOnline(false); A.ev(`state.tasks[${J(K)}]=state.tasks[${J(K)}].filter(t=>t.id!=='a2'); saveState(); render();`); await sync(); setT(B,'t2',{memo:'Bのメモ'}); B.be.setOnline(true); await sync();
+    check('7','A がタスクを消し、古い状態の B が別のタスクを変えて保存 → 消したタスクは戻らない。B の入力は残る',!task(A,'a2')&&!task(B,'a2')&&task(A,'t2').memo==='Bのメモ'&&same(),ids(B));
+    B.be.setOnline(false); A.ev(`state.tasks[${J(K)}]=state.tasks[${J(K)}].filter(t=>t.id!=='b1'); saveState(); render();`); await sync(); setT(B,'b1',{memo:'消されたのを知らずに'}); B.be.setOnline(true); await sync();
+    check('8','A がタスクを消し、古い状態の B がそのタスクを変えた → 消したまま',!task(A,'b1')&&!task(B,'b1')&&same(),ids(B));
+
+    const wid=A.ev('amWorks()[0].id'), wid2=A.ev('amWorks()[1].id'), n=(d,id)=>d.ev(`((state.areaChecks||{})[${J(id)}]||[]).length`);
+    off(); A.win.amRecord(wid,'見本 花子'); B.win.amRecord(wid2,'見本 太郎'); on(); await sync();
+    check('9','売場マップ：別の作業の点検を、2台が同時に記録 → 両方残る',n(A,wid)===1&&n(A,wid2)===1&&n(B,wid)===1&&n(B,wid2)===1&&same(),`A:${n(A,wid)}/${n(A,wid2)} B:${n(B,wid)}/${n(B,wid2)}`);
+    off(); A.win.amRecord(wid,'見本 花子'); B.win.amRecord(wid,'見本 太郎'); on(); await sync();
+    check('10','売場マップ：同じ作業の点検を、2台が同時に記録 → 2件とも残る',n(A,wid)===3&&n(B,wid)===3&&same(),`A:${n(A,wid)} B:${n(B,wid)}`);
+    off(); A.ev(`state.requestTasks.push({id:'rq2',text:'Aが足した依頼',description:'',requestedBy:'見本 花子',tan:'both',estimatedSeconds:null,dueDate:'',points:3,requestedAt:'2026-10-05T00:00:00.000Z',done:false,carryOvers:[]}); saveState();`); B.ev(`state.requestTasks.find(r=>r.id==='rq1').done=true; saveState();`); on(); await sync();
+    check('11','依頼：A が依頼を足し、同時に B が別の依頼を完了にした → 両方残る',A.ev('state.requestTasks.length')===2&&B.ev('state.requestTasks.length')===2&&A.ev(`state.requestTasks.find(r=>r.id==='rq1').done`)===true&&same());
+    off(); A.ev(`state.staff.push('試験 次郎'); state.staff.sort(); saveState();`); B.ev(`state.staff.push('試験 三郎'); state.staff.sort(); saveState();`); on(); await sync();
+    check('12','従業員の一覧：2台がそれぞれ1人足した → 2人とも残る',A.ev('state.staff.length')===4&&B.ev('state.staff.length')===4&&same(),'人数 '+B.ev('state.staff.length'));
+    off(); A.ev(`state.gameProfiles['見本 花子'].points+=5; saveState();`); B.ev(`state.gameProfiles['見本 太郎'].points+=7; saveState();`); on(); await sync();
+    check('13','ポイント：別の人のポイントを2台が同時に足した → 両方残る',A.ev(`state.gameProfiles['見本 花子'].points`)===15&&A.ev(`state.gameProfiles['見本 太郎'].points`)===17&&B.ev(`state.gameProfiles['見本 花子'].points`)===15&&same());
+
+    // 古い状態の端末が、あとから保存（FF で れんさんが報告した形と同じ）
+    B.be.setOnline(false);
+    setT(A,'t1',{text:'新しい名前のタスク',hour:8,endHour:9,memo:'Aが直した'}); addT(A,T('a9','Aが足した大事なタスク',17)); A.ev(`state.recurringTasks.push(Object.assign(${J(T('rt9','毎日の作業',7))},{recurringDows:[0,1,2,3,4,5,6]})); saveState();`); await sync();
+    B.ev('saveState()'); setT(B,'t2',{done:false});
+    B.be.setOnline(true); await sync();
+    check('14','A がタスクを直し・足した → 古い状態の B が後から保存 → A の入力は1つも消えない',task(A,'t1').text==='新しい名前のタスク'&&task(A,'t1').hour===8&&!!task(A,'a9')&&A.ev('state.recurringTasks.length')===1&&task(B,'t1').text==='新しい名前のタスク'&&!!task(B,'a9')&&task(A,'t2').done===false&&same(),`名前 ${task(B,'t1').text}・足したタスク ${task(B,'a9')?'あり':'なし'}`);
+    const mA=A.ev('state._modifiedAt'), cnt0=cloud.writes; B.ev('saveState()'); await sync();
+    check('15','何も変えずに保存しても、ネット上には何も書かない（最終保存の時刻は端末ごと）',cloud.writes===cnt0&&A.ev('state._modifiedAt')===mA,'書いた文書 '+(cloud.writes-cnt0)+' 個');
+    check('16','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    const srv=await c.readServer(); check('17','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
+    check('18','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
+  }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
+  const ng=R.filter(r=>!r.ok).length;
+  $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
+  window.__results={total:R.length,ng,rows:R};
+})();
+</script>
+</body>
+</html>

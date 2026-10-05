@@ -25,17 +25,18 @@ label.ck{display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-s
 <script src="../autoupdate.js" defer></script>
 <script src="core.js"></script>
 <script src="ffspec.js"></script>
+<script src="wsspec.js"></script>
 </head>
 <body>
 <div class="wrap">
 <h1>📦 いまのアプリのデータを、新しいシステムへ写す</h1>
 <div class="sub">書き出したファイルを<b>読むだけ</b>です。いまのアプリのデータは変えません・消しません。何回やっても同じ結果になります（2重に入りません）。<br>
-いま写せるのは <b>店舗の一覧</b>・<b>FF管理</b>・<b>カレンダー</b> です。ほかの種類（クルー・ワークスケジュールなど）は、ファイルに入っていても読みません。</div>
+いま写せるのは <b>店舗の一覧</b>・<b>FF管理</b>・<b>ワークスケジュール</b>・<b>カレンダー</b> です。ほかの種類（クルー・担当業務など）は、ファイルに入っていても読みません。</div>
 
 <div class="card"><h2><span class="no">1</span>写す先</h2><div id="dest">接続中…</div></div>
 <div class="card"><h2><span class="no">2</span>写す元をえらぶ</h2>
   <div class="note">統合アプリの「⚙️ → 📤 書出」でできたファイル（経営データ_….json）か、全データの控えのファイル。</div>
-  <div style="margin-top:8px"><label class="ck"><input type="checkbox" id="k-ff" checked> FF管理</label><label class="ck"><input type="checkbox" id="k-cal" checked> カレンダー</label></div>
+  <div style="margin-top:8px"><label class="ck"><input type="checkbox" id="k-ff" checked> FF管理</label><label class="ck"><input type="checkbox" id="k-ws" checked> ワークスケジュール</label><label class="ck"><input type="checkbox" id="k-cal" checked> カレンダー</label></div>
   <div style="margin-top:10px"><button id="fromdev" disabled>📲 この端末の「いまのアプリ」のデータを使う（おすすめ・ファイルは要りません）</button><div class="note" id="fromdev-note">この端末で いまのアプリを使っている時に押せます。読むだけで、いまのアプリのデータは変えません。</div></div>
   <div class="note" style="margin-top:10px">または、書き出したファイルを選ぶ：</div>
   <input type="file" id="file" accept=".json,application/json" disabled style="margin-top:8px">
@@ -67,11 +68,12 @@ label.ck{display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-s
     if(obj&&typeof obj==='object'&&Object.keys(obj).some(k=>/^(cal_v1|ffv6_|ws_v1|global_stores$)/.test(k)))return obj;
     return null;
   }
-  const KIND={ff:{label:'FF管理',groups:[['p:','商品'],['w:','週'],['g:','天気・イベント調整'],['h:','時間帯別購入率'],['s:','設定など']]},cal:{label:'カレンダー',groups:[['e:','予定'],['_','その他']]}};
+  const KIND={ws:{label:'ワークスケジュール',groups:[['d:','タスクのある日'],['g:','人ごとの記録'],['a:','点検の記録'],['s:','設定など']]},ff:{label:'FF管理',groups:[['p:','商品'],['w:','週'],['g:','天気・イベント調整'],['h:','時間帯別購入率'],['s:','設定など']]},cal:{label:'カレンダー',groups:[['e:','予定'],['_','その他']]}};
   function counts(kind,recs){ return KIND[kind].groups.map(([p,l])=>[l,Object.keys(recs).filter(r=>r.indexOf(p)===0).length]).filter(x=>x[1]); }
   // 1店舗ぶんを「分ける」。戻り値 {recs, expect(組み立て直した時に同じになるはずの形), round(分けて組み立て直して同じか), exact(元の文字と1文字も同じか)}
   function build(kind,raw,view,setup){
     const sp=V2.SPECS[kind]; let o=null; try{ o=JSON.parse(raw); }catch(_){ return {bad:true}; }
+    if(kind==='ws'){ if(!o||typeof o!=='object'||Array.isArray(o))return {bad:true}; const recs=sp.split(o,view,{local:{}}); const expect=sp.normalize(o), jn=r=>sp.join(r,{local:{}}); return {recs,expect,round:J(jn(recs))===J(expect),exact:false,join:jn}; }
     if(kind==='cal'){ const st={events:(o&&Array.isArray(o.events))?o.events:[]}; const recs=sp.split(st,view); return {recs,expect:st,round:J(sp.join(recs))===J(st),exact:true,join:r=>sp.join(r)}; }
     const fake={local:{}}; const recs=sp.split(o,view,fake); if(setup)recs['s:__setup']='"1"';
     const expect=sp.normalize(o), jn=r=>sp.join(r,{local:{activeWeek:o.activeWeek}}), back=J(jn(recs));
@@ -79,8 +81,8 @@ label.ck{display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-s
   }
   $('file').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f)return; analyze(async()=>pick(JSON.parse((await f.text()).replace(/^﻿/,'')))); });
   // この端末の いまのアプリのデータ（同じ場所の localStorage）を読むだけ。写すのは 店舗の一覧・FF管理・カレンダー の分だけ
-  function devSrc(){ const o={}; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(/^(global_stores$|ffv6_store_|ffv6_setup_|cal_v1_store_)/.test(k))o[k]=localStorage.getItem(k); } }catch(_){} return o; }
-  if(Object.keys(devSrc()).some(k=>/^(ffv6_store_|cal_v1_store_)/.test(k))){ $('fromdev').disabled=false; } else { $('fromdev-note').textContent='この端末には、いまのアプリのデータが見つかりません。いまのアプリを使っている端末でこのページを開くか、下でファイルを選んでください。'; }
+  function devSrc(){ const o={}; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(/^(global_stores$|ffv6_store_|ffv6_setup_|cal_v1_store_|ws_v1_store_)/.test(k)&&!/_backup_|_corrupt_|_snap_/.test(k))o[k]=localStorage.getItem(k); } }catch(_){} return o; }
+  if(Object.keys(devSrc()).some(k=>/^(ffv6_store_|cal_v1_store_|ws_v1_store_)/.test(k))){ $('fromdev').disabled=false; } else { $('fromdev-note').textContent='この端末には、いまのアプリのデータが見つかりません。いまのアプリを使っている端末でこのページを開くか、下でファイルを選んでください。'; }
   $('fromdev').addEventListener('click',()=>analyze(async()=>pick(devSrc())));
   async function analyze(getSrc){
     plan=null; $('go').disabled=true; $('result').textContent=''; $('plan').textContent='調べています…';
@@ -93,7 +95,7 @@ label.ck{display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-s
       const have=(meta.getState().stores)||[]; const addStores=srcStores.filter(s=>!have.find(h=>h.id===s.id));
       const known=srcStores.concat(have.filter(h=>!srcStores.find(s=>s.id===h.id)));
       const items=[]; let allOk=true, used=src.global_stores?1:0, orphan=0;
-      const kinds=[]; if($('k-ff').checked)kinds.push(['ff','ffv6_store_']); if($('k-cal').checked)kinds.push(['cal','cal_v1_store_']);
+      const kinds=[]; if($('k-ff').checked)kinds.push(['ff','ffv6_store_']); if($('k-ws').checked)kinds.push(['ws','ws_v1_store_']); if($('k-cal').checked)kinds.push(['cal','cal_v1_store_']);
       for(const [kind,prefix] of kinds){
         for(const s of known){
           const raw=src[prefix+s.id]; if(typeof raw!=='string')continue; used++;
@@ -109,7 +111,7 @@ label.ck{display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-s
       plan={items,addStores,srcStores};
       let h=`<div>店舗の一覧：ファイルに ${srcStores.length} 店舗。新しく足すのは <b>${addStores.length}</b> 店舗${addStores.length?'（'+addStores.map(s=>esc(s.name)).join('・')+'）':''}。</div>`;
       h+='<table><tr><th>種類</th><th>店舗</th><th>ファイルの中身</th><th>分けて組み立て直し</th><th>足す</th><th>書き換える</th><th>同じ</th><th>新しい側にだけある</th></tr>';
-      h+=items.map(i=>`<tr><td>${KIND[i.kind].label}</td><td>${esc(i.name)}</td><td>${i.bad?'<span class="ng">読めない</span>':counts(i.kind,i.recs).map(x=>x[0]+' '+x[1]).join('・')||'0 件'}</td><td class="${i.round?'ok':'ng'}">${i.bad?'×':i.round?(i.exact?'○ 元と1文字も違わない':'○ 同じ<br><span class="note">（開いている週の2か所持ちを1本にした形で）</span>'):'× ちがう'}</td><td>${i.add}</td><td class="${i.chg?'warn':''}">${i.chg}</td><td>${i.same}</td><td class="${i.only?'warn':''}">${i.only}（消しません）</td></tr>`).join('');
+      h+=items.map(i=>`<tr><td>${KIND[i.kind].label}</td><td>${esc(i.name)}</td><td>${i.bad?'<span class="ng">読めない</span>':counts(i.kind,i.recs).map(x=>x[0]+' '+x[1]).join('・')||'0 件'}</td><td class="${i.round?'ok':'ng'}">${i.bad?'×':i.round?(i.exact?'○ 元と1文字も違わない':'○ 同じ<br><span class="note">（'+(i.kind==='ws'?'端末ごとの「最終保存の時刻」を除いた形で':'開いている週の2か所持ちを1本にした形で')+'）</span>'):'× ちがう'}</td><td>${i.add}</td><td class="${i.chg?'warn':''}">${i.chg}</td><td>${i.same}</td><td class="${i.only?'warn':''}">${i.only}（消しません）</td></tr>`).join('');
       h+='</table>';
       if(!items.length)h+='<div class="note">えらんだ種類のデータは、このファイルに入っていません。</div>';
       if(orphan)h+=`<div class="note">店舗の一覧に無い店舗の古いデータ ${orphan} 個は、写しません。</div>`;

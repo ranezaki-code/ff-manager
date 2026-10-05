@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新しいシステム：答え合わせ（ワークスケジュール）</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.6}
+h1{font-size:18px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;font-size:13px}
+th{background:#f8fafc;text-align:left;padding:6px 10px;white-space:nowrap} td{padding:6px 10px;border-top:1px solid #e2e8f0;vertical-align:top}
+.ok{color:#16a34a;font-weight:700} .ng{color:#dc2626;font-weight:700} #sum{font-size:16px;font-weight:800;margin:10px 0}
+.frames{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0} .frames div{font-size:12px;color:#64748b}
+iframe{width:100%;height:560px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:700;cursor:pointer} small{color:#64748b}
+</style>
+</head>
+<body>
+<h1>🧮 答え合わせ：いまのワークスケジュール と 新しいワークスケジュール</h1>
+<div class="sub">同じデータを両方に入れ、①持っているデータ ②判定や並び（売場マップの状態・タスクの並び・QSC・ランクなど）③画面の中身（全部のタブ・ダッシュボードの期間・タスクのある全部の日）④同じ操作をした後の保存の中身 を機械で比べます。<br>
+この確認用のパソコン（localhost）の中だけで動きます。本物のデータにも Firebase にもさわりません。ファイルのデータで比べた時は、中身（名前など）は画面に出さず、合った・合わないの数だけ出します。終わったら、この確認用の場所に入れたデータは片づけます。</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button id="go-sample">見本のデータで比べる</button><button id="go-file">ファイルのデータで比べる</button><input type="file" id="file" accept=".json" style="display:none"><span id="src" class="sub" style="margin:0"></span></div>
+<div id="sum"></div>
+<div class="frames"><div>いまのワークスケジュール（手を付けていない元の画面）<iframe id="fo"></iframe></div><div>新しいワークスケジュール<iframe id="fn"></iframe></div></div>
+<table><thead><tr><th>店舗</th><th>①データ</th><th>②判定・並び</th><th>③画面</th><th>④操作の後</th><th>ちがった所（先頭だけ）</th></tr></thead><tbody id="rows"></tbody></table>
+<script>
+(function(){
+  const $=id=>document.getElementById(id), sleep=ms=>new Promise(r=>setTimeout(r,ms)), J=JSON.stringify;
+  if(!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){ $('sum').innerHTML='<span class="ng">この答え合わせは、確認用のパソコン（localhost）でだけ動かします。</span>'; $('go-sample').disabled=$('go-file').disabled=true; return; }
+  const LS=window.localStorage;
+  const pad=n=>(n<10?'0':'')+n, dk=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const D=n=>{ const d=new Date(); d.setDate(d.getDate()+n); return d; };
+
+  // ---------- 見本のデータ（名前は全部 作り物） ----------
+  function sample(){
+    let seed=777; const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }, ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+    const staff=['見本 花子','見本 太郎','試験 次郎'], now=Date.now();
+    const T=(id,text,hour,x)=>Object.assign({id,text,hour,min:0,endHour:hour+1,endMin:null,tan:'both',cats:['清掃'],zones:[],memo:'',manual:'',timerSeconds:null,estimatedSeconds:null,points:null,carryPenaltyEvery:null,carryPenaltyAmount:null,allowCarry:true,allowRetire:true,allowSkip:true,waiting:false,checklist:[],done:false,carryOvers:[],order:0,createdAt:new Date(now-864e5*20).toISOString()},x||{});
+    const tasks={};
+    for(let n=-9;n<=2;n++){ const key=dk(D(n)), a=[]; const past=n<0;
+      a.push(T('t_'+key+'_1','トイレ清掃',9,{tan:'counter',zones:['toilet'],done:past||n===0,completedBy:past||n===0?staff[ri(0,2)]:undefined,completedAt:past||n===0?new Date(D(n).setHours(9,20,0,0)).toISOString():undefined,startedAt:past||n===0?new Date(D(n).setHours(9,5,0,0)).toISOString():undefined,order:1}));
+      a.push(T('t_'+key+'_2','FFケース清掃',10,{tan:'back',cats:['清掃','確認'],checklist:[{id:'c1',text:'見出し',type:'section'},{id:'c2',text:'ガラスを拭く',checked:past},{id:'c3',text:'トングを替える',checked:false}],timerSeconds:600,estimatedSeconds:900,points:3,done:past&&n%2===0,completedBy:past&&n%2===0?staff[1]:undefined,completedAt:past&&n%2===0?new Date(D(n).setHours(10,30,0,0)).toISOString():undefined,order:2}));
+      a.push(T('t_'+key+'_3','床のモップがけ',14,{tan:staff[0],zones:['floor'],carryOvers:n===-1||n===0?[{from:13,to:14,reason:'混雑',by:staff[2],at:new Date(D(n).setHours(13,50,0,0)).toISOString()}]:[],order:1}));
+      if(n===-2)a.push(T('t_'+key+'_4','ゴミ出し',16,{retired:true,retiredBy:staff[2],retiredReason:'時間切れ',retiredAt:new Date(D(n).setHours(16,40,0,0)).toISOString(),zones:['trash']}));
+      if(n===-1)a.push(T('t_'+key+'_5','プライスカード確認',11,{skipped:true,skippedBy:staff[0],skippedReason:'対象なし',skippedAt:new Date(D(n).setHours(11,5,0,0)).toISOString()}));
+      if(n===0){ a.push(T('t_'+key+'_6','いま進行中の品出し',Math.max(0,new Date().getHours()-1),{startedAt:new Date(now-17*60000).toISOString(),timerSeconds:1800,timerStartedAt:new Date(now-17*60000).toISOString(),recurringTaskId:'rt_1'})); a.push(T('t_'+key+'_7','夜の前陳',22,{waiting:true,memo:'<b>記号</b> & "引用"'})); }
+      tasks[key]=a; }
+    const prof=(i)=>({points:50*i+7,totalEarned:400*i+33,totalCompleted:20*i,titles:[],items:[],completedCats:['清掃'],catCounts:{'清掃':12*i},monthlyEarned:150*i,currentMonth:dk(new Date()).slice(0,7),rankHistory:[],companions:[],unseenCompanions:[],taskStreak:i,taskStreakBest:i+2,viewedItems:[],viewedCompanions:[],journeySeason:1,journeyBaseEarned:0,seasonHistory:[],stamps:[],foodInventory:[]});
+    const st={tasks,recurringTasks:[Object.assign(T('rt_1','いま進行中の品出し',8,{}),{recurringDows:[0,1,2,3,4,5,6]}),Object.assign(T('rt_2','週末の窓ふき',15,{}),{recurringDows:[0,6]})],staff,categories:['清掃','補充','確認','修正','作成','接客','その他'],presets:[],
+      gameProfiles:{[staff[0]]:prof(1),[staff[1]]:prof(3),[staff[2]]:prof(0)},gameSettings:{pointsBase:2,pointsTimeBonus:2,pointsNoCarryBonus:1,pointsChecklistBonus:1,gachaCost:50,rarityRates:{common:.6,rare:.3,super:.08,legendary:.02}},customTitles:[],customItems:[],
+      requestTasks:[{id:'rq_1',text:'POPの貼り替え',description:'',requestedBy:staff[1],tan:'both',estimatedSeconds:600,dueDate:dk(D(2)),points:5,requestedAt:new Date(now-864e5).toISOString(),done:false,carryOvers:[]},{id:'rq_2',text:'期限切れの依頼',description:'',requestedBy:staff[0],tan:'both',estimatedSeconds:null,dueDate:dk(D(-1)),points:3,requestedAt:new Date(now-864e5*3).toISOString(),done:false,carryOvers:[]},{id:'rq_3',text:'終わった依頼',description:'',requestedBy:staff[0],tan:'both',estimatedSeconds:null,dueDate:'',points:3,requestedAt:new Date(now-864e5*4).toISOString(),done:true,completedBy:staff[2],completedAt:new Date(now-864e5*2).toISOString(),carryOvers:[]}],
+      breakSettings:{suggestedMinutes:15,warnIfNextTaskWithinMinutes:15},breakLogs:[{startedAt:now-864e5,endedAt:now-864e5+9e5,durationSec:900,dateKey:dk(D(-1))}],activeBreak:null,priorityTasks:[],
+      thanksLog:[{from:staff[0],to:staff[1],stampId:'thanks',message:'ありがとう',sentAt:now-36e5}],lastThanksSeen:{all:now-72e5},
+      storeState:{teamPoints:42,teamTotalEarned:1800,cleanliness:64,mascotName:'みほん',foodInventory:[],lastFreeStoreGacha:'',activity:[{type:'complete',who:staff[1],info:'トイレ清掃',at:now-5e6},{type:'carry',who:staff[2],info:'床のモップがけ',at:now-4e6}]},
+      areaChecks:{},amUsed:true};
+    return {stores:[{id:'cmpW',name:'見本の店（大町の地図つき）',createdAt:1},{id:'cmpX',name:'空の店',createdAt:2}],states:{cmpW:J(st),cmpX:null},crew:{},mkChecks:true};
+  }
+  function fromFile(obj){
+    let d=obj; for(const w of ['data','keys','localStorage']){ if(obj&&obj[w]&&typeof obj[w]==='object'&&Object.keys(obj[w]).some(k=>/^(ws_v1|global_stores$)/.test(k))){ d=obj[w]; break; } }
+    let stores=[]; try{ stores=JSON.parse(d.global_stores||'[]'); }catch(_){}
+    const states={},crew={}; stores.forEach(s=>{ if(typeof d['ws_v1_store_'+s.id]==='string')states[s.id]=d['ws_v1_store_'+s.id]; if(typeof d['crew_v1_store_'+s.id]==='string')crew['crew_v1_store_'+s.id]=d['crew_v1_store_'+s.id]; });
+    return {stores:stores.filter(s=>s.id in states),states,crew,real:true};
+  }
+
+  // ---------- それぞれの画面の中で動かす「読み取り」 ----------
+  const NZ=`(s=>{ const o=JSON.parse(s); delete o._modifiedAt; return JSON.stringify(o); })`;
+  const PROBE=`(function(){ const out=[]; const add=(k,v)=>out.push([k,JSON.stringify(v===undefined?'(なし)':v)]); const safe=(k,f)=>{ try{ add(k,f()); }catch(e){ add(k,'ERR '+e.message); } };
+    const base=new Date(); base.setHours(0,0,0,0); const T=[2.98,3,8.99,9,12,14.9,15,20.99,21,23.5,26.5].map(h=>base.getTime()+h*3600000);
+    const ws=amWorks();
+    ws.forEach((w,wi)=>{ T.forEach((t,i)=>safe('点検の状態/'+wi+'/'+i,()=>{ const s=amStatus(w,t); return {st:s.st,lv:s.lv,rank:s.rank,min:s.min,deadline:s.deadline,next:s.next,cur:s.cur}; })); safe('点検の枠/'+wi,()=>amSlots(w,T[4])); safe('点検の予定の文/'+wi,()=>amSchText(w)); safe('点検の優先度/'+wi,()=>amPri(w)); });
+    T.forEach((t,i)=>safe('点検の並び/'+i,()=>{ const sts={}; ws.forEach(w=>sts[w.id]=amStatus(w,t)); return ws.slice().sort((a,b)=>amCmp(a,b,sts)).map(w=>w.id); }));
+    safe('地図',()=>{ const m=amMap(); return m?{w:m.w,h:m.h,n:(m.cells||[]).length}:null; });
+    Object.keys(state.tasks||{}).forEach((k,i)=>safe('タスクの並び/'+k,()=>getTasks(k).map(t=>t.id)));
+    safe('名簿',()=>staffList());
+    (typeof FLOOR_ZONES!=='undefined'?FLOOR_ZONES:[]).forEach(z=>safe('QSC/'+z.id,()=>{ const r=getZoneStatus(z); return {status:r&&r.status,label:r&&r.label}; }));
+    Object.keys(state.gameProfiles||{}).forEach((n,i)=>{ const p=state.gameProfiles[n]||{}; safe('ランク/'+i,()=>getRank(p.monthlyEarned||0)); });
+    safe('マスコット',()=>getMascotStage((state.storeState||{}).teamTotalEarned||0)); safe('リタイア一覧',()=>collectRetiredTasks().length);
+    return out; })()`;
+  const BODY=`(function(){ const c=document.body.cloneNode(true); c.querySelectorAll('script,#v2-wait,#standalone-warn,#save-info,#sync-indicator').forEach(x=>x.remove()); return c.innerHTML.replace(/<!--[\\s\\S]*?-->/g,'').replace(/\\n\\s*\\n+/g,'\\n').replace(/(width:\\s*)(\\d+\\.\\d{3,})%/g,(m,a,b)=>a+Math.round(+b)+'%'); })()`;   // 経過時間の棒の長さ（千分の1%まで出る）は、読んだ瞬間のずれが出るので、1% 単位で比べる
+  const VIEWS=['map','timeline','floor','staff','request','retire','game','thanks','store','dashboard','tasklist'];
+
+  const fo=$('fo'), fn=$('fn');
+  const load=(f,url)=>new Promise(res=>{ f.onload=()=>res(f.contentWindow); f.src=url; });
+  let total=0, bad=0, hide=false;
+  // その場で作られる値（繰り返しタスクを その日に置く時の id・いまの時刻）は、2つの画面で必ずちがうので、そろえてから比べる
+  const N=s=>String(s).replace(/t_\d{13}_[a-z0-9]+/g,'t_ID').replace(/ data-talk="\d+"/g,'').replace(/"(20\d\d-\d\d-\d\dT[\d:.]+Z)"/g,(m,t)=>Math.abs(Date.now()-Date.parse(t))<600000?'"(いま)"':m).replace(/"_at":\d{13}/g,'"_at":0')
+    .replace(/\b1\d{12}\b/g,m=>Math.abs(Date.now()-(+m))<600000?'0':m)                                                    // いまの時刻（ミリ秒）の記録
+    .replace(/style="([^"]*)"/g,(m,s)=>'style="'+s.replace(/\s*:\s*/g,':').replace(/\s*;\s*/g,';').replace(/;$/,'')+'"')   // 1秒ごとの描き直しが当たった所は書き方（空白）だけ変わる
+    .replace(/(width:)(\d+\.\d{3,})%/g,(m,a,b)=>a+Math.round(+b)+'%');                                                   // 経過時間の棒は 1% 単位で比べる
+  const show=(label,a,b)=>{ if(hide)return label; let i=0; a=String(a); b=String(b); while(i<a.length&&a[i]===b[i])i++; return label+'：いま「'+a.slice(Math.max(0,i-25),i+45)+'」／新「'+b.slice(Math.max(0,i-25),i+45)+'」'; };
+  function row(name,r){ total+=r.n.reduce((a,b)=>a+b,0); if(r.diffs.length)bad++; const c=(i,t)=>{ const d=r.diffs.filter(x=>x.indexOf(t)===0).length; return `<td class="${d?'ng':'ok'}">${d?'× '+d+'か所':'○'} <small>${r.n[i]}か所</small></td>`; };
+    const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td>${c(0,'①')}${c(1,'②')}${c(2,'③')}${c(3,'④')}<td>${r.diffs.slice(0,6).map(x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;')).join('<br>')}${r.diffs.length>6?'<br>…ほか '+(r.diffs.length-6)+' か所':''}</td>`; $('rows').appendChild(tr); window.__diffs=(window.__diffs||[]).concat(r.diffs); }
+
+  async function run(data,label){
+    $('go-sample').disabled=$('go-file').disabled=true; $('rows').innerHTML=''; total=0; bad=0; hide=!!data.real; window.__diffs=[]; window.__results=null; $('src').textContent=label; $('sum').textContent='比べています…';
+    const t0=Date.now(), touched={}; const put=(k,v)=>{ if(!(k in touched))touched[k]=LS.getItem(k); if(v===null||v===undefined)LS.removeItem(k); else LS.setItem(k,v); };
+    try{
+      let si=0;
+      for(const s of data.stores){ si++;
+        const name=data.real?('店舗'+si):s.name;
+        put('global_stores',J(data.stores)); put('ffv6_stores',J(data.stores.map(x=>({id:x.id,name:x.name})))); put('current_store_id',s.id); put('ffv6_current',s.id);
+        ['kp_gist_token','kp_gist_id','ws_v1'].forEach(k=>put(k,null));
+        let src=data.states[s.id];
+        if(src&&data.mkChecks){ const o=JSON.parse(src), now=Date.now(); o.areaChecks={w_toilet:[{at:new Date(now-40*60000).toISOString(),by:o.staff[0]}],w_ff:[{at:new Date(now-9*3600000).toISOString(),by:o.staff[1]}]}; src=J(o); }
+        put('ws_v1_store_'+s.id,src||null); Object.keys(data.crew||{}).forEach(k=>put(k,data.crew[k]));
+        const open=async()=>{ const [a,b]=await Promise.all([load(fo,'../ws/index.html?embedded=1&cmp='+Date.now()),load(fn,'ws/index.html?embedded=1&mem=1&wait=1&cmp='+Date.now())]);
+          b.alert=()=>{}; b.confirm=()=>true; b.prompt=()=>null; a.alert=()=>{}; a.confirm=()=>true; a.prompt=()=>null;
+          await b.__v2go({stores:data.stores,current:s.id,state:src||null,crew:data.crew});
+          for(let i=0;i<200;i++){ let ok=false; try{ ok=b.__v2ready&&a.eval('typeof state==="object"&&typeof currentView!=="undefined"')&&b.eval('typeof state==="object"'); }catch(_){ } if(ok)break; await sleep(50); }
+          await sleep(400); return [a,b]; };
+        let [wo,wn]=await open();
+        const r={n:[0,0,0,0],diffs:[]};
+        const both=code=>{ let ea='',eb=''; try{ wo.eval(code); }catch(e){ ea=e.message; } try{ wn.eval(code); }catch(e){ eb=e.message; } if(ea!==eb)r.diffs.push('③ 操作の結果がちがう（'+code.slice(0,30)+'）'); };
+        const tick="try{tickTimers();}catch(e){}";   // 1秒ごとに進む表示（進行中 M:SS など）は、読む直前に両方で進めてそろえる
+        const cmp1=(tag,lab,code,i)=>{ for(let tries=0;tries<4;tries++){ wo.eval(tick); wn.eval(tick); const a=N(wo.eval(code)), b=N(wn.eval(code)); if(a===b){ r.n[i]++; return; } if(tries===3){ r.n[i]++; r.diffs.push(show(tag+' '+lab,a,b)); } } };
+        const cmpList=(tag,code,i)=>{ let a,b; for(let tries=0;tries<3;tries++){ a=wo.eval(code).map(x=>[x[0],N(x[1])]); b=wn.eval(code).map(x=>[x[0],N(x[1])]); if(J(a)===J(b))break; } const mb=new Map(b); a.forEach(([k,v])=>{ r.n[i]++; if(mb.get(k)!==v)r.diffs.push(show(tag+' '+k,v,mb.get(k))); }); if(a.length!==b.length){ r.n[i]++; r.diffs.push(tag+' 数がちがう '+a.length+'／'+b.length); } };
+        // ① データ：分けて組み立て直した文字／画面が持っているデータ
+        if(src){ r.n[0]++; const back=wn.eval(`localStorage.getItem(${J('ws_v1_store_'+s.id)})`), norm=J(wn.V2.SPECS.ws.normalize(JSON.parse(src))); if(back!==norm&&(back===null||J(wn.V2.SPECS.ws.normalize(JSON.parse(back)))!==norm))r.diffs.push(show('① 分けて組み立て直した文字',norm,back)); }
+        cmp1('①','画面が持っているデータ',NZ+'(JSON.stringify(state))',0);
+        // ② 判定・並び
+        cmpList('②',PROBE,1);
+        // ③ 画面：管理者にして、全部のタブ・期間・タスクのある全部の日
+        cmp1('③','開いた直後',BODY,2);
+        both('isAdmin=true; applyAdminMode();');
+        for(const v of VIEWS){ both(`setView(${J(v)})`); cmp1('③','タブ '+v,BODY,2); }
+        for(const p of ['today','week','month','all']){ both(`setView('dashboard'); setDashPeriod(${J(p)})`); cmp1('③','ダッシュボード '+p,`document.getElementById('dashboard-view').innerHTML`,2); }
+        const days=wo.eval('Object.keys(state.tasks||{}).sort()').concat([dk(D(1)),dk(D(7)),dk(D(-30))]).filter((x,i,a)=>a.indexOf(x)===i);
+        both(`setView('timeline')`);
+        for(const k of days){ const [y,m,d]=k.split('-').map(Number); if(!y||!m||!d)continue; both(`currentDate=new Date(${y},${m-1},${d}); render();`); cmp1('③','タイムライン '+(data.real?'（日）':k),`document.getElementById('timeline-view').innerHTML`,2); }
+        both(`goToday(); setView('map')`); cmp1('③','今日に戻って売場マップ',BODY,2);
+        cmp1('①','全部の画面を開いた後のデータ',NZ+'(JSON.stringify(state))',0);
+        // ④ 同じ操作をした後の、保存の中身
+        const who=data.real?'確認用':'見本 花子';
+        both(`(()=>{ const w=amWorks()[0]; amRecord(w.id,${J(who)}); })()`);
+        both(`(()=>{ const k=dateKey(new Date()); if(!state.tasks[k])state.tasks[k]=[]; state.tasks[k].push({id:'t_cmp_add',text:'答え合わせで足したタスク',hour:12,min:0,endHour:13,endMin:null,tan:'both',cats:[],zones:[],memo:'',manual:'',checklist:[],done:false,carryOvers:[],order:99,createdAt:'2026-10-05T00:00:00.000Z'}); saveState(); render(); })()`);
+        both(`(()=>{ const k=dateKey(new Date()); const t=state.tasks[k].find(x=>x.id==='t_cmp_add'); t.done=true; t.completedBy=${J(who)}; t.completedAt='2026-10-05T03:00:00.000Z'; saveState(); render(); })()`);
+        both(`(()=>{ const k=dateKey(new Date()); state.tasks[k]=state.tasks[k].filter(x=>x.id!=='t_cmp_add'); saveState(); render(); })()`);
+        await sleep(300);
+        const strip=`(s=>{ if(s===null)return 'null'; const o=JSON.parse(s); delete o._modifiedAt; const z=x=>{ if(x&&typeof x==='object'){ if(Array.isArray(x))x.forEach(z); else { delete x._at; if(typeof x.at==='string'&&/^20\\d\\d-/.test(x.at)&&Date.now()-Date.parse(x.at)<600000)x.at='(いま)'; Object.keys(x).forEach(k=>z(x[k])); } } }; z(o); return JSON.stringify(o); })`;
+        r.n[3]++; { const a=N(wo.eval(strip+`(localStorage.getItem(${J('ws_v1_store_'+s.id)}))`)), b=N(wn.eval(strip+`(localStorage.getItem(${J('ws_v1_store_'+s.id)}))`)); if(a!==b)r.diffs.push(show('④ 保存の中身',a,b)); }
+        cmp1('④','操作の後の画面が持っているデータ',strip+'(JSON.stringify(state))',3); cmp1('④','操作の後の売場マップ',BODY,3);
+        row(name+(src?'':'（データなし）'),r);
+      }
+      $('sum').innerHTML=(bad?`<span class="ng">× ちがう所がありました（${window.__diffs.length} か所）</span>`:`<span class="ok">○ ちがい 0</span>`)+`　${data.stores.length} 店舗・${total.toLocaleString()} か所を比べました（${Math.round((Date.now()-t0)/1000)}秒）`;
+    }catch(e){ $('sum').innerHTML='<span class="ng">途中で止まりました</span> '+String(e&&(hide?e.message:e.stack)||e).replace(/</g,'&lt;'); bad=-1; }
+    finally{
+      fo.src='about:blank'; fn.src='about:blank'; await sleep(200);
+      Object.keys(touched).forEach(k=>{ if(touched[k]===null)LS.removeItem(k); else LS.setItem(k,touched[k]); });
+      // いまの画面が、この答え合わせの間に確認用の場所へ作った自動の控え・操作の記録を片づける
+      Object.keys(LS).forEach(k=>{ const m=/^(?:ws_v1_(?:snap|emergency|autobackup|pre_import|premigration)_|ws_v1_store_.*_backup_rename_|ws_v1_store_.*_corrupt_backup_)(\d{13})$/.exec(k); if(m&&+m[1]>=t0-2000)LS.removeItem(k); });
+      try{ const log=JSON.parse(LS.getItem('ws_v1_oplog')||'[]').filter(e=>!(e&&e.t&&new Date(e.t).getTime()>=t0-2000)); LS.setItem('ws_v1_oplog',J(log)); }catch(_){}
+      const clean=(db,st,keep)=>new Promise(res=>{ try{ const rq=indexedDB.open(db); rq.onsuccess=()=>{ const d=rq.result; if(!d.objectStoreNames.contains(st)){ d.close(); return res(); } const tx=d.transaction(st,'readwrite'), os=tx.objectStore(st); os.openCursor().onsuccess=e=>{ const c=e.target.result; if(!c)return; if(!keep(c.value))c.delete(); c.continue(); }; tx.oncomplete=()=>{ d.close(); res(); }; tx.onerror=()=>{ d.close(); res(); }; }; rq.onerror=()=>res(); }catch(_){ res(); } });
+      await clean('ws_backup_db','snapshots',v=>!(v&&((v.at&&new Date(v.at).getTime()>=t0-2000)||(/^snap_(\d+)$/.test(v.key||'')&&+v.key.slice(5)>=t0-2000))));
+      await clean('ws_oplog_db','oplog',v=>!(v&&v.t&&new Date(v.t).getTime()>=t0-2000));
+      $('go-sample').disabled=$('go-file').disabled=false;
+    }
+    window.__results={total,badRows:bad,diffs:window.__diffs.length,rows:$('rows').children.length};
+  }
+  $('go-sample').addEventListener('click',()=>run(sample(),'見本のデータ'));
+  $('go-file').addEventListener('click',()=>$('file').click());
+  $('file').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f)return; try{ run(fromFile(JSON.parse((await f.text()).replace(/^﻿/,''))),'ファイルのデータ（中身は表示しません）'); }catch(err){ $('sum').textContent='ファイルを読めませんでした'; } e.target.value=''; });
+  window.__runUrl=async url=>run(fromFile(await (await fetch(url,{cache:'no-store'})).json()),'ファイルのデータ（中身は表示しません）');
+})();
+</script>
+</body>
+</html>

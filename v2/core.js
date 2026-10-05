@@ -34,11 +34,49 @@
   // ---------- 3方向の合成 ----------
   // b＝自分が見ていた中身、m＝自分の今の中身、t＝相手（ネット上）の今の中身。
   // 片方だけが変えた項目は変えた側。両方が変えた項目は、あとから入力したほう（mineWins）。負けた側は lost に入れる。
+  function idMap(a) {       // 全部が「重ならない id を持つ物」の並びなら id→物 の表。そうでなければ null
+    var o = {};
+    for (var i = 0; i < a.length; i++) { var x = a[i]; if (!isObj(x) || x.id == null || typeof x.id === 'object') return null; var k = String(x.id); if (k in o) return null; o[k] = x; }
+    return o;
+  }
   function merge3(b, m, t, mineWins, depth, path, lost) {
     var ms = S(m), ts = S(t), bs = S(b);
     if (ms === ts) return m;
     if (ms === bs) return t;
     if (ts === bs) return m;
+    if (depth > 0 && Array.isArray(m) && Array.isArray(t)) {
+      // id を持つ物の並び（タスクの一覧など）は、id で突き合わせて1件ずつ合成する：片方が足した物は足す、片方が消した物は消す
+      var ba = Array.isArray(b) ? b : [], im = idMap(m), it = idMap(t), ib = idMap(ba);
+      if (im && it && ib && (m.length || t.length)) {
+        var out2 = [], pos = {};
+        t.forEach(function (x) {
+          var k = String(x.id);
+          if (k in im) { var v2 = merge3(ib[k], im[k], x, mineWins, depth - 1, path + '[' + k + ']', lost); if (v2 !== undefined) { pos[k] = out2.length; out2.push(v2); } }
+          else if (k in ib) { if (S(x) !== S(ib[k])) { lost.push({ path: path + '[' + k + ']', mine: null, theirs: x, kept: 'theirs', kind: 'delete-vs-edit' }); out2.push(x); } }   // 自分は消したが、相手が先に変えていた → 残す
+          else out2.push(x);                                                                                    // 相手が足した
+        });
+        var prevKey = null;
+        m.forEach(function (x) {
+          var k = String(x.id);
+          if (k in it) { prevKey = k; return; }
+          if (k in ib) { if (S(x) !== S(ib[k])) lost.push({ path: path + '[' + k + ']', mine: x, theirs: null, kept: 'theirs', kind: 'edit-vs-delete' }); return; }   // 相手が消した → 消したまま
+          var at = -1; if (prevKey !== null) { for (var i2 = 0; i2 < out2.length; i2++) { if (String(out2[i2].id) === prevKey) { at = i2; break; } } }
+          if (prevKey === null) out2.unshift(x); else out2.splice(at + 1, 0, x);                               // 自分が足した（自分の並びの位置に）
+          prevKey = k;
+        });
+        return out2;
+      }
+      // 重なりの無い「文字の一覧」（従業員の名前・カテゴリなど）：片方が足した物は足す、片方が消した物は消す
+      var strSet = function (a) { var o = {}; for (var i3 = 0; i3 < a.length; i3++) { if (typeof a[i3] !== 'string' || (a[i3] in o)) return null; o[a[i3]] = 1; } return o; };
+      var sm = strSet(m), st2 = strSet(t), sb = strSet(ba);
+      if (sm && st2 && sb && (m.length || t.length) && Array.isArray(b)) {
+        var res = t.filter(function (x) { return (x in sm) || !(x in sb); }).concat(m.filter(function (x) { return !(x in st2) && !(x in sb); }));
+        var sorted = function (a) { return S(a) === S(a.slice().sort()); };
+        return (sorted(m) && sorted(t)) ? res.sort() : res;
+      }
+      // 後ろに足していくだけの並び（記録の一覧など）：両方が足していたら、両方の分を残す
+      if (Array.isArray(b) && ba.length < m.length && ba.length < t.length && S(m.slice(0, ba.length)) === S(ba) && S(t.slice(0, ba.length)) === S(ba)) return t.concat(m.slice(ba.length));
+    }
     if (depth > 0 && Array.isArray(m) && Array.isArray(t) && Array.isArray(b) && m.length === t.length && b.length === m.length) {
       // 同じ長さの並び（客数の表など）は、マスごとに合成する
       return m.map(function (x, i) { var v = merge3(b[i], x, t[i], mineWins, depth - 1, path + '[' + i + ']', lost); return v === undefined ? null : v; });

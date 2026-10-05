@@ -113,6 +113,7 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
 <script src="../autoupdate.js" defer></script>
 <script src="core.js"></script>
 <script src="ffspec.js"></script>
+<script src="wsspec.js"></script>
 </head>
 <body>
 
@@ -133,6 +134,7 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
 
 <nav class="tabs" id="tabs">
   <button class="tab active" data-sys="ff"><span class="emoji">🍗</span>FF管理</button>
+  <button class="tab" data-sys="ws"><span class="emoji">📋</span>ワークスケジュール</button>
   <button class="tab" data-sys="cal"><span class="emoji">📅</span>カレンダー</button>
   <span class="tab-note">ほかの画面は、順番に入ります</span>
 </nav>
@@ -179,7 +181,7 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
 // 新しいシステムの入口。画面の並びは いまの統合アプリ（app.html）と同じ。
 // ちがい：本物のデータはネット上の1か所（1件ずつ）。この画面が1本だけ接続を持ち、中の各画面はそれを使う。
 // =====================================================================
-const SYSTEMS={ ff:{url:'./ff/index.html',label:'FF管理',spec:'ff'}, cal:{url:'./cal/index.html',label:'カレンダー',spec:'cal'} };
+const SYSTEMS={ ff:{url:'./ff/index.html',label:'FF管理',spec:'ff'}, ws:{url:'./ws/index.html',label:'ワークスケジュール',spec:'ws'}, cal:{url:'./cal/index.html',label:'カレンダー',spec:'cal'} };
 const BUILD=Date.now();
 const frames={};
 let store=null, meta=null, activeSys='ff', curStore='', ffStartOk={};
@@ -222,15 +224,15 @@ function showSystem(sys){
   Object.values(frames).forEach(f=>f.classList.remove('active'));
   if(!curStore){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='店舗がまだありません。<br>左上の「▼」から「＋ 店舗を追加」を押すか、⚙️ →「いまのアプリのデータを写す」で写してください。'; return; }
   // FF がまだ空の店舗：いきなり「ようこそ」の初期設定を出さず、先に「データを写す」を案内する
-  if(sys==='ff'&&!frames.ff&&!ffStartOk[curStore]){
+  if((sys==='ff'||sys==='ws')&&!frames[sys]&&!ffStartOk[sys+'|'+curStore]){   // FF・ワークスケジュール共通
     const sid=curStore; $('frame-loading').style.display='flex'; $('frame-loading').textContent='読み込み中…';
-    store.open('ff~'+sid,SYSTEMS.ff.spec).then(c=>{
-      if(activeSys!=='ff'||curStore!==sid)return;
+    store.open(sys+'~'+sid,SYSTEMS[sys].spec).then(c=>{
+      if(activeSys!==sys||curStore!==sid)return;
       if(!c.synced){ $('frame-loading').innerHTML='ネットにつながっていないため、まだ読み込めていません。<br>つながってから、開き直してください。'; return; }
-      if(Object.keys(c.view()).length){ ffStartOk[sid]=1; showSystem('ff'); return; }
-      $('frame-loading').innerHTML='<div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px">この店舗の FF管理は、まだ空です</div>いまのアプリのデータは、自動では入りません。下のボタンで写してください。<br>（写すだけです。いまのアプリのデータは変わりません）<br><a class="btn btn-primary" href="migrate.html" target="_blank" rel="noopener" style="display:inline-block;width:auto;margin-top:12px;text-decoration:none">📦 いまのアプリのデータを写す</a><br><button class="btn btn-ghost" id="ff-fresh" style="margin-top:10px">写した後、ここを押して開き直す</button><br><span id="ff-new" style="display:inline-block;margin-top:14px;font-size:12px;text-decoration:underline;cursor:pointer">新しい店舗なので、はじめから設定する</span></div>';
+      if(Object.keys(c.view()).length){ ffStartOk[sys+'|'+sid]=1; showSystem(sys); return; }
+      $('frame-loading').innerHTML='<div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px">この店舗の '+SYSTEMS[sys].label+'は、まだ空です</div>いまのアプリのデータは、自動では入りません。下のボタンで写してください。<br>（写すだけです。いまのアプリのデータは変わりません）<br><a class="btn btn-primary" href="migrate.html" target="_blank" rel="noopener" style="display:inline-block;width:auto;margin-top:12px;text-decoration:none">📦 いまのアプリのデータを写す</a><br><button class="btn btn-ghost" id="ff-fresh" style="margin-top:10px">写した後、ここを押して開き直す</button><br><span id="ff-new" style="display:inline-block;margin-top:14px;font-size:12px;text-decoration:underline;cursor:pointer">新しい店舗なので、空のまま始める</span></div>';
       $('ff-fresh').onclick=()=>location.reload();
-      $('ff-new').onclick=()=>{ ffStartOk[sid]=1; showSystem('ff'); };
+      $('ff-new').onclick=()=>{ ffStartOk[sys+'|'+sid]=1; showSystem(sys); };
     }).catch(e=>{ $('frame-loading').textContent='読み込めませんでした：'+(e&&e.message||e); });
     return;
   }
