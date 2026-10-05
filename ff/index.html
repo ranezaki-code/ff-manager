@@ -5516,7 +5516,9 @@ function gaibuImport(j,via){
   const wx=dates.map(d=>{ const day=dayOf(d), x=(day&&day.weather&&day.weather[st])||{}; return {sky:x.sky?String(x.sky):null,hi:num(x.hi),lo:num(x.lo),pop:num(x.pop)}; });
   const ev=dates.map(d=>{
     const day=dayOf(d), a=[];
-    ((day&&day.labels)||[]).forEach(s=>{ if(s)a.push(String(s)); });
+    // その日のラベル：店舗ごとの形 {共通:[…],新村:[…],大町:[…]} なら、共通とこの店舗の分だけ。古い形（ただの並び）はそのまま
+    const lb=day&&day.labels, lbArr=Array.isArray(lb)?lb:(lb&&typeof lb==='object'?[].concat(lb['共通']||[],lb[st]||[]):[]);
+    lbArr.forEach(s=>{ if(s)a.push(String(s)); });
     (Array.isArray(j.items)?j.items:[]).forEach(it=>{
       if(!it||it.date!==d)return;
       if(it.dateEnd&&it.dateEnd!==it.date)return;             // 何日も続く物は出さない（その日だけの出来事）
