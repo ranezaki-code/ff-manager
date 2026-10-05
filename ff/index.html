@@ -394,6 +394,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   .ptbl thead{display:none}
   .ptbl td{border-bottom:1px solid #ccc;padding:4px 8px;vertical-align:middle;text-align:left}
   .ptbl td.pname{font-size:15px;font-weight:600;word-break:break-word}
+  .ptbl td.pname .pgb{font-size:10px;font-weight:700;color:#166534;border:1px solid #16a34a;border-radius:4px;padding:0 3px;margin-left:4px;white-space:nowrap}
+  .ptbl td.pname .pth{font-size:11px;font-weight:700;color:#7c2d12;border:1px solid #fdba74;border-radius:4px;padding:0 4px;margin-left:4px;white-space:nowrap}
   .ptbl td.pcnt{font-size:18px;font-weight:800;color:#111;width:92px}
   .ptbl td.pchk{font-size:18px;color:#999;width:58px}
   .pptbl td.pp-l{font-size:13px;font-weight:700;color:#7c2d12;width:82px;vertical-align:top;padding:5px 8px;border-bottom:1px solid #f0e4cf}
@@ -1132,6 +1134,7 @@ const I18N = {
     'product.name':'商品名','product.namePlaceholder':'商品名を入力',
     'product.category':'カテゴリ',
     'product.discountAmt':'値引額(円)',
+    'product.thermalNo':'サーマル番号','product.thermalNoHint':'（常温FF・まちかど厨房）','product.thermalNoPh':'例：12','product.thermalNoTip':'作成後にサーマル（ラベル機）で入れる番号。作成表と印刷に出ます',
     'product.minCount':'最低作成数',
     'product.timeStart':'販売開始時',
     'product.timeEnd':'販売終了時',
@@ -1435,6 +1438,7 @@ const I18N = {
     'product.name':'Product name','product.namePlaceholder':'Enter product name',
     'product.category':'Category',
     'product.discountAmt':'Discount amt',
+    'product.thermalNo':'Thermal label No.','product.thermalNoHint':'(Cold FF / Kitchen)','product.thermalNoPh':'e.g. 12','product.thermalNoTip':'Number entered on the thermal label printer after making. Shown on the plan and print',
     'product.minCount':'Min make count',
     'product.timeStart':'Sale start hour',
     'product.timeEnd':'Sale end hour',
@@ -1697,7 +1701,7 @@ const I18N = {
     'product.list':'उत्पादन सूची','product.add':'+ उत्पादन थप्नुहोस्',
     'product.expandAll':'सबै खोल्नुहोस्','product.collapseAll':'सबै बन्द गर्नुहोस्',
     'product.cost':'लागत (JPY)','product.stdPrice':'मानक मूल्य','product.shopPrice':'बिक्री मूल्य',
-    'product.markupRate':'मार्कअप %','product.discountAmt':'छुट रकम','product.minCount':'न्यूनतम संख्या',
+    'product.thermalNo':'थर्मल नम्बर','product.thermalNoHint':'(कोल्ड FF / किचन)','product.thermalNoPh':'उदा. 12','product.thermalNoTip':'बनाएपछि थर्मल लेबलमा हाल्ने नम्बर। तालिका र प्रिन्टमा देखिन्छ','product.markupRate':'मार्कअप %','product.discountAmt':'छुट रकम','product.minCount':'न्यूनतम संख्या',
     'product.markupBase':'मूल्य आधार',
     'product.autoBtn':'स्वचालित','product.calcBtn':'गणना',
     'product.autoCalcTip':'(बिक्री-लागत)/बिक्री×100 बाट पुन: गणना',
@@ -3635,7 +3639,7 @@ function openCellMenu(pid,dayIdx,slotH){
     ${rows}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
       完売・余りの記録は、同じ曜日・同じ時間帯で<b>直近4週のうち2週以上続いた時だけ</b>、来週以降の数を自動で増減します（1回だけなら変わりません）<br>
-      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>（③のタブで変えられます）`:''}
+      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>${gaibuWhy(p.category,dayIdx,slotH)?`　理由：${escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))}`:''}（③のタブで変えられます）`:''}
     </div>
     <button type="button" onclick="closeCellMenu()" style="width:100%;margin-top:12px;padding:13px;font-size:15px;font-weight:700;border:none;border-radius:10px;background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit">閉じる</button>
   </div>`;
@@ -4956,6 +4960,8 @@ function renderProductCard(p){
         <input type="text" inputmode="decimal" value="${p.markupRate ?? calcMarkupRate(p)}"
           onchange="setMarkupRateInput('${p.id}',this.value)"
           title="${t('product.markupTip')}"></div>
+      ${hasThermal(p)?`<div><label>${t('product.thermalNo')} <span style="font-size:10px;color:#999">${t('product.thermalNoHint')}</span></label>
+        <input type="text" inputmode="text" autocapitalize="characters" value="${escapeHtmlP(p.thermalNo||'')}" placeholder="${t('product.thermalNoPh')}" onchange="setProdField('${p.id}','thermalNo',toHalf(this.value).trim())" title="${t('product.thermalNoTip')}"></div>`:''}
       <div><label>${t('product.discountAmt')}</label>
         <div style="display:flex;gap:4px">
           <input type="text" inputmode="numeric" value="${p.disc}" style="flex:1;min-width:0" onchange="setProdField('${p.id}','disc',parseInt(toHalf(this.value))||0)">
@@ -5461,6 +5467,19 @@ function gaibuPct(cat,dayIdx,slotH){ if(_gbOff)return 0; const w=_gbCur(); if(!w
 function gaibuFactor(cat,dayIdx,slotH){ return 1+gaibuPct(cat,dayIdx,slotH)/100; }
 function _gbFmt(p){ return (p>0?'+':(p<0?'−':''))+Math.abs(p)+'%'; }
 // 作成表に出す小さな印（調整が 0 の時は何も出さない）
+// 調整の理由（ミルの提案の文）。無ければ ''
+function gaibuWhy(cat,dayIdx,slotH){ const w=_gbCur(); if(!w||!w.why)return ''; return String(w.why[dayIdx+'|'+mainCatOf(cat)+'|'+slotH]||''); }
+// 作成表のマス（商品×時間帯）に出す小さな印。理由はタップ（記録メニュー）か長押し（title）で見える
+function gaibuCellBadge(cat,dayIdx,slotH){
+  const p=gaibuPct(cat,dayIdx,slotH); if(!p)return '';
+  const why=gaibuWhy(cat,dayIdx,slotH);
+  return `<span title="天気・イベント調整 ${_gbFmt(p)}${why?'：'+escapeHtmlP(why):''}（③のタブで変えられます）" style="font-size:10px;font-weight:800;border-radius:8px;padding:0 5px;white-space:nowrap;${p>0?'background:#dcfce7;color:#166534':'background:#dbeafe;color:#1e40af'}">${_gbFmt(p)}</span>`;
+}
+// 調整が効いているマスの背景（薄い色）。印と合わせて、一目で分かるように
+function gaibuCellStyle(cat,dayIdx,slotH){ const p=gaibuPct(cat,dayIdx,slotH); return p>0?';background:#f0fdf4':(p<0?';background:#eff6ff':''); }
+// サーマル番号（常温FF・まちかど厨房だけ。商品設定で入力）
+function hasThermal(p){ const m=mainCatOf((p&&p.category)||''); return m==='常温FF'||m==='まちかど厨房'; }
+function thermalBadge(p,small){ if(!hasThermal(p)||!(p.thermalNo||'').trim())return ''; return `<span title="サーマル番号" style="font-size:${small?10:11}px;font-weight:700;color:#7c2d12;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:0 5px;white-space:nowrap">No.${escapeHtmlP(p.thermalNo)}</span>`; }
 function gaibuBadge(cat,dayIdx,slotH){
   const p=gaibuPct(cat,dayIdx,slotH); if(!p)return '';
   return `<span title="天気・イベント調整（③のタブで変えられます）" style="font-size:10px;font-weight:700;border-radius:8px;padding:0 6px;white-space:nowrap;${p>0?'background:#dcfce7;color:#166534':'background:#dbeafe;color:#1e40af'}">調整 ${_gbFmt(p)}</span>`;
@@ -6541,7 +6560,7 @@ function printMakePlan(){
         </div>
         <table class="ptbl">
           <thead><tr><th class="pname">商品名</th><th class="pcnt">作成数</th><th class="pchk">作成</th></tr></thead>
-          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
+          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}${(()=>{ const g=gaibuPct(cat,di,slotH); return g?` <span class="pgb">調整 ${_gbFmt(g)}</span>`:''; })()}${hasThermal(o.p)&&(o.p.thermalNo||'').trim()?` <span class="pth">No.${escapeHtmlP(o.p.thermalNo)}</span>`:''}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
         </table>
       </div>`;
     });
@@ -6918,7 +6937,7 @@ function renderSlotGroupedView(dayIdx){
         if(_hasGrp){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
         return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
           <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
-          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">投資+${extra}</span>`:''}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">在庫欠品</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">余り</span>':''}${getSoldOutTotal(p.id,di,slotH)>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">追加+${getSoldOutTotal(p.id,di,slotH)}</span>`:''}</span>
+          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">投資+${extra}</span>`:''} ${gaibuCellBadge(cat,di,slotH)}${thermalBadge(p,true)}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">在庫欠品</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">余り</span>':''}${getSoldOutTotal(p.id,di,slotH)>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">追加+${getSoldOutTotal(p.id,di,slotH)}</span>`:''}</span>
           <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${di},${slotH})" aria-label="${escapeHtmlP(p.name)} の記録メニュー" style="flex-shrink:0"><span style="font-size:21px;font-weight:800;color:#1d4ed8;line-height:1">${grandTotal}</span></button>
         </div>`;
       }).join('');
@@ -7304,6 +7323,7 @@ function renderProdDayContent(dayIdx){
         // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、0(作らない)は中身を出さず真っ白、それ以外はチェック状態次第
         const isZero=!isSkip&&!skipped&&extra<=0&&grandTotal===0;
         let cellExtraStyle='';
+    cellExtraStyle+=gaibuCellStyle(cat,dayIdx,slotH);   // 天気・イベント調整が効いているマスは薄い色
         if(extra>0) cellExtraStyle=';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px';
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
         const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
@@ -7314,6 +7334,7 @@ function renderProdDayContent(dayIdx){
               <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
             </button>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
+            ${gaibuCellBadge(cat,dayIdx,slotH)}${thermalBadge(p,true)}
             ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">在庫欠品</span>`:''}
             ${leftover?`<span style="background:#ffedd5;color:#9a3412;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">余り</span>`:''}
             ${learnAdj!==1?`<span style="background:#ede9fe;color:#5b21b6;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700" title="完売/余りの記録から自動調整">学習${learnAdj>1?'+':''}${Math.round((learnAdj-1)*100)}%</span>`:''}
