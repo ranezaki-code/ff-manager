@@ -20,6 +20,7 @@ const V2WS = (function () {
   const S = JSON.stringify, mem = {};
   let host = null, store = null, stores = [], sid = '', coll = null, cache, booted = false, warned = false, crewSeed = null;
   const KEY = () => 'ws_v1_store_' + sid;
+  let seen;   // 画面がいま持っている中身
   function stateStr() { if (cache === undefined) cache = Object.keys(coll.view()).length ? S(coll.getState()) : null; return cache; }
   function block(what) { console.warn('v2：' + what + ' は新しいシステムでは行いません'); if (!warned) { warned = true; try { alert('この操作（' + what + '）は、新しいシステムでは使えません。\nデータを戻したい時は、入口の ⚙️ →「履歴・前の状態に戻す」を使ってください。'); } catch (e) {} } }
 
@@ -28,7 +29,7 @@ const V2WS = (function () {
     if (LOCAL.test(k)) return __realLS.getItem(k);
     if (CREW.test(k)) return MEM ? ((crewSeed && k in crewSeed) ? crewSeed[k] : null) : __realLS.getItem(k);
     if (k === 'current_store_id' || k === 'ffv6_current') return (k in mem) ? mem[k] : (sid || null);
-    if (coll && k === KEY()) return stateStr();
+    if (coll && k === KEY()) { seen = stateStr(); return seen; }
     return (k in mem) ? mem[k] : null;
   }
   function setItem(k, v) {
@@ -39,7 +40,7 @@ const V2WS = (function () {
       let st; try { st = JSON.parse(v); } catch (e) { console.error('v2：保存する中身を読めません', e); return; }
       if (!coll.synced) { console.warn('v2：まだ読み込めていないので保存しません'); return; }
       if (!st || typeof st !== 'object' || Array.isArray(st)) { console.warn('v2：保存する中身の形がちがうので保存しません'); return; }
-      coll.setState(st); coll._state = null; cache = undefined;
+      coll.setState(st); coll._state = null; cache = undefined; seen = stateStr();
       return;
     }
     mem[k] = v;
@@ -91,7 +92,8 @@ const V2WS = (function () {
       note('');
     }
     mem.global_stores = S(stores); mem.ffv6_stores = S(stores.map(s => ({ id: s.id, name: s.name || '' })));
-    const off = coll.onChange(remote => { cache = undefined; if (remote && booted) { try { window.dispatchEvent(new StorageEvent('storage', { key: KEY() })); } catch (e) { console.warn(e); } } });
+    const off = coll.onChange(remote => { cache = undefined; if (remote && booted && stateStr() !== seen) {   // 自分の保存が送り終わった知らせ（中身は画面と同じ）では描き直さない
+       try { window.dispatchEvent(new StorageEvent('storage', { key: KEY() })); } catch (e) { console.warn(e); } } });
     window.addEventListener('pagehide', off);
     window.__v2 = { store, coll, sid };
     // 本体を動かす（元のファイルでは、ページを開いた時にそのまま動いていた部分）
