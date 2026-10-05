@@ -37,6 +37,7 @@ label.ck{display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-s
 <div class="card"><h2><span class="no">2</span>写す元をえらぶ</h2>
   <div class="note">統合アプリの「⚙️ → 📤 書出」でできたファイル（経営データ_….json）か、全データの控えのファイル。</div>
   <div style="margin-top:8px"><label class="ck"><input type="checkbox" id="k-ff" checked> FF管理</label><label class="ck"><input type="checkbox" id="k-ws" checked> ワークスケジュール</label><label class="ck"><input type="checkbox" id="k-cal" checked> カレンダー</label></div>
+  <div style="margin-top:8px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:8px;background:#fff7f7"><label class="ck" style="color:#b91c1c"><input type="checkbox" id="k-over"> 新しいシステム側にすでにある記録も、ファイルの中身で置き換える</label><div class="note">ふだんは<b>外したまま</b>にしてください。外したままなら、新しいシステムに<b>まだ無い記録を足すだけ</b>で、新しい側で入力した分は1つも変わりません。入れると、新しい側の入力がファイルの中身に戻ります（2026-10-05 にこれで実績入力が消えたことがあります。履歴から戻せます）。</div></div>
   <div style="margin-top:10px"><button id="fromdev" disabled>📲 この端末の「いまのアプリ」のデータを使う（おすすめ・ファイルは要りません）</button><div class="note" id="fromdev-note">この端末で いまのアプリを使っている時に押せます。読むだけで、いまのアプリのデータは変えません。</div></div>
   <div class="note" style="margin-top:10px">または、書き出したファイルを選ぶ：</div>
   <input type="file" id="file" accept=".json,application/json" disabled style="margin-top:8px">
@@ -117,25 +118,29 @@ label.ck{display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-s
       if(orphan)h+=`<div class="note">店舗の一覧に無い店舗の古いデータ ${orphan} 個は、写しません。</div>`;
       h+=`<div class="note">このファイルのほかのデータ（${keys.length-used-orphan} 個）は、読んでいません（今回は写しません）。</div>`;
       if(!allOk)h+='<div class="big ng">× 分けて組み立て直した結果が元とちがう物があります。写せません（何も書いていません）。ギアに知らせてください。</div>';
-      else if(items.some(i=>i.chg||i.only))h+='<div class="big warn">△ 新しいシステム側にすでにある中身を、ファイルの中身で書き換える物があります。新しい側で入力を始めた後なら、写さないでください（新しい側の入力が、ファイルの中身に戻ります）。</div>';
+      else if(items.some(i=>i.chg)&&!$('k-over').checked)h+='<div class="big" style="color:#166534">○ 新しいシステム側で変わっている記録（「書き換える」の列）は、そのまま残します。足すのは「足す」の列の分だけです。</div>';
+      else if(items.some(i=>i.chg)&&$('k-over').checked)h+='<div class="big ng">⚠ 「置き換える」が入っています。新しいシステム側で入力した記録（「書き換える」の列）が、ファイルの中身に戻ります。新しい側で入力を始めた後なら、チェックを外してください。</div>';
       $('plan').innerHTML=h; $('go').disabled=!allOk||!items.length&&!addStores.length;
     }catch(err){ $('plan').innerHTML='<span class="ng">データを読めませんでした：</span>'+esc(err&&err.message||err)+'　何も書いていません。'; }
   }
   $('go').addEventListener('click',async()=>{
     if(!plan)return; const tot=plan.items.reduce((s,i)=>s+i.add+i.chg,0);
-    if(!confirm(`新しいシステムへ写します。\n店舗を足す：${plan.addStores.length}／記録を足す・書き換える：${tot} 件\nいまのアプリのデータは変わりません。よろしいですか？`))return;
+    const over0=$('k-over').checked, addN=plan.items.reduce((s,i)=>s+i.add,0), chgN=plan.items.reduce((s,i)=>s+i.chg,0);
+    if(!confirm(`新しいシステムへ写します。\n店舗を足す：${plan.addStores.length}／記録を足す：${addN} 件${over0?`／置き換える：${chgN} 件（新しい側の入力が戻ります）`:(chgN?`\n（新しい側で変わっている ${chgN} 件は、そのまま残します）`:'')}\nいまのアプリのデータは変わりません。よろしいですか？`))return;
     $('go').disabled=true; $('result').textContent='写しています…（件数が多いと1〜2分かかります）';
     const r0=store.be.reads, w0=store.be.writes, t0=Date.now();
     try{
       if(plan.addStores.length){ const m=meta.getState(); m.stores=(m.stores||[]).concat(plan.addStores); meta.setState(m,'import'); }
-      plan.items.forEach(i=>i.c.setRecs(i.recs,{why:'import'}));
+      const over=$('k-over').checked;
+      plan.items.forEach(i=>{ const view=i.c.view(); i.wrote={}; Object.keys(i.recs).forEach(r=>{ if(over||!(r in view))i.wrote[r]=i.recs[r]; }); i.c.setRecs(i.wrote,{why:'import'}); });
       await store.settle(600000);
       let ok=true, h='<table><tr><th>種類</th><th>店舗</th><th>ファイル</th><th>ネット上（読み直し）</th><th>件数</th><th>1件ずつの中身</th><th>組み立て直した全体</th></tr>';
       for(const i of plan.items){
         const srv=await i.c.readServer(); const mine={}; Object.keys(i.recs).forEach(r=>{ if(r in srv)mine[r]=srv[r]; });
         const nOk=Object.keys(mine).length===Object.keys(i.recs).length;
-        const badRecs=Object.keys(i.recs).filter(r=>mine[r]!==i.recs[r]);
-        const jOk=nOk&&J(i.join(mine))===J(i.expect);
+        const badRecs=Object.keys(i.wrote).filter(r=>mine[r]!==i.wrote[r]);
+        const full=Object.keys(i.wrote).length===Object.keys(i.recs).length;   // 全部書いた時だけ、組み立て直した全体もファイルと比べる
+        const jOk=nOk&&(!full||J(i.join(mine))===J(i.expect));
         if(!nOk||badRecs.length||!jOk)ok=false;
         const lab=r=>{ try{ return V2.SPECS[i.kind].label(r,i.recs[r]); }catch(_){ return r; } };
         h+=`<tr><td>${KIND[i.kind].label}</td><td>${esc(i.name)}</td><td>${counts(i.kind,i.recs).map(x=>x[0]+' '+x[1]).join('・')||'0 件'}</td><td>${counts(i.kind,mine).map(x=>x[0]+' '+x[1]).join('・')||'0 件'}</td><td class="${nOk?'ok':'ng'}">${nOk?'○ 同じ':'× ちがう'}</td><td class="${badRecs.length?'ng':'ok'}">${badRecs.length?'× '+badRecs.length+' 件ちがう：'+esc(badRecs.slice(0,5).map(lab).join('／')):'○ 全部同じ'}</td><td class="${jOk?'ok':'ng'}">${jOk?'○ 同じ':'× ちがう'}</td></tr>`;
