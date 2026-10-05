@@ -6,9 +6,9 @@
 <title>新しいシステム：いまのアプリのデータを写す</title>
 <style>
 body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.7}
-.wrap{max-width:860px;margin:0 auto}
+.wrap{max-width:900px;margin:0 auto}
 h1{font-size:19px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-bottom:12px;overflow-x:auto}
 .card h2{font-size:15px;margin:0 0 6px;display:flex;gap:8px;align-items:center}
 .no{display:inline-flex;width:24px;height:24px;border-radius:50%;background:#0f172a;color:#fff;font-size:13px;align-items:center;justify-content:center;flex-shrink:0}
 button{font:inherit;padding:11px 16px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}
@@ -17,28 +17,31 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
 th{background:#f8fafc;text-align:left;padding:6px 8px;white-space:nowrap} td{padding:6px 8px;border-top:1px solid #e2e8f0}
 .ok{color:#16a34a;font-weight:700} .ng{color:#dc2626;font-weight:700} .warn{color:#b45309;font-weight:700}
 .note{font-size:12px;color:#64748b} .big{font-size:15px;font-weight:800;margin-top:8px}
+label.ck{display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-size:14px;font-weight:600}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="../autoupdate.js" defer></script>
 <script src="core.js"></script>
+<script src="ffspec.js"></script>
 </head>
 <body>
 <div class="wrap">
 <h1>📦 いまのアプリのデータを、新しいシステムへ写す</h1>
 <div class="sub">書き出したファイルを<b>読むだけ</b>です。いまのアプリのデータは変えません・消しません。何回やっても同じ結果になります（2重に入りません）。<br>
-いま写せるのは <b>店舗の一覧</b> と <b>カレンダー</b> です。ほかの種類（FF管理・クルーなど）は、ファイルに入っていても読みません。</div>
+いま写せるのは <b>店舗の一覧</b>・<b>FF管理</b>・<b>カレンダー</b> です。ほかの種類（クルー・ワークスケジュールなど）は、ファイルに入っていても読みません。</div>
 
 <div class="card"><h2><span class="no">1</span>写す先</h2><div id="dest">接続中…</div></div>
 <div class="card"><h2><span class="no">2</span>ファイルを選ぶ</h2>
   <div class="note">統合アプリの「⚙️ → 📤 書出」でできたファイル（経営データ_….json）か、全データの控えのファイル。</div>
+  <div style="margin-top:8px"><label class="ck"><input type="checkbox" id="k-ff" checked> FF管理</label><label class="ck"><input type="checkbox" id="k-cal" checked> カレンダー</label></div>
   <input type="file" id="file" accept=".json,application/json" disabled style="margin-top:8px">
 </div>
 <div class="card"><h2><span class="no">3</span>調べた結果（まだ何も書いていません）</h2><div id="plan" class="note">ファイルを選ぶと、ここに出ます。</div></div>
 <div class="card"><h2><span class="no">4</span>写す → 読み直して突き合わせ</h2>
   <button id="go" disabled>写す</button>
-  <div id="result" class="note" style="margin-top:8px">「写す」を押すと、書いた後にネット上から全部読み直し、件数と中身をファイルと比べます。1つでも合わなければ「止めました」と出ます。</div>
+  <div id="result" class="note" style="margin-top:8px">「写す」を押すと、書いた後にネット上から全部読み直し、件数と中身（商品ごと・週ごと）をファイルと比べます。1つでも合わなければ「止めました」と出ます。</div>
 </div>
 </div>
 <script>
@@ -49,20 +52,28 @@ th{background:#f8fafc;text-align:left;padding:6px 8px;white-space:nowrap} td{pad
   try{
     const pass=ls('v2_pass')||ls('unified_pass');
     if(!pass){ $('dest').innerHTML='<span class="ng">この端末には合言葉が入っていません。</span>先に <a href="index.html">新しいシステムの入口</a> を開いて合言葉を入れてください。'; return; }
-    const n=ls('v2_device_name')||'端末';
-    store=await V2.connect(pass,{device:n+'#'+V2.deviceId().slice(-4)});
+    store=await V2.connect(pass,{device:(ls('v2_device_name')||'端末')+'#'+V2.deviceId().slice(-4)});
     meta=await store.open('meta','meta');
     if(!meta.synced){ $('dest').innerHTML='<span class="ng">ネットにつながっていません。</span>つないでから、このページを開き直してください。'; return; }
     $('dest').innerHTML='<span class="ok">○ つながりました。</span>この端末の合言葉の場所（新しいシステム用。いまのアプリのデータとは別の場所）に写します。';
     $('file').disabled=false;
   }catch(e){ $('dest').innerHTML='<span class="ng">接続できませんでした：</span>'+esc(e&&e.message||e); return; }
 
-  // ファイルの形：{data:{名前:文字}}（📤 書出）／{localStorage:{名前:文字}}（復旧ページの全データ）／{名前:文字}（そのままの控え）
+  // ファイルの形：{data:{名前:文字}}（📤 書出）／{keys:{名前:文字}}（全データの控え）／{localStorage:{名前:文字}}（復旧ページ）／{名前:文字}
   function pick(obj){
-    if(obj&&obj.data&&typeof obj.data==='object'&&!Array.isArray(obj.data))return obj.data;
-    if(obj&&obj.localStorage&&typeof obj.localStorage==='object')return obj.localStorage;
+    for(const w of ['data','keys','localStorage']){ if(obj&&obj[w]&&typeof obj[w]==='object'&&!Array.isArray(obj[w])&&Object.keys(obj[w]).some(k=>/^(cal_v1|ffv6_|ws_v1|global_stores$)/.test(k)))return obj[w]; }
     if(obj&&typeof obj==='object'&&Object.keys(obj).some(k=>/^(cal_v1|ffv6_|ws_v1|global_stores$)/.test(k)))return obj;
     return null;
+  }
+  const KIND={ff:{label:'FF管理',groups:[['p:','商品'],['w:','週'],['g:','天気・イベント調整'],['h:','時間帯別購入率'],['s:','設定など']]},cal:{label:'カレンダー',groups:[['e:','予定'],['_','その他']]}};
+  function counts(kind,recs){ return KIND[kind].groups.map(([p,l])=>[l,Object.keys(recs).filter(r=>r.indexOf(p)===0).length]).filter(x=>x[1]); }
+  // 1店舗ぶんを「分ける」。戻り値 {recs, expect(組み立て直した時に同じになるはずの形), round(分けて組み立て直して同じか), exact(元の文字と1文字も同じか)}
+  function build(kind,raw,view,setup){
+    const sp=V2.SPECS[kind]; let o=null; try{ o=JSON.parse(raw); }catch(_){ return {bad:true}; }
+    if(kind==='cal'){ const st={events:(o&&Array.isArray(o.events))?o.events:[]}; const recs=sp.split(st,view); return {recs,expect:st,round:J(sp.join(recs))===J(st),exact:true,join:r=>sp.join(r)}; }
+    const fake={local:{}}; const recs=sp.split(o,view,fake); if(setup)recs['s:__setup']='"1"';
+    const expect=sp.normalize(o), jn=r=>sp.join(r,{local:{activeWeek:o.activeWeek}}), back=J(jn(recs));
+    return {recs,expect,round:back===J(expect),exact:back===raw,join:jn,st:o};
   }
   $('file').addEventListener('change',async e=>{
     const f=e.target.files[0]; if(!f)return; plan=null; $('go').disabled=true; $('result').textContent=''; $('plan').textContent='調べています…';
@@ -73,52 +84,60 @@ th{background:#f8fafc;text-align:left;padding:6px 8px;white-space:nowrap} td{pad
       let srcStores=[]; try{ srcStores=JSON.parse(src.global_stores||'[]')||[]; }catch(_){}
       srcStores=srcStores.filter(s=>s&&s.id).map(s=>({id:s.id,name:s.name||'店舗',createdAt:s.createdAt||0}));
       const have=(meta.getState().stores)||[]; const addStores=srcStores.filter(s=>!have.find(h=>h.id===s.id));
-      const sp=V2.SPECS.cal, items=[]; let allOk=true;
-      for(const k of keys.filter(k=>k.indexOf("cal_v1_store_")===0&&!/_corrupt_backup_|_backup_|_snap_/.test(k))){
-        const sid=k.slice('cal_v1_store_'.length); let o=null; try{ o=JSON.parse(src[k]); }catch(_){ o=null; }
-        const st={events:(o&&Array.isArray(o.events))?o.events:[]};       // いまのカレンダーが読み込む形と同じ（予定の一覧だけ）
-        const c=await store.open('cal~'+sid,'cal'); const view=c.view();
-        const recs=sp.split(st,view), back=sp.join(recs), round=J(back)===J(st)&&Object.keys(recs).length===st.events.length;
-        if(!round)allOk=false;
-        let add=0,chg=0,same=0; Object.keys(recs).forEach(r=>{ if(!(r in view))add++; else if(view[r]!==recs[r])chg++; else same++; });
-        const only=Object.keys(view).filter(r=>!(r in recs)).length;
-        items.push({sid,name:(srcStores.find(s=>s.id===sid)||have.find(s=>s.id===sid)||{}).name||sid,st,recs,c,round,add,chg,same,only,bad:o===null});
+      const known=srcStores.concat(have.filter(h=>!srcStores.find(s=>s.id===h.id)));
+      const items=[]; let allOk=true, used=src.global_stores?1:0, orphan=0;
+      const kinds=[]; if($('k-ff').checked)kinds.push(['ff','ffv6_store_']); if($('k-cal').checked)kinds.push(['cal','cal_v1_store_']);
+      for(const [kind,prefix] of kinds){
+        for(const s of known){
+          const raw=src[prefix+s.id]; if(typeof raw!=='string')continue; used++;
+          const c=await store.open(kind+'~'+s.id,kind); const view=c.view();
+          const b=build(kind,raw,view,kind==='ff'&&!!src['ffv6_setup_'+s.id]); if(kind==='ff'&&src['ffv6_setup_'+s.id])used++;
+          if(b.bad||!b.round)allOk=false;
+          let add=0,chg=0,same=0; if(!b.bad)Object.keys(b.recs).forEach(r=>{ if(!(r in view))add++; else if(view[r]!==b.recs[r])chg++; else same++; });
+          const only=b.bad?0:Object.keys(view).filter(r=>!(r in b.recs)).length;
+          items.push(Object.assign({kind,sid:s.id,name:s.name,c,add,chg,same,only},b));
+        }
+        orphan+=keys.filter(k=>k.indexOf(prefix)===0&&!/_corrupt_backup_|_backup_|_snap_/.test(k)&&!known.find(s=>prefix+s.id===k)).length;
       }
       plan={items,addStores,srcStores};
-      const other=keys.length-items.length-(src.global_stores?1:0);
       let h=`<div>店舗の一覧：ファイルに ${srcStores.length} 店舗。新しく足すのは <b>${addStores.length}</b> 店舗${addStores.length?'（'+addStores.map(s=>esc(s.name)).join('・')+'）':''}。</div>`;
-      h+='<table><tr><th>店舗</th><th>ファイルの予定</th><th>分けて組み立て直し</th><th>足す</th><th>書き換える</th><th>同じ</th><th>新しい側にだけある</th></tr>';
-      h+=items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.st.events.length} 件${i.bad?' <span class="ng">（読めない）</span>':''}</td><td class="${i.round?'ok':'ng'}">${i.round?'○ 元と同じ':'× ちがう'}</td><td>${i.add}</td><td class="${i.chg?'warn':''}">${i.chg}</td><td>${i.same}</td><td class="${i.only?'warn':''}">${i.only}（消しません）</td></tr>`).join('');
+      h+='<table><tr><th>種類</th><th>店舗</th><th>ファイルの中身</th><th>分けて組み立て直し</th><th>足す</th><th>書き換える</th><th>同じ</th><th>新しい側にだけある</th></tr>';
+      h+=items.map(i=>`<tr><td>${KIND[i.kind].label}</td><td>${esc(i.name)}</td><td>${i.bad?'<span class="ng">読めない</span>':counts(i.kind,i.recs).map(x=>x[0]+' '+x[1]).join('・')||'0 件'}</td><td class="${i.round?'ok':'ng'}">${i.bad?'×':i.round?(i.exact?'○ 元と1文字も違わない':'○ 同じ<br><span class="note">（開いている週の2か所持ちを1本にした形で）</span>'):'× ちがう'}</td><td>${i.add}</td><td class="${i.chg?'warn':''}">${i.chg}</td><td>${i.same}</td><td class="${i.only?'warn':''}">${i.only}（消しません）</td></tr>`).join('');
       h+='</table>';
-      if(!items.length)h+='<div class="note">カレンダーのデータは、このファイルに入っていません（予定0件）。</div>';
-      h+=`<div class="note">このファイルのほかの種類のデータ ${other} 個は、読んでいません（今回は写しません）。</div>`;
+      if(!items.length)h+='<div class="note">えらんだ種類のデータは、このファイルに入っていません。</div>';
+      if(orphan)h+=`<div class="note">店舗の一覧に無い店舗の古いデータ ${orphan} 個は、写しません。</div>`;
+      h+=`<div class="note">このファイルのほかのデータ（${keys.length-used-orphan} 個）は、読んでいません（今回は写しません）。</div>`;
       if(!allOk)h+='<div class="big ng">× 分けて組み立て直した結果が元とちがう物があります。写せません（何も書いていません）。ギアに知らせてください。</div>';
-      else if(items.some(i=>i.chg))h+='<div class="big warn">△ 新しいシステム側にすでにある予定を、ファイルの中身で書き換える物があります。新しい側で入力を始めた後なら、写さないでください。</div>';
-      $('plan').innerHTML=h; $('go').disabled=!allOk;
+      else if(items.some(i=>i.chg||i.only))h+='<div class="big warn">△ 新しいシステム側にすでにある中身を、ファイルの中身で書き換える物があります。新しい側で入力を始めた後なら、写さないでください（新しい側の入力が、ファイルの中身に戻ります）。</div>';
+      $('plan').innerHTML=h; $('go').disabled=!allOk||!items.length&&!addStores.length;
     }catch(err){ $('plan').innerHTML='<span class="ng">ファイルを読めませんでした：</span>'+esc(err&&err.message||err)+'　何も書いていません。'; }
   });
   $('go').addEventListener('click',async()=>{
     if(!plan)return; const tot=plan.items.reduce((s,i)=>s+i.add+i.chg,0);
-    if(!confirm(`新しいシステムへ写します。\n店舗を足す：${plan.addStores.length}／予定を足す・書き換える：${tot} 件\nいまのアプリのデータは変わりません。よろしいですか？`))return;
-    $('go').disabled=true; $('result').textContent='写しています…';
+    if(!confirm(`新しいシステムへ写します。\n店舗を足す：${plan.addStores.length}／記録を足す・書き換える：${tot} 件\nいまのアプリのデータは変わりません。よろしいですか？`))return;
+    $('go').disabled=true; $('result').textContent='写しています…（件数が多いと1〜2分かかります）';
+    const r0=store.be.reads, w0=store.be.writes, t0=Date.now();
     try{
       if(plan.addStores.length){ const m=meta.getState(); m.stores=(m.stores||[]).concat(plan.addStores); meta.setState(m,'import'); }
       plan.items.forEach(i=>i.c.setRecs(i.recs,{why:'import'}));
-      await store.settle(120000);
-      let ok=true, h='<table><tr><th>店舗</th><th>ファイル</th><th>ネット上（読み直し）</th><th>件数</th><th>中身</th></tr>';
+      await store.settle(600000);
+      let ok=true, h='<table><tr><th>種類</th><th>店舗</th><th>ファイル</th><th>ネット上（読み直し）</th><th>件数</th><th>1件ずつの中身</th><th>組み立て直した全体</th></tr>';
       for(const i of plan.items){
         const srv=await i.c.readServer(); const mine={}; Object.keys(i.recs).forEach(r=>{ if(r in srv)mine[r]=srv[r]; });
         const nOk=Object.keys(mine).length===Object.keys(i.recs).length;
-        const cOk=nOk&&Object.keys(i.recs).every(r=>mine[r]===i.recs[r])&&J(V2.SPECS.cal.join(mine))===J(i.st);
-        if(!nOk||!cOk)ok=false;
-        h+=`<tr><td>${esc(i.name)}</td><td>${i.st.events.length} 件</td><td>${Object.keys(mine).length} 件</td><td class="${nOk?'ok':'ng'}">${nOk?'○ 同じ':'× ちがう'}</td><td class="${cOk?'ok':'ng'}">${cOk?'○ 1文字も違わない':'× ちがう'}</td></tr>`;
+        const badRecs=Object.keys(i.recs).filter(r=>mine[r]!==i.recs[r]);
+        const jOk=nOk&&J(i.join(mine))===J(i.expect);
+        if(!nOk||badRecs.length||!jOk)ok=false;
+        const lab=r=>{ try{ return V2.SPECS[i.kind].label(r,i.recs[r]); }catch(_){ return r; } };
+        h+=`<tr><td>${KIND[i.kind].label}</td><td>${esc(i.name)}</td><td>${counts(i.kind,i.recs).map(x=>x[0]+' '+x[1]).join('・')||'0 件'}</td><td>${counts(i.kind,mine).map(x=>x[0]+' '+x[1]).join('・')||'0 件'}</td><td class="${nOk?'ok':'ng'}">${nOk?'○ 同じ':'× ちがう'}</td><td class="${badRecs.length?'ng':'ok'}">${badRecs.length?'× '+badRecs.length+' 件ちがう：'+esc(badRecs.slice(0,5).map(lab).join('／')):'○ 全部同じ'}</td><td class="${jOk?'ok':'ng'}">${jOk?'○ 同じ':'× ちがう'}</td></tr>`;
       }
       const sm=await meta.readServer(); const sv=sm.stores?JSON.parse(sm.stores):[]; const sOk=plan.srcStores.every(s=>sv.find(x=>x.id===s.id));
       if(!sOk)ok=false;
       h+=`</table><div>店舗の一覧：<span class="${sOk?'ok':'ng'}">${sOk?'○ ファイルの店舗が全部入っています':'× 入っていない店舗があります'}</span>（ネット上 ${sv.length} 店舗）</div>`;
+      h+=`<div class="note">かかった時間 ${Math.round((Date.now()-t0)/1000)}秒・読み取り ${store.be.reads-r0} 回・書き込み ${store.be.writes-w0} 回</div>`;
       h+=ok?'<div class="big ok">○ 写し終わりました。件数も中身も、ファイルと同じです。</div>':'<div class="big ng">× 合わない所があります。止めました。新しいシステムへの切り替えはしないで、ギアに知らせてください（いまのアプリはそのまま使えます）。</div>';
-      $('result').innerHTML=h; window.__result={ok};
-    }catch(err){ $('result').innerHTML='<span class="ng">× 途中で止まりました：</span>'+esc(err&&err.message||err)+'　いまのアプリのデータは変わっていません。もう一度やり直せます。'; window.__result={ok:false}; }
+      $('result').innerHTML=h; window.__result={ok,reads:store.be.reads-r0,writes:store.be.writes-w0,sec:Math.round((Date.now()-t0)/1000)};
+    }catch(err){ $('result').innerHTML='<span class="ng">× 途中で止まりました：</span>'+esc(err&&err.message||err)+'　いまのアプリのデータは変わっていません。もう一度やり直せます。'; window.__result={ok:false,err:String(err&&err.message||err)}; }
   });
   window.__ready=true;
 })();

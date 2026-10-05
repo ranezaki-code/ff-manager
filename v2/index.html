@@ -112,6 +112,7 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="../autoupdate.js" defer></script>
 <script src="core.js"></script>
+<script src="ffspec.js"></script>
 </head>
 <body>
 
@@ -131,7 +132,8 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
 </header>
 
 <nav class="tabs" id="tabs">
-  <button class="tab active" data-sys="cal"><span class="emoji">📅</span>カレンダー</button>
+  <button class="tab active" data-sys="ff"><span class="emoji">🍗</span>FF管理</button>
+  <button class="tab" data-sys="cal"><span class="emoji">📅</span>カレンダー</button>
   <span class="tab-note">ほかの画面は、順番に入ります</span>
 </nav>
 
@@ -177,10 +179,10 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
 // 新しいシステムの入口。画面の並びは いまの統合アプリ（app.html）と同じ。
 // ちがい：本物のデータはネット上の1か所（1件ずつ）。この画面が1本だけ接続を持ち、中の各画面はそれを使う。
 // =====================================================================
-const SYSTEMS={ cal:{url:'./cal/index.html',label:'カレンダー',spec:'cal'} };
+const SYSTEMS={ ff:{url:'./ff/index.html',label:'FF管理',spec:'ff'}, cal:{url:'./cal/index.html',label:'カレンダー',spec:'cal'} };
 const BUILD=Date.now();
 const frames={};
-let store=null, meta=null, activeSys='cal', curStore='';
+let store=null, meta=null, activeSys='ff', curStore='';
 const $=id=>document.getElementById(id);
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function openOverlay(id){$(id).classList.add('show');}
@@ -191,7 +193,9 @@ function ls(k,v){ try{ if(v===undefined)return localStorage.getItem(k); if(v===n
 window.V2APP={
   storeId:()=>curStore,
   open:sys=>store.open(sys+'~'+curStore,SYSTEMS[sys].spec),
-  store:()=>store
+  store:()=>store,
+  stores:()=>stores(),
+  openStore:(sys,id)=>store.open(sys+'~'+id,SYSTEMS[sys].spec)
 };
 
 // ---------- 店舗 ----------
@@ -249,7 +253,7 @@ async function start(pass){
   curStore=ls('v2_store')||ls('current_store_id')||'';
   meta.onChange(()=>{ const before=curStore; renderSwitcher(); if(before!==curStore||!frames[activeSys])showSystem(activeSys); });
   renderSwitcher();
-  let init='cal'; try{ const q=new URLSearchParams(location.search).get('sys'); if(q&&SYSTEMS[q])init=q; }catch(_){}
+  let init='ff'; try{ const q=new URLSearchParams(location.search).get('sys'); if(q&&SYSTEMS[q])init=q; }catch(_){}
   showSystem(init);
   renderStatus(store.status());
   if(!meta.synced){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='ネットにつながっていないため、まだ読み込めていません。<br>つながると自動で表示します。'; }

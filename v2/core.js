@@ -39,6 +39,10 @@
     if (ms === ts) return m;
     if (ms === bs) return t;
     if (ts === bs) return m;
+    if (depth > 0 && Array.isArray(m) && Array.isArray(t) && Array.isArray(b) && m.length === t.length && b.length === m.length) {
+      // 同じ長さの並び（客数の表など）は、マスごとに合成する
+      return m.map(function (x, i) { var v = merge3(b[i], x, t[i], mineWins, depth - 1, path + '[' + i + ']', lost); return v === undefined ? null : v; });
+    }
     if (depth > 0 && isObj(m) && isObj(t)) {
       var bb = isObj(b) ? b : {}, out = {}, seen = {};
       Object.keys(t).concat(Object.keys(m)).forEach(function (k) {
@@ -75,7 +79,7 @@
     try { b = (op.base && !op.base.del) ? JSON.parse(op.base.d) : undefined; m = JSON.parse(op.next); t = JSON.parse(remote.d); }
     catch (e) { return { noop: true, lost: { kind: 'unreadable', mine: op.next } }; }
     var lost = [], mineWins = (op.t || 0) > (remote.ct || 0);
-    var out = S(merge3(b, m, t, mineWins, 6, '', lost));
+    var out = S(merge3(b, m, t, mineWins, 9, '', lost));
     var L = lost.length ? { kind: 'field', items: lost } : null;
     if (out === remote.d) return { noop: true, lost: L };
     return { write: out, lost: L };
@@ -268,7 +272,7 @@
     return c.ready;
   };
 
-  function Coll(store, name, spec) { this.store = store; this.name = name; this.spec = spec; this.recs = {}; this.synced = false; this.subs = []; this._view = null; this._state = null; this.idxSeq = -1; }
+  function Coll(store, name, spec) { this.store = store; this.name = name; this.spec = spec; this.recs = {}; this.synced = false; this.subs = []; this._view = null; this._state = null; this.idxSeq = -1; this.local = {}; }
   Coll.prototype.onChange = function (cb) { var s = this.subs; s.push(cb); return function () { var i = s.indexOf(cb); if (i >= 0) s.splice(i, 1); }; };
   Coll.prototype._changed = function (remote) { this._view = null; this._state = null; var self = this; this.store.kv.set('c:' + this.name, { recs: this.recs, synced: this.synced }).catch(function (e) { console.warn('v2 cache save', e); }); this.subs.forEach(function (cb) { try { cb(!!remote); } catch (e) { console.error(e); } }); };
   // いま見えている中身（ネットから受け取った分＋まだ送っていない自分の変更）。記録の名前 → 文字列
@@ -279,10 +283,10 @@
     this.store.outbox.forEach(function (op) { if (op.coll !== self.name) return; if (op.next === null) delete v[op.rec]; else v[op.rec] = op.next; });
     return (this._view = v);
   };
-  Coll.prototype.getState = function () { if (!this._state) this._state = S(this.spec.join(this.view())); return JSON.parse(this._state); };
+  Coll.prototype.getState = function () { if (!this._state) this._state = S(this.spec.join(this.view(), this)); return JSON.parse(this._state); };
   Coll.prototype.pending = function () { var n = this.name; return this.store.outbox.filter(function (o) { return o.coll === n; }).length; };
   // 画面からの「全部を保存」。変わった記録だけを送る列に入れる
-  Coll.prototype.setState = function (state, why) { return this.setRecs(this.spec.split(state, this.view()), { deleteMissing: true, why: why || 'edit' }); };
+  Coll.prototype.setState = function (state, why) { return this.setRecs(this.spec.split(state, this.view(), this), { deleteMissing: true, why: why || 'edit' }); };
   // map＝記録の名前 → 文字列（null は消す）。deleteMissing＝map に無い記録を消す
   Coll.prototype.setRecs = function (map, o) {
     o = o || {}; var self = this, st = this.store, view = this.view(), now = Date.now(), n = 0;

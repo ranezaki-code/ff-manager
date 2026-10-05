@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新しいシステム：FF管理を2台で同時に使う試験</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.6}
+h1{font-size:18px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;font-size:13px}
+th{background:#f8fafc;text-align:left;padding:6px 10px} td{padding:6px 10px;border-top:1px solid #e2e8f0;vertical-align:top}
+.ok{color:#16a34a;font-weight:700} .ng{color:#dc2626;font-weight:700} #sum{font-size:16px;font-weight:800;margin:10px 0}
+.frames{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0} .frames div{font-size:12px;color:#64748b}
+iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+</style>
+</head>
+<body>
+<h1>🧪 FF管理を2台で同時に使う試験（新しい画面そのものを2つ並べて動かす）</h1>
+<div class="sub">下の2つは、新しい FF管理の画面そのものです（端末A・端末B のつもり）。ネットにつながない試験用の保存先を2台で共有し、片方ずつ「ネットが切れた・古い状態のまま」にして操作します。本物のデータにも Firebase にもさわりません。</div>
+<div id="sum">試験中…（1〜2分）</div>
+<div class="frames"><div>端末A<iframe id="fa"></iframe></div><div>端末B<iframe id="fb"></iframe></div></div>
+<table><thead><tr><th style="width:50px">番号</th><th>確かめたこと</th><th style="width:70px">結果</th><th>くわしく</th></tr></thead><tbody id="rows"></tbody></table>
+<script src="core.js"></script>
+<script src="ffspec.js"></script>
+<script>
+(async function(){
+  const $=id=>document.getElementById(id), J=JSON.stringify, sleep=ms=>new Promise(r=>setTimeout(r,ms)), R=[];
+  function check(no,what,ok,detail){ R.push({no,what,ok:!!ok,detail:detail||''}); const tr=document.createElement('tr'); tr.innerHTML=`<td>${no}</td><td>${what}</td><td class="${ok?'ok':'ng'}">${ok?'○ 合格':'× 不合格'}</td><td>${String(detail||'').replace(/</g,'&lt;')}</td>`; $('rows').appendChild(tr); }
+  const P=(id,name,x)=>Object.assign({id,name,category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:25,minCount:1,tags:'',order:+id.slice(1),enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},x||{});
+  const cust=()=>Array.from({length:7},(_,d)=>Array.from({length:24},(_,h)=>h>=6&&h<22?30+d+h:2));
+  const wkObj=ws=>({ji:{p1:{teika:40,nebiki:3,haiki:2},p2:{teika:20,nebiki:1,haiki:1},p3:{teika:10,nebiki:0,haiki:0}},cust:cust(),checks:{},skipped:{},orderChecks:{},soldOuts:{},leftovers:{},weekStart:ws});
+  const weeks={'2026.9.22':wkObj('2026-09-22'),'2026.9.29':wkObj('2026-09-29'),'2026.10.6':wkObj('2026-10-06')}, act='2026.10.6', w=weeks[act];
+  const st={storeName:'試験の店',chainName:'',PM:[P('p1','商品1'),P('p2','商品2'),P('p3','商品3')],catOn:{'ホットFF':true,'ホットFF新商品':true,'常温FF':true,'常温FF新商品':false,'中華まん':true,'中華まん新商品':false,'まちかど厨房':true,'まちかど厨房新商品':false},
+    catCfg:{'ホットFF':{ah:6,slots:[6,10,14,17]},'ホットFF新商品':{ah:6,slots:[6,10,14,17]},'常温FF':{ah:10,slots:[10]},'常温FF新商品':{ah:10,slots:[10]},'中華まん':{ah:10,slots:[6,10]},'中華まん新商品':{ah:10,slots:[6,10]},'まちかど厨房':{ah:8,slots:[8,12,15]},'まちかど厨房新商品':{ah:8,slots:[8,12,15]}},
+    ji:JSON.parse(J(w.ji)),prevJi:{},cust:JSON.parse(J(w.cust)),ext:Array.from({length:7},()=>({weather:'晴れ',temp:20,event:'',correction:0})),rules:[],checks:{},skipped:{},orderChecks:{},soldOuts:{},leftovers:{},
+    budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{},investDays:{}},discHist:[],discountSchedule:{},施策:[],gaibu:{},booklets:{},bookletDisplayMonths:[],weekStart:w.weekStart,weeks,activeWeek:act};
+  const stores=[{id:'t1',name:'試験の店',createdAt:1}];
+  const load=(f,url)=>new Promise(res=>{ f.onload=()=>res(f.contentWindow); f.src=url; });
+  try{
+    const cloud=new V2.MemoryCloud();
+    const mk=async(fid,name,seed)=>{ const be=cloud.device(); const store=new V2.Store({backend:be,space:'T',device:name,kv:new V2.MemKV(),snapshot:false}); const win=await load($(fid),'ff/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; await win.__v2go(Object.assign({store,stores,current:'t1'},seed||{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); return {be,store,win,name,ev:s=>win.eval(s)}; };
+    const A=await mk('fa','端末A',{states:{t1:J(st)},setup:{t1:true}});
+    const B=await mk('fb','端末B');
+    const sync=async()=>{ for(let i=0;i<3;i++){ for(const d of [A,B]){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(1300); };   // 最後の待ちは、画面が受け取って描き直すまで
+    const nz=s=>J(V2.SPECS.ff.normalize(JSON.parse(s)));
+    const same=()=>nz(A.ev('JSON.stringify(S)'))===nz(B.ev('JSON.stringify(S)'));
+    const off=()=>{ A.be.setOnline(false); B.be.setOnline(false); }, on=()=>{ A.be.setOnline(true); B.be.setOnline(true); };
+    const prod=(d,id)=>JSON.parse(d.ev(`JSON.stringify(S.PM.find(p=>p.id===${J(id)})||null)`));
+    const setP=(d,id,k,v)=>d.ev(`(()=>{ const p=S.PM.find(p=>p.id===${J(id)}); p[${J(k)}]=${J(v)}; saveS(); })()`);
+    await sync();
+    check('0','はじめ：B に A と同じデータが届いている',same()&&B.ev('S.PM.length')===3,'商品 '+B.ev('S.PM.length')+'・週 '+B.ev('Object.keys(S.weeks).length'));
+
+    off(); setP(A,'p1','cost',130); setP(B,'p2','cost',90); on(); await sync();
+    check('1','別の商品を2台が同時に変えた → 両方残る',prod(A,'p1').cost===130&&prod(A,'p2').cost===90&&same(),`商品1の原価 ${prod(B,'p1').cost}・商品2の原価 ${prod(B,'p2').cost}`);
+    off(); setP(A,'p1','shopPrice',260); setP(B,'p1','disc',33); on(); await sync();
+    check('2','同じ商品の別の欄を同時に変えた → 両方残る',prod(A,'p1').shopPrice===260&&prod(A,'p1').disc===33&&same(),`売価 ${prod(B,'p1').shopPrice}・値引額 ${prod(B,'p1').disc}`);
+    off(); setP(A,'p3','cost',111); await sleep(30); setP(B,'p3','cost',222); B.be.setOnline(true); await B.store.settle(); A.be.setOnline(true); await sync();
+    const ch=await A.win.__v2.colls.t1.changes(1); const le=ch.find(x=>x.lost&&x.id==='p:p3'); const h=le?await A.win.__v2.colls.t1.historyOf(le.id,le.h||le.rev):null;
+    check('3','同じ欄を同時に変えた → あとから入力したほうが残り、負けた入力は履歴に残る',prod(A,'p3').cost===222&&prod(B,'p3').cost===222&&!!h&&/111/.test(J(h))&&same(),`原価 ${prod(A,'p3').cost}・履歴 ${h?'あり':'なし'}`);
+
+    off(); A.win.setJi('p1','teika',55); B.win.setJi('p2','haiki',9); on(); await sync();
+    check('4','実績入力の別のマスを同時に入れた → 両方残る',A.ev('S.ji.p1.teika')===55&&A.ev('S.ji.p2.haiki')===9&&B.ev('S.ji.p1.teika')===55&&same(),`A:${A.ev('S.ji.p1.teika')}/${A.ev('S.ji.p2.haiki')} B:${B.ev('S.ji.p1.teika')}/${B.ev('S.ji.p2.haiki')}`);
+    off(); A.win.setCust?0:0; A.ev('S.cust[0][8]=77; saveS()'); B.ev('S.cust[3][12]=88; saveS()'); on(); await sync();
+    check('5','客数の表の別のマスを同時に入れた → 両方残る',A.ev('S.cust[0][8]')===77&&A.ev('S.cust[3][12]')===88&&B.ev('S.cust[0][8]')===77&&same(),`${B.ev('S.cust[0][8]')}・${B.ev('S.cust[3][12]')}`);
+    off(); A.win.setCheck('0_6_p1',true); B.win.setCheck('1_10_p2',true); on(); await sync();
+    check('6','作成表のチェックを同時に付けた → 両方残る',A.ev('!!S.checks["0_6_p1"]&&!!S.checks["1_10_p2"]')&&B.ev('!!S.checks["0_6_p1"]&&!!S.checks["1_10_p2"]')&&same(),J(B.ev('Object.keys(S.checks)')));
+    const inv=(d,pid,dd,hh,n)=>d.ev(`(()=>{ const w=S.weeks[S.activeWeek]; if(!w.invest)w.invest={}; if(!w.invest[${J(pid)}])w.invest[${J(pid)}]={}; if(!w.invest[${J(pid)}][${dd}])w.invest[${J(pid)}][${dd}]={}; w.invest[${J(pid)}][${dd}][${hh}]=${n}; saveS(); })()`);
+    off(); inv(A,'p1',0,10,5); inv(B,'p2',1,14,2); on(); await sync();
+    check('7','今週の投資の別のマスを同時に入れた → 両方残る',A.win.getInvestExtra('p1',0,10)===5&&A.win.getInvestExtra('p2',1,14)===2&&B.win.getInvestExtra('p1',0,10)===5&&B.win.getInvestExtra('p2',1,14)===2&&same(),`A:${A.win.getInvestExtra('p1',0,10)}/${A.win.getInvestExtra('p2',1,14)} B:${B.win.getInvestExtra('p1',0,10)}/${B.win.getInvestExtra('p2',1,14)}`);
+    const so=(d,key,n)=>d.ev(`(()=>{ if(!S.soldOuts[${J(key)}])S.soldOuts[${J(key)}]=[]; S.soldOuts[${J(key)}].push({readyAt:12,soldAt:12,added:${n},v:2}); saveS(); })()`);
+    off(); so(A,'0_6_p1',3); so(B,'2_14_p2',4); on(); await sync();
+    check('8','完売の記録を別のマスに同時に付けた → 両方残る',A.win.getSoldOutTotal('p1',0,6)===3&&A.win.getSoldOutTotal('p2',2,14)===4&&B.win.getSoldOutTotal('p1',0,6)===3&&same(),`${B.win.getSoldOutTotal('p1',0,6)}・${B.win.getSoldOutTotal('p2',2,14)}`);
+
+    // 週：開いている週は端末ごと
+    A.win.switchWeek('2026.9.29'); await sync();
+    check('9','A が週を切り替えても、B の開いている週は変わらない（端末ごと）',A.ev('S.activeWeek')==='2026.9.29'&&B.ev('S.activeWeek')==='2026.10.6',`A:${A.ev('S.activeWeek')} B:${B.ev('S.activeWeek')}`);
+    A.win.setJi('p1','teika',71); await sync(); B.win.switchWeek('2026.9.29'); await sync();
+    check('10','A が別の週に入れた実績は、B がその週を開くと見える。B が開いていた週の実績は変わらない',B.ev('S.ji.p1.teika')===71&&B.ev('S.weeks["2026.10.6"].ji.p1.teika')===55,`9/29週 ${B.ev('S.ji.p1.teika')}・10/6週 ${B.ev('S.weeks["2026.10.6"].ji.p1.teika')}`);
+    A.win.switchWeek('2026.10.6'); B.win.switchWeek('2026.10.6'); await sync();
+    B.be.setOnline(false); A.win.addWeek('2026-10-13'); await sync(); B.win.setJi('p3','teika',31); B.be.setOnline(true); await sync();
+    check('11','A が週を足し、古い状態の B が別の所を入れた → 新しい週も B の入力も残る',A.ev('"2026.10.13" in S.weeks')&&B.ev('"2026.10.13" in S.weeks')&&A.ev('S.weeks["2026.10.6"].ji.p3.teika')===31&&B.ev('S.activeWeek')==='2026.10.6',J(B.ev('sortWeekKeys(Object.keys(S.weeks))')));
+    A.win.switchWeek('2026.10.6'); await sync(); B.be.setOnline(false);
+    A.ev('deleteConfirmKey="2026.9.22"; deleteWeek("2026.9.22")'); await sync(); B.win.setJi('p2','teika',23); B.be.setOnline(true); await sync();
+    check('12','A が週を消し、古い状態の B が保存した → 消した週は戻らない。B の入力は残る',!A.ev('"2026.9.22" in S.weeks')&&!B.ev('"2026.9.22" in S.weeks')&&A.ev('S.ji.p2.teika')===23,J(B.ev('sortWeekKeys(Object.keys(S.weeks))')));
+
+    // 商品
+    B.be.setOnline(false); A.win.addProduct(); const nid=A.ev('S.PM[0].id'); setP(A,nid,'name','Aが足した商品'); await sync(); setP(B,'p2','disc',44); B.be.setOnline(true); await sync();
+    check('13','A が商品を足し、古い状態の B が別の商品を変えた → 両方残る',!!prod(B,nid)&&prod(B,nid).name==='Aが足した商品'&&prod(A,'p2').disc===44&&same(),'商品 '+B.ev('S.PM.length')+' 個');
+    B.be.setOnline(false); A.win.delProduct('p3'); await sync(); setP(B,'p3','cost',999); setP(B,'p1','tags','揚げ物'); B.be.setOnline(true); await sync();
+    check('14','A が商品を消し、古い状態の B がその商品を変えた → 消したまま。B のほかの入力は残る',!prod(A,'p3')&&!prod(B,'p3')&&prod(A,'p1').tags==='揚げ物',J(B.ev('S.PM.map(p=>p.name)')));
+
+    // 店長の報告：「商品設定で入力した情報が、勝手にすぐリセットされて消える」
+    B.be.setOnline(false);                                        // B＝古い状態のまま止まっている端末
+    setP(A,'p1','name','からあげ（新しい名前）'); setP(A,'p1','cost',141); setP(A,'p1','batchUnit',2); setP(A,'p2','noStockout',true); await sync();
+    const staleRaw=B.ev('JSON.stringify(_ffSaveObj())');
+    B.ev('saveS()'); B.win.setJi('p2','nebiki',6);              // 古い端末が「全部を保存」し、さらに別の所を入力
+    B.be.setOnline(true); await sync();
+    const a=prod(A,'p1'), b=prod(B,'p1');
+    check('15','【店長の報告の形】A が商品設定を入力 → 古い状態の B が後から保存 → A の入力は1つも消えない',a.name==='からあげ（新しい名前）'&&a.cost===141&&a.batchUnit===2&&prod(A,'p2').noStockout===true&&b.name==='からあげ（新しい名前）'&&b.cost===141&&A.ev('S.ji.p2.nebiki')===6&&same(),`A:${a.name}/${a.cost}/${a.batchUnit}　B:${b.name}/${b.cost}/${b.batchUnit}`);
+    // もっと悪い形：B の画面の中身を、わざと古い中身に戻してから保存させる（古い版の端末が丸ごと送るのと同じ形）
+    B.be.setOnline(false); setP(A,'p1','shopPrice',298); await sync();
+    B.ev(`Object.assign(S,JSON.parse(${J(staleRaw)})); saveS()`); B.be.setOnline(true); await sync();
+    const ch2=await A.win.__v2.colls.t1.changes(1); const eb=ch2.find(x=>x.id==='p:p1'&&/端末B/.test(x.by)); const hb=eb?await A.win.__v2.colls.t1.historyOf(eb.id,eb.rev):null;
+    check('16','B が、画面の中身を古い中身に書き戻して保存した → B が知らなかった A の新しい入力（売価）は消えない。B が書き戻した分は「B の変更」として履歴に残り、戻せる',prod(A,'p1').shopPrice===298&&prod(B,'p1').shopPrice===298&&!!hb&&/からあげ（新しい名前）/.test(J(hb)),`売価 ${prod(A,'p1').shopPrice}・履歴に前の名前 ${hb?'あり':'なし'}`);
+    check('17','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+  }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
+  const ng=R.filter(r=>!r.ok).length;
+  $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
+  window.__results={total:R.length,ng,rows:R};
+})();
+</script>
+</body>
+</html>

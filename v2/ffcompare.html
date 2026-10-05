@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新しいシステム：答え合わせ（FF管理）</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.6}
+h1{font-size:18px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;font-size:13px}
+th{background:#f8fafc;text-align:left;padding:6px 10px;white-space:nowrap} td{padding:6px 10px;border-top:1px solid #e2e8f0;vertical-align:top}
+.ok{color:#16a34a;font-weight:700} .ng{color:#dc2626;font-weight:700} #sum{font-size:16px;font-weight:800;margin:10px 0}
+.frames{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0} .frames div{font-size:12px;color:#64748b}
+iframe{width:100%;height:560px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+button,select{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer} button.pri{background:#2563eb;color:#fff;border:none;font-weight:700}
+small{color:#64748b}
+</style>
+</head>
+<body>
+<h1>🧮 答え合わせ：いまの FF管理 と 新しい FF管理</h1>
+<div class="sub">同じデータを両方に入れ、①持っているデータ ②計算の答え（全商品×全曜日×全時間帯）③画面の中身（全部のタブ・印刷・3つの言葉）を、週ごとに機械で比べます。<br>
+この確認用のパソコン（localhost）の中だけで動きます。本物のデータにも Firebase にもさわりません。下の左右の画面は、終わった後に目で見比べるのにも使えます。</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="pri" id="go-sample">見本のデータで比べる</button><button class="pri" id="go-file">ファイルのデータで比べる</button><input type="file" id="file" accept=".json" style="display:none"><span id="src" class="sub" style="margin:0"></span></div>
+<div id="sum"></div>
+<div class="frames"><div>いまの FF管理（手を付けていない元の画面）<iframe id="fo"></iframe></div><div>新しい FF管理<iframe id="fn"></iframe></div></div>
+<table><thead><tr><th>店舗・週</th><th>①データ</th><th>②計算</th><th>③画面</th><th>ちがった所（先頭だけ）</th></tr></thead><tbody id="rows"></tbody></table>
+<script>
+(function(){
+  const $=id=>document.getElementById(id), sleep=ms=>new Promise(r=>setTimeout(r,ms)), J=JSON.stringify;
+  if(!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){ $('sum').innerHTML='<span class="ng">この答え合わせは、確認用のパソコン（localhost）でだけ動かします。</span>'; $('go-sample').disabled=$('go-file').disabled=true; return; }
+  const LS=window.localStorage;
+
+  // ---------- 見本のデータ（境目の値を入れた作り物） ----------
+  function sample(){
+    let seed=12345; const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }, ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+    const P=(id,name,category,x)=>Object.assign({id,name,category,cost:100,stdPrice:200,shopPrice:200,disc:25,minCount:1,tags:'',order:0,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},x||{});
+    const PM=[P('p1','からあげクン レギュラー','ホットFF',{cost:118,shopPrice:248,stdPrice:238,disc:30,tags:'ワンハンド,揚げ物',order:1}),
+      P('p2','Lチキ','ホットFF',{cost:105,shopPrice:220,disc:27,tags:'揚げ物',order:2,batchUnit:2,noStockout:true}),
+      P('p3','売価0の商品','ホットFF',{cost:50,shopPrice:0,order:3}),P('p4','原価が売価より高い','ホットFF',{cost:300,shopPrice:200,order:4,minSlots:{6:false,17:false}}),
+      P('p5','まとめ3個','常温FF',{cost:60,shopPrice:150,disc:15,batchUnit:3,order:5,isInvest:true}),P('p6','肉まん','中華まん',{cost:70,shopPrice:160,disc:18,tags:'まん',order:6}),
+      P('p7','オフの商品','ホットFF',{enabled:false,order:7}),P('p8','新商品チキン','ホットFF新商品',{cost:120,shopPrice:260,disc:30,order:8,isNew:true}),
+      P('p9','からあげ弁当','まちかど厨房',{cost:280,shopPrice:598,disc:70,order:9,mkType:'弁当',mkContainer:'仕切り付き弁当容器',mkIngredients:[{n:'からあげ',m:['fry'],use:'1'},{n:'キャベツ',m:['wash'],use:'1/2'},{n:'ソース',m:['post'],use:'tekiryo'}]}),
+      P('p10','実績なしの商品','常温FF',{cost:80,shopPrice:180,order:10})];
+    const cust=()=>Array.from({length:7},(_,d)=>Array.from({length:24},(_,h)=>(h<5?ri(0,3):h<9?ri(8,30):h<14?ri(20,60):h<20?ri(25,70):ri(5,25))+(d===4||d===5?10:0)));
+    const wk=['2026.8.25','2026.9.1','2026.9.8','2026.9.15','2026.9.22','2026.9.29','2026.10.6'], weeks={};
+    wk.forEach((k,i)=>{ const ji={}; PM.forEach(p=>{ if(p.id==='p10')return; ji[p.id]={teika:p.id==='p4'?0:ri(0,90),nebiki:ri(0,12),haiki:p.id==='p6'&&i===2?40:ri(0,9)}; }); if(i===1)ji.p1={teika:0,nebiki:0,haiki:25};
+      const so={},lo={}; if(i>=2){ so['4_10_p1']=[{readyAt:12.5,soldAt:12.5,added:3,v:2,noticedAt:12,lead:30,made:8,base:8}]; so['0_6_p2']=[{readyAt:8,soldAt:8,added:2}]; lo['2_14_p1']=true; lo['2_14_p6']=true; } if(i>=4){ so['4_14_p1']=[{readyAt:16,soldAt:16,added:2}]; }
+      const [y,m,d]=k.split('.'); weeks[k]={ji,cust:cust(),checks:i===6?{'0_6_p1':true,'0_6_p2_b1':true}:{},skipped:i===6?{'1_10_p1':true}:{},orderChecks:i===6?{'p1_0':true}:{},soldOuts:so,leftovers:lo,weekStart:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}; });
+    weeks['2026.10.6'].invest={p1:{0:{10:2,14:1},4:{17:3}},p5:{2:{10:3}}};
+    const act='2026.10.6', w=weeks[act];
+    const st={storeName:'見本の店',chainName:'',PM,catOn:{'ホットFF':true,'ホットFF新商品':true,'常温FF':true,'常温FF新商品':false,'中華まん':true,'中華まん新商品':false,'まちかど厨房':true,'まちかど厨房新商品':false},
+      catCfg:{'ホットFF':{ah:6,slots:[6,10,14,17]},'ホットFF新商品':{ah:6,slots:[6,10,14,17]},'常温FF':{ah:10,slots:[10]},'常温FF新商品':{ah:10,slots:[10]},'中華まん':{ah:10,slots:[6,10]},'中華まん新商品':{ah:10,slots:[6,10]},'まちかど厨房':{ah:8,slots:[8,12,15]},'まちかど厨房新商品':{ah:8,slots:[8,12,15]}},
+      ji:JSON.parse(J(w.ji)),prevJi:{},cust:JSON.parse(J(w.cust)),ext:Array.from({length:7},(_,i)=>({weather:i===2?'雨':'晴れ',temp:i===3?4:21,event:i===4?'花火':'',correction:i===4?10:0})),
+      rules:[{condition:'週末',tags:'揚げ物',correction:8},{condition:'毎日',tags:'まん',correction:-5}],checks:JSON.parse(J(w.checks)),skipped:JSON.parse(J(w.skipped)),orderChecks:JSON.parse(J(w.orderChecks)),soldOuts:JSON.parse(J(w.soldOuts)),leftovers:JSON.parse(J(w.leftovers)),
+      hourRate:{'ホットFF':{'2026-09-30':Array.from({length:24},(_,h)=>h>=6&&h<22?+(1+rnd()*4).toFixed(1):null),'2026-10-01':Array.from({length:24},(_,h)=>h>=6&&h<22?+(1+rnd()*4).toFixed(1):null)}},deleted:{weeks:{'2026.8.18':1},PM:{}},
+      budget:{target:300000,wasteTarget:20000,newProductBudgets:{},investBudgets:{},newProductCounts:{p8:5},investCounts:{p5:7},investDays:{p5:[0,2,4]}},discHist:[],discountSchedule:{'ホットFF':[true,true,false,true,true,true,true]},
+      施策:[{id:'sch_1',name:'からあげ祭',days:'weekend',impact:5}],gaibu:{'2026.10.6':{src:null,wx:[],ev:[],sug:{0:{'ホットFF':{10:10}}},val:{0:{'ホットFF':{10:10,14:-20}},4:{'中華まん':{6:150}}},why:{}}},
+      booklets:{},bookletDisplayMonths:[],weekStart:w.weekStart,weeks,activeWeek:act};
+    const empty={storeName:'空の店',chainName:'',PM:[],catOn:st.catOn,catCfg:st.catCfg,ji:{},prevJi:{},cust:Array.from({length:7},()=>new Array(24).fill(0)),ext:st.ext,rules:[],checks:{},skipped:{},orderChecks:{},soldOuts:{},leftovers:{},budget:{target:0,wasteTarget:0,newProductBudgets:{},investBudgets:{},newProductCounts:{},investCounts:{},investDays:{}},discHist:[],discountSchedule:{},施策:[],gaibu:{},booklets:{},bookletDisplayMonths:[],weekStart:'2026-12-29',weeks:{'2026.12.29':{ji:{},cust:Array.from({length:7},()=>new Array(24).fill(0)),checks:{},skipped:{},weekStart:'2026-12-29'},'2027.1.5':{ji:{},cust:Array.from({length:7},()=>new Array(24).fill(0)),checks:{},skipped:{},weekStart:'2027-01-05'}},activeWeek:'2026.12.29'};
+    return {stores:[{id:'cmpA',name:'見本の店',createdAt:1},{id:'cmpB',name:'空の店（年またぎ）',createdAt:2}],states:{cmpA:J(st),cmpB:J(empty)},setup:{cmpA:true,cmpB:true}};
+  }
+  function fromFile(obj){
+    const d=(obj&&obj.data&&typeof obj.data==='object')?obj.data:(obj&&obj.localStorage)||(obj&&obj.keys)||obj;
+    let stores=[]; try{ stores=JSON.parse(d.global_stores||d.ffv6_stores||'[]'); }catch(_){}
+    const states={},setup={}; stores.forEach(s=>{ if(typeof d['ffv6_store_'+s.id]==='string')states[s.id]=d['ffv6_store_'+s.id]; if(d['ffv6_setup_'+s.id])setup[s.id]=true; });
+    return {stores:stores.filter(s=>s.id in states),states,setup};
+  }
+
+  // ---------- それぞれの画面の中で動かす「読み取り」 ----------
+  const PROBE=`(function(){ const out=[]; const add=(k,v)=>out.push([k,JSON.stringify(v===undefined?'(なし)':v)]); const safe=(k,f)=>{ try{ add(k,f()); }catch(e){ add(k,'ERR '+e.message); } };
+    const prods=S.PM||[];
+    prods.forEach(p=>{ const pid=p.id;
+      safe('週の目標/'+pid,()=>getWeekTargetBase(pid)); safe('撤退客数/'+pid,()=>getWithdraw(pid)); safe('4週平均/'+pid,()=>getRecentAvgTeika(pid,4)); safe('実績/'+pid,()=>calcJissekiMetrics(pid)); safe('全週実績/'+pid,()=>getJiAllWeeks(pid));
+      safe('今週の投資の数/'+pid,()=>getInvestWeekCnt(pid)); safe('投資の提案/'+pid,()=>suggestInvestPerDay(pid)); safe('値入率/'+pid,()=>calcMarkupRate(p)); safe('まとめ単位/'+pid,()=>getBatchUnit(p)); safe('投資マス/'+pid,()=>investGridOf(pid));
+      const cfg=S.catCfg[p.category]; const slots=(cfg&&cfg.slots)||[];
+      for(let d=0;d<7;d++){ safe('補正後目標/'+pid+'/'+d,()=>getCorrTarget(pid,d)); slots.forEach(h=>{ const k=pid+'/'+d+'/'+h;
+        safe('作成数/'+k,()=>getProdCntDetail(pid,d,h)); safe('作成数計/'+k,()=>getProdCnt(pid,d,h)); safe('投資/'+k,()=>getInvestExtra(pid,d,h)); safe('学習/'+k,()=>getLearnInfo(pid,d,h)); safe('完売追加/'+k,()=>getSoldOutTotal(pid,d,h));
+        safe('追加作成の提案/'+k,()=>{ const r=calcSoldOutSuggestion(pid,d,h,h+1.5,30); if(r&&r.p)r.p=r.p.id; if(r)delete r.ms; return r; }); }); } });
+    Object.keys(S.catCfg||{}).forEach(c=>{ safe('週客数/'+c,()=>getCatWeekTotal(c)); ((S.catCfg[c]||{}).slots||[]).forEach(h=>{ safe('係数/'+c+'/'+h,()=>getSlotCoef(c,h)); safe('売る時間/'+c+'/'+h,()=>getCatSlotRange(c,h)); safe('値引時刻/'+c+'/'+h,()=>getMarkdownTime(c,h)); for(let d=0;d<7;d++)safe('天気調整/'+c+'/'+d+'/'+h,()=>gaibuFactor(c,d,h)); }); });
+    safe('予算の計画',()=>calcPlanBreakdown().map(r=>({p:r.p.id,hasJi:r.hasJi,hr:r.hr,nr:r.nr,perDay:r.perDay,sum:r.sum,main:r.main,group:r.group})));
+    ['all','ホットFF','常温FF','中華まん','まちかど厨房'].forEach(c=>safe('実績合計/'+c,()=>calcSummary(c)));
+    safe('発注チェック',()=>getOrderCheckProgress()); safe('ルール提案',()=>calcRuleSuggestions()); safe('週の並び',()=>sortWeekKeys(Object.keys(S.weeks||{})));
+    safe('追加作成の計算の芯',()=>[soCalcCore({m0:6,b:1,B:1,Q:8,T1:2,T2:3,N1:60,N2:90,margin:.5}),soCalcCore({m0:2,b:.5,B:2,Q:4,T1:1,T2:2,N1:30,N2:40,margin:.3})]);
+    return out; })()`;
+  const DOM=full=>`(function(){ const out=[]; const add=(k,v)=>out.push([k,String(v)]); const safe=(k,f)=>{ try{ add(k,f()); }catch(e){ add(k,'ERR '+e.message); } };
+    const panel=n=>{ const p=document.querySelectorAll('.tab-panel')[n]; return p?p.innerHTML:'(なし)'; };
+    doPrint=function(h){ window.__print=h; };
+    safe('①実績入力',()=>{ showTab(0); switchJisubTab('input'); return panel(0); }); safe('①ランキング',()=>{ switchJisubTab('rank'); const h=panel(0); switchJisubTab('input'); return h; });
+    ${full?`safe('②商品設定',()=>{ showTab(1); return panel(1); }); safe('③天気イベント',()=>{ showTab(2); return panel(2); });`:''}
+    for(let d=0;d<7;d++)safe('④作成表 '+d,()=>{ showTab(3); selectProdDay(d); return panel(3); });
+    ['actual','plan','grid','invest'].forEach(k=>safe('⑤予算 '+k,()=>{ showTab(4); switchBudSub(k); return panel(4); }));
+    safe('⑥発注',()=>{ showTab(5); return panel(5); });
+    ${full?`safe('印刷 作成表',()=>{ window.__print=''; printMakePlan(); return window.__print; }); safe('印刷 事前準備',()=>{ window.__print=''; printMachikadoPrep(); return window.__print; }); safe('印刷 前日解凍',()=>{ window.__print=''; printThawPrep(); return window.__print; });`:''}
+    safe('タブの名前',()=>document.querySelector('.tab-btn').parentNode.innerHTML);
+    showTab(0); return out; })()`;
+
+  const fo=$('fo'), fn=$('fn');
+  const load=(f,url)=>new Promise(res=>{ f.onload=()=>res(f.contentWindow); f.src=url; });
+  let total=0, bad=0;
+  function cmpList(a,b,diffs,tag){ let n=0; const mb=new Map(b); a.forEach(([k,v])=>{ n++; const w=mb.get(k); if(w!==v){ let i=0; while(i<v.length&&w&&v[i]===w[i])i++; diffs.push(tag+' '+k+'：いま「'+String(v).slice(Math.max(0,i-20),i+40)+'」／新「'+String(w===undefined?'(なし)':w).slice(Math.max(0,i-20),i+40)+'」'); } }); if(a.length!==b.length){ n++; diffs.push(tag+' 数がちがう '+a.length+' / '+b.length); } return n; }
+  function row(name,r){ total+=r.n1+r.n2+r.n3; if(r.diffs.length)bad++; const c=(n,t)=>{ const d=r.diffs.filter(x=>x.indexOf(t)===0).length; return `<td class="${d?'ng':'ok'}">${d?'× '+d+'か所':'○'} <small>${n}か所</small></td>`; };
+    const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td>${c(r.n1,'①')}${c(r.n2,'②')}${c(r.n3,'③')}<td>${r.diffs.slice(0,6).map(x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;')).join('<br>')}${r.diffs.length>6?'<br>…ほか '+(r.diffs.length-6)+' か所':''}</td>`; $('rows').appendChild(tr); window.__diffs=(window.__diffs||[]).concat(r.diffs.map(x=>name+'｜'+x)); }
+  function one(wo,wn,full){ const diffs=[]; let n1=0,n2=0,n3=0;
+    // 「開いている週」の2か所持ち（S.ji など と S.weeks[週]）は、いまの画面でも次の保存で同じ形にそろう。そろえた形で比べる
+    const nz=s=>J(wn.V2.SPECS.ff.normalize(JSON.parse(s)));
+    n1++; const so=nz(wo.eval('JSON.stringify(S)')), sn=nz(wn.eval('JSON.stringify(S)')); if(so!==sn){ let i=0; while(i<so.length&&so[i]===sn[i])i++; diffs.push('① 画面が持っているデータ：いま「'+so.slice(Math.max(0,i-30),i+40)+'」／新「'+sn.slice(Math.max(0,i-30),i+40)+'」'); }
+    n2=cmpList(wo.eval(PROBE),wn.eval(PROBE),diffs,'②'); n3=cmpList(wo.eval(DOM(full)),wn.eval(DOM(full)),diffs,'③'); return {n1,n2,n3,diffs}; }
+
+  async function run(data,label){
+    $('go-sample').disabled=$('go-file').disabled=true; $('rows').innerHTML=''; total=0; bad=0; window.__diffs=[]; window.__results=null; $('src').textContent=label; $('sum').textContent='比べています…（店舗と週の数だけ時間がかかります）';
+    const t0=Date.now(), touched={}; const put=(k,v)=>{ if(!(k in touched))touched[k]=LS.getItem(k); if(v===null)LS.removeItem(k); else LS.setItem(k,v); };
+    const lang0=LS.getItem('ffv6_lang');
+    try{
+      for(const s of data.stores){
+        put('global_stores',J(data.stores)); put('ffv6_stores',J(data.stores.map(x=>({id:x.id,name:x.name})))); put('current_store_id',s.id); put('ffv6_current',s.id); put('ffv6_lang','ja');
+        ['ffv6_gist_token','ffv6_gist_id'].forEach(k=>put(k,null));
+        data.stores.forEach(x=>{ put('ffv6_store_'+x.id,data.states[x.id]); put('ffv6_setup_'+x.id,data.setup[x.id]?'1':null); });
+        const open=async()=>{
+          const [a,b]=await Promise.all([load(fo,'../ff/index.html?embedded=1&cmp='+Date.now()),load(fn,'ff/index.html?embedded=1&mem=1&wait=1&cmp='+Date.now())]);
+          [a,b].forEach(w=>{ w.alert=()=>{}; w.confirm=()=>true; w.print=()=>{}; w.open=()=>null; });
+          await b.__v2go({stores:data.stores,current:s.id,states:data.states,setup:data.setup});
+          for(let i=0;i<200&&!(b.__v2ready&&a.eval('typeof currentStoreId!=="undefined"&&!!currentStoreId&&document.querySelectorAll(".tab-panel").length>0'));i++)await sleep(50);
+          await sleep(300); return [a,b];
+        };
+        let [wo,wn]=await open();
+        const newRaw=()=>wn.eval(`localStorage.getItem(${J('ffv6_store_'+s.id)})`);
+        // ① の前に：分けて組み立て直した文字が、元の文字（開いている週の2か所持ちを1本にした形）と同じか
+        const sp=wn.V2.SPECS.ff, src=data.states[s.id], norm=J(sp.normalize(JSON.parse(src))), back=newRaw();
+        const exact=back===src, same=back===norm;
+        const weeks=wo.eval('sortWeekKeys(Object.keys(S.weeks||{}))'), act=wo.eval('S.activeWeek');
+        let r=one(wo,wn,true); r.n1++; if(!same){ let i=0; while(i<norm.length&&norm[i]===back[i])i++; r.diffs.unshift('① 分けて組み立て直した文字：元「'+norm.slice(Math.max(0,i-30),i+40)+'」／新「'+String(back).slice(Math.max(0,i-30),i+40)+'」'); }
+        row(`${s.name}・${act}週（開いていた週）${exact?'':same?' <small>※元の文字とは「開いている週の2か所持ち」の分だけ違う</small>':''}`,r);
+        for(const k of weeks){ if(k===act)continue; wo.eval(`switchWeek(${J(k)})`); wn.eval(`switchWeek(${J(k)})`); await sleep(120); row(`${s.name}・${k}週`,one(wo,wn,false)); }
+        if(weeks.length>1){ wo.eval(`switchWeek(${J(act)})`); wn.eval(`switchWeek(${J(act)})`); await sleep(120); const r2=one(wo,wn,false); r2.n1++; const a=LS.getItem('ffv6_store_'+s.id), b=newRaw(); if(a!==b){ let i=0; while(i<a.length&&a[i]===b[i])i++; r2.diffs.push('① 週を行き来して保存した後の文字：いま「'+a.slice(Math.max(0,i-30),i+40)+'」／新「'+b.slice(Math.max(0,i-30),i+40)+'」'); } row(`${s.name}・${act}週に戻った後（保存の中身も比べる）`,r2); }
+        for(const lang of ['en','ne']){ put('ffv6_lang',lang); [wo,wn]=await open(); const r3={n1:0,n2:0,n3:0,diffs:[]}; r3.n3=cmpList(wo.eval(DOM(true)),wn.eval(DOM(true)),r3.diffs,'③'); row(`${s.name}・言葉 ${lang==='en'?'英語':'ネパール語'}（全部のタブと印刷）`,r3); }
+        put('ffv6_lang','ja');
+      }
+      $('sum').innerHTML=(bad?`<span class="ng">× ちがう所がありました（${window.__diffs.length} か所）</span>`:`<span class="ok">○ ちがい 0</span>`)+`　${data.stores.length} 店舗・${$('rows').children.length} 通り・${total.toLocaleString()} か所を比べました（${Math.round((Date.now()-t0)/1000)}秒）`;
+    }catch(e){ $('sum').innerHTML='<span class="ng">途中で止まりました</span> '+String(e&&e.stack||e).replace(/</g,'&lt;'); bad=-1; }
+    finally{
+      Object.keys(touched).forEach(k=>{ if(touched[k]===null)LS.removeItem(k); else LS.setItem(k,touched[k]); });
+      if(lang0===null)LS.removeItem('ffv6_lang'); else LS.setItem('ffv6_lang',lang0);
+      Object.keys(LS).forEach(k=>{ const m=/^ffv6_(snap|emergency|autobackup)_(?:.*_)?(\d{13})$/.exec(k); if(m&&+m[2]>=t0)LS.removeItem(k); });   // この答え合わせの間に、いまの画面が作った自動の控えを片づける
+      $('go-sample').disabled=$('go-file').disabled=false;
+    }
+    window.__results={total,badRows:bad,diffs:window.__diffs.length,rows:$('rows').children.length};
+  }
+  $('go-sample').addEventListener('click',()=>run(sample(),'見本のデータ'));
+  $('go-file').addEventListener('click',()=>$('file').click());
+  $('file').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f)return; try{ run(fromFile(JSON.parse((await f.text()).replace(/^﻿/,''))),'ファイル：'+f.name); }catch(err){ $('sum').textContent='ファイルを読めませんでした：'+err.message; } e.target.value=''; });
+  window.__runUrl=async url=>run(fromFile(await (await fetch(url,{cache:'no-store'})).json()),'ファイル（FF管理の項目だけ）');
+})();
+</script>
+</body>
+</html>
