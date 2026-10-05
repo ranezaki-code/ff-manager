@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI経営チーム 組織図</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f6efe2; --grid:#ecdfc9; --card:#fffaf0; --ink:#4a3a2a; --sub:#9a8a74; --line:#e3d3b8; --edge:#d9c4a0;
+  --chip:#f3e9d6; --work:#2f9e5b; --work-bg:#e9f7e6; --warn:#c2620a; --bar:#efe3cd;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:"DotGothic16","MS Gothic","Yu Gothic UI",monospace;font-size:14px;line-height:1.5;
+  background-color:var(--bg);background-image:radial-gradient(var(--grid) 1.5px,transparent 1.5px);background-size:16px 16px}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+h1{font-size:18px;margin:0;flex:1;min-width:200px;font-weight:400}
+h1 .chip{vertical-align:middle;margin-left:4px}
+.live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub)}
+.dot{width:10px;height:10px;background:var(--sub)}
+.live.on .dot{background:var(--work);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.hide{display:none!important}
+.chip{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--chip);white-space:nowrap}
+.chip.lv{color:var(--c)}
+.chip.gray{background:var(--chip);color:var(--sub)}
+.chip.store{background:#8a6a45;color:#fffaf0}
+.chip.new{background:#f6c8b8;color:#a23a17}
+.chip.ask{background:#e2ecff;color:#1d4ed8}
+.chip.due{background:#f3e9d6;color:#7a6850}
+.chip.due.late{background:#f6c8b8;color:#a23a17}
+.chip.due.today{background:#fbe7b0;color:#9a6a00}
+.empty{color:var(--sub);padding:14px 0;text-align:center}
+
+/* タブ */
+.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:4px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:10px 16px;border:2px solid var(--line);border-bottom:0;background:var(--chip);color:var(--sub);border-radius:6px 6px 0 0;cursor:pointer;display:flex;align-items:center;gap:6px;margin-bottom:-4px}
+.tabs button.on{background:var(--card);color:var(--ink);border-color:var(--edge);border-bottom:4px solid var(--card)}
+
+/* オフィス */
+.today{background:var(--card);border:2px solid var(--line);border-radius:4px;padding:8px 12px;margin:0 0 12px;font-size:13px;display:flex;gap:6px 18px;flex-wrap:wrap}
+.today b{font-weight:400;color:var(--work);margin-right:8px}
+.today span{color:var(--sub)}
+.offwrap{overflow-x:auto;border:4px solid #3d4248;border-radius:6px;box-shadow:4px 4px 0 #b9bdc3;background:#f4f4f2}
+.office{position:relative;width:100%;min-width:620px;aspect-ratio:2/1;overflow:hidden}
+.office>svg.bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.fx{position:absolute;transform:translate(-50%,0)}
+.counter{width:27%;height:10%;background:#f1f2f3;border:2px solid #3d4248;border-radius:4px;box-shadow:0 5px 0 #3d4248,0 9px 0 rgba(30,34,40,.13)}
+.counter::before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:#3a3f45}
+.counter .reg{position:absolute;left:44%;bottom:62%;width:11%;height:70%;background:#3a3f45;border:2px solid #22262a;border-radius:2px}
+.counter .reg i{position:absolute;left:14%;right:14%;top:12%;height:40%;background:#6f7a83;display:block}
+.counter.on .reg i{background:#9af0c0;animation:glow .9s steps(2) infinite}
+.counter .hot{position:absolute;left:6%;bottom:62%;width:26%;height:95%;background:rgba(245,246,247,.9);border:2px solid #3d4248;border-radius:3px}
+.counter .hot::before{content:"";position:absolute;left:10%;right:10%;top:22%;height:16%;background:#8d9299;box-shadow:0 180% 0 #b9bdc3,0 360% 0 #6f757d}
+.counter .cof{position:absolute;right:7%;bottom:62%;width:12%;height:85%;background:#4b5057;border:2px solid #22262a;border-radius:2px}
+.counter .cof::after{content:"";position:absolute;left:28%;top:18%;width:44%;height:22%;background:#c9ccd1}
+.desk{width:11%;height:8.5%;background:linear-gradient(#eceded 0 38%,#c9ccd1 38%);border:2px solid #3d4248;border-radius:4px;box-shadow:0 4px 0 #3d4248,0 8px 0 rgba(30,34,40,.13)}
+.desk::after{content:"";position:absolute;left:48%;top:10%;width:36%;height:20%;background:#fbfbfa;border:1px solid #3d4248;border-radius:1px}
+.desk[data-desk="owner"] .mon{background:#aeb6bf;animation:glow 1.6s steps(2) infinite}
+.ch .say.kata{border:0;background:transparent;box-shadow:none;font-size:10px;padding:0;color:#8d9299;letter-spacing:1px}
+.desk::before{content:"";position:absolute;right:8%;bottom:14%;width:16%;height:30%;background:var(--c);border:1px solid #3d4248;border-radius:1px}
+.desk .mon{position:absolute;left:10%;bottom:66%;width:28%;height:86%;background:#3a3f45;border:2px solid #22262a;border-radius:2px}
+.desk .mon::after{content:"";position:absolute;left:38%;top:100%;width:24%;height:22%;background:#22262a}
+.desk.on .mon{background:var(--c);animation:glow .9s steps(2) infinite}
+@keyframes glow{50%{filter:brightness(1.35)}}
+.plate{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:7px;font-size:11px;color:#7d848c;white-space:nowrap}
+.ch{position:absolute;width:clamp(40px,6.8%,72px);transform:translate(-50%,-100%);transition-property:left,top;transition-timing-function:linear;transition-duration:0s}
+.ch::before{content:"";position:absolute;left:14%;right:14%;bottom:-3%;height:10%;background:rgba(60,45,25,.22);border-radius:50%}
+.ch svg{position:relative;display:block;width:100%;height:auto}
+.ch.flip svg{transform:scaleX(-1)}
+.ch.walk svg{animation:step .36s steps(2) infinite}
+.ch.flip.walk svg{animation:stepf .36s steps(2) infinite}
+.ch.work svg{animation:typing 1.1s steps(2) infinite}
+.ch.train svg{animation:step .5s steps(2) infinite}
+.ch.flip.train svg{animation:stepf .5s steps(2) infinite}
+@keyframes step{50%{transform:translateY(-2px)}}
+@keyframes stepf{0%,100%{transform:scaleX(-1)}50%{transform:scaleX(-1) translateY(-2px)}}
+@keyframes typing{50%{transform:translateY(-1px)}}
+.eye{animation:wink 5s steps(1) infinite}
+@keyframes wink{0%,95%{opacity:1}96%,100%{opacity:0}}
+.ch .tag{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:1px;font-size:11px;line-height:1.25;white-space:nowrap;background:rgba(255,253,248,.92);padding:0 5px;border-radius:8px;color:var(--c);border:1px solid var(--c)}
+.ch .say{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:6px;font-size:11px;line-height:1.35;background:#fff;border:2px solid var(--c);border-radius:8px;padding:2px 8px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;color:var(--ink);box-shadow:0 2px 0 rgba(60,45,25,.15)}
+.ch .say:empty{display:none}
+.ch .say.lv1{margin-bottom:28px}
+.ch .say.lv2{margin-bottom:50px}
+.ch .say.lv1::after,.ch .say.lv2::after{content:"";position:absolute;left:50%;top:100%;width:0;border-left:2px dotted var(--c)}
+.ch .say.lv1::after{height:22px}
+.ch .say.lv2::after{height:44px}
+.ch .say.lv1,.ch .say.lv2{overflow:visible}
+.ch.busy svg{animation:typing .7s steps(2) infinite}
+.ch .say.emo{border:0;background:transparent;box-shadow:none;font-size:16px;padding:0;font-family:"Segoe UI Emoji","Apple Color Emoji",sans-serif}
+.paper{position:absolute;transform:translate(-50%,-100%);font-size:clamp(14px,2.2vw,22px);transition:left 1.2s ease-in-out,top 1.2s ease-in-out;z-index:200;font-family:"Segoe UI Emoji",sans-serif}
+.pop{position:absolute;transform:translate(-50%,-100%);font-size:12px;color:var(--work);background:var(--work-bg);border:2px solid var(--work);border-radius:8px;padding:1px 8px;white-space:nowrap;z-index:210;animation:rise 2.6s ease-out forwards}
+@keyframes rise{0%{opacity:0;margin-top:0}15%{opacity:1}80%{opacity:1}100%{opacity:0;margin-top:-28px}}
+
+/* メンバー一覧（1行ずつ） */
+.roster{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:8px}
+.rrow{display:flex;align-items:center;gap:10px;background:var(--card);border:2px solid var(--line);border-left:8px solid var(--c);border-radius:4px;padding:6px 10px}
+.rrow.working{border-color:var(--c);background:var(--work-bg)}
+.roster{align-items:start}
+.rrow{cursor:pointer}
+.rrow.sel{box-shadow:0 0 0 3px var(--c)}
+.ch[data-ch]{cursor:pointer}
+#rdetail{margin-top:10px;min-height:44px}
+.rtip{font-size:12px;color:var(--sub);padding:10px 12px;border:2px dashed var(--line);border-radius:4px}
+.rdesc{background:var(--card);border:2px solid var(--c);border-radius:4px;font-size:13px;line-height:1.7}
+.rdh{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:2px solid var(--line)}
+.rdb{padding:10px 14px 12px}
+.rdesc ul{margin:2px 0 0;padding-left:18px}
+.rmk{font-size:11px;color:var(--sub);margin-top:8px}
+.rclose{margin-left:auto;font:inherit;font-size:12px;border:0;background:var(--chip);color:var(--sub);border-radius:4px;padding:5px 10px;cursor:pointer}
+.flow{background:var(--card);border:2px solid var(--line);border-radius:4px;padding:12px 14px;font-size:13px;line-height:1.7}
+.fchain{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px}
+.fnode{border:2px solid var(--edge);border-radius:6px;padding:4px 10px;background:#fff;text-align:center;line-height:1.3}
+.fnode b{display:block;font-weight:400;font-size:14px}
+.fnode span{font-size:11px;color:var(--sub)}
+.farrow{color:var(--sub)}
+.flow ol{margin:4px 0 0;padding-left:22px}
+.flow h3{font-size:13px;font-weight:400;color:var(--sub);margin:10px 0 2px}
+.rbot{width:30px;flex:none}
+.rbot svg{display:block;width:100%;height:auto}
+.rmain{flex:1;min-width:0}
+.rline{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nick{font-size:16px;color:var(--c)}
+.rrole{font-size:12px;color:var(--sub)}
+.rsub{font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrow.working .rsub{color:var(--ink)}
+.xp{display:flex;gap:2px;margin-left:auto}
+.xp i{width:8px;height:8px;background:var(--bar);display:block}
+.xp i.on{background:var(--c)}
+.rst{font-size:12px;color:var(--sub);flex:none;text-align:right}
+.rrow.working .rst{color:var(--work)}
+.stale{color:var(--warn);font-size:11px}
+
+/* たたむ欄 */
+/* 絞り込み・列をそろえた一覧（やること・提出物） */
+.fbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fpill{font:inherit;font-size:14px;padding:8px 14px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;cursor:pointer}
+.fpill span{font-size:12px;color:var(--sub);margin-left:2px}
+.fpill.on{background:var(--sc,#4a3a2a);border-color:var(--sc,#4a3a2a);color:#fff}
+.fpill.on span{color:#fff}
+.schip{display:inline-block;font-size:11px;line-height:1.5;padding:0 6px;border-radius:4px;color:#fff;background:var(--sc);white-space:nowrap;min-width:38px;text-align:center}
+.lsec{display:flex;align-items:center;gap:8px;font-size:16px;margin:18px 0 8px}
+.lsec .cnt{font-size:12px;color:var(--sub)}
+.lno{display:inline-flex;width:24px;height:24px;border-radius:50%;background:#8a6a45;color:#fff;align-items:center;justify-content:center;font-size:13px;flex:none}
+.lbox{background:var(--card);border:2px solid var(--line);border-radius:4px;box-shadow:4px 4px 0 var(--edge);padding:0 12px}
+.lrow{display:grid;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px;color:inherit;text-decoration:none}
+.lbox>.lrow:last-child{border-bottom:0}
+.trow2{grid-template-columns:28px 92px 46px minmax(0,1fr) 52px}
+.frow2{grid-template-columns:40px 56px 46px minmax(0,1fr) 40px 44px}
+.lhead{font-size:11px;color:var(--sub);padding:6px 0;border-bottom:2px solid var(--line)}
+.c-date{color:var(--sub)}
+.c-who{font-size:12px;color:var(--c);border:2px solid var(--c);border-radius:4px;text-align:center;line-height:1.5;white-space:nowrap;overflow:hidden}
+.c-title{min-width:0;overflow-wrap:anywhere}
+.c-kind{font-size:12px;color:var(--sub);white-space:nowrap}
+.c-due{font-size:12px;padding:1px 6px;border-radius:4px;background:#f3e9d6;color:#7a6850;text-align:center;white-space:nowrap}
+.c-due.late{background:#f6c8b8;color:#a23a17}
+.c-due.today{background:#fbe7b0;color:#9a6a00}
+.c-due.none{background:transparent;color:var(--sub)}
+.tlink{font:inherit;font-size:14px;text-align:left;background:none;border:0;padding:0;color:inherit;cursor:pointer}
+.tlink i{font-style:normal;font-size:10px;color:var(--sub)}
+.trow2.done .tlink{color:var(--sub);text-decoration:line-through}
+.trow2.done .tkb{background:var(--work-bg);border-color:var(--work)}
+.trow2.open{border-bottom:0}
+.tmore{margin:0 0 8px 38px;padding:8px 12px;background:#fff;border:1px dashed var(--line);border-radius:4px;font-size:13px;line-height:1.7;color:var(--ink)}
+.tmore a{color:#2f6fb5}
+.frow2:hover .c-title{text-decoration:underline}
+.frow2:not(.unread) .c-title{color:var(--sub)}
+/* 組織の流れ */
+.fstages{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px}
+.fstage{flex:1 1 150px;border:2px solid var(--line);border-radius:6px;background:#fff;padding:8px}
+.fst{display:flex;align-items:center;gap:6px;font-size:14px;margin-bottom:6px}
+.fwho{display:grid;grid-template-columns:22px auto;column-gap:6px;align-items:center;padding:3px 0;font-size:12px;line-height:1.3}
+.fwho .fbot{grid-row:span 2;width:22px}
+.fwho .fbot svg{display:block;width:100%;height:auto}
+.fwho b{font-weight:400;font-size:14px;color:var(--c)}
+.fwho span:last-child{color:var(--sub)}
+.farr{align-self:center;color:var(--sub);font-size:12px}
+.fweek{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px;margin-top:12px}
+.fweek div{background:var(--chip);border-radius:6px;padding:6px 10px;font-size:12px;line-height:1.5}
+.fweek b{display:block;font-weight:400;font-size:13px;color:var(--work)}
+.fnote{margin-top:10px;font-size:12px;color:var(--sub);line-height:1.8}
+@media (max-width:600px){ .trow2{grid-template-columns:28px 76px 42px minmax(0,1fr)} .trow2 .c-kind{display:none} .frow2{grid-template-columns:36px 50px 42px minmax(0,1fr) 40px} .frow2 .c-kind{display:none} .farr{display:none} }
+/* 入れる場所 */
+.ib-top{font-size:13px;color:var(--sub);margin-bottom:12px;line-height:1.7}
+.ib-msg{color:#a23a17;margin-top:4px}
+.igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px;align-items:start}
+.ibox{background:var(--card);border:2px solid var(--line);border-top:8px solid var(--c);border-radius:4px;box-shadow:4px 4px 0 var(--edge);padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px}
+.ib-what{font-size:17px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ib-when{font-size:11px;color:var(--sub);background:var(--chip);border-radius:4px;padding:1px 8px;margin-left:auto;white-space:nowrap}
+.ib-ex{font-size:12px;color:var(--sub);line-height:1.5}
+.ib-where,.ib-then{font-size:13px;line-height:1.6;padding-top:6px;border-top:1px dashed var(--line)}
+.ib-where b{font-weight:400;font-size:15px;color:var(--ink);display:block}
+.ib-lbl{display:block;font-size:11px;color:var(--sub)}
+.ib-sub{display:block;font-size:12px;color:var(--sub)}
+.ib-then .fbot{display:inline-block;width:20px;vertical-align:middle;margin-right:6px}
+.ib-then .fbot svg{display:block;width:100%;height:auto}
+.ib-foot{display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px}
+.ib-foot .ib-sub{display:inline}
+.ib-ok{color:var(--work)}
+.ib-none{color:#a23a17;background:#f6c8b8;border-radius:4px;padding:1px 8px}
+.ib-open{margin-left:auto;font:inherit;font-size:13px;padding:8px 12px;border:2px solid var(--edge);background:#fff;color:var(--ink);border-radius:6px;cursor:pointer}
+.fold{margin-top:16px}
+.fold>summary{cursor:pointer;font-size:14px;padding:10px 12px;background:var(--card);border:2px solid var(--line);border-radius:4px;list-style:none;display:flex;align-items:center;gap:8px}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::before{content:"▶";font-size:11px;color:var(--sub)}
+.fold[open]>summary::before{content:"▼"}
+.fold[open]>summary{margin-bottom:10px}
+.log{background:var(--card);border:2px solid var(--line);border-radius:4px;box-shadow:4px 4px 0 var(--edge);padding:4px 12px;max-height:320px;overflow:auto}
+.li{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.li:last-child{border-bottom:0}
+.li time{color:var(--sub);flex:none;width:44px}
+.li>div{min-width:0;overflow-wrap:anywhere}
+
+/* 店舗ごとの箱（やること・提出物） */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px;align-items:start}
+.sbox{background:var(--card);border:2px solid var(--line);border-top:8px solid var(--sc);border-radius:4px;box-shadow:4px 4px 0 var(--edge);padding:4px 12px 6px}
+.shd{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:2px solid var(--line);font-size:15px}
+.shd .cnt{margin-left:auto;font-size:12px;color:var(--sub)}
+.tk{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.tk:last-child{border-bottom:0}
+.tkb{flex:none;width:28px;height:28px;border:2px solid var(--edge);background:#fff;border-radius:4px;cursor:pointer;font:inherit;font-size:16px;line-height:1;color:var(--work);padding:0}
+.tk.done .tkb{background:var(--work-bg);border-color:var(--work)}
+.tk.done .tkt{color:var(--sub);text-decoration:line-through}
+.tkm{flex:1;min-width:0;overflow-wrap:anywhere}
+.tkd{font-size:12px;color:var(--sub);margin-top:2px}
+.tkd a{color:inherit}
+.tkmore{width:100%;padding:8px;border:0;background:transparent;color:var(--sub);font:inherit;font-size:12px;cursor:pointer;text-align:left}
+.frow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;color:inherit;text-decoration:none}
+.frow:last-of-type{border-bottom:0}
+.frow:hover .ftitle{text-decoration:underline}
+.frow time{color:var(--sub);flex:none;width:36px}
+.ftitle{flex:1;min-width:0;overflow-wrap:anywhere}
+.frow:not(.unread) .ftitle{color:var(--sub)}
+.who{font-size:11px;padding:1px 6px;border-radius:4px;border:2px solid var(--c);color:var(--c);white-space:nowrap;flex:none}
+@media (max-width:600px){ .tabs button{padding:9px 10px;font-size:14px} .desk .plate{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AI経営チーム <span id="stores"></span></h1>
+    <div class="live" id="live"><span class="dot"></span><span id="live-txt">接続待ち</span></div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button data-tab="office">🏢 オフィス</button>
+    <button data-tab="tasks">📌 やること <span id="tk-cnt"></span></button>
+    <button data-tab="files">📄 提出物 <span id="files-cnt"></span></button>
+    <button data-tab="inbox">📥 入れる場所</button>
+  </nav>
+
+  <section id="tab-office">
+    <div class="today" id="week"></div>
+    <div class="offwrap"><div class="office" id="office"></div></div>
+    <div class="roster" id="roster"></div>
+    <div id="rdetail"></div>
+    <details class="fold" id="fold-flow"><summary>この組織の流れ</summary>
+      <div class="flow" id="flow"></div>
+    </details>
+    <details class="fold" id="fold-log"><summary>やりとりの記録</summary><div class="log" id="log"></div></details>
+  </section>
+
+  <section id="tab-tasks" class="hide">
+    <div id="tasks"></div>
+  </section>
+
+  <section id="tab-inbox" class="hide">
+    <div id="inbox"></div>
+  </section>
+
+  <section id="tab-files" class="hide">
+    <div id="files"></div>
+  </section>
+</div>
+<script>document.write('<script src="share.js?t='+Date.now()+'"><\/script>')</script><!-- ほかの端末でオフィスを見るための部品（送る側・見る側） -->
+<script>
+var TEAM = window.__AI_TEAM || null, STATE = null;
+var XP_PER_TASK = 20, XP_PER_LV = 200;
+// 店舗の並びと色（やること・提出物を店舗ごとに分ける）
+var STORES = [
+  { key: '新村', name: '松本新村店', color: '#2f7fd8' },
+  { key: '大町', name: '信濃大町駅前店', color: '#0f9aa8' },
+  { key: '共通', name: '2店舗共通・本部', color: '#8a6a45' }
+];
+function storeKey(s){ s = String(s || ''); return s.indexOf('新村') >= 0 && s.indexOf('大町') < 0 ? '新村' : (s.indexOf('大町') >= 0 && s.indexOf('新村') < 0 ? '大町' : '共通'); }
+
+function loadScript(src, cb){
+  // 公開ページ（見る側）では、このパソコンのファイルは読まない。名簿と状態は share.js がネットから受け取る
+  if (window.__VIEWER){ cb && cb(src === 'state.js' || src === 'team.js'); return; }
+  var s = document.createElement('script');
+  s.src = src + '?t=' + Date.now();
+  s.onload = function(){ s.remove(); cb && cb(true); };
+  s.onerror = function(){ s.remove(); cb && cb(false); };
+  document.head.appendChild(s);
+}
+function esc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function hm(t){ var d = new Date(t); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+function dur(ms){
+  var s = Math.max(0, Math.floor(ms/1000)), m = Math.floor(s/60), h = Math.floor(m/60);
+  if (h) return h+'時間'+(m%60)+'分';
+  if (m) return m+'分'+(s%60)+'秒';
+  return s+'秒';
+}
+function cut(s, n){ s = String(s || ''); return s.length > n ? s.slice(0, n) + '…' : s; }
+
+// ドット絵キャラクター（12×12マス）。a＝本体色 b＝本体の影 w＝白 K＝目 k＝黒 y＝黄 p＝ピンク s＝肌
+var SPRITES = {
+  dog:     ['.aa......aa.','.aaa....aaa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.aKaaaaaaKa.','.aaaaaaaaaa.','.awwwkkwwwa.','.awwwwwwwwa.','..awwppwwa..','...aaaaaa...','..aaa..aaa..','..bb....bb..'],
+  owl:     ['.a........a.','.aa......aa.','.aaaaaaaaaa.','.awwaaaawwa.','.awKaaaaKwa.','.awwayyawwa.','.aaaayyaaaa.','.abaaaaaaba.','.abbaaaabba.','.abbaaaabba.','..aaaaaaaa..','...yy..yy...'],
+  penguin: ['....aaaa....','...aaaaaa...','..aaaaaaaa..','..awKaaKwa..','..awwyywwa..','.aawwwwwwaa.','.aawwwwwwaa.','.aawwwwwwaa.','..awwwwwwa..','..aawwwwaa..','...aaaaaa...','..yyy..yyy..'],
+  octopus: ['....aaaa....','..aaaaaaaa..','.aaaaaaaaaa.','.aaaaaaaaaa.','.awKaaaawKa.','.awKaaaawKa.','.aaaaaaaaaa.','.aaaabbaaaa.','.aaaaaaaaaa.','.aa.aa.aa.aa','.a..a..a..a.','a..a..a..a..'],
+  cat:     ['.a........a.','.aa......aa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.aKaaaaaaKa.','.aaaappaaaa.','.aawaaaawaa.','..aaaaaaaa..','..aaaaaaaa.a','..aaaaaaaa.a','..aaaaaaaaaa','..bb....bb..'],
+  tuxcat:  ['.a........a.','.aa......aa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.ayaaaaaaya.','.aaawwwwaaa.','.aawwppwwaa.','..awwwwwwa..','..aawwwwaa.a','..aawwwwaa.a','..aaawwaaaaa','..ww....ww..'],
+  rabbit:  ['..aa....aa..','..aa....aa..','..aa....aa..','..aaaaaaaa..','.aaaaaaaaaa.','.aKaaaaaaKa.','.aaaappaaaa.','.aawwwwwwaa.','..aaaaaaaa..','..aaaaaaaa..','..aaa..aaa..','..ww....ww..'],
+  frog:    ['.aa......aa.','awwa....awwa','awKa....aKwa','.aaaaaaaaaa.','aaaaaaaaaaaa','aaaaaaaaaaaa','akaaaaaaaaka','.akkkkkkkka.','..aaaaaaaa..','.aaaaaaaaaa.','.aa.aaaa.aa.','aaa......aaa'],
+  person:  ['...bbbbbb...','..bbbbbbbb..','..ssssssss..','..sKssssKs..','..ssssssss..','...ssppss...','.aaaawwaaaa.','.aaaawwaaaa.','.saaaaaaaas.','..aaaaaaaa..','..bb....bb..','..bb....bb..'],
+  ghost:   ['...aaaaaa...','..aaaaaaaa..','.aaaaaaaaaa.','.awKaaaawKa.','.awKaaaawKa.','.aaaaaaaaaa.','.aaaappaaaa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.aa.aa.aa.a.','.a..a..a....']
+};
+function botSvg(color, sprite, crown){
+  var c = esc(color || '#9ca3af'), rows = SPRITES[sprite] || SPRITES.ghost, out = '', edge = '', H = rows.length, W = 12, x, y, ch;
+  var pal = { w:'#ffffff', k:'#1a1a1a', K:'#1a1a1a', y:'#f5b301', p:'#f58ca8', s:'#f2c9a0' };
+  function at(x, y){ return (y < 0 || y >= H || x < 0 || x >= W) ? '.' : (rows[y].charAt(x) || '.'); }
+  function px(x, y, f, cls){ return '<rect x="'+x+'" y="'+(y+3)+'" width="1.03" height="1.03" fill="'+f+'"'+(cls ? ' class="'+cls+'"' : '')+'/>'; }
+  for (y = -1; y <= H; y++) for (x = -1; x <= W; x++){
+    ch = at(x, y);
+    if (ch === '.'){   // まわりに1マスのふちどり
+      if (at(x-1, y) !== '.' || at(x+1, y) !== '.' || at(x, y-1) !== '.' || at(x, y+1) !== '.') edge += px(x, y, '#3b2f2a');
+      continue;
+    }
+    if (ch === 'K') out += px(x, y, c);   // まばたきの時に下が透けないように
+    out += px(x, y, pal[ch] || c, ch === 'K' ? 'eye' : '');
+    if (ch === 'b') out += px(x, y, 'rgba(0,0,0,.3)');
+    else if (ch === 'a' || ch === 'w' || ch === 's'){   // 上は明るく、右と下は少し暗く（立体感）
+      if (at(x, y-1) === '.') out += px(x, y, 'rgba(255,255,255,.22)');
+      else if (at(x+1, y) === '.' || at(x, y+1) === '.') out += px(x, y, 'rgba(0,0,0,.14)');
+    }
+  }
+  if (crown) out += '<rect x="4" y="0" width="1" height="2" fill="#f5b301"/><rect x="5.5" y="0" width="1" height="2" fill="#f5b301"/><rect x="7" y="0" width="1" height="2" fill="#f5b301"/><rect x="4" y="1" width="4" height="1.5" fill="#f5b301"/>';
+  return '<svg viewBox="-1 0 14 16" shape-rendering="crispEdges" aria-hidden="true">'+edge+out+'</svg>';
+}
+// ツール名 → 何をしているかの言葉
+function toolWords(tool, hint){
+  if (!tool) return '';
+  var w;
+  if (/^(Read|NotebookRead)$/.test(tool)) w = '資料を読んでいます';
+  else if (/^(Grep|Glob)$/.test(tool)) w = '資料を探しています';
+  else if (/^(Write|Edit|NotebookEdit)$/.test(tool)) w = '書類を作成・修正しています';
+  else if (/^(WebSearch|WebFetch)$/.test(tool)) w = 'Webで調べています';
+  else if (/^(Bash|PowerShell)$/.test(tool)) w = '作業を実行しています';
+  else if (/^(Agent|Task|SendMessage)$/.test(tool)) return '部下に指示を出しています' + (hint ? '（' + memberName(hint) + '）' : '');
+  else if (/Browser|chrome|computer/i.test(tool)) w = '画面を確認しています';
+  else if (/calendar|event/i.test(tool)) w = 'カレンダーを確認しています';
+  else if (/^Skill$/.test(tool)) w = '手順書を確認しています';
+  else if (/^ToolSearch$/.test(tool)) return '道具を準備しています';
+  else w = '作業中';
+  return w + (hint ? '：' + hint : '');
+}
+function memberOf(id){
+  if (!TEAM) return null;
+  if (id === 'boss') return TEAM.boss;
+  if (id === 'owner') return TEAM.owner;
+  for (var i=0;i<TEAM.members.length;i++) if (TEAM.members[i].id === id) return TEAM.members[i];
+  return null;
+}
+function memberName(id){ var m = memberOf(id); return m ? (m.nick || m.name) : 'おたすけ'; }
+function memberByNick(n){ var all = [TEAM.boss].concat(TEAM.members); for (var i=0;i<all.length;i++) if (all[i].nick === n) return all[i]; return null; }
+function xpBlocks(cur){ var n = Math.floor(cur / (XP_PER_LV/10)), h = ''; for (var i=0;i<10;i++) h += '<i'+(i<n?' class="on"':'')+'></i>'; return h; }
+function storeTag(t){
+  if (!t) return '';
+  var a = /新村/.test(t), b = /大町/.test(t);
+  if ((a && b) || /2店舗/.test(t)) return '<span class="chip store">2店舗</span> ';
+  if (a) return '<span class="chip store">新村</span> ';
+  if (b) return '<span class="chip store">大町</span> ';
+  return '';
+}
+
+// ================= オフィス（モノトーン。休憩室・トレーニングルーム・売場・事務所・作業スペース） =================
+// 位置はすべて％（左上が 0,0。横は幅に対する％、縦は高さに対する％）。キャラクターは足元が基準。
+// 背景（床・壁・棚・机まわりなど）は SVG（横200×縦100の方眼）で描き、席とカウンターとキャラクターは上に重ねる。
+var OFFICE = { sig: '', chars: {}, prev: {}, lastPrompt: 0 };
+var Y_BACK = 28, Y_FRONT = 70, AISLES = [24, 62];
+// 待機中に立ち寄る場所（emo＝着いた時に出る小さな絵）
+var SPOTS = [
+  { x: 29, y: 26, emo: '', acts: ['ｼﾞｰ…', 'ﾋﾝﾔﾘ', '🥤 ﾄﾞﾚﾆｼﾖｳ'] }, { x: 41, y: 26, emo: '', acts: ['ｾｯｾ', '前出し ﾖｼ', 'ﾋﾟｯ ﾋﾟｯ'] },          // 冷蔵ケースの前
+  { x: 57, y: 26, emo: '', acts: ['ｾｯｾ ｾｯｾ', '📦 品出し', 'ｷﾚｲﾆ ﾅﾗﾍﾞﾙ'] }, { x: 70, y: 26, emo: '', acts: ['ﾌﾑﾌﾑ', '🏷 値札ﾖｼ', 'ｼﾞｰ…'] },          // 商品棚の前
+  { x: 6, y: 25, emo: '☕', acts: ['☕ ｺﾞｸｺﾞｸ', 'ﾌｩ…', 'ｱﾁｯ'] },                                     // 休憩室のコーヒーマシンの前
+  { x: 4, y: 43, emo: '', acts: ['💤 ｽﾔｽﾔ', '📖 ﾍﾟﾗ…', 'ﾎｯ'], chat: 6 }, { x: 16, y: 43, emo: '', acts: ['🍙 ﾓｸﾞﾓｸﾞ', '📱 ﾎﾟﾁﾎﾟﾁ', 'ﾉﾋﾞｰ'], chat: 5 },           // 休憩室の席
+  { x: 5, y: 69, emo: 'ﾀｯﾀｯ', train: true, acts: ['ﾀｯﾀｯﾀｯ', 'ﾊｧ ﾊｧ', '💦'] },                     // トレーニングルーム：ランニングマシン
+  { x: 14, y: 62, emo: 'ﾌﾝｯ', train: true, acts: ['ﾌﾝｯ', '💪 ﾓｳ1ｶｲ', 'ﾌﾟﾙﾌﾟﾙ'] },                     // 　〃　：ダンベルの前
+  { x: 16, y: 73, emo: 'ﾉﾋﾞｰ', train: true, acts: ['ﾉﾋﾞｰ', 'ｲﾀﾀ…', 'ｽｰ ﾊｰ'] },                    // 　〃　：ストレッチのマット
+  { x: 69, y: 66, emo: '', acts: ['ﾌｷﾌｷ', '🧹 ｻｯｻｯ', 'ﾋﾟｶﾋﾟｶ'] }, { x: 93, y: 68, emo: '', acts: ['ｲﾗｯｼｬｲﾏｾｰ', '👀 ｷｮﾛｷｮﾛ', '🌤 ｲｲ天気'] }           // 島の棚の前・入口のそば
+];
+// メンバーごとのくせ（待機中にときどき出る）
+var HABITS = { boss: ['👑 ﾖｼﾖｼ', '☕ ﾋﾄｲｷ', 'ﾐﾝﾅ ｹﾞﾝｷｶﾅ'], research: ['🔍 ｷｮﾛｷｮﾛ', '📰 ﾌﾑﾌﾑ', 'ﾒﾓﾒﾓ'], planner: ['🧮 ﾊﾟﾁﾊﾟﾁ', '1,2,3…', '📊 ﾌﾑ'], strategy: ['🤔 ｳｰﾝ', '💡 ﾋﾗﾒｲﾀ', '📝 ｶｷｶｷ'], pop: ['✏️ ｶｷｶｷ', '🎨 ﾇﾘﾇﾘ', '✂️ ﾁｮｷﾁｮｷ'], 'crew-info': ['📣 ｱｰ ｱｰ', '🔔 ﾁﾘﾝ', 'ﾚﾝｼｭｳ ﾚﾝｼｭｳ'], 'crew-care': ['🌱 ﾐｽﾞﾔﾘ', '🎵 ｹﾛｹﾛ', 'ﾆｺﾆｺ'], 'system-dev': ['🔧 ｶﾁｬｶﾁｬ', '⚙️ ｷﾘｷﾘ', 'ﾃﾝｹﾝ ﾖｼ'] };
+var CHAT = [['ﾍﾟﾁｬｸﾁｬ', 'ｳﾝｳﾝ'], ['ｿﾚﾃﾞﾈ…', 'ﾍｪｰ'], ['😄', 'ｱﾊﾊ'], ['ｷｮｳ ｲｿｶﾞｼｲ?', 'ﾎﾞﾁﾎﾞﾁ']];
+function seatOf(id){
+  if (id === 'owner') return { x: 89, y: 39 };
+  if (id === 'boss') return { x: 44, y: 44 };
+  var n = TEAM.members.length, i = -1;
+  TEAM.members.forEach(function(m, k){ if (m.id === id) i = k; });
+  if (i < 0) return null;
+  return { x: n === 1 ? 50 : 15 + i * (70 / (n - 1)), y: 88 };   // 席は横いっぱいに等間隔（人数が増えても重ならないように）
+}
+function sceneSvg(){
+  // モノトーンのオフィス：左上＝休憩室、中央奥＝売場、右上＝事務所（店長）、手前＝作業スペース。色はキャラクターだけに残す
+  var s = '', i, j, k, hh, x0, by, cols = ['#b9bdc3','#8d9299','#dcdee1','#6f757d','#eeeeec','#a7abb1','#c9ccd1','#7d848c'];
+  var INK = '#3d4248', O = ' stroke="'+INK+'" stroke-width="0.5"', o = ' stroke="'+INK+'" stroke-width="0.3"';
+  function r(x, y, w, h, f, extra){ return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"'+(extra||'')+'/>'; }
+  function sh(x, y, w, h){ return r(x, y, w, h, 'rgba(30,34,40,.13)'); }   // 床に落ちる影
+  function label(x, y, t){ return '<text x="'+x+'" y="'+y+'" font-size="2.5" fill="#8d9299" letter-spacing="0.3">'+t+'</text>'; }
+  function plant(cx, y){
+    return '<ellipse cx="'+cx+'" cy="'+(y+4.2)+'" rx="3" ry="0.8" fill="rgba(30,34,40,.13)"/>' + r(cx-2, y, 4, 4, '#8d9299', o) + r(cx-2, y, 4, 1, '#a7abb1') +
+      '<circle cx="'+cx+'" cy="'+(y-2.6)+'" r="3.3" fill="#7f9686"'+o+'/><circle cx="'+(cx-1.7)+'" cy="'+(y-1)+'" r="2" fill="#6c8373"/><circle cx="'+(cx+1)+'" cy="'+(y-3.6)+'" r="1.2" fill="#9db3a4"/>';
+  }
+  // 売場の床（グレーの市松タイル）と、天井の明かりの映りこみ
+  s += r(0, 0, 200, 100, '#f4f4f2');
+  for (i = 0; i < 20; i++) for (j = 0; j < 7; j++) if ((i + j) % 2) s += r(i*10, 14 + j*10, 10, 10, '#eaeae8');
+  [[72,29],[127,29],[60,70],[110,70],[160,70]].forEach(function(p){ s += '<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="10" ry="2.2" fill="#ffffff" opacity=".55"/>'; });
+  // 奥の壁
+  s += r(0, 0, 200, 14, '#fbfbfa') + r(0, 0, 200, 2.6, '#3a3f45') + r(0, 2.6, 200, 0.6, '#c9ccd1');
+  s += r(0, 12.4, 200, 1.6, '#d4d6da') + r(0, 14, 200, 0.4, INK) + r(0, 14.4, 200, 1.6, 'rgba(30,34,40,.08)');
+
+  // ── 左上：休憩室（コーヒー・丸テーブル） ──
+  s += r(0, 14.4, 40, 33.6, '#ebe9e5');
+  for (j = 1; j < 8; j++) s += r(0, 14.4 + j*4.2, 40, 0.3, '#dddad4');
+  s += r(40, 14, 2, 7, '#c4c7cc', O) + r(40, 35, 2, 14.5, '#c4c7cc', O) + r(0, 47.5, 42, 2, '#c4c7cc', O);
+  s += sh(3, 15, 34, 1.4) + r(3, 7, 34, 8, '#8d9299', O) + r(3, 7, 34, 1.6, '#a7abb1');
+  s += r(6, 2.6, 9, 9.4, '#3a3f45', O) + r(7.5, 4, 6, 2, '#6f757d') + r(8.7, 7.6, 3.6, 3, '#22262a') + r(9.5, 9.4, 2, 1.2, '#fbfbfa');
+  for (k = 0; k < 3; k++) s += r(19 + k*3.4, 8.2, 2.4, 3.4, '#fbfbfa', o) + r(19 + k*3.4, 8.2, 2.4, 0.8, '#6f757d');
+  s += r(30.5, 6.4, 4.6, 5.2, '#d4d6da', O) + r(31.6, 5.4, 2.4, 1, '#6f757d');
+  s += '<ellipse cx="20" cy="42" rx="6.5" ry="1.5" fill="rgba(30,34,40,.13)"/><circle cx="20" cy="36.5" r="5.6" fill="#dcdee1"'+O+'/><circle cx="18.4" cy="34.9" r="2.4" fill="#eeeeec"/>';
+  s += r(19, 35.6, 2.4, 2, '#fbfbfa', o);
+  s += '<circle cx="8" cy="39" r="2.5" fill="#6f757d"'+O+'/><circle cx="32" cy="39" r="2.5" fill="#6f757d"'+O+'/>';
+  s += label(2.5, 20, '休憩室');
+
+  // ── 中央奥：売場（冷蔵ケース・商品棚） ──
+  s += sh(46, 20, 54, 1.6) + r(46, 3.2, 54, 16.8, '#e9ecee', O) + r(46, 3.2, 54, 2, '#3a3f45') + r(46, 18.6, 54, 1.4, '#a7abb1');
+  for (i = 0; i < 4; i++){
+    x0 = 47 + i*13.25;
+    s += r(x0, 5.8, 12.25, 12.4, '#dfe5e9', o);
+    for (j = 0; j < 3; j++){
+      s += r(x0, 9.4 + j*4.1, 12.25, 0.4, '#a7abb1');
+      for (k = 0; k < 5; k++) s += r(x0 + 0.9 + k*2.2, 7 + j*4.1, 1.5, 2.4, cols[(i*3 + j*2 + k) % cols.length]) + r(x0 + 1.3 + k*2.2, 6.4 + j*4.1, 0.7, 0.6, '#fbfbfa');
+    }
+    s += '<polygon points="'+(x0+1)+',18.2 '+(x0+4)+',5.8 '+(x0+6)+',5.8 '+(x0+3)+',18.2" fill="#ffffff" opacity=".3"/>';
+    s += r(x0 + 11, 10.5, 0.5, 4, '#5a6068');
+  }
+  s += sh(104, 20, 50, 1.6) + r(104, 3.6, 50, 16.4, '#d4d6da', O) + r(104, 3.6, 50, 1.6, '#6f757d');
+  for (j = 0; j < 3; j++){
+    by = 9.4 + j*4.6;
+    for (i = 0; i < 15; i++){ hh = 2.2 + ((i*7 + j*3) % 3) * 0.5; s += r(105.2 + i*3.2, by - hh, 2.4, hh, cols[(i*2 + j*3) % cols.length]); }
+    s += r(104.4, by, 49.2, 0.8, '#fbfbfa', o);
+  }
+  // 島の棚（ゴンドラ）とエンド
+  s += sh(122, 61.5, 35, 1.6) + r(122, 51.5, 32, 10, '#d4d6da', O) + r(122, 51.5, 32, 1.6, '#e6e7e9');
+  for (i = 0; i < 10; i++) s += r(123.2 + i*3.05, 53.6, 2.3, 2.6, cols[(i + 2) % cols.length]) + r(123.2 + i*3.05, 57.2, 2.3, 2.6, cols[(i*3 + 1) % cols.length]);
+  s += r(122.4, 56.2, 31.2, 0.6, '#fbfbfa') + r(122.4, 59.8, 31.2, 0.6, '#fbfbfa');
+  s += r(154, 51.5, 3, 10, '#3a3f45', O) + r(154.6, 53, 1.8, 2, '#fbfbfa') + r(154.6, 56.4, 1.8, 2, '#a7abb1');
+  // 入口（右の壁の自動ドアとマット）・植木
+  // ── 左の中ほど：トレーニングルーム（待機中のメンバーが体を動かす。ゴムの床・ランニングマシン・ダンベル・マット） ──
+  s += r(0, 49.5, 42, 28.5, '#d6d8dc');
+  for (i = 0; i < 6; i++) for (j = 0; j < 4; j++) if ((i + j) % 2) s += r(i*7, 49.5 + j*7.1, 7, 7.1, '#cfd1d6');
+  s += r(42, 49.5, 2, 9, '#c4c7cc', O);
+  s += sh(18, 57.6, 21, 1.2) + r(18, 51, 21, 6.6, '#b9bdc3', O) + r(18, 53.9, 21, 0.4, INK);
+  for (k = 0; k < 4; k++) s += r(19.4 + k*5, 51.7, 1, 1.7, '#3a3f45') + r(20.4 + k*5, 52.2, 1.6, 0.7, '#8d9299') + r(22, 51.7, 0, 0, INK) + r(22 + k*5, 51.7, 1, 1.7, '#3a3f45')
+    + r(19.4 + k*5, 54.9, 1.2, 2.1, '#4b5057') + r(20.6 + k*5, 55.6, 1.3, 0.7, '#8d9299') + r(21.9 + k*5, 54.9, 1.2, 2.1, '#4b5057');
+  s += sh(3, 71.5, 15, 1.4) + r(3, 63, 15, 8.5, '#3a3f45', O) + r(4.2, 64.2, 12.6, 6.1, '#5a6068') + r(4.2, 66.9, 12.6, 0.3, '#3a3f45');
+  s += r(3, 57, 1.4, 6, '#8d9299', o) + r(16.6, 57, 1.4, 6, '#8d9299', o) + r(3, 55.4, 15, 2.4, '#4b5057', O) + r(8.5, 55.9, 4, 1.3, '#c9ccd1');
+  s += '<rect x="26" y="65.5" width="13" height="8" rx="1.2" fill="#a7abb1"'+o+'/>' + r(27.2, 66.6, 10.6, 0.4, '#8d9299') + r(27.2, 72, 10.6, 0.4, '#8d9299');
+  s += label(2.5, 53.6, 'トレーニング');
+  s += r(186, 53, 11, 20, '#5a6068');
+  for (k = 0; k < 4; k++) s += r(187.6 + k*2.3, 54.5, 0.8, 17, '#7d848c');
+  s += r(196.2, 51, 0.8, 24, '#8d9299') + r(197, 51, 3, 24, '#dfe5e9', O) + r(197, 62.8, 3, 0.4, INK);
+  s += plant(56, 62);
+
+  // ── 右上：事務所（店長がひっそり作業） ──
+  s += r(160, 14.4, 40, 33.6, '#e1e2e5');
+  for (j = 0; j < 8; j++) for (i = 0; i < 8; i++) if ((i + j) % 2) s += r(160 + i*5, 14.4 + j*4.2, 5, 4.2, '#dbdcdf');
+  s += r(158, 14, 2, 7, '#c4c7cc', O) + r(158, 35, 2, 14.5, '#c4c7cc', O) + r(158, 47.5, 42, 2, '#c4c7cc', O);
+  s += r(164, 4.8, 13, 7, '#fbfbfa', O) + r(165.2, 6, 6, 0.6, '#6f757d') + r(172.5, 6, 3.2, 0.6, '#a7abb1') + r(165.2, 7.5, 9, 0.6, '#8d9299') + r(165.2, 9, 7, 0.6, '#c4c7cc') + r(164, 11.8, 13, 0.8, '#b9bdc3', o);
+  s += r(182, 4.6, 13, 7.2, '#fbfbfa', O) + r(182.8, 5.4, 5.3, 5.6, '#d5dde3') + r(188.9, 5.4, 5.3, 5.6, '#d5dde3') + r(183.6, 7, 2.4, 0.9, '#ffffff') + r(190, 8.4, 3, 0.9, '#ffffff');
+  s += sh(190.5, 26.5, 8, 1.2) + r(190, 15, 8, 11.5, '#c4c7cc', O) + r(190, 18.7, 8, 0.3, INK) + r(190, 22.5, 8, 0.3, INK);
+  for (j = 0; j < 3; j++) s += r(193, 16.6 + j*3.8, 2, 0.5, '#6f757d');
+  s += plant(164.5, 41) + label(162, 20, '事務所');
+
+  // ── 手前：作業スペース（メンバーの席。カーペット敷き） ──
+  s += r(0, 78, 200, 22, '#e3e4e7') + r(0, 78, 200, 0.4, '#b9bdc3');
+  for (i = 1; i < 20; i++) s += r(i*10, 78.4, 0.25, 21.6, '#d9dadd');
+  s += sh(1.5, 95, 10.5, 1.4) + r(1.5, 83, 10, 12, '#d4d6da', O) + r(2.5, 84, 8, 2.4, '#3a3f45') + r(8.6, 84.6, 1.4, 1.2, '#c9ccd1') + r(1.5, 88.4, 10, 0.3, INK) + r(3, 90, 7, 0.8, '#fbfbfa', o) + r(1.5, 92.6, 10, 0.3, INK);
+  s += sh(187, 95, 10, 1.2) + r(187, 89, 4.4, 6, '#a7abb1', O) + r(187, 89, 4.4, 1.2, '#6f757d') + r(192.2, 89, 4.4, 6, '#6f757d', O) + r(192.2, 89, 4.4, 1.2, '#4b5057');
+  s += label(14, 82, '作業スペース');
+  return '<svg class="bg" viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true">'+s+'</svg>';
+}
+function buildOffice(){
+  var el = document.getElementById('office'), h = sceneSvg();
+  function desk(m, id, label){
+    var s = seatOf(id);
+    return '<div class="fx desk" data-desk="'+esc(id)+'" style="left:'+s.x+'%;top:'+(s.y-2.5)+'%;--c:'+esc(m.color||'#9ca3af')+';z-index:'+Math.round(s.y+1)+'"><div class="mon"></div><div class="plate">'+esc(label)+'</div></div>';
+  }
+  var b = seatOf('boss');
+  h += '<div class="fx counter" data-desk="boss" style="left:'+b.x+'%;top:'+(b.y-1.5)+'%;z-index:'+Math.round(b.y+1)+'"><div class="hot"></div><div class="reg"><i></i></div><div class="cof"></div><div class="plate">レジ（社長席）</div></div>';
+  h += desk(TEAM.owner, 'owner', '店長席');
+  TEAM.members.forEach(function(m){ h += desk(m, m.id, (m.nick || m.name) + 'の席'); });
+  el.innerHTML = h;
+  OFFICE.chars = {}; SPOTS.forEach(function(p){ p.by = null; });
+}
+function place(c, x, y){ c.x = x; c.y = y; c.el.style.left = x + '%'; c.el.style.top = y + '%'; c.el.style.zIndex = Math.round(y); }
+// 通路を通って歩く（奥の通路・手前の通路・縦の通り道2本）。カウンターや棚を突っ切らない
+function routeTo(c, t){
+  var cp = c.y < 52 ? Y_BACK : Y_FRONT, cq = t.y < 52 ? Y_BACK : Y_FRONT, pts = [];
+  if (cp === cq){ pts.push({ x: c.x, y: cp }, { x: t.x, y: cp }); }
+  else {
+    var ax = Math.abs(AISLES[0] - c.x) < Math.abs(AISLES[1] - c.x) ? AISLES[0] : AISLES[1];
+    pts.push({ x: c.x, y: cp }, { x: ax, y: cp }, { x: ax, y: cq }, { x: t.x, y: cq });
+  }
+  pts.push({ x: t.x, y: t.y });
+  return pts.filter(function(p, i){ var q = i ? pts[i-1] : c; return Math.abs(p.x - q.x) > 0.3 || Math.abs(p.y - q.y) > 0.3; });
+}
+function walkTo(c, target, done){
+  var id = ++c.moveId, pts = routeTo(c, target);
+  c.say.textContent = ''; c.say.className = 'say'; c.el.classList.remove('train');
+  (function next(){
+    if (id !== c.moveId) return;
+    var p = pts.shift();
+    if (!p){ c.el.classList.remove('walk'); c.el.style.transitionDuration = '0s'; if (done) done(); return; }
+    var dx = (p.x - c.x) * 2, dy = p.y - c.y, sec = Math.max(0.15, Math.sqrt(dx*dx + dy*dy) / 13);   // 速さ一定
+    if (Math.abs(dx) > 0.6) c.el.classList.toggle('flip', dx < 0);
+    c.el.classList.add('walk');
+    c.el.style.transitionDuration = sec + 's';
+    place(c, p.x, p.y);
+    setTimeout(next, sec * 1000 + 30);
+  })();
+}
+function freeSpot(c){
+  if (c.spot != null){ SPOTS[c.spot].by = null; c.spot = null; }
+}
+function goIdle(c, id){
+  var open = [];
+  SPOTS.forEach(function(p, i){ if (!p.by) open.push(i); });
+  if (!open.length) return;
+  var i = open[Math.floor(Math.random() * open.length)], p = SPOTS[i];
+  freeSpot(c); p.by = id; c.spot = i;
+  walkTo(c, p, function(){
+    var cls = p.train ? 'say kata' : 'say emo';
+    if (p.train && c.spot === i) c.el.classList.add('train');   // トレーニング中は小さく体を動かす
+    if (p.emo){ c.say.className = cls; c.say.textContent = p.emo; setTimeout(function(){ if (c.say.className === cls) c.say.textContent = ''; }, 3500); }
+    c.nextAct = Date.now() + 5000 + Math.random() * 6000;
+  });
+  c.nextMove = Date.now() + 35000 + Math.random() * 55000;   // 次に動くのは 35〜90 秒後（ばらばらに）
+}
+function ensureChar(id, m, crown){
+  var c = OFFICE.chars[id];
+  if (c) return c;
+  var el = document.createElement('div');
+  el.className = 'ch'; el.style.setProperty('--c', m.color || '#9ca3af');
+  if (memberOf(id)) el.setAttribute('data-ch', id);
+  el.innerHTML = '<div class="say"></div>' + botSvg(m.color, m.sprite || 'ghost', crown) + '<div class="tag">'+esc(m.nick || m.name)+'</div>';
+  document.getElementById('office').appendChild(el);
+  c = OFFICE.chars[id] = { el: el, say: el.querySelector('.say'), x: 0, y: 0, seated: false, moveId: 0, spot: null, nextMove: Date.now() + 15000 + Math.random() * 60000 };
+  var p = seatOf(id);
+  if (id !== 'owner'){
+    var open = []; SPOTS.forEach(function(q, i){ if (!q.by) open.push(i); });
+    if (open.length){ var i = open[Math.floor(Math.random() * open.length)]; SPOTS[i].by = id; c.spot = i; p = SPOTS[i]; }
+  }
+  if (!p) p = { x: 95, y: 74 };
+  place(c, p.x, p.y);
+  return c;
+}
+function fx(cls, text, from, to){
+  var el = document.createElement('div');
+  el.className = cls; el.textContent = text;
+  el.style.left = from.x + '%'; el.style.top = (from.y - 13) + '%';
+  document.getElementById('office').appendChild(el);
+  if (to){ void el.offsetWidth; el.style.left = to.x + '%'; el.style.top = (to.y - 13) + '%'; }
+  setTimeout(function(){ el.remove(); }, to ? 1400 : 2700);
+}
+function updateOffice(){
+  var sig = [TEAM.owner.sprite, TEAM.boss.sprite, TEAM.boss.color].concat(TEAM.members.map(function(m){ return m.id+m.sprite+m.color+m.nick; })).join('|');
+  if (sig !== OFFICE.sig){ OFFICE.sig = sig; OFFICE.prev = {}; buildOffice(); }
+  var st = STATE || {}, agents = st.agents || {}, boss = st.boss || {};
+  var list = [{ id: 'owner', m: TEAM.owner, s: {} }, { id: 'boss', m: TEAM.boss, s: boss, crown: true }];
+  TEAM.members.forEach(function(m){ list.push({ id: m.id, m: m, s: agents[m.id] || {} }); });
+  // 名簿に無い応援スタッフは、動いている間だけ出てくる
+  Object.keys(agents).forEach(function(id){
+    if (memberOf(id)) return;
+    if (agents[id].status === 'working') list.push({ id: id, m: { nick: 'おたすけ', color: '#9ca3af', sprite: 'ghost' }, s: agents[id] });
+    else if (OFFICE.chars[id]){ freeSpot(OFFICE.chars[id]); OFFICE.chars[id].el.remove(); delete OFFICE.chars[id]; }
+  });
+  list.forEach(function(o){
+    var c = ensureChar(o.id, o.m, o.crown), working = o.s.status === 'working', was = OFFICE.prev[o.id];
+    var desk = document.querySelector('[data-desk="'+o.id+'"]');
+    if (desk) desk.classList.toggle('on', working);
+    if (o.id === 'owner') return;
+    var text = cut(o.id === 'boss' ? (toolWords(o.s.lastTool, '') || '考えています') : (o.s.task || '作業中'), 18);
+    if (working){
+      c.text = text;
+      if (!c.seated){
+        c.seated = true; freeSpot(c);
+        // 自主点検（週1回のふり返り）の間は、席ではなくトレーニングルームにいる
+        var tr = /自主点検/.test(o.s.task || ''), ti = 0;
+        TEAM.members.forEach(function(m, k){ if (m.id === o.id) ti = k; });
+        var seat = tr ? { x: 3.5 + (ti % 4) * 4.6, y: 64 + Math.floor(ti / 4) * 10 } : (seatOf(o.id) || { x: 69, y: 66 });
+        c.train = tr;
+        if (was === false && o.id !== 'boss' && OFFICE.chars.boss) fx('paper', '📄', OFFICE.chars.boss, seat);
+        c.sayCls = 'say' + (o.id === 'boss' || tr ? '' : ' lv' + (ti % 3));   // となりの席と吹き出しが重ならないよう、高さを3段にずらす
+        c.seat = seat; c.el.classList.remove('busy');
+        var sit = function(){ c.el.classList.remove('flip'); c.el.classList.remove('walk'); c.el.classList.add(c.train ? 'train' : 'work'); c.say.className = c.sayCls; c.say.textContent = c.train ? '' : (c.text || ''); };
+        c.sit = sit; c.due = Date.now() + 20000;   // 20秒たっても席に着いていなければ、席へ直接戻す
+        walkTo(c, seat, sit);
+      } else if (c.el.classList.contains('work')) { c.say.className = c.sayCls || 'say'; c.say.textContent = text; }
+      else if (!c.el.classList.contains('train') && c.due && Date.now() > c.due){ c.moveId++; c.el.style.transitionDuration = '0s'; place(c, c.seat.x, c.seat.y); c.sit(); c.due = 0; }   // 歩いている途中で止まっていた（画面を裏にしていた等）
+    } else if (c.seated){
+      c.seated = false; c.el.classList.remove('work'); c.el.classList.remove('train'); c.say.textContent = ''; c.say.className = 'say'; c.due = 0;
+      if (was === true && o.id !== 'boss') fx('pop', '✔ +' + XP_PER_TASK + 'XP', c);
+      c.nextMove = Date.now() + 4000 + Math.random() * 5000;   // 少し席で一息ついてから離れる
+    }
+    OFFICE.prev[o.id] = working;
+  });
+  // 店長が話しかけた時は、店長の上に吹き出しを数秒出す
+  var lp = (st.log || []).filter(function(l){ return l.type === 'prompt'; }).pop(), oc = OFFICE.chars.owner;
+  if (lp && oc && lp.t !== OFFICE.lastPrompt){
+    var fresh = OFFICE.lastPrompt !== 0 || Date.now() - lp.t < 15000;
+    OFFICE.lastPrompt = lp.t;
+    if (fresh){ oc.say.className = 'say'; oc.say.textContent = '💬 ' + cut(lp.text, 16); clearTimeout(oc.st); oc.st = setTimeout(function(){ oc.say.textContent = ''; }, 7000); }
+  }
+}
+function speak(c, words){
+  c.say.className = 'say kata'; c.say.textContent = words; c.el.classList.add('busy');
+  setTimeout(function(){ c.el.classList.remove('busy'); if (c.say.className === 'say kata' && c.say.textContent === words){ c.say.textContent = ''; } }, 2800);
+}
+// 待機中は、たまに1人ずつ別の場所へ歩く（全員が同時には動かない）
+setInterval(function(){
+  if (!TEAM || document.hidden) return;
+  var now = Date.now(), moved = false;
+  Object.keys(OFFICE.chars).forEach(function(id){
+    var c = OFFICE.chars[id];
+    if (moved || id === 'owner' || c.seated || now < c.nextMove) return;
+    goIdle(c, id); moved = true;
+  });
+  // 待機中は、いる場所に合ったことをする（ときどき小さくひとこと。休憩室で2人そろうとおしゃべり）
+  Object.keys(OFFICE.chars).forEach(function(id){
+    var c = OFFICE.chars[id], p = c.spot != null ? SPOTS[c.spot] : null;
+    if (id === 'owner' || c.seated || !p || c.el.classList.contains('walk') || !c.nextAct || now < c.nextAct || c.say.textContent) return;
+    var words, mate = p.chat != null && SPOTS[p.chat].by ? OFFICE.chars[SPOTS[p.chat].by] : null;
+    if (mate && !mate.seated && !mate.el.classList.contains('walk') && !mate.say.textContent && Math.random() < 0.6){
+      var pair = CHAT[Math.floor(Math.random() * CHAT.length)];
+      words = pair[0];
+      (function(m, w){ setTimeout(function(){ if (!m.seated && !m.el.classList.contains('walk') && !m.say.textContent) speak(m, w); }, 1500); m.nextAct = now + 9000 + Math.random() * 6000; })(mate, pair[1]);
+    } else {
+      var pool = (HABITS[id] && Math.random() < 0.35) ? HABITS[id] : (p.acts || []);
+      words = pool[Math.floor(Math.random() * pool.length)];
+    }
+    if (words) speak(c, words);
+    c.nextAct = now + 8000 + Math.random() * 9000;
+  });
+  // 店長は事務所でひっそり作業している（ときどき小さく「カタカタ」と出る）
+  var oc = OFFICE.chars.owner;
+  if (oc){
+    oc.el.classList.add('work');
+    if (!oc.nextKata) oc.nextKata = now + 6000;
+    if (now > oc.nextKata && !oc.say.textContent){
+      oc.say.className = 'say kata'; oc.say.textContent = 'ｶﾀｶﾀ…';
+      setTimeout(function(){ if (oc.say.className === 'say kata'){ oc.say.textContent = ''; oc.say.className = 'say'; } }, 2600);
+      oc.nextKata = now + 20000 + Math.random() * 30000;
+    }
+  }
+}, 2000);
+
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden) return;
+  Object.keys(OFFICE.chars).forEach(function(id){ var c = OFFICE.chars[id]; if (c.seated && c.seat && c.sit && !c.el.classList.contains('work') && !c.el.classList.contains('train')){ c.moveId++; c.el.style.transitionDuration = '0s'; place(c, c.seat.x, c.seat.y); c.sit(); c.due = 0; } });
+});
+
+// ================= メンバー一覧・記録 =================
+// 役割の説明：一覧の行（またはオフィスのキャラクター）を押すと、一覧の下の決まった場所に1人ぶんだけ出る
+var SEL = '';
+function renderDetail(){
+  var el = document.getElementById('rdetail'), m = SEL ? memberOf(SEL) : null;
+  if (!m){ el.innerHTML = '<div class="rtip">メンバーを押すと、役割の説明がここに出ます。</div>'; return; }
+  el.innerHTML = '<div class="rdesc" style="--c:'+esc(m.color||'#9ca3af')+'">'+
+    '<div class="rdh"><span class="rbot">'+botSvg(m.color, m.sprite || 'ghost', SEL === 'boss')+'</span><span class="nick">'+esc(m.nick||m.name)+'</span><span class="rrole">'+esc(m.name)+'</span>'+
+      '<button class="rclose" data-rclose="1">✕ とじる</button></div>'+
+    '<div class="rdb"><div>'+esc(m.role || '')+'</div>'+
+    ((m.makes || []).length ? '<div class="rmk">出すもの</div><ul>'+m.makes.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>' : '')+
+    (m.when ? '<div class="rmk">いつ動く</div><div>'+esc(m.when)+'</div>' : '')+'</div></div>';
+}
+function selectMember(id){
+  SEL = SEL === id ? '' : id;
+  renderDetail();
+  Array.prototype.forEach.call(document.querySelectorAll('.rrow'), function(r){ r.classList.toggle('sel', r.getAttribute('data-row') === SEL); });
+}
+function rosterRow(m, st, opt){
+  st = st || {}; opt = opt || {};
+  var working = st.status === 'working', now = Date.now();
+  var done = Number(st.done || 0), xp = done * XP_PER_TASK, lv = Math.floor(xp / XP_PER_LV) + 1, cur = xp % XP_PER_LV;
+  var sub = '';
+  if (working){
+    sub = (opt.boss ? '' : storeTag(st.task) + esc(st.task || '') + '　') + esc(toolWords(st.lastTool, st.lastHint) || '考えています');
+    var last = st.lastToolAt || st.since;
+    if (last && now - last > 20*60*1000) sub += ' <span class="stale">20分以上動きがありません</span>';
+  } else if (st.task && !opt.boss) sub = '前回：' + storeTag(st.task) + esc(st.task);
+  var rid = m.id || m.nick || '', open = SEL === rid;
+  return '<div class="rrow'+(working?' working':'')+(open?' sel':'')+'" data-row="'+esc(rid)+'" style="--c:'+esc(m.color||'#9ca3af')+'">'+
+    '<div class="rbot">'+botSvg(m.color, m.sprite || 'ghost', opt.boss)+'</div>'+
+    '<div class="rmain"><div class="rline"><span class="nick">'+esc(m.nick||m.name)+'</span><span class="rrole">'+esc(m.name)+'</span>'+
+      '<span class="chip lv">★ Lv.'+lv+'</span><span class="xp" title="あと '+(XP_PER_LV-cur)+' XP で Lv.'+(lv+1)+'">'+xpBlocks(cur)+'</span></div>'+
+      (sub ? '<div class="rsub">'+sub+'</div>' : '')+'</div>'+
+    '<div class="rst">'+(working ? '● 稼働中<br><span data-since="'+(st.since||now)+'">'+dur(now-(st.since||now))+'</span>' : '待機<br>'+done+' 件')+'</div></div>';
+}
+function render(){
+  if (!TEAM){ document.getElementById('roster').innerHTML = '<div class="empty">名簿（team.js）を読み込めません</div>'; return; }
+  document.getElementById('stores').innerHTML = (TEAM.stores||[]).map(function(s){ return '<span class="chip store">'+esc(s)+'</span>'; }).join('');
+  var st = STATE || {}, agents = st.agents || {}, boss = st.boss || {};
+
+  var dn = ['日','月','火','水','木','金','土'], today = new Date().getDay(), rt = TEAM.routine || {}, w = '';
+  w = '<b>今日（'+dn[today]+'）</b>'+esc(rt[today] || '定例なし');
+  for (var i=1;i<=6;i++){ var d = (today+i)%7; if (rt[d]){ w += '<span>次：'+dn[d]+'曜　'+esc(rt[d])+'</span>'; break; } }
+  document.getElementById('week').innerHTML = w;
+
+  updateOffice();
+
+  var anyWork = boss.status === 'working', rh = rosterRow(TEAM.boss, boss, { boss: true });
+  TEAM.members.forEach(function(m){ var a = agents[m.id] || {}; if (a.status === 'working') anyWork = true; rh += rosterRow(m, a); });
+  Object.keys(agents).forEach(function(id){
+    if (memberOf(id) || agents[id].status !== 'working') return;
+    anyWork = true; rh += rosterRow({ nick: 'おたすけ', name: '応援スタッフ（'+id+'）', color: '#9ca3af', sprite: 'ghost' }, agents[id]);
+  });
+  document.getElementById('roster').innerHTML = rh;
+
+  var log = (st.log || []).slice().reverse(), h = '', bn = memberName('boss');
+  log.forEach(function(l){
+    var t = '';
+    if (l.type === 'prompt') t = esc(memberName('owner'))+' → '+esc(bn)+'　「'+esc(l.text)+'」';
+    else if (l.type === 'assign') t = esc(bn)+' → '+esc(memberName(l.who))+'　'+storeTag(l.text)+esc(l.text||'')+' を指示';
+    else if (l.type === 'done') t = esc(memberName(l.who))+'　完了 +'+XP_PER_TASK+'XP'+(l.text?'：'+esc(l.text):'');
+    else if (l.type === 'reply') t = esc(bn)+' → '+esc(memberName('owner'))+'　報告しました';
+    else return;
+    h += '<div class="li"><time>'+hm(l.t)+'</time><div>'+t+'</div></div>';
+  });
+  document.getElementById('log').innerHTML = h || '<div class="empty">まだ記録がありません。</div>';
+
+  // 施策資料（店長が毎月保存するPDF）が足りない時だけ、やることに自動で出す
+  var today2 = new Date(); PLAN_TASKS = [];
+  (st.plans || []).forEach(function(p, i){
+    var m = Number(String(p.month).split('-')[1]);
+    if (p.n === 0 && (i === 0 || today2.getDate() >= 20)) PLAN_TASKS.push({ id: 'auto-plan-'+p.month, kind: 'do', due: '', store: '2店舗', by: 'チロル', title: m+'月の施策PDFを「施策資料 ＞ '+p.month+'」フォルダに保存する', detail: '入れると、ミルがカレンダーに載せ、ポップが POP を作れる。' });
+  });
+
+  renderFiles(st.files || []);
+  renderInbox();
+
+  document.getElementById('live').className = 'live' + (anyWork ? ' on' : '');
+  document.getElementById('live-txt').textContent = !STATE ? '接続待ち' : (anyWork ? '稼働中' : '全員待機中') + '・最終更新 ' + hm(st.updatedAt || Date.now());
+}
+
+// ================= 店舗の絞り込み（やること・提出物で共通） =================
+var FILTER = '';
+try { FILTER = localStorage.getItem('ai_team_filter') || ''; } catch (e) {}
+function filterBar(counts){
+  var opts = [{ key: '', name: 'ぜんぶ' }].concat(STORES), h = '';
+  opts.forEach(function(s){
+    var n = s.key ? (counts[s.key] || 0) : (counts['新村'] || 0) + (counts['大町'] || 0) + (counts['共通'] || 0);
+    h += '<button class="fpill'+(FILTER === s.key ? ' on' : '')+'" data-filter="'+esc(s.key)+'"'+(s.color ? ' style="--sc:'+s.color+'"' : '')+'>'+esc(s.key ? s.name : 'ぜんぶ')+' <span>'+n+'</span></button>';
+  });
+  return h;
+}
+function storeChip(key){
+  var s = STORES.filter(function(x){ return x.key === key; })[0] || STORES[2];
+  return '<span class="schip" style="--sc:'+s.color+'">'+esc(key === '共通' ? '共通' : key)+'</span>';
+}
+
+// ================= 提出物（1本の一覧。列をそろえる） =================
+// ファイル名の決まり：<日付>_<担当名>_<店舗>_<件名>.<拡張子>
+var FILE_ALL = false, FILE_READ = {}, FILE_MAX = 12;
+try { FILE_READ = JSON.parse(localStorage.getItem('ai_team_files_read') || '{}'); } catch (e) { FILE_READ = {}; }
+function markRead(name){
+  FILE_READ[name] = 1;
+  try { localStorage.setItem('ai_team_files_read', JSON.stringify(FILE_READ)); } catch (e) {}
+  lastSig = '';
+}
+function parseFile(f){
+  var base = String(f.name).replace(/\.[A-Za-z0-9]+$/, ''), ext = (String(f.name).match(/\.([A-Za-z0-9]+)$/) || [,''])[1].toLowerCase();
+  var p = base.split('_');
+  var o = { name: f.name, t: f.t, ext: ext, date: p[0] || '', nick: p[1] || '', store: p[2] || '', title: p.slice(3).join(' ') || base };
+  if (p.length < 4){ o.nick = ''; o.store = ''; o.title = base; }
+  o.sk = storeKey(o.store);
+  return o;
+}
+function renderFiles(files){
+  var list = files.map(parseFile), counts = {};
+  list.forEach(function(f){ counts[f.sk] = (counts[f.sk] || 0) + 1; });
+  var mine = list.filter(function(f){ return !FILTER || f.sk === FILTER; });
+  var show = FILE_ALL ? mine : mine.slice(0, FILE_MAX), rows = '';
+  show.forEach(function(f){
+    var d = new Date(f.t), kind = f.ext === 'html' ? '資料' : (f.ext === 'md' ? '報告' : f.ext), m = memberByNick(f.nick), unread = !FILE_READ[f.name];
+    rows += '<a class="lrow frow2'+(unread?' unread':'')+'" href="'+(f.ext === 'md' ? 'view.html?f=' : '../提出物/')+encodeURIComponent(f.name)+'" target="_blank" rel="noopener" data-file="'+esc(f.name)+'">'+
+      '<span class="c-date">'+(d.getMonth()+1)+'/'+d.getDate()+'</span>'+
+      '<span class="c-who" style="--c:'+esc(m ? m.color : '#9a8a74')+'">'+esc(f.nick || '—')+'</span>'+
+      '<span>'+storeChip(f.sk)+'</span>'+
+      '<span class="c-title">'+esc(f.title)+'</span>'+
+      '<span class="c-kind">'+esc(kind)+'</span>'+
+      '<span class="c-new">'+(unread ? '<span class="chip new">未読</span>' : '')+'</span></a>';
+  });
+  var h = '<div class="fbar">'+filterBar(counts)+'</div>'+
+    '<div class="lbox"><div class="lrow frow2 lhead"><span>日付</span><span>だれが</span><span>店舗</span><span>件名（押すと開く）</span><span>種類</span><span></span></div>'+
+    (rows || '<div class="empty">まだありません</div>')+
+    (mine.length > FILE_MAX ? '<button class="tkmore" data-fileall="1">'+(FILE_ALL ? '▲ たたむ' : '▼ 残り '+(mine.length-FILE_MAX)+' 件を表示')+'</button>' : '')+'</div>';
+  document.getElementById('files').innerHTML = h;
+  var unreadAll = list.filter(function(f){ return !FILE_READ[f.name]; }).length;
+  document.getElementById('files-cnt').innerHTML = unreadAll ? '<span class="chip new">未読 '+unreadAll+'</span>' : '';
+}
+
+// ================= 📌 やること（やること／返事 の2つに分け、列をそろえる） =================
+// tasks.js＝チロルが管理する一覧、tasks_auto.js＝ミルの週次リサーチから自動で入る確認依頼、tasks_done.js＝チェックの記録
+var TK_DONE = {}, TK_SHOWDONE = false, TK_SIG = '', TK_LOCAL = false, PLAN_TASKS = [], TK_OPEN = '';
+try { TK_DONE = JSON.parse(localStorage.getItem('ai_team_tasks_done') || '{}'); } catch (e) { TK_DONE = {}; }
+function tkItems(){
+  var a = ((window.__AI_TASKS || {}).items || []).slice();
+  ((window.__AI_TASKS_AUTO || {}).items || []).forEach(function(x){ a.push(x); });
+  ((window.__AI_TASKS_TEIAN || {}).items || []).forEach(function(x){ a.push(x); });
+  PLAN_TASKS.forEach(function(x){ a.push(x); });
+  return a;
+}
+function tkDue(due){
+  if (!due) return '<span class="c-due none">いつでも</span>';
+  var p = String(due).split('-'), d = new Date(+p[0], +p[1]-1, +p[2]), t = new Date(); t.setHours(0,0,0,0);
+  var diff = Math.round((d - t) / 86400000), wd = ['日','月','火','水','木','金','土'][d.getDay()];
+  if (diff < 0) return '<span class="c-due late">期限すぎ</span>';
+  if (diff === 0) return '<span class="c-due today">今日まで</span>';
+  return '<span class="c-due">'+(d.getMonth()+1)+'/'+d.getDate()+'（'+wd+'）</span>';
+}
+// 一覧には短い件名だけ出す（short が無ければ、最初の区切りまで）。全文は押すと出る
+function tkShort(x){ return x.short || cut(String(x.title || '').split(/[：:。]/)[0], 30); }
+function tkRow(x){
+  var done = !!TK_DONE[x.id], open = TK_OPEN === x.id, full = x.short || tkShort(x) !== x.title ? x.title : '';
+  var more = (full ? '<div>'+esc(full)+'</div>' : '') + (x.detail ? '<div>'+esc(x.detail)+'</div>' : '') +
+    (x.link ? '<div><a href="'+(/\.md$/.test(x.link)?'view.html?f=':'../提出物/')+encodeURIComponent(x.link)+'" target="_blank" rel="noopener">▶ 資料を開く</a></div>' : '');
+  return '<div class="lrow trow2'+(done?' done':'')+(open?' open':'')+'">'+
+    '<button class="tkb" data-task="'+esc(x.id)+'" aria-label="'+(done?'済みを取り消す':'済みにする')+'">'+(done?'✔':'')+'</button>'+
+    (done ? '<span class="c-due none">済み</span>' : tkDue(x.due))+
+    '<span>'+storeChip(storeKey(x.store))+'</span>'+
+    '<button class="c-title tlink" data-tkopen="'+esc(x.id)+'">'+esc(tkShort(x))+(more ? ' <i>'+(open?'▲':'▼')+'</i>' : '')+'</button>'+
+    '<span class="c-kind">'+esc(x.by || '')+'</span></div>'+
+    (open && more ? '<div class="tmore">'+more+'</div>' : '');
+}
+function renderTasks(){
+  var all = tkItems(), counts = {};
+  all.forEach(function(x){ if (!TK_DONE[x.id]){ var k = storeKey(x.store); counts[k] = (counts[k] || 0) + 1; } });
+  var mine = all.filter(function(x){ return !FILTER || storeKey(x.store) === FILTER; });
+  var open = mine.filter(function(x){ return !TK_DONE[x.id]; }), fin = mine.filter(function(x){ return TK_DONE[x.id]; });
+  function byDue(a, b){ return String(a.due||'9999').localeCompare(String(b.due||'9999')); }
+  var todo = open.filter(function(x){ return x.kind !== 'decide'; }).sort(byDue), dec = open.filter(function(x){ return x.kind === 'decide'; }).sort(byDue);
+  var head = '<div class="lrow trow2 lhead"><span></span><span>いつまで</span><span>店舗</span><span>内容（押すとくわしく）</span><span>担当</span></div>';
+  var h = '<div class="fbar">'+filterBar(counts)+'</div>';
+  h += '<div class="lsec"><span class="lno">1</span>れんさんが やること <span class="cnt">'+todo.length+' 件</span></div><div class="lbox">'+head+(todo.map(tkRow).join('') || '<div class="empty">ありません</div>')+'</div>';
+  h += '<div class="lsec"><span class="lno">2</span>チロルに 返事すること <span class="cnt">'+dec.length+' 件　決めたらチロルに伝えて、チェック</span></div><div class="lbox">'+head+(dec.map(tkRow).join('') || '<div class="empty">ありません</div>')+'</div>';
+  if (fin.length) h += '<div class="lbox" style="margin-top:14px"><button class="tkmore" data-tkmore="1">'+(TK_SHOWDONE?'▲':'▼')+' 済んだこと '+fin.length+' 件'+(TK_SHOWDONE?'':'（押すと表示。チェックを外すと戻せます）')+'</button>'+(TK_SHOWDONE?fin.map(tkRow).join(''):'')+'</div>';
+  if (TK_LOCAL) h += '<div class="tkd">※ チェックをこの端末にだけ保存しました（記録の仕組みに届きませんでした）。</div>';
+  document.getElementById('tasks').innerHTML = h;
+  var openAll = all.filter(function(x){ return !TK_DONE[x.id]; }).length;
+  document.getElementById('tk-cnt').innerHTML = openAll ? '<span class="chip new">'+openAll+'</span>' : '';
+}
+function tkToggle(id){
+  var done = !TK_DONE[id];
+  if (done) TK_DONE[id] = new Date().toISOString(); else delete TK_DONE[id];
+  try { localStorage.setItem('ai_team_tasks_done', JSON.stringify(TK_DONE)); } catch (e) {}
+  renderTasks();
+  fetch('/api/task', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, done: done }) })
+    .then(function(r){ TK_LOCAL = !r.ok; if (!r.ok) renderTasks(); })
+    .catch(function(){ TK_LOCAL = true; renderTasks(); });
+}
+function pollTasks(){
+  var n = 4, fin = function(){
+    if (--n) return;
+    if (window.__AI_TASKS_DONE && !TK_LOCAL) TK_DONE = JSON.parse(JSON.stringify(window.__AI_TASKS_DONE));
+    var sig = JSON.stringify([window.__AI_TASKS, window.__AI_TASKS_AUTO, window.__AI_TASKS_TEIAN, PLAN_TASKS, TK_DONE, new Date().getDate()]);
+    if (sig !== TK_SIG){ TK_SIG = sig; try { renderTasks(); } catch (e) {} }
+  };
+  // tasks_teian.js＝週1回の自主点検で出た「提案」（れんさんが承認するまで、だれも進めない）
+  loadScript('tasks.js', fin); loadScript('tasks_auto.js', fin); loadScript('tasks_teian.js', fin); loadScript('tasks_done.js', fin);
+}
+
+// ================= この組織の流れ（図） =================
+function renderFlow(){
+  function who(id, note){
+    var m = memberOf(id); if (!m) return '';
+    return '<div class="fwho" style="--c:'+esc(m.color||'#9ca3af')+'"><span class="fbot">'+botSvg(m.color, m.sprite || 'ghost', id === 'boss')+'</span><b>'+esc(m.nick||m.name)+'</b><span>'+esc(note)+'</span></div>';
+  }
+  var stages = [
+    { t: '材料を集める', w: who('research', '外で起きること') + who('planner', '店の数字') + who('crew-care', 'クルーの状況') },
+    { t: '作戦を立てる', w: who('strategy', '狙い・やること・確かめ方') },
+    { t: '点検して決める', w: who('boss', '点検して渡す') + who('owner', '決める') },
+    { t: '形にする', w: who('pop', 'お客様向け（POP・売場）') + who('crew-info', 'クルー向け（お知らせ・手順）') + who('system-dev', 'アプリ') },
+    { t: '確かめる', w: who('planner', '実績の数字') + who('strategy', '当たり・外れ → 次の作戦へ') }
+  ];
+  var h = '<div class="fstages">' + stages.map(function(s, i){
+    return '<div class="fstage"><div class="fst"><span class="lno">'+(i+1)+'</span>'+esc(s.t)+'</div>'+s.w+'</div>';
+  }).join('<div class="farr">▶</div>') + '</div>';
+  h += '<div class="fweek"><div><b>日曜</b>ミルが自動で調べる</div><div><b>月曜まで</b>サクが作戦 → チロル点検 → れんさんが決める</div><div><b>火曜</b>新商品・施策スタート。POP を貼る。FF管理で調整を確認</div><div><b>翌週</b>ソロの数字で、サクが検証</div></div>';
+  h += '<div class="fnote">📮 現場の課題は、チロルに送る → 課題の一覧に入る → 担当に振り分け → サクがアクションプランに → れんさんが決める → ベルがクルー向けの資料に。<br>📁 施策PDFは「施策資料」、清算書は「数値資料」、クルーのデータは「クルー管理 ＞ データ」、クルーに伝えたいことは「クルー連絡 ＞ 受付」へ。</div>';
+  document.getElementById('flow').innerHTML = h;
+}
+
+// ================= 📥 入れる場所（れんさんが、何をどこに入れるか） =================
+// 一覧は folders.js。各フォルダの件数と最新の日付は、記録の仕組み（hook.ps1）が数えて state に入れる
+var INBOX_MSG = '';
+function renderInbox(){
+  var list = window.__AI_FOLDERS || [], inbox = (STATE || {}).inbox || {}, h = '';
+  list.forEach(function(f){
+    var m = memberByNick(f.who), st = inbox[f.key], status = '';
+    if (f.path){
+      if (st && st.n > 0){ var d = new Date(st.last); status = '<span class="ib-ok">'+st.n+' 件 入っている</span><span class="ib-sub">最新 '+(d.getMonth()+1)+'/'+d.getDate()+'</span>'; }
+      else status = '<span class="ib-none">まだ空</span>';
+    }
+    h += '<div class="ibox" style="--c:'+esc(m ? m.color : '#8a6a45')+'">'+
+      '<div class="ib-what">'+esc(f.what)+'<span class="ib-when">'+esc(f.when||'')+'</span></div>'+
+      '<div class="ib-ex">'+esc(f.ex||'')+'</div>'+
+      '<div class="ib-where"><span class="ib-lbl">どこへ</span>'+(f.path ? '<b>'+esc(f.path.replace(/\//g, ' ＞ '))+'</b>' : '<b>'+((f.url || f.links) ? 'Google スプレッドシート' : 'チロルとのチャット')+'</b>')+'<span class="ib-sub">'+esc(f.sub||'')+'</span></div>'+
+      '<div class="ib-then"><span class="ib-lbl">入れると</span>'+(m ? '<span class="fbot">'+botSvg(m.color, m.sprite || 'ghost', f.who === TEAM.boss.nick)+'</span>' : '')+esc(f.then||'')+'</div>'+
+      (f.path ? '<div class="ib-foot">'+status+'<button class="ib-open" data-open="'+esc(f.key)+'">📂 フォルダを開く</button></div>' : '')+
+      (f.url && /^https:\/\/docs\.google\.com\//.test(f.url) ? '<div class="ib-foot"><span class="ib-sub">ここに直接入力</span><button class="ib-open" data-open="'+esc(f.key)+'">📊 シートを開く</button></div>' : '')+
+      (f.links && f.links.length ? '<div class="ib-foot" style="flex-wrap:wrap;gap:8px"><span class="ib-sub">ここに直接入力</span>'+f.links.map(function(l){ return '<button class="ib-open" data-open="'+esc(l.key)+'">📊 '+esc(l.label)+'</button>'; }).join('')+'</div>' : '')+
+      '</div>';
+  });
+  document.getElementById('inbox').innerHTML = '<div class="ib-top">フォルダはすべて「マイドライブ ＞ AI経営チーム」の中にあります。入れたら、チロルに「入れた」と一言伝えてください。'+(INBOX_MSG ? '<div class="ib-msg">'+esc(INBOX_MSG)+'</div>' : '')+'</div><div class="igrid">'+h+'</div>';
+}
+function openFolder(key){
+  fetch('/api/open', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: key }) })
+    .then(function(r){ INBOX_MSG = r.ok ? '' : '開けませんでした。エクスプローラーで「マイドライブ ＞ AI経営チーム」を開いてください（シートもこの中にあります）。'; renderInbox(); })
+    .catch(function(){ INBOX_MSG = 'フォルダを開けませんでした（画面を映す仕組みが止まっています）。'; renderInbox(); });
+}
+
+// ================= タブ・操作 =================
+var TAB = 'office';
+try { TAB = localStorage.getItem('ai_team_tab') || 'office'; } catch (e) {}
+function showTab(t){
+  if (!document.getElementById('tab-' + t)) t = 'office';
+  TAB = t;
+  ['office','tasks','files','inbox'].forEach(function(k){ document.getElementById('tab-' + k).classList.toggle('hide', k !== t); });
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(b){ b.classList.toggle('on', b.getAttribute('data-tab') === t); });
+  try { localStorage.setItem('ai_team_tab', t); } catch (e) {}
+}
+document.addEventListener('click', function(e){
+  var c = function(sel){ return e.target.closest ? e.target.closest(sel) : null; }, el;
+  if ((el = c('#tabs button'))){ showTab(el.getAttribute('data-tab')); return; }
+  if ((el = c('[data-task]'))){ tkToggle(el.getAttribute('data-task')); return; }
+  if (c('[data-tkmore]')){ TK_SHOWDONE = !TK_SHOWDONE; renderTasks(); return; }
+  if ((el = c('[data-file]'))){ markRead(el.getAttribute('data-file')); return; }
+  if ((el = c('[data-open]'))){ openFolder(el.getAttribute('data-open')); return; }
+  if (c('[data-fileall]')){ FILE_ALL = !FILE_ALL; lastSig = ''; poll(); return; }
+  if ((el = c('[data-filter]'))){ FILTER = el.getAttribute('data-filter'); try { localStorage.setItem('ai_team_filter', FILTER); } catch (x) {} renderTasks(); lastSig = ''; poll(); return; }
+  if ((el = c('[data-tkopen]'))){ var tk = el.getAttribute('data-tkopen'); TK_OPEN = TK_OPEN === tk ? '' : tk; renderTasks(); return; }
+  if (c('[data-rclose]')){ SEL = ''; selectMember(''); return; }
+  if ((el = c('[data-row]'))){ selectMember(el.getAttribute('data-row')); return; }
+  if ((el = c('.ch[data-ch]'))){ selectMember(el.getAttribute('data-ch')); }
+});
+var fl = document.getElementById('fold-log');
+try { if (localStorage.getItem('ai_team_fold-log') === '1') fl.open = true; } catch (e) {}
+fl.addEventListener('toggle', function(){ try { localStorage.setItem('ai_team_fold-log', fl.open ? '1' : '0'); } catch (e) {} });
+
+var lastSig = '';
+function poll(){
+  loadScript('state.js', function(ok){
+    if (ok && window.__AI_STATE) STATE = window.__AI_STATE;
+    // 1分ごとにも描き直す（「動きがありません」の判定は時間で変わるため）
+    var sig = JSON.stringify(STATE) + '|' + JSON.stringify(TEAM) + '|' + new Date().getDay() + '|' + Math.floor(Date.now()/60000);
+    if (sig !== lastSig){
+      lastSig = sig;
+      try { render(); }
+      catch (e){ document.getElementById('roster').innerHTML = '<div class="empty">表示に失敗しました：'+esc(e.message)+'</div>'; }
+    }
+  });
+}
+// 稼働時間だけは毎秒進める（全体は描き直さない）
+setInterval(function(){
+  var now = Date.now();
+  document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent = dur(now - Number(el.getAttribute('data-since'))); });
+}, 1000);
+showTab(TAB);
+setInterval(poll, 1500);
+setInterval(pollTasks, 5000);
+loadScript('folders.js', function(){ try { renderInbox(); } catch (e) {} });
+setInterval(function(){ loadScript('team.js', function(){ TEAM = window.__AI_TEAM || TEAM; }); }, 30000);
+loadScript('team.js', function(){ TEAM = window.__AI_TEAM || TEAM; try { render(); renderDetail(); renderFlow(); } catch (e) {} poll(); pollTasks(); });
+</script>
+</body>
+</html>
