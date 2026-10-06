@@ -1138,6 +1138,7 @@ const I18N = {
     'product.name':'商品名','product.namePlaceholder':'商品名を入力',
     'product.category':'カテゴリ',
     'product.discountAmt':'値引額(円)',
+    'product.thawNoPh':'解凍No.','product.thawNoTip':'解凍呼び出し番号（食材ごと。同じ食材はほかの商品にも同じ番号が付きます）。事前解凍の一覧と印刷に出ます',
     'product.thermalNo':'サーマル番号','product.thermalNoHint':'（常温FF・まちかど厨房）','product.thermalNoPh':'例：12','product.thermalNoTip':'作成後にサーマル（ラベル機）で入れる番号。作成表と印刷に出ます',
     'product.minCount':'最低作成数',
     'product.timeStart':'販売開始時',
@@ -1442,6 +1443,7 @@ const I18N = {
     'product.name':'Product name','product.namePlaceholder':'Enter product name',
     'product.category':'Category',
     'product.discountAmt':'Discount amt',
+    'product.thawNoPh':'Thaw No.','product.thawNoTip':'Thaw call number (per ingredient; shared by all products using it). Shown in the thaw list and print',
     'product.thermalNo':'Thermal label No.','product.thermalNoHint':'(Cold FF / Kitchen)','product.thermalNoPh':'e.g. 12','product.thermalNoTip':'Number entered on the thermal label printer after making. Shown on the plan and print',
     'product.minCount':'Min make count',
     'product.timeStart':'Sale start hour',
@@ -1705,7 +1707,7 @@ const I18N = {
     'product.list':'उत्पादन सूची','product.add':'+ उत्पादन थप्नुहोस्',
     'product.expandAll':'सबै खोल्नुहोस्','product.collapseAll':'सबै बन्द गर्नुहोस्',
     'product.cost':'लागत (JPY)','product.stdPrice':'मानक मूल्य','product.shopPrice':'बिक्री मूल्य',
-    'product.thermalNo':'थर्मल नम्बर','product.thermalNoHint':'(कोल्ड FF / किचन)','product.thermalNoPh':'उदा. 12','product.thermalNoTip':'बनाएपछि थर्मल लेबलमा हाल्ने नम्बर। तालिका र प्रिन्टमा देखिन्छ','product.markupRate':'मार्कअप %','product.discountAmt':'छुट रकम','product.minCount':'न्यूनतम संख्या',
+    'product.thawNoPh':'थाउ नं.','product.thawNoTip':'थाउ कल नम्बर (सामग्री अनुसार)। थाउ सूची र प्रिन्टमा देखिन्छ','product.thermalNo':'थर्मल नम्बर','product.thermalNoHint':'(कोल्ड FF / किचन)','product.thermalNoPh':'उदा. 12','product.thermalNoTip':'बनाएपछि थर्मल लेबलमा हाल्ने नम्बर। तालिका र प्रिन्टमा देखिन्छ','product.markupRate':'मार्कअप %','product.discountAmt':'छुट रकम','product.minCount':'न्यूनतम संख्या',
     'product.markupBase':'मूल्य आधार',
     'product.autoBtn':'स्वचालित','product.calcBtn':'गणना',
     'product.autoCalcTip':'(बिक्री-लागत)/बिक्री×100 बाट पुन: गणना',
@@ -5193,6 +5195,7 @@ function renderProductCard(p){
                 ${ING_METHODS.map(mm=>{const on=(ing.m||[]).includes(mm[0]);return `<button type="button" onclick="mkIngMethod('${p.id}',${i},'${mm[0]}')" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${on?'#2563eb':'#d1d5db'};background:${on?'#2563eb':'#fff'};color:${on?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">${mm[1]}</button>`;}).join('')}
                 <button type="button" onclick="mkIngFlag('${p.id}',${i},'ct')" title="中心温度測定が必要" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.ct?'#dc2626':'#d1d5db'};background:${ing.ct?'#dc2626':'#fff'};color:${ing.ct?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">🌡中心温度</button>
                 <button type="button" onclick="mkIngFlag('${p.id}',${i},'pt')" title="前日に解凍が必要" style="padding:3px 9px;font-size:11px;border-radius:12px;border:1px solid ${ing.pt?'#2563eb':'#d1d5db'};background:${ing.pt?'#2563eb':'#fff'};color:${ing.pt?'#fff':'#9ca3af'};cursor:pointer;font-weight:600">❄️前日解凍</button>
+                ${ing.pt?`<input type="text" inputmode="text" value="${(ing.thawNo||thawNoOf(ing.n)||'').replace(/"/g,'&quot;')}" placeholder="${t('product.thawNoPh')}" title="${t('product.thawNoTip')}" onchange="mkIngThawNo('${p.id}',${i},this.value)" style="width:86px;font-size:11px;padding:3px 6px;border:1px solid #93c5fd;border-radius:12px">`:''}
               </div>
               <label style="font-size:11px;color:#555;white-space:nowrap" title="この商品1個あたりの使用量（½＝2個で1つ・適量＝数えない）。商品ごとに個別計算されます">
                 使用量
@@ -5322,12 +5325,26 @@ function ingUse(ing){
 function mkIngUse(pid,i,val){ const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return; delete a[i].per; delete a[i].nc; if(val==='1')delete a[i].use; else a[i].use=val; saveS(); } // 再描画せずフォーカス維持
 function _escMk(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 // 全商品で使った食材を名前で一意化（=一度登録すれば他商品でも選んで使い回せる）
+// ---------- 解凍呼び出し番号（2026-10-06 店長の要望）：前日解凍する食材（pt）に付ける番号。食材の名前ごとに1つ（商品をまたいで同じ） ----------
+function thawNoOf(name){ const n=(name||'').trim(); if(!n)return ''; for(const p of (S.PM||[])){ for(const ing of getIngs(p)){ if((ing.n||'').trim()===n&&(ing.thawNo||'').trim())return String(ing.thawNo).trim(); } } return ''; }
+function mkIngThawNo(pid,i,val){
+  const p=getP(pid);if(!p)return; const a=_ensureIngs(p); if(!a[i])return;
+  const v=toHalf(String(val||'')).trim(), n=(a[i].n||'').trim();
+  // 同じ名前の食材（ほかの商品も）に同じ番号を付ける。空にしたら全部から消す
+  (S.PM||[]).forEach(q=>getIngs(q).forEach(ing=>{ if((ing.n||'').trim()===n&&n){ if(v)ing.thawNo=v; else delete ing.thawNo; } }));
+  if(v)a[i].thawNo=v; else delete a[i].thawNo;
+  saveS();
+}
+// 事前解凍の一覧の並び：番号の順（数字として）→ 番号なし → 名前の順
+function thawCmp(a,b){ const na=thawNoOf(a), nb=thawNoOf(b); if(!!na!==!!nb)return na?-1:1; if(na&&nb&&na!==nb){ const x=parseFloat(na), y=parseFloat(nb); if(isFinite(x)&&isFinite(y)&&x!==y)return x-y; return na.localeCompare(nb,'ja'); } return String(a).localeCompare(String(b),'ja'); }
+function thawLabel(n){ const no=thawNoOf(n); return (no?`<span class="pth" style="font-weight:800;color:#1e40af;background:#dbeafe;border-radius:6px;padding:0 6px;margin-right:4px">No.${escapeHtmlP(no)}</span>`:'')+escapeHtmlP(n); }
 function getIngMaster(){
   const m={};
   (S.PM||[]).forEach(p=>{
     getIngs(p).forEach(ing=>{
       const n=(ing.n||'').trim(); if(!n)return;
       if(!m[n]) m[n]={n, m:[...(ing.m||[])], ct:!!ing.ct, pt:!!ing.pt, use:ingUse(ing)};
+      if(!m[n].thawNo&&(ing.thawNo||'').trim())m[n].thawNo=String(ing.thawNo).trim();   // 解凍呼び出し番号（食材ごと）
     });
   });
   return Object.values(m).sort((a,b)=>a.n.localeCompare(b.n,'ja'));
@@ -5336,7 +5353,7 @@ function getIngMaster(){
 function mkIngAddFromMaster(pid,name){
   if(!name)return; const p=getP(pid); if(!p)return;
   const src=getIngMaster().find(x=>x.n===name);
-  const ni=src?{n:src.n, m:[...src.m], ct:src.ct, pt:src.pt}:{n:name,m:[]};
+  const ni=src?{n:src.n, m:[...src.m], ct:src.ct, pt:src.pt, ...(src.thawNo?{thawNo:src.thawNo}:{})}:{n:name,m:[]};
   if(src&&src.use&&src.use!=='1')ni.use=src.use;
   _ensureIngs(p).push(ni);
   saveS();renderProductCardInPlace(pid);
@@ -6551,9 +6568,9 @@ function printThawPrep(){
   const storeName=(S.storeName||'').trim();
   const nd=di+1, ndName=DAYS[nd]||'';
   const agg=thawTomorrowAgg(di);
-  const names=Object.keys(agg);
+  const names=Object.keys(agg).sort(thawCmp);   // 解凍呼び出し番号の順 → 名前の順
   const bodyTable = names.length
-    ? `<table class="ptbl"><thead><tr><th class="pname">食材</th><th class="pcnt">数量</th><th class="pchk">解凍</th></tr></thead><tbody>${names.map(n=>`<tr><td class="pname">${escapeHtmlP(n)}</td><td class="pcnt">×${Math.round(agg[n]*100)/100}</td><td class="pchk">□</td></tr>`).join('')}</tbody></table>`
+    ? `<table class="ptbl"><thead><tr><th class="pname">食材</th><th class="pcnt">数量</th><th class="pchk">解凍</th></tr></thead><tbody>${names.map(n=>`<tr><td class="pname">${thawLabel(n)}</td><td class="pcnt">×${Math.round(agg[n]*100)/100}</td><td class="pchk">□</td></tr>`).join('')}</tbody></table>`
     : `<div style="font-size:15px;padding:12px;color:#555">明日（${escapeHtmlP(ndName)}）に向けて前日解凍する食材はありません。</div>`;
   doPrint(`<section class="print-page">
     <div class="phead">
@@ -6736,7 +6753,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
     const nd=dayIdx+1,thawAgg={};
     prods.forEach(p=>{let tot=0;cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));if(tot<=0)return;getIngs(p).forEach(ing=>{if(ing.pt){const u=ingUse(ing);if(u!=='tekiryo')thawAgg[ing.n]=(thawAgg[ing.n]||0)+tot*(_USE_FACTOR[u]||1);}});});
     // 食材は必ず 1食材＝1行（縦並び）。横に「、」でつながない
-    const thawItems=Object.keys(thawAgg).map(n=>`<div data-thaw-item style="padding:1px 0">${n}<span style="color:#1d4ed8;font-weight:700"> ×${_fmtQ(thawAgg[n])}</span></div>`);
+    const thawItems=Object.keys(thawAgg).sort(thawCmp).map(n=>`<div data-thaw-item style="padding:1px 0">${thawLabel(n)}<span style="color:#1d4ed8;font-weight:700"> ×${_fmtQ(thawAgg[n])}</span></div>`);
     if(thawItems.length)thawHtml=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 11px;margin-top:10px">
       <div style="color:#1e40af;font-weight:700;font-size:13px">❄️ 明日（${DAYS[nd]||''}）の事前解凍　<span style="font-size:11px;font-weight:600;color:#3b82f6">今日のうちに解凍しておく分</span></div>
       <div style="font-size:13px;color:#1e3a8a;line-height:1.7;margin-top:2px">${thawItems.join('')}</div></div>`;
