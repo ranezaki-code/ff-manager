@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FF管理：作成数の点検（巡回用）</title>
+<style>
+body{font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px;line-height:1.6}
+h1{font-size:18px;margin:0 0 4px} .sub{font-size:13px;color:#64748b;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;font-size:13px;margin-top:10px}
+th{background:#f8fafc;text-align:left;padding:6px 8px;white-space:nowrap} td{padding:6px 8px;border-top:1px solid #e2e8f0;vertical-align:top}
+tr.ng td{background:#fef2f2} tr.ng td.pct{color:#b91c1c;font-weight:800} tr.warn td.pct{color:#b45309;font-weight:700} td.pct{font-weight:700}
+button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer} button.pri{background:#2563eb;color:#fff;border:none;font-weight:700}
+#sum{font-size:15px;font-weight:800;margin:10px 0} .tag{display:inline-block;font-size:11px;border-radius:999px;padding:0 7px;background:#eef2ff;color:#3730a3;margin:1px}
+iframe{width:0;height:0;border:0;position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<h1>🔎 FF管理：作成数の点検（巡回用）</h1>
+<div class="sub">商品ごとに「週の目標（定価販売数＋ゆとり）」と「作成表の週合計」を比べ、差が ±20% を超える物・先週の実績に対して ±30% を超える物を上に赤で出します。金額は出しません（個数と係数だけ）。計算は新しい FF管理の画面の関数をそのまま呼びます（画面と同じ答え）。</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+  <button class="pri" id="go-dev">📲 この端末のデータで点検</button>
+  <button id="go-file">ファイルで点検</button><input type="file" id="file" accept=".json" style="display:none">
+  <span id="src" class="sub" style="margin:0"></span>
+</div>
+<div id="sum"></div>
+<div id="out"></div>
+<iframe id="f"></iframe>
+<script>
+(function(){
+  const $=id=>document.getElementById(id), sleep=ms=>new Promise(r=>setTimeout(r,ms)), J=JSON.stringify, esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function fromObj(obj){
+    let d=obj; for(const w of ['data','keys','localStorage']){ if(obj&&obj[w]&&typeof obj[w]==='object'&&Object.keys(obj[w]).some(k=>/^(ffv6_store_|global_stores$)/.test(k))){ d=obj[w]; break; } }
+    let stores=[]; try{ stores=JSON.parse(d.global_stores||d.ffv6_stores||'[]'); }catch(_){}
+    const states={},setup={}; stores.forEach(s=>{ if(typeof d['ffv6_store_'+s.id]==='string'){ states[s.id]=d['ffv6_store_'+s.id]; setup[s.id]=true; } });
+    return {stores:stores.filter(s=>s.id in states),states,setup};
+  }
+  function devSrc(){ const o={}; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(/^(global_stores$|ffv6_stores$|ffv6_store_)/.test(k)&&!/_snap_|_emergency_|_pre_|_backup/.test(k))o[k]=localStorage.getItem(k); } }catch(_){} return o; }
+  const load=url=>new Promise(res=>{ const f=$('f'); f.onload=()=>res(f.contentWindow); f.src=url; });
+  // 画面の中で動かす読み取り（1店舗ぶん）
+  const PROBE=`(function(){
+    const rows=[]; const tgt=t=>+(t||0).toFixed(1);
+    S.PM.forEach(p=>{
+      const on=p.enabled&&S.catOn[p.category]; const cfg=S.catCfg[p.category]; if(!cfg)return;
+      const b=on?getWeekTargetBase(p.id):null; const target=b?b.target:0;
+      let week=0, invest=0, cells=0, frac={lt03:0,'03to1':0,ge1:0}, offs=[], cond=new Set(), wl=on?getWithdraw(p.id):0;
+      const wtP=on?getProdWeekTotalWeighted(p):0;
+      for(let d=0;d<7;d++) cfg.slots.forEach(h=>{
+        if(!getSlotMake(p,h)){ if(d===0)offs.push(h); return; }
+        if(!on)return; cells++;
+        const det=getProdCntDetail(p.id,d,h); week+=det.total; invest+=getInvestExtra(p.id,d,h);
+        const r=getProdSlotRange(p,h); const sc=r?getSlotCust(d,r[0],r[1]):0; const k=getSlotCoef(p.category,h), a=getLearnAdj(p.id,d,h), g=gaibuFactor(mainCatOf(p.category),d,h);
+        const x=wtP>0?getCorrTarget(p.id,d)*sc*k*a/wtP*g:0; if(x<0.3)frac.lt03++; else if(x<1)frac['03to1']++; else frac.ge1++;
+        if(k!==1)cond.add('時間帯係数'); if(a!==1)cond.add('学習'); if(g!==1)cond.add('天気イベント'); if(wl>0&&sc<wl)cond.add('撤退');
+        if(det.forced>0)cond.add(p.noStockout?'品切れ防止':'まとめ単位');
+      });
+      if(offs.length)cond.add('作らない時間帯あり'); if(/新商品$/.test(p.category))cond.add('新商品'); if(getBatchUnit(p)>1)cond.add('まとめ'+getBatchUnit(p)); if(p.noStockout)cond.add('品切れ防止ON');
+      const ji=(S.ji[p.id]||{}); const last=(ji.teika||0)+(ji.nebiki||0);
+      rows.push({name:p.name,cat:p.category,on,target:tgt(target),teika4:tgt(b&&b.teika),last,week,invest,cells,frac,offs,cond:[...cond]});
+    });
+    return {store:S.storeName,week:S.activeWeek,rows};
+  })()`;
+  async function run(data,label){
+    $('go-dev').disabled=$('go-file').disabled=true; $('out').innerHTML=''; $('src').textContent=label; $('sum').textContent='点検中…'; const all=[];
+    try{
+      for(const s of data.stores){
+        const w=await load('ff/index.html?embedded=1&mem=1&wait=1&a='+Date.now()); w.alert=()=>{}; w.confirm=()=>true;
+        await w.__v2go({stores:data.stores,current:s.id,states:data.states,setup:data.setup});
+        for(let i=0;i<100&&!w.__v2ready;i++)await sleep(100);
+        const r=w.eval(PROBE); r.storeName=s.name; all.push(r);
+      }
+      let nBad=0,nWarn=0,nProd=0; let html='';
+      all.forEach(r=>{
+        const rows=r.rows.filter(x=>x.on).map(x=>{ const pct=x.target>0?Math.round(x.week/x.target*100):null; const lastPct=x.last>0?Math.round(x.week/x.last*100):null;
+          const bad=(pct!==null&&Math.abs(pct-100)>20)||(x.target>0&&x.week===0)||(x.target===0&&x.week>0&&x.last>0); const warn=!bad&&lastPct!==null&&Math.abs(lastPct-100)>30; if(bad)nBad++; else if(warn)nWarn++; nProd++;
+          return Object.assign({pct,lastPct,bad,warn},x); }).sort((a,b)=>(b.bad-a.bad)||(b.warn-a.warn)||(Math.abs((b.pct||100)-100)-Math.abs((a.pct||100)-100)));
+        html+=`<h2 style="font-size:16px;margin:16px 0 4px">${esc(r.storeName)}　<span style="font-size:13px;color:#64748b">${esc(r.week)}週・${rows.length}商品（オフの商品は除く）</span></h2>`;
+        html+='<table><tr><th>商品</th><th>カテゴリ</th><th>週の目標</th><th>週合計</th><th>差</th><th>先週の販売</th><th>先週比</th><th>マスの小数 &lt;0.3／0.3〜1／≥1</th><th>作らない時間帯</th><th>効いている条件</th></tr>';
+        html+=rows.map(x=>`<tr class="${x.bad?'ng':x.warn?'warn':''}"><td>${esc(x.name)}</td><td>${esc(x.cat.replace('まちかど厨房','厨房'))}</td><td>${x.target}</td><td>${x.week}${x.invest?` <span class="tag">投資+${x.invest}</span>`:''}</td><td class="pct">${x.pct===null?'—':x.pct+'%'}</td><td>${x.last}</td><td class="pct">${x.lastPct===null?'—':x.lastPct+'%'}</td><td>${x.frac.lt03}／${x.frac['03to1']}／${x.frac.ge1}</td><td>${x.offs.length?x.offs.map(h=>h+'時').join('・'):'なし'}</td><td>${x.cond.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}</td></tr>`).join('');
+        html+='</table>';
+      });
+      $('out').innerHTML=html;
+      $('sum').innerHTML=`${all.length} 店舗・${nProd} 商品：<span style="color:#b91c1c">赤 ${nBad}</span>（目標との差 ±20% 超・目標ありで0・目標0で作成あり）／<span style="color:#b45309">黄 ${nWarn}</span>（先週の販売に対して ±30% 超）`;
+      window.__results={stores:all.length,products:nProd,bad:nBad,warn:nWarn,rows:all.map(r=>({store:r.storeName,n:r.rows.filter(x=>x.on).length}))};
+    }catch(e){ $('sum').textContent='途中で止まりました：'+(e&&e.message||e); }
+    finally{ $('f').src='about:blank'; $('go-dev').disabled=$('go-file').disabled=false; }
+  }
+  $('go-dev').addEventListener('click',()=>{ const d=fromObj(devSrc()); if(!d.stores.length){ $('sum').textContent='この端末には、いまのアプリの FF管理のデータが見つかりません。'; return; } run(d,'この端末のデータ'); });
+  $('go-file').addEventListener('click',()=>$('file').click());
+  $('file').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f)return; try{ run(fromObj(JSON.parse((await f.text()).replace(/^﻿/,''))),'ファイル：'+f.name); }catch(err){ $('sum').textContent='ファイルを読めませんでした：'+err.message; } e.target.value=''; });
+  window.__runUrl=async url=>run(fromObj(await (await fetch(url,{cache:'no-store'})).json()),'ファイル');
+})();
+</script>
+</body>
+</html>
