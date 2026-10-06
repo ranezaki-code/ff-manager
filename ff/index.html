@@ -634,8 +634,10 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
             <span style="font-size:11px;color:#64748b;margin-right:4px">カテゴリ：</span>
             <div id="rank-cat-row" style="display:flex;gap:4px;flex-wrap:wrap"></div>
           </div>
-          <!-- 指標切替 -->
-          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+          <!-- 総合／種類別 -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px;background:#f8fafc;border-radius:10px;margin-bottom:8px" id="rank-mode-row"></div>
+          <!-- 指標切替（種類別の時だけ） -->
+          <div id="rank-metric-row" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
             <span style="font-size:11px;color:#64748b;margin-right:4px">指標：</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px;background:#f8fafc;border-radius:10px">
               <button class="rank-chip active" data-metric="salesAmt" onclick="setRankMetric('salesAmt')">販売高</button>
@@ -2110,6 +2112,7 @@ function _merge3(local,remote,base,depth,path,conflicts){
   return local;
 }
 function saveS(){
+  if(typeof clearAllocCache==='function')clearAllocCache();   // 作成数の配り方の覚え書きを捨てる（設定が変わった直後の計算を新しくする）
   syncActiveWeek();
   const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
 
@@ -3408,6 +3411,41 @@ function roundCnt(v){
   return frac>=0.3?Math.ceil(v):Math.floor(v);
 }
 
+// ---------- 週単位の最大剰余法（2026-10-06 店長の決定：案B） ----------
+//   商品ごとに、週の全マス（曜日 × 作る時間帯）の取り分 x ＝ 週の目標 × その範囲の客数 × 時間帯係数 × 学習 × 天気調整 ÷ 分母 を小数のまま出す。
+//   週合計 T ＝ round(Σx)。各マスにまず整数部を配り、残り（T − Σ整数部）を小数部の大きいマスから1個ずつ配る
+//   （小数部が同じなら、週の早い曜日 → 早い時間帯）。→ 商品の週合計が 週の目標（調整込み）に必ず一致する。
+//   以前の「マスごとに 0.3以上は切り上げ」は使わない（週合計が目標を上回る原因だった）。
+//   撤退ライン・品切れ防止・まとめ単位・投資は、この後に今までどおりマスごとに掛ける（getProdCntDetail）。
+//   計算の結果は同じ処理の間だけ覚える（saveS と、処理が終わった直後に消す）。
+let _allocCache=new Map(), _allocClearQueued=false;
+function clearAllocCache(){ _allocCache.clear(); }
+function getProdWeekAlloc(pid){
+  const hit=_allocCache.get(pid); if(hit)return hit;
+  const a={};
+  const p=getP(pid), cfg=p&&S.catCfg[p.category];
+  if(p&&cfg){
+    const wt=getProdWeekTotalWeighted(p);
+    if(wt>0){
+      const ctD=[]; for(let d=0;d<7;d++)ctD[d]=getCorrTarget(pid,d);
+      const main=mainCatOf(p.category); const cells=[]; let sum=0, floors=0;
+      cfg.slots.forEach((h,si)=>{
+        if(!getSlotMake(p,h))return; const r=getProdSlotRange(p,h); if(!r)return; const k=getSlotCoef(p.category,h);
+        for(let d=0;d<7;d++){
+          let x=ctD[d]*getSlotCust(d,r[0],r[1])*k*getLearnAdj(pid,d,h)/wt*gaibuFactor(main,d,h); if(!isFinite(x)||x<0)x=0;
+          const f=Math.floor(x); a[d+'|'+h]=f; floors+=f; sum+=x; cells.push({d,h,si,frac:x-f});
+        }
+      });
+      let rest=Math.round(sum)-floors;
+      cells.sort((u,v)=>(v.frac-u.frac)||(u.d-v.d)||(u.si-v.si));
+      for(let i=0;i<cells.length&&rest>0;i++,rest--)a[cells[i].d+'|'+cells[i].h]+=1;
+    }
+  }
+  _allocCache.set(pid,a);
+  if(!_allocClearQueued){ _allocClearQueued=true; Promise.resolve().then(()=>{ _allocClearQueued=false; _allocCache.clear(); }); }
+  return a;
+}
+
 function stdDev(arr){
   const n=arr.length;if(!n)return 0;
   const mean=arr.reduce((a,b)=>a+b,0)/n;
@@ -3495,14 +3533,10 @@ function getProdCntDetail(pid,dayIdx,slotH){
   const noStockout=!!p.noStockout;        // 品切れ防止（算出0でも最低batch）
   const sc=getSlotCust(dayIdx,hs,he);
   // 時間帯配分の分母も「売っている時間」の客数（全時間帯の配分合計＝週目標）。
-  // 時間帯別購入率の係数(k)があれば「客数×係数」で配分、学習(adj)は完売/余りの記録でその時間帯だけ増減
-  const wt=getProdWeekTotalWeighted(p);                              // 分母も商品ごと（配分の合計＝週の目標）
-  const k=getSlotCoef(p.category,slotH);
-  const adj=getLearnAdj(pid,dayIdx,slotH);
-  const ct=getCorrTarget(pid,dayIdx);
-  // 週客数が無い(wt=0)時は自然算出0として続行（早期returnしない）→品切れ防止を効かせる
-  // 天気・イベント調整（③）：今開いている週のデータが無ければ必ず ×1（＝今までと同じ結果）
-  let natural=(wt>0)?roundCnt(ct*sc*k*adj/wt*gaibuFactor(mainCatOf(p.category),dayIdx,slotH)):0;
+  // 時間帯別購入率の係数(k)があれば「客数×係数」で配分、学習(adj)は完売/余りの記録でその時間帯だけ増減、
+  // 天気・イベント調整（③）は今開いている週のデータが無ければ必ず ×1。
+  // マスへの配り方は週単位の最大剰余法（getProdWeekAlloc：週合計＝週の目標）。週客数が無い(wt=0)時は自然算出0として続行（品切れ防止を効かせる）
+  let natural=getProdWeekAlloc(pid)[dayIdx+'|'+slotH]||0;
   // 損益分岐ガード（段階化）：品切れ防止ONならスキップ
   const wl=getWithdraw(pid);
   if(wl>0 && !noStockout){
@@ -3944,9 +3978,65 @@ function fmtPrevWeekShort(){
   if(!r)return '';
   return `${r.start.getMonth()+1}/${r.start.getDate()}〜${r.end.getMonth()+1}/${r.end.getDate()}`;
 }
+// ---------- 総合ランキング（2026-10-06 店長の決定）：全カテゴリ1つの表＋判定1語 ----------
+//   期間＝直近4週の合計（開いている週とそれより前の週。開いている週の実績は入力中の値）。
+//   判定：新商品カテゴリで実績のある週が4週未満 → 様子見（固定）／廃棄率10%以上 かつ 販売数が同じカテゴリのまん中より下 → カット候補／
+//         廃棄率10%以上 → 作成数を減らす／販売数がまん中より下 → 様子見／それ以外 → そのまま。計算式（作成数・予算）には触れない。
+const RANK_WASTE_LINE=0.10, RANK_NEW_WEEKS=4;
+let _rankMode='total', _rankSort={key:'sold',dir:-1};
+function setRankMode(m){ _rankMode=m; renderRanking(); }
+function setRankSort(k){ if(_rankSort.key===k)_rankSort.dir=-_rankSort.dir; else _rankSort={key:k,dir:(k==='name'?1:-1)}; renderRanking(); }
+// 直近4週の週キー（開いている週を含む、日付の順）
+function rankWeeks(){
+  const act=S.activeWeek, n=act?weekKeyNum(act):Infinity;
+  return sortWeekKeys(Object.keys(S.weeks||{}).filter(k=>weekKeyNum(k)<=n)).slice(-RANK_NEW_WEEKS);
+}
+function calcRank4w(pid){
+  const p=getP(pid); if(!p)return null;
+  let teika=0,nebiki=0,haiki=0,weeksWith=0;
+  rankWeeks().forEach(k=>{ const j=(k===S.activeWeek?S.ji:((S.weeks[k]||{}).ji||{}))[pid]; if(!j)return; const t=j.teika||0,nb=j.nebiki||0,h=j.haiki||0; teika+=t;nebiki+=nb;haiki+=h; if(t+nb+h>0)weeksWith++; });
+  const sold=teika+nebiki, made=sold+haiki;
+  const profit=teika*(p.shopPrice||0)+nebiki*((p.shopPrice||0)-(p.disc||0))-haiki*(p.cost||0)-sold*(p.cost||0);
+  return {p,teika,nebiki,haiki,sold,made,weeksWith,wasteRate:made?haiki/made:0,discRate:sold?nebiki/sold:0,profit};
+}
+function rankJudge(r,median){
+  if(r.p.category.endsWith('新商品')&&r.weeksWith<RANK_NEW_WEEKS)return {k:'watch',t:'様子見',why:`新商品（実績 ${r.weeksWith}週）`};
+  const low=r.sold<median, waste=r.wasteRate>=RANK_WASTE_LINE;
+  if(waste&&low)return {k:'cut',t:'カット候補',why:`廃棄${Math.round(r.wasteRate*100)}%・販売数がまん中（${median}）より下`};
+  if(waste)return {k:'reduce',t:'作成数を減らす',why:`廃棄${Math.round(r.wasteRate*100)}%`};
+  if(low)return {k:'watch',t:'様子見',why:`販売数がまん中（${median}）より下`};
+  return {k:'keep',t:'そのまま',why:''};
+}
+function renderRankingTotal(el){
+  const rows=(S.PM||[]).filter(p=>p.enabled&&S.catOn[p.category]&&(_rankCategory==='all'||p.category===_rankCategory)).map(p=>calcRank4w(p.id)).filter(r=>r&&r.made>0);
+  // まん中（中央値）は同じ主カテゴリの中で
+  const med={}; CATS.forEach(c=>{ const m=mainCatOf(c); if(med[m]!==undefined)return; const a=(S.PM||[]).filter(p=>p.enabled&&S.catOn[p.category]&&mainCatOf(p.category)===m).map(p=>calcRank4w(p.id)).filter(r=>r&&r.made>0).map(r=>r.sold).sort((x,y)=>x-y); med[m]=a.length?(a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2):0; });
+  rows.forEach(r=>{ r.j=rankJudge(r,med[mainCatOf(r.p.category)]||0); });
+  const key=_rankSort.key, dir=_rankSort.dir, ORD={cut:0,reduce:1,watch:2,keep:3};
+  const val=r=>key==='name'?r.p.name:key==='cat'?r.p.category:key==='judge'?ORD[r.j.k]:key==='waste'?r.wasteRate:key==='disc'?r.discRate:key==='profit'?r.profit:r.sold;
+  rows.sort((a,b)=>{ const x=val(a),y=val(b); if(typeof x==='string')return dir*x.localeCompare(y,'ja'); return dir*(x-y)||b.sold-a.sold; });
+  const nCut=rows.filter(r=>r.j.k==='cut').length, nRed=rows.filter(r=>r.j.k==='reduce').length, nWatch=rows.filter(r=>r.j.k==='watch').length;
+  const wk=rankWeeks();
+  const th=(k,l,tip)=>`<th onclick="setRankSort('${k}')" title="${tip||''}" style="cursor:pointer;white-space:nowrap;user-select:none">${l}${key===k?(dir<0?' ▼':' ▲'):''}</th>`;
+  const JC={cut:'background:#fee2e2;color:#991b1b',reduce:'background:#ffedd5;color:#9a3412',watch:'background:#fef9c3;color:#854d0e',keep:'background:#dcfce7;color:#166534'};
+  if(!rows.length){ el.innerHTML='<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;line-height:1.7">直近4週の実績がまだありません。<br>「📝 入力」タブで実績を入力すると、ここに表が出ます。</div>'; return; }
+  el.innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+      <span style="font-size:13px;font-weight:800;color:#991b1b;background:#fee2e2;border-radius:999px;padding:3px 12px">カット候補 ${nCut}品</span>
+      <span style="font-size:13px;font-weight:800;color:#9a3412;background:#ffedd5;border-radius:999px;padding:3px 12px">減らす ${nRed}品</span>
+      <span style="font-size:13px;font-weight:700;color:#854d0e;background:#fef9c3;border-radius:999px;padding:3px 12px">様子見 ${nWatch}品</span>
+      <span style="font-size:11px;color:#64748b;margin-left:auto">直近${wk.length}週の合計（${wk.map(k=>k.split('.').slice(1).join('/')).join('・')}）。列の見出しをタップで並べ替え</span>
+    </div>
+    <div class="overflow-auto"><table class="bd-table" style="font-size:12px"><thead><tr>${th('name','商品')}${th('cat','カテゴリ')}${th('sold','販売数','定価＋値引の販売数（直近4週）')}${th('waste','廃棄率','廃棄数 ÷ 作成数（定価＋値引＋廃棄）')}${th('disc','値引率','値引販売数 ÷ 販売数')}${th('profit','利益','販売高 − 廃棄の原価 − 売れた分の原価（いまの売価・原価で）')}${th('judge','判定','販売数が同じカテゴリのまん中より上か／廃棄率10%／新商品は実績4週未満なら様子見')}</tr></thead><tbody>
+      ${rows.map(r=>`<tr><td style="text-align:left;font-weight:600">${escapeHtmlP(r.p.name)}</td><td style="text-align:left;color:#64748b">${tCat(r.p.category)}</td><td>${r.sold}</td><td style="${r.wasteRate>=RANK_WASTE_LINE?'color:#b91c1c;font-weight:700':''}">${(r.wasteRate*100).toFixed(0)}%</td><td>${(r.discRate*100).toFixed(0)}%</td><td>${fmt(r.profit)}</td><td><span title="${escapeHtmlP(r.j.why)}" style="display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;white-space:nowrap;${JC[r.j.k]}">${r.j.t}</span></td></tr>`).join('')}
+    </tbody></table></div>
+    <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">判定の線：販売数＝同じカテゴリの中のまん中（中央値）より上か／廃棄率 10%／新商品は実績が4週未満なら「様子見」。判定をタップ（長押し）で理由。</div>`;
+}
 function renderRanking(){
   const el=document.getElementById('ranking-list');
   if(!el)return;
+  const modeBar=document.getElementById('rank-mode-row'); if(modeBar)modeBar.innerHTML=`<button class="rank-chip ${_rankMode==='total'?'active':''}" onclick="setRankMode('total')">総合（表・判定）</button><button class="rank-chip ${_rankMode==='metric'?'active':''}" onclick="setRankMode('metric')">種類別（1つの指標）</button>`;
+  const metricBar=document.getElementById('rank-metric-row'); if(metricBar)metricBar.style.display=_rankMode==='total'?'none':'';
   // タイトル更新（先週日付を表示）
   const titleEl=document.getElementById('ranking-title');
   if(titleEl){
@@ -3961,6 +4051,7 @@ function renderRanking(){
       activeCats.map(c=>`<button class="rank-cat-chip ${_rankCategory===c?'active':''}" data-cat="${c}" onclick="setRankCategory('${c}')">${tCat(c)}</button>`).join('');
   }
 
+  if(_rankMode==='total'){ renderRankingTotal(el); return; }   // 総合（既定）。種類別は今までどおり下へ
   const METRIC_INFO={
     salesAmt:{label:'販売高',unit:'円',isPercent:false,desc:'値引後実売上'},
     profit:{label:'利益額',unit:'円',isPercent:false,desc:'販売高 − 廃棄 − 原価'},
