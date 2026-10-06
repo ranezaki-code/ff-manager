@@ -28,10 +28,10 @@ th{background:var(--main-lt);font-weight:600;color:var(--main)}
 #header{background:var(--main);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px}
 #header h1{font-size:16px;flex:1}
 #header .store-name{font-size:12px;opacity:.8}
-#tabs{display:flex;overflow-x:auto;background:var(--main-dk);border-bottom:2px solid var(--accent)}
+#tabs{display:flex;overflow-x:auto;background:var(--main-dk);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:45}   /* ①〜⑥のタブは下に動かしても見える（2026-10-06 店長の要望） */
 .tab-btn{flex:none;padding:10px 14px;color:#fff;background:transparent;border:none;border-radius:0;font-size:13px;opacity:.7;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer}
 .tab-btn.active{opacity:1;border-bottom:3px solid var(--accent);background:rgba(33,150,243,.15)}
-#content{flex:1;padding:12px;overflow-x:hidden;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+#content{flex:1;padding:12px;overflow-x:clip;   /* hidden だと #content が「スクロールの入れ物」になり、中の曜日タブの sticky が効かない（2026-10-06） */ padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
 body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
@@ -249,7 +249,7 @@ body.has-bottombar #content{padding-bottom:calc(76px + env(safe-area-inset-botto
 /* 曜日タブ：スクロールしても常に見えるよう sticky で固定 */
 .day-tabs{
   display:flex;gap:4px;overflow-x:auto;align-items:flex-end;
-  position:sticky;top:0;z-index:40;
+  position:sticky;top:var(--tabs-h,42px);   /* ①〜⑥のタブの下に止まる（高さは起動時に測る） */z-index:40;
   background:#fff;padding:8px 4px 0 4px;margin:0 -4px 0 -4px;
   border-bottom:3px solid var(--main);
   box-shadow:0 4px 8px -4px rgba(15,23,42,.12);
@@ -3305,6 +3305,35 @@ function getCatSlotRange(cat,slotH){
   return [slotH,end];
 }
 
+// ---------- 商品ごとの「この作成で売る時間」（2026-10-06 店長の決定：案A） ----------
+//   商品が「作らない」にした時間帯のぶんの客数は、その前の「作る」時間帯に足す（配り残しを無くす）。
+//   足す上限は「定価で売れる時間」（FULLPRICE_HOURS。厨房は販売許容8時間のうち値引き2時間を除いた6時間）。
+//   どの時間帯もオフにしていない商品は、今までの getCatSlotRange と同じ結果（＝今までの答えが変わらない）。
+const FULLPRICE_HOURS = {'ホットFF':4,'常温FF':8,'中華まん':8,'まちかど厨房':6};
+function getProdSlotRange(p,slotH){
+  if(!p)return null;
+  const cat=p.category, cfg=S.catCfg[cat]; if(!cfg)return null;
+  const base=getCatSlotRange(cat,slotH); if(!base)return null;
+  const idx=cfg.slots.indexOf(slotH); if(idx<0)return null;
+  const n=cfg.slots.length; if(n<=1)return base;
+  // 次に「作る」時間帯（翌日に回ったら +24）。すぐ次が「作る」なら、今までどおり
+  let nextOn=null;
+  for(let i=1;i<n;i++){ const j=(idx+i)%n; const h=cfg.slots[j]+(idx+i>=n?24:0); if(getSlotMake(p,cfg.slots[j])){ nextOn=h; break; } }
+  if(nextOn===null)nextOn=slotH+24;                               // この商品が作るのは この時間帯だけ
+  const catNext=(idx+1<n)?cfg.slots[idx+1]:cfg.slots[0]+24;
+  if(nextOn===catNext)return base;
+  const cap=slotH+(FULLPRICE_HOURS[mainCatOf(cat)]||4);
+  return [slotH,Math.max(base[1],Math.min(nextOn,cap))];
+}
+// 商品ごとの、作る時間帯の範囲の客数（係数つき）の週合計＝時間帯配分の分母。オフが無い商品は getCatWeekTotalWeighted と同じ値
+function getProdWeekTotalWeighted(p){
+  const cfg=p&&S.catCfg[p.category]; if(!cfg)return 0; let s=0;
+  cfg.slots.forEach(h=>{ if(!getSlotMake(p,h))return; const r=getProdSlotRange(p,h); if(!r)return; const k=getSlotCoef(p.category,h); for(let d=0;d<7;d++)s+=getSlotCust(d,r[0],r[1])*k; });
+  return s;
+}
+// 画面の説明用：「10〜16時のぶん」
+function fmtProdRange(p,slotH){ const r=getProdSlotRange(p,slotH); return r?`${fmtHour(r[0])}〜${fmtHour(r[1])}`:''; }
+
 // ---------- カテゴリが「売っている時間」の客数（FF計画シートの「算出範囲」に相当） ----------
 // 作成時間帯ごとのカバー範囲（getCatSlotRange）の合計＝そのカテゴリの商品が実際に売られている時間の客数。
 // 購入率・ゆとり・撤退ライン・時間帯配分はすべてこの客数で計算する（深夜など売っていない時間の客数を混ぜない。
@@ -3462,14 +3491,14 @@ function getProdCntDetail(pid,dayIdx,slotH){
   const cfg=S.catCfg[p.category];if(!cfg)return ZERO;
   if(!cfg.slots.includes(slotH))return ZERO;
   if(!getSlotMake(p,slotH))return ZERO;   // 「作らない」時間帯 → 0
-  const range=getCatSlotRange(p.category,slotH);if(!range)return ZERO;
+  const range=getProdSlotRange(p,slotH);if(!range)return ZERO;   // 商品ごとの範囲（オフにした時間帯のぶんを前の作成に足す）
   const[hs,he]=range;
   const batch=getBatchUnit(p);
   const noStockout=!!p.noStockout;        // 品切れ防止（算出0でも最低batch）
   const sc=getSlotCust(dayIdx,hs,he);
   // 時間帯配分の分母も「売っている時間」の客数（全時間帯の配分合計＝週目標）。
   // 時間帯別購入率の係数(k)があれば「客数×係数」で配分、学習(adj)は完売/余りの記録でその時間帯だけ増減
-  const wt=getCatWeekTotalWeighted(p.category);
+  const wt=getProdWeekTotalWeighted(p);                              // 分母も商品ごと（配分の合計＝週の目標）
   const k=getSlotCoef(p.category,slotH);
   const adj=getLearnAdj(pid,dayIdx,slotH);
   const ct=getCorrTarget(pid,dayIdx);
@@ -3625,7 +3654,7 @@ function openCellMenu(pid,dayIdx,slotH){
   const plan=getProdCnt(pid,dayIdx,slotH)+getInvestExtra(pid,dayIdx,slotH);
   const li=getLearnInfo(pid,dayIdx,slotH);
   const k=getSlotCoef(p.category,slotH);
-  const wl=getWithdraw(pid), rg=getCatSlotRange(p.category,slotH), sc=rg?getSlotCust(dayIdx,rg[0],rg[1]):0;
+  const wl=getWithdraw(pid), rg=getProdSlotRange(p,slotH), sc=rg?getSlotCust(dayIdx,rg[0],rg[1]):0;
   const isSkip=wl>0&&sc<wl&&!(p.minCount||0);
   const row=(act,icon,label,desc,on,onColor)=>`<button type="button" data-act="${act}" onclick="cellMenuAct('${act}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;min-height:64px;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid ${on?onColor:'#e2e8f0'};background:${on?onColor+'1a':'#fff'}">
       <span style="font-size:26px;flex-shrink:0;width:34px;text-align:center;color:${onColor}">${icon}</span>
@@ -3639,7 +3668,7 @@ function openCellMenu(pid,dayIdx,slotH){
   const adjTxt=li.adj!==1?`今週のこのマスは <b>${li.adj>1?'+':''}${Math.round((li.adj-1)*100)}%</b> 調整中`:'今週のこのマスへの調整はなし';
   m.innerHTML=`<div style="background:#fff;border-radius:16px;padding:18px;width:100%;max-width:420px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box;margin:auto">
     <div style="font-weight:800;font-size:17px;color:#0f172a">${escapeHtmlP(p.name)}</div>
-    <div style="font-size:13px;color:#64748b;margin:2px 0 14px">${DAYS[dayIdx]}曜 ${fmtHour(slotH)} 作成　計画 <b style="color:#1d4ed8;font-size:15px">${isSkip?'—':plan}</b>${isSkip?'':'個'}${soSum?`　＋追加 <b>${soSum}</b>個`:''}</div>
+    <div style="font-size:13px;color:#64748b;margin:2px 0 14px">${DAYS[dayIdx]}曜 ${fmtHour(slotH)} 作成（${fmtProdRange(p,slotH)}のぶん）　計画 <b style="color:#1d4ed8;font-size:15px">${isSkip?'—':plan}</b>${isSkip?'':'個'}${soSum?`　＋追加 <b>${soSum}</b>個`:''}</div>
     ${rows}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
       完売・余りの記録は、同じ曜日・同じ時間帯で<b>直近4週のうち2週以上続いた時だけ</b>、来週以降の数を自動で増減します（1回だけなら変わりません）<br>
@@ -7295,7 +7324,7 @@ function renderProdDayContent(dayIdx){
         const checked=!!S.checks[chkKey];
         const skipped=!!(S.skipped&&S.skipped[chkKey]); // 在庫切れ等で「作れなかった」
         const wl=getWithdraw(p.id);
-        const range=getCatSlotRange(cat,slotH);
+        const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲
         const sc=range?getSlotCust(dayIdx,range[0],range[1]):0;
         const isSkip=wl>0&&sc<wl&&!(p.minCount||0);
         const mdTime=getMarkdownTime(cat,slotH);
@@ -7308,6 +7337,8 @@ function renderProdDayContent(dayIdx){
         const leftover=!!(S.leftovers&&S.leftovers[chkKey]);
         // ツールチップで詳細情報（基準作成数・差分・最低引出客数・値引時間）を表示
         const tip=`【${p.name} ${SLOT_LABELS[slotH]}】\n`+
+          `この作成で売る時間：${fmtProdRange(p,slotH)}のぶん
+`+
           `作成数：${isSkip?'なし':totalCnt}個${extra>0?`（通常${cnt}＋投資${extra}）`:''}\n`+
           `基準作成数：${baseCnt}個（実績×客数比）\n`+
           `基準との差：${diff>0?'+'+diff:diff}\n`+
@@ -7601,7 +7632,7 @@ function soDispersion(cat){
 //   nowH＝「完売した」を押した時刻（時）、leadMin＝追加分が売場に並ぶまでの分（ボタンで選ぶ）
 function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin){
   const p=getP(pid);if(!p)return{error:t('sold.errProd')};
-  const range=getCatSlotRange(p.category,slotH);
+  const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲（この商品が次に作る時間帯まで。2026-10-06）
   if(!range)return{error:t('so2.errRange')};
   const cfg=S.catCfg[p.category]||{};
   const main=mainCatOf(p.category);
@@ -10335,5 +10366,6 @@ function fmt(n){return Math.round(n).toLocaleString('ja-JP');}
 </script>
 <!-- 印刷専用（作成表を時間帯ごとにA4縦1枚で出力） -->
 <div id="print-area"></div>
+<script id="tabs-h">/* ①〜⑥のタブの高さを測って、曜日タブが止まる位置（--tabs-h）に入れる */(function(){function f(){var t=document.getElementById("tabs");if(t)document.documentElement.style.setProperty("--tabs-h",t.offsetHeight+"px");}f();window.addEventListener("resize",f);setTimeout(f,600);setTimeout(f,2500);})();</script>
 </body>
 </html>
