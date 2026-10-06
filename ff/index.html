@@ -3629,7 +3629,7 @@ function getInvestDays(pid){
   if(Array.isArray(v))return v;
   return [0,1,2,3,4,5,6];
 }
-// 投資/新商品の1スロットあたり追加作成数を返す（perDay個/日をスロット数で均等分配）
+// 投資/新商品の1スロットあたり追加作成数を返す（perDay個/日を、時間帯の客数×係数の割合で配る。getInvestExtra／_investSplit）
 // 完売後の追加作成（採用済みイベント）の合計個数
 function getSoldOutTotal(pid,dayIdx,slotH){
   const arr=(S.soldOuts||{})[`${dayIdx}_${slotH}_${pid}`]||[];
@@ -3819,18 +3819,27 @@ function getInvestExtra(pid,dayIdx,slotH){
   }
   const perDay=isInvest?(S.budget.investCounts[p.id]||0):(S.budget.newProductCounts[p.id]||0);
   if(!perDay)return 0;
-  // 置く先は「作る」時間帯だけ（均等に割り、余りは早い時間帯から）
+  // 置く先は「作る」時間帯だけ。配り方（2026-10-06 店長の承認。以前は均等＋余りは早い時間帯から）：
+  //   時間帯ごとの「範囲の客数 × 時間帯の購入率の係数」の割合で配る（既存商品の自然算出と同じ考え方）。整数化は最大剰余法。
+  //   まとめ単位がある時は、まとめ単位の数で同じ配り方。今週のマス目に手で入れた商品はここに来ない（上で返している）。
   const slots=getInvestSlots(p);
   const slotIdx=slots.indexOf(slotH);if(slotIdx<0)return 0;
-  const numSlots=slots.length;
   const batch=getBatchUnit(p);
-  if(batch>1){
-    // 最低作成数(バッチ)単位で配分：各スロットは batch の倍数になる（自然算出も batch 倍数なので合計が奇数化しない）
-    const totalBatches=Math.round(perDay/batch);
-    return (Math.floor(totalBatches/numSlots)+(slotIdx<(totalBatches%numSlots)?1:0))*batch;
-  }
-  // perDay個をnumSlotsスロットに均等配分（余りは前スロットへ）
-  return Math.floor(perDay/numSlots)+(slotIdx<(perDay%numSlots)?1:0);
+  const units=batch>1?Math.round(perDay/batch):perDay;   // 配る単位の数（まとめ単位なら「何まとめ」）
+  return _investSplit(p,dayIdx,slots,units)[slotIdx]*(batch>1?batch:1);
+}
+// 1日ぶんの投資の数 units を、時間帯 slots に「範囲の客数×係数」の割合で配る（最大剰余法：切り捨て → 小数部の大きい順に1個ずつ、同点は早い時間帯）。
+// 客数が未入力の曜日は custEff の補い（getSlotCust の中）を使う。全時間帯の重みが0なら今までどおり均等。合計は必ず units。
+function _investSplit(p,dayIdx,slots,units){
+  const n=slots.length, out=new Array(n).fill(0); if(!n||!(units>0))return out;
+  let w=slots.map(h=>{ const r=getProdSlotRange(p,h); const sc=r?getSlotCust(dayIdx,r[0],r[1]):0; const v=sc*getSlotCoef(p.category,h); return isFinite(v)&&v>0?v:0; });
+  let tot=w.reduce((a,b)=>a+b,0);
+  if(!(tot>0)){ w=w.map(()=>1); tot=n; }
+  let rest=units; const cells=[];
+  w.forEach((v,i)=>{ const x=units*v/tot, f=Math.floor(x); out[i]=f; rest-=f; cells.push({i,frac:x-f}); });
+  cells.sort((a,b)=>(b.frac-a.frac)||(a.i-b.i));
+  for(let k=0;k<cells.length&&rest>0;k++,rest--)out[cells[k].i]+=1;
+  return out;
 }
 
 // 投資追加の提案値（1日あたり個数）を返す
@@ -8536,7 +8545,7 @@ function renderNewProductBudgetTable(maxBudget){
   const totalCnt=prods.reduce((s,p)=>s+(investGridOf(p.id)?0:(S.budget.newProductCounts[p.id]||0)),0);
   const over=totalAmt>maxBudget;
   let html=`<div style="font-size:11px;color:#666;margin-bottom:6px">
-    📝 1日あたりの追加作成数を入力してください。<b>④作成表に黄色で反映</b>されます。
+    📝 1日あたりの追加作成数を入力してください。<b>④作成表に黄色で反映</b>されます。時間帯は客数と売れ方の係数で配ります（マス目で入れた商品はそのまま）。
     <button onclick="suggestAllNewCounts()" style="margin-left:8px;padding:3px 10px;font-size:11px;background:var(--main);color:#fff;border:none;border-radius:6px;cursor:pointer">🤖 全商品提案</button>
   </div>
   <table><thead><tr>
@@ -8593,7 +8602,7 @@ function renderInvestBudgetTable(maxBudget,newBudgetFormal){
   const availMax=Math.max(0,maxBudget-newBudgetFormal);
   const over=totalAmt>availMax;
   let html=`<div style="font-size:11px;color:#666;margin-bottom:6px">
-    📝 1日あたりの追加作成数と<b>対象曜日</b>を選択してください。<b>④作成表に黄色で反映</b>されます。
+    📝 1日あたりの追加作成数と<b>対象曜日</b>を選択してください。<b>④作成表に黄色で反映</b>されます。時間帯は客数と売れ方の係数で配ります（マス目で入れた商品はそのまま）。
     <button onclick="suggestAllInvestCounts()" style="margin-left:8px;padding:3px 10px;font-size:11px;background:var(--orange);color:#fff;border:none;border-radius:6px;cursor:pointer">🤖 全商品提案</button>
   </div>
   <table><thead><tr>
