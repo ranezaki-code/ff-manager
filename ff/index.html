@@ -396,6 +396,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   .ptbl td.pname{font-size:15px;font-weight:600;word-break:break-word}
   .ptbl td.pname .pgb{font-size:10px;font-weight:700;color:#166534;border:1px solid #16a34a;border-radius:4px;padding:0 3px;margin-left:4px;white-space:nowrap}
   .ptbl td.pname .pth{font-size:11px;font-weight:700;color:#7c2d12;border:1px solid #fdba74;border-radius:4px;padding:0 4px;margin-left:4px;white-space:nowrap}
+  .ptbl td.pname .pwd{font-size:10px;font-weight:700;color:#6b21a8;border:1px solid #d8b4fe;border-radius:4px;padding:0 3px;margin-left:4px;white-space:nowrap}
   .ptbl td.pcnt{font-size:18px;font-weight:800;color:#111;width:92px}
   .ptbl td.pchk{font-size:18px;color:#999;width:58px}
   .pptbl td.pp-l{font-size:13px;font-weight:700;color:#7c2d12;width:82px;vertical-align:top;padding:5px 8px;border-bottom:1px solid #f0e4cf}
@@ -3530,6 +3531,33 @@ function getWithdraw(pid){
   if(!rate)return 0;
   return (p.cost/p.shopPrice)/rate;
 }
+// ---------- 撤退ラインの印（2026-10-06 店長の決定 B：数は減らさず印だけ） ----------
+//   そのマスの「売る範囲の客数」が撤退客数（原価率÷購入率＝1個売るのに要る客数）より少なければ「撤退ライン以下」。
+//   縮小ループの歯止め：直近4週（計画週より前）にその商品に完売（🔔）の記録が1つでもあれば、印は出さない。
+let _wdSoldCache=new Map(), _wdSoldClearQueued=false;
+function _wdSoldRecent(pid){
+  if(_wdSoldCache.has(pid))return _wdSoldCache.get(pid);
+  const p=getP(pid), cfg=p&&S.catCfg[p.category]; let hit=false;
+  if(cfg){ for(let d=0;d<7&&!hit;d++)cfg.slots.forEach(h=>{ if(!hit&&getLearnInfo(pid,d,h).so>0)hit=true; }); }
+  _wdSoldCache.set(pid,hit);
+  if(!_wdSoldClearQueued){ _wdSoldClearQueued=true; Promise.resolve().then(()=>{ _wdSoldClearQueued=false; _wdSoldCache.clear(); }); }
+  return hit;
+}
+function withdrawInfo(pid,dayIdx,slotH){
+  const p=getP(pid); const out={below:false,wl:0,sc:0,sold:false};
+  if(!p||!p.enabled||!S.catOn[p.category])return out;
+  const cfg=S.catCfg[p.category]; if(!cfg||!cfg.slots.includes(slotH)||!getSlotMake(p,slotH))return out;
+  const wl=getWithdraw(pid); if(!(wl>0))return out;
+  const r=getProdSlotRange(p,slotH); const sc=r?getSlotCust(dayIdx,r[0],r[1]):0;
+  out.wl=wl; out.sc=sc; out.sold=_wdSoldRecent(pid);
+  out.below=sc<wl&&!out.sold;
+  return out;
+}
+function withdrawText(w){ return `撤退ライン以下：客数${Math.round(w.sc)}人 ＜ 撤退客数${Math.round(w.wl)}人（原価を回収しにくい時間帯）`; }
+// マスの左下の小さな印（調整の印＝左上、サーマル＝右上と重ねない）
+function withdrawBadge(w,abs){ if(!w||!w.below)return ''; return `<span title="${withdrawText(w)}" style="${abs?'position:absolute;left:2px;bottom:2px;z-index:1;':''}font-size:9px;font-weight:800;color:#6b21a8;background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:0 3px;white-space:nowrap;line-height:1.4">⤵撤退</span>`; }
+// 週のマスのうち撤退ライン以下の割合（ランキングの表示用）
+function withdrawRatio(pid){ const p=getP(pid), cfg=p&&S.catCfg[p.category]; if(!cfg)return 0; let n=0,b=0; for(let d=0;d<7;d++)cfg.slots.forEach(h=>{ if(!getSlotMake(p,h))return; n++; if(withdrawInfo(pid,d,h).below)b++; }); return n?b/n:0; }
 
 // ==== 商品の最低作成 ====
 // 2つの独立した設定：
@@ -3568,15 +3596,8 @@ function getProdCntDetail(pid,dayIdx,slotH){
   // 天気・イベント調整（③）は今開いている週のデータが無ければ必ず ×1。
   // マスへの配り方は週単位の最大剰余法（getProdWeekAlloc：週合計＝週の目標）。週客数が無い(wt=0)時は自然算出0として続行（品切れ防止を効かせる）
   let natural=getProdWeekAlloc(pid)[dayIdx+'|'+slotH]||0;
-  // 損益分岐ガード（段階化）：品切れ防止ONならスキップ
-  const wl=getWithdraw(pid);
-  if(wl>0 && !noStockout){
-    if(sc < wl*0.5){
-      natural=0;
-    } else if(sc < wl){
-      natural=Math.floor(natural*(sc/wl));
-    }
-  }
+  // 撤退ライン（2026-10-06 店長の決定 B）：数は減らさず、印で知らせるだけ（withdrawInfo／withdrawBadge）。
+  //   以前は sc<撤退客数×0.5 で 0、sc<撤退客数 で比例して減らしていた。撤退客数を4週平均にしたら週0になる商品が出たため、減らすのを止めた。
   let total=natural;
   if(total===0 && noStockout) total=batch;   // 品切れ防止：算出0でも最低batch
   if(total>0 && batch>1) total=Math.ceil(total/batch)*batch;  // バッチ単位で切上
@@ -3717,8 +3738,8 @@ function openCellMenu(pid,dayIdx,slotH){
   const plan=getProdCnt(pid,dayIdx,slotH)+getInvestExtra(pid,dayIdx,slotH);
   const li=getLearnInfo(pid,dayIdx,slotH);
   const k=getSlotCoef(p.category,slotH);
-  const wl=getWithdraw(pid), rg=getProdSlotRange(p,slotH), sc=rg?getSlotCust(dayIdx,rg[0],rg[1]):0;
-  const isSkip=wl>0&&sc<wl&&!(p.minCount||0);
+  const wd=withdrawInfo(pid,dayIdx,slotH);
+  const isSkip=false;   // 撤退ラインは印だけ（2026-10-06 店長の決定 B）。数は減らさない
   const row=(act,icon,label,desc,on,onColor)=>`<button type="button" data-act="${act}" onclick="cellMenuAct('${act}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;min-height:64px;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid ${on?onColor:'#e2e8f0'};background:${on?onColor+'1a':'#fff'}">
       <span style="font-size:26px;flex-shrink:0;width:34px;text-align:center;color:${onColor}">${icon}</span>
       <span style="flex:1;min-width:0"><span style="display:block;font-size:16px;font-weight:800;color:#0f172a">${label}</span><span style="display:block;font-size:12px;color:#64748b;line-height:1.5;margin-top:2px">${desc}</span></span>
@@ -3735,7 +3756,7 @@ function openCellMenu(pid,dayIdx,slotH){
     ${rows}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
       完売・余りの記録は、同じ曜日・同じ時間帯で<b>直近4週のうち2週以上続いた時だけ</b>、来週以降の数を自動で増減します（1回だけなら変わりません）<br>
-      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>${gaibuWhy(p.category,dayIdx,slotH)?`　理由：${escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))}`:''}（③のタブで変えられます）`:''}
+      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${wd.below?`<br><span style="color:#6b21a8;font-weight:700">⤵ ${withdrawText(wd)}</span>`:''}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>${gaibuWhy(p.category,dayIdx,slotH)?`　理由：${escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))}`:''}（③のタブで変えられます）`:''}
     </div>
     <button type="button" onclick="closeCellMenu()" style="width:100%;margin-top:12px;padding:13px;font-size:15px;font-weight:700;border:none;border-radius:10px;background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit">閉じる</button>
   </div>`;
@@ -4037,7 +4058,7 @@ function calcRank4w(pid){
   rankWeeks().forEach(k=>{ const j=(k===S.activeWeek?S.ji:((S.weeks[k]||{}).ji||{}))[pid]; if(!j)return; const t=j.teika||0,nb=j.nebiki||0,h=j.haiki||0; teika+=t;nebiki+=nb;haiki+=h; if(t+nb+h>0)weeksWith++; });
   const sold=teika+nebiki, made=sold+haiki;
   const profit=teika*(p.shopPrice||0)+nebiki*((p.shopPrice||0)-(p.disc||0))-haiki*(p.cost||0)-sold*(p.cost||0);
-  return {p,teika,nebiki,haiki,sold,made,weeksWith,wasteRate:made?haiki/made:0,discRate:sold?nebiki/sold:0,profit};
+  return {p,teika,nebiki,haiki,sold,made,weeksWith,wasteRate:made?haiki/made:0,discRate:sold?nebiki/sold:0,profit,wdRatio:withdrawRatio(pid)};
 }
 function rankJudge(r,median){
   if(r.p.category.endsWith('新商品')&&r.weeksWith<RANK_NEW_WEEKS)return {k:'watch',t:'様子見',why:`新商品（実績 ${r.weeksWith}週）`};
@@ -4053,7 +4074,7 @@ function renderRankingTotal(el){
   const med={}; CATS.forEach(c=>{ const m=mainCatOf(c); if(med[m]!==undefined)return; const a=(S.PM||[]).filter(p=>p.enabled&&S.catOn[p.category]&&mainCatOf(p.category)===m).map(p=>calcRank4w(p.id)).filter(r=>r&&r.made>0).map(r=>r.sold).sort((x,y)=>x-y); med[m]=a.length?(a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2):0; });
   rows.forEach(r=>{ r.j=rankJudge(r,med[mainCatOf(r.p.category)]||0); });
   const key=_rankSort.key, dir=_rankSort.dir, ORD={cut:0,reduce:1,watch:2,keep:3};
-  const val=r=>key==='name'?r.p.name:key==='cat'?r.p.category:key==='judge'?ORD[r.j.k]:key==='waste'?r.wasteRate:key==='disc'?r.discRate:key==='profit'?r.profit:r.sold;
+  const val=r=>key==='name'?r.p.name:key==='cat'?r.p.category:key==='judge'?ORD[r.j.k]:key==='waste'?r.wasteRate:key==='disc'?r.discRate:key==='profit'?r.profit:key==='wd'?r.wdRatio:r.sold;
   rows.sort((a,b)=>{ const x=val(a),y=val(b); if(typeof x==='string')return dir*x.localeCompare(y,'ja'); return dir*(x-y)||b.sold-a.sold; });
   const nCut=rows.filter(r=>r.j.k==='cut').length, nRed=rows.filter(r=>r.j.k==='reduce').length, nWatch=rows.filter(r=>r.j.k==='watch').length;
   const wk=rankWeeks();
@@ -4067,8 +4088,8 @@ function renderRankingTotal(el){
       <span style="font-size:13px;font-weight:700;color:#854d0e;background:#fef9c3;border-radius:999px;padding:3px 12px">様子見 ${nWatch}品</span>
       <span style="font-size:11px;color:#64748b;margin-left:auto">直近${wk.length}週の合計（${wk.map(k=>k.split('.').slice(1).join('/')).join('・')}）。列の見出しをタップで並べ替え</span>
     </div>
-    <div class="overflow-auto"><table class="bd-table" style="font-size:12px"><thead><tr>${th('name','商品')}${th('cat','カテゴリ')}${th('sold','販売数','定価＋値引の販売数（直近4週）')}${th('waste','廃棄率','廃棄数 ÷ 作成数（定価＋値引＋廃棄）')}${th('disc','値引率','値引販売数 ÷ 販売数')}${th('profit','利益','販売高 − 廃棄の原価 − 売れた分の原価（いまの売価・原価で）')}${th('judge','判定','販売数が同じカテゴリのまん中より上か／廃棄率10%／新商品は実績4週未満なら様子見')}</tr></thead><tbody>
-      ${rows.map(r=>`<tr><td style="text-align:left;font-weight:600">${escapeHtmlP(r.p.name)}</td><td style="text-align:left;color:#64748b">${tCat(r.p.category)}</td><td>${r.sold}</td><td style="${r.wasteRate>=RANK_WASTE_LINE?'color:#b91c1c;font-weight:700':''}">${(r.wasteRate*100).toFixed(0)}%</td><td>${(r.discRate*100).toFixed(0)}%</td><td>${fmt(r.profit)}</td><td><span title="${escapeHtmlP(r.j.why)}" style="display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;white-space:nowrap;${JC[r.j.k]}">${r.j.t}</span></td></tr>`).join('')}
+    <div class="overflow-auto"><table class="bd-table" style="font-size:12px"><thead><tr>${th('name','商品')}${th('cat','カテゴリ')}${th('sold','販売数','定価＋値引の販売数（直近4週）')}${th('waste','廃棄率','廃棄数 ÷ 作成数（定価＋値引＋廃棄）')}${th('disc','値引率','値引販売数 ÷ 販売数')}${th('profit','利益','販売高 − 廃棄の原価 − 売れた分の原価（いまの売価・原価で）')}${th('wd','撤退以下','今週の作成表のマスのうち、範囲の客数が撤退客数より少ないマスの割合（表示だけ。判定には使わない。直近4週に完売があれば0%）')}${th('judge','判定','販売数が同じカテゴリのまん中より上か／廃棄率10%／新商品は実績4週未満なら様子見')}</tr></thead><tbody>
+      ${rows.map(r=>`<tr><td style="text-align:left;font-weight:600">${escapeHtmlP(r.p.name)}</td><td style="text-align:left;color:#64748b">${tCat(r.p.category)}</td><td>${r.sold}</td><td style="${r.wasteRate>=RANK_WASTE_LINE?'color:#b91c1c;font-weight:700':''}">${(r.wasteRate*100).toFixed(0)}%</td><td>${(r.discRate*100).toFixed(0)}%</td><td>${fmt(r.profit)}</td><td style="${r.wdRatio>=0.5?'color:#6b21a8;font-weight:700':''}">${(r.wdRatio*100).toFixed(0)}%</td><td><span title="${escapeHtmlP(r.j.why)}" style="display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;white-space:nowrap;${JC[r.j.k]}">${r.j.t}</span></td></tr>`).join('')}
     </tbody></table></div>
     <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">判定の線：販売数＝同じカテゴリの中のまん中（中央値）より上か／廃棄率 10%／新商品は実績が4週未満なら「様子見」。判定をタップ（長押し）で理由。</div>`;
 }
@@ -6739,7 +6760,7 @@ function printMakePlan(){
         </div>
         <table class="ptbl">
           <thead><tr><th class="pname">商品名</th><th class="pcnt">作成数</th><th class="pchk">作成</th></tr></thead>
-          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}${(()=>{ const g=gaibuPct(cat,di,slotH); return g?` <span class="pgb">調整 ${_gbFmt(g)}</span>`:''; })()}${hasThermal(o.p)&&(o.p.thermalNo||'').trim()?` <span class="pth">No.${escapeHtmlP(o.p.thermalNo)}</span>`:''}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
+          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}${(()=>{ const g=gaibuPct(cat,di,slotH); return g?` <span class="pgb">調整 ${_gbFmt(g)}</span>`:''; })()}${hasThermal(o.p)&&(o.p.thermalNo||'').trim()?` <span class="pth">No.${escapeHtmlP(o.p.thermalNo)}</span>`:''}${withdrawInfo(o.p.id,di,slotH).below?` <span class="pwd">⤵撤退</span>`:''}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
         </table>
       </div>`;
     });
@@ -7472,7 +7493,8 @@ function renderProdDayContent(dayIdx){
         const wl=getWithdraw(p.id);
         const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲
         const sc=range?getSlotCust(dayIdx,range[0],range[1]):0;
-        const isSkip=wl>0&&sc<wl&&!(p.minCount||0);
+        const wd=withdrawInfo(p.id,dayIdx,slotH);
+        const isSkip=false;   // 撤退ラインは印だけ（2026-10-06 店長の決定 B）。数は減らさない・「—」にしない
         const mdTime=getMarkdownTime(cat,slotH);
         const baseJi=S.ji[p.id]?.teika||0;
         const wkTotal=getCatWeekTotal(cat)||1;
@@ -7491,7 +7513,7 @@ function renderProdDayContent(dayIdx){
           (slotK!==1?`時間帯購入率の係数：×${slotK.toFixed(2)}\n`:'')+
           (learnAdj!==1?`学習（完売/余り）：×${learnAdj.toFixed(2)}\n`:'')+
           (gaibuPct(cat,dayIdx,slotH)?`天気・イベント調整：${_gbFmt(gaibuPct(cat,dayIdx,slotH))}\n`:'')+
-          `最低引出客数：${Math.round(wl)}人（実客${sc}人 / ${wl>0&&sc>=wl?'OK':'不足'}）\n`+
+          `撤退客数：${Math.round(wl)}人（この範囲の客数${Math.round(sc)}人${wd.below?' → 撤退ライン以下（数は減らしていません）':wd.sold?' / 直近4週に完売あり':wl>0?' / OK':''}）\n`+
           (discOn?`値引開始：${fmtHour(mdTime)}`:`値引：なし（この曜日は値引OFF）`);
         // 完売イベント（追加作成履歴）
         const soEvents=getSoldOutEvents(p.id,dayIdx,slotH);
@@ -7509,7 +7531,7 @@ function renderProdDayContent(dayIdx){
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
         const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
         // マスは「数字（タップ＝記録メニュー）」と「完了チェック」だけ。完売／余り／在庫欠品は openCellMenu の文字つきボタンで記録
-        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':gaibuCellBadge(cat,dayIdx,slotH,true)+thermalBadge(p,true,true)}${isZero?'':`
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':gaibuCellBadge(cat,dayIdx,slotH,true)+thermalBadge(p,true,true)+withdrawBadge(wd,true)}${isZero?'':`
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
             <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${dayIdx},${slotH})" aria-label="${escapeHtmlP(p.name)} ${fmtHour(slotH)} の記録メニュー">
               <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>

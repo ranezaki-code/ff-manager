@@ -51,7 +51,7 @@ iframe{width:0;height:0;border:0;position:absolute;left:-9999px}
         const det=getProdCntDetail(p.id,d,h); week+=det.total; invest+=getInvestExtra(p.id,d,h);
         const r=getProdSlotRange(p,h); const sc=r?getSlotCust(d,r[0],r[1]):0; const k=getSlotCoef(p.category,h), a=getLearnAdj(p.id,d,h), g=gaibuFactor(mainCatOf(p.category),d,h);
         const x=wtP>0?getCorrTarget(p.id,d)*sc*k*a/wtP*g:0; if(x<0.3)frac.lt03++; else if(x<1)frac['03to1']++; else frac.ge1++;
-        if(k!==1)cond.add('時間帯係数'); if(a!==1)cond.add('学習'); if(g!==1)cond.add('天気イベント'); if(wl>0&&sc<wl)cond.add('撤退');
+        if(k!==1)cond.add('時間帯係数'); if(a!==1)cond.add('学習'); if(g!==1)cond.add('天気イベント'); if(wl>0&&sc<wl)cond.add(typeof withdrawInfo==='function'?(withdrawInfo(p.id,d,h).below?'撤退（印）':'撤退（完売ありで印なし）'):'撤退');
         if(det.forced>0)cond.add(p.noStockout?'品切れ防止':'まとめ単位');
       });
       if(offs.length)cond.add('作らない時間帯あり'); if(/新商品$/.test(p.category))cond.add('新商品'); if(getBatchUnit(p)>1)cond.add('まとめ'+getBatchUnit(p)); if(p.noStockout)cond.add('品切れ防止ON');
