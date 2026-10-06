@@ -721,8 +721,8 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         </div>
       </div>
 
-      <!-- 当週の施策カード -->
-      <div class="card">
+      <!-- 当週の施策カード（2026-10-06 店長の決定：名残は非表示。コードとデータは残す） -->
+      <div class="card legacy-hidden" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
           <div class="section-title" style="margin:0">📋 当週の施策</div>
           <button class="btn-primary" style="padding:6px 14px;font-size:13px" onclick="add施策()">＋ 施策を追加</button>
@@ -743,7 +743,8 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         <div class="day-tabs" id="ext-day-tabs"></div>
         <div id="ext-day-content"></div>
       </div>
-      <div class="card">
+      <!-- カテゴリ別投資ルール（2026-10-06 店長の決定：名残は非表示。実データ0件。コードとデータは残す） -->
+      <div class="card legacy-hidden" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
           <div class="section-title" style="margin:0">カテゴリ別投資ルール</div>
           <div style="display:flex;gap:6px">
@@ -835,7 +836,8 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
           <div class="section-title">📈 投資・新商品の予算</div>
           <div id="bud-invest-tables"></div>
         </div>
-        <div class="card">
+        <!-- Gist 同期（2026-10-06 店長の決定：名残は非表示。v2 では動かない。コードは残す） -->
+        <div class="card legacy-hidden" style="display:none">
           <div class="section-title">☁️ クラウド同期（GitHub Gist）</div>
           <div id="gist-sync-panel"></div>
         </div>
@@ -844,10 +846,11 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
           <div class="flex gap-2 flex-wrap">
             <button class="btn-primary" onclick="exportData()">エクスポート</button>
             <button class="btn-secondary" onclick="importData()">インポート</button>
-            <button class="btn-success" onclick="openRecoveryModal()" title="自動バックアップから過去のデータに戻す">🛟 データ復元</button>
+            <!-- 端末内の自動バックアップからの復元（2026-10-06 店長の決定：名残は非表示。v2 の履歴が代わり。コードは残す） -->
+            <button class="btn-success legacy-hidden" style="display:none" onclick="openRecoveryModal()" title="自動バックアップから過去のデータに戻す">🛟 データ復元</button>
             <button class="btn-danger" onclick="resetSetup()">店舗設定をリセット</button>
           </div>
-          <div style="margin-top:8px;font-size:11px;color:#6b7280;line-height:1.6">
+          <div class="legacy-hidden" style="display:none;margin-top:8px;font-size:11px;color:#6b7280;line-height:1.6">
             自動バックアップ：保存のたびに最大1分間隔でスナップショット（端末内に20件＋IndexedDBに30件）。<br>
             リセット・インポート・取得の直前にも退避を作成しています。誤操作で消えた時は「🛟 データ復元」から戻せます。
           </div>
@@ -3465,16 +3468,10 @@ function getCorrTarget(pid,dayIdx){
   // 週の目標＝定価販売数（直近4週平均）＋ゆとり（getWeekTargetBase：シートの式）
   const b=getWeekTargetBase(pid);if(!b||!b.wt)return 0;
   const teika=b.teika, slack=b.slack;
-  // 週次目標の下限：1日あたり「有効な最低作成数の合計」×7日
-  // 全スロットOFFなら下限=0、有効slot数だけ加算される
-  const _cfg=S.catCfg[p.category];
-  // 週次目標の下限：ONスロット数 × バッチ単位 × 7日
-  // 例：batch=2, 4スロット中 6時&14時のみON → 1日2スロット×2個=4個/日 → 週28個
-  const _batch=getBatchUnit(p);
-  // 週次目標の下限は「品切れ防止ON」の商品だけ（作る時間帯×バッチ）。通常は需要のみ＝床なし
-  const _onSlotCount=p.noStockout?(_cfg?.slots||[]).filter(h=>getSlotMake(p,h)).length:0;
-  const _dailyMin=_onSlotCount*_batch;
-  const weekTarget=Math.max(teika+slack,_dailyMin*7);
+  // 2026-10-06 店長の指摘で外した：以前は「品切れ防止ON」の商品だけ、週の目標に下限（作る時間帯数×まとめ単位×7日）を置いていた。
+  // それが週の目標そのものを押し上げ、全マスの作成数が増えていた（目標2→週17 など）。
+  // 品切れ防止の意味は「算出が0のマスだけ、最低まとめ単位を作る」（getProdCntDetail の total===0 の所だけ）。週の目標は需要だけ＝床なし。
+  const weekTarget=teika+slack;
   // Apply external correction
   const extCorr=(S.ext[dayIdx]?.correction||0)/100;
   // Apply rules
@@ -5139,8 +5136,8 @@ function renderProductCard(p){
             </label>`).join('')}
         </div>
       </div>
-      <!-- 種別チェック -->
-      <div style="grid-column:span 2;background:#fafafa;border-radius:6px;padding:8px 10px;border:1px solid #eee">
+      <!-- 種別チェック（2026-10-06 店長の決定：名残は非表示。🆕はカテゴリ名、📈は今週の投資のマス目から自動。isNew/isInvest/newDays のデータと読み込みは残す） -->
+      <div class="legacy-hidden" style="display:none;grid-column:span 2;background:#fafafa;border-radius:6px;padding:8px 10px;border:1px solid #eee">
         <div style="font-size:11px;color:#999;margin-bottom:6px;font-weight:600">${t('product.type')}</div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
