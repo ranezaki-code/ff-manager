@@ -783,7 +783,8 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
       <div id="cell-guide-block" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:12px;color:#475569;margin-bottom:10px;line-height:1.7">
         💡 <b>セルの見方</b>：大きい数字＝その時間帯に作る個数／☑＝作り終わったらチェック<br>
         <b>数字をタップ</b>すると「🔔 完売した」「📦 余った」「⊘ 在庫がなくて作れなかった」を記録できます（取り消しも同じ場所）<br>
-        完売・余りの記録は、<b>同じ商品・同じ曜日・同じ時間帯で、直近4週のうち2週以上続いた時だけ</b>翌週以降の数に効きます（2週で±10%、3週で±20%、4週で±30%）。1回だけなら数は変わりません。「学習±%」の表示がその印です
+        完売・余りの記録は、<b>同じ商品・同じ曜日・同じ時間帯で、直近4週のうち2週以上続いた時だけ</b>翌週以降の数に効きます（2週で±10%、3週で±20%、4週で±30%）。1回だけなら数は変わりません。「学習±%」の表示がその印です<br>
+        <b>作る時間帯を変えた商品は、最初の4週は少し多めに出ます</b>（週の目標は直近4週に売れた数から。残した時間帯に全部配るため。4週で目標が新しい作り方に追いつきます）
       </div>
       <div id="prod-day-content"></div>
     </div>
@@ -2116,6 +2117,7 @@ function _merge3(local,remote,base,depth,path,conflicts){
 }
 function saveS(){
   if(typeof clearAllocCache==='function')clearAllocCache();   // 作成数の配り方の覚え書きを捨てる（設定が変わった直後の計算を新しくする）
+  if(typeof clearCustFillCache==='function')clearCustFillCache();   // 客数の補いの覚え書きも捨てる
   syncActiveWeek();
   const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
 
@@ -3272,8 +3274,40 @@ window.addEventListener('pagehide',_uiSave);
 // ============================================================
 function getP(pid){return S.PM.find(p=>p.id===pid)||null}
 
+// ---------- 客数が未入力の曜日を補う（2026-10-06 ソロの検算から。店長の決定） ----------
+//   「その曜日の全時間が 0」の時だけ未入力とみなし、前の週の同じ曜日 → それも 0 なら 直近4週（0でない週）の平均 で補って計算する。
+//   一部の時間だけ 0 の日や、本当に 0 の日（休業など）と区別するため、全時間が 0 の時だけ。客数表の入力欄（S.cust）は書き換えない。
+//   補った曜日は、①実績入力の客数表と ⑤予算に「客数が未入力の曜日があります（補って計算）」と出す（custFillInfo().filled）。
+let _custFillCache=null, _custFillClearQueued=false;
+function clearCustFillCache(){ _custFillCache=null; }
+function _custRowZero(row){ return !Array.isArray(row)||!row.some(v=>Number(v)>0); }
+function custFillInfo(){
+  const c=_custFillCache; if(c&&c.src===S.cust&&c.week===S.activeWeek)return c;
+  const rows=[], filled=[];
+  const curNum=S.activeWeek?weekKeyNum(S.activeWeek):Infinity;
+  const prevKeys=sortWeekKeys(Object.keys(S.weeks||{}).filter(k=>k!==S.activeWeek&&weekKeyNum(k)<curNum)).reverse();   // 新しい順
+  for(let d=0;d<7;d++){
+    const row=(S.cust||[])[d];
+    if(!_custRowZero(row)){ rows.push(row); continue; }
+    const cands=[]; for(const k of prevKeys){ const r=((S.weeks[k]||{}).cust||[])[d]; if(!_custRowZero(r))cands.push({k,r}); if(cands.length>=4)break; }
+    if(!cands.length){ rows.push(row||new Array(24).fill(0)); continue; }
+    if(cands[0].k===prevKeys[0]){ rows.push(cands[0].r.map(v=>Number(v)||0)); filled.push({d,src:'前週 '+cands[0].k}); continue; }   // 前の週にあればそのまま
+    const avg=new Array(24).fill(0); cands.forEach(x=>x.r.forEach((v,h)=>{avg[h]+=(Number(v)||0)/cands.length;}));
+    rows.push(avg.map(v=>Math.round(v))); filled.push({d,src:`直近${cands.length}週の平均`});
+  }
+  const info={src:S.cust,week:S.activeWeek,rows,filled};
+  _custFillCache=info;
+  if(!_custFillClearQueued){ _custFillClearQueued=true; Promise.resolve().then(()=>{ _custFillClearQueued=false; _custFillCache=null; }); }
+  return info;
+}
+function custEff(d){ return custFillInfo().rows[d]||[]; }   // 計算に使う客数（補った後）。入力欄の表示には S.cust を使う
+function custFillNote(){
+  const f=custFillInfo().filled; if(!f.length)return '';
+  return `<div class="cust-fill-note" style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:8px 12px;font-size:13px;color:#9a3412;margin-bottom:8px;line-height:1.6">⚠ 客数が未入力の曜日があります（補って計算）：${f.map(x=>`<b>${DAYS[x.d]}</b>←${x.src}`).join('　')}<br><span style="font-size:12px">その曜日の全時間が 0 の時だけ補います。本当に客数 0 の日（休業など）は、どこか1時間でも入れてください。</span></div>`;
+}
+
 function getWeekTotal(){
-  return S.cust.reduce((s,r)=>s+r.reduce((a,b)=>a+b,0),0);
+  let s=0; for(let d=0;d<7;d++)s+=custEff(d).reduce((a,b)=>a+(Number(b)||0),0); return s;
 }
 
 // 客数集計：he>24なら翌日の客数（日月火…の循環）にラップして集計
@@ -3281,10 +3315,10 @@ function getSlotCust(dayIdx,hs,he){
   let sum=0;
   for(let h=hs;h<he;h++){
     if(h<24){
-      sum+=(S.cust[dayIdx]||[])[h]||0;
+      sum+=custEff(dayIdx)[h]||0;
     } else {
       const nd=(dayIdx+1)%7;
-      sum+=(S.cust[nd]||[])[h-24]||0;
+      sum+=custEff(nd)[h-24]||0;
     }
   }
   return sum;
@@ -3456,7 +3490,7 @@ function stdDev(arr){
 }
 
 function getDayCust(dayIdx){
-  return (S.cust[dayIdx]||[]).reduce((a,b)=>a+b,0);
+  return custEff(dayIdx).reduce((a,b)=>a+(Number(b)||0),0);
 }
 
 function getCorrTarget(pid,dayIdx){
@@ -3490,8 +3524,8 @@ function getCorrTarget(pid,dayIdx){
 function getWithdraw(pid){
   const p=getP(pid);if(!p)return 0;
   const wt=getCatWeekTotal(p.category);if(!wt)return 0;   // 撤退客数＝原価率÷購入率（購入率は売っている時間の客数で）
-  const ji=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
-  const teika=ji.teika||0;
+  // 購入率の定価販売数は、週の目標と同じ「直近4週の平均」（2026-10-06 ソロの検算：今週の実績だけだと火曜は 0 でガードが効かなかった）
+  const teika=getRecentAvgTeika(pid,4);
   const rate=teika/wt;
   if(!rate)return 0;
   return (p.cost/p.shopPrice)/rate;
@@ -3616,7 +3650,7 @@ function getHourRateAvg(cat){
   if(!n.some(x=>x))return null;
   return sum.map((s,h)=>n[h]?s/n[h]:null);
 }
-function _hourCustWeek(h){ const hh=((h%24)+24)%24; return (S.cust||[]).reduce((s,r)=>s+(r[hh]||0),0); }
+function _hourCustWeek(h){ const hh=((h%24)+24)%24; let s=0; for(let d=0;d<7;d++)s+=custEff(d)[hh]||0; return s; }
 function getSlotCoef(cat,slotH){
   const avg=getHourRateAvg(cat); if(!avg)return 1;
   const cfg=S.catCfg[cat]; if(!cfg)return 1;
@@ -4467,18 +4501,17 @@ function loadSampleJisseki(){
 
 function renderCustGrid(){
   const el=document.getElementById('cust-grid');
-  const wt=getWeekTotal();
   const TH='position:sticky;left:0;background:#fff;z-index:2;white-space:nowrap;padding:4px 8px;';
   const TH_STICKY_LT='position:sticky;left:0;background:var(--main-lt);font-weight:700;white-space:nowrap;padding:4px 8px;text-align:center;';
   const inputStyle='width:46px;text-align:center;border:1px solid var(--border);border-radius:4px;padding:3px 2px;font-size:13px';
-  let html=`<div style="font-size:11px;color:var(--gray);margin-bottom:6px">💡 Enter/→で右へ / ↓で下へ / Tab でも右へ移動できます</div>`;
+  let html=custFillNote()+`<div style="font-size:11px;color:var(--gray);margin-bottom:6px">💡 Enter/→で右へ / ↓で下へ / Tab でも右へ移動できます</div>`;
   html+=`<table style="border-collapse:collapse;font-size:13px;min-width:1400px"><thead><tr>
     <th style="${TH}">曜日</th>
     ${Array.from({length:24},(_,h)=>`<th style="width:54px;white-space:nowrap;padding:4px 4px;text-align:center">${h}:00</th>`).join('')}
     <th style="width:54px;white-space:nowrap;padding:4px 8px;text-align:center">日計</th>
   </tr></thead><tbody>`;
   DAYS.forEach((d,di)=>{
-    const dayTotal=getDayCust(di);
+    const dayTotal=(S.cust[di]||[]).reduce((a,b)=>a+(Number(b)||0),0);   // 表の日計は入力欄のまま（補った数は出さない）
     html+=`<tr><td style="${TH_STICKY_LT}">${d}</td>`;
     for(let h=0;h<24;h++){
       html+=`<td style="padding:2px 2px">
@@ -4497,7 +4530,7 @@ function renderCustGrid(){
     const hTotal=S.cust.reduce((s,r)=>s+(r[h]||0),0);
     html+=`<td id="cust-h-${h}" style="text-align:center;white-space:nowrap;padding:4px 4px">${hTotal}</td>`;
   }
-  html+=`<td id="cust-week-total" style="text-align:center;white-space:nowrap;padding:4px 8px">${wt}</td></tr>`;
+  html+=`<td id="cust-week-total" style="text-align:center;white-space:nowrap;padding:4px 8px">${(S.cust||[]).reduce((s,r)=>s+(r||[]).reduce((a,b)=>a+(Number(b)||0),0),0)}</td></tr>`;
   html+='</tbody></table>';
   morphInto(el,html);   // 差分更新：入力中のマスはそのまま、他のマスだけ最新に
 }
@@ -4621,15 +4654,18 @@ function custKeyNav(e,di,h){
 
 function setCust(di,h,val){
   S.cust[di][h]=val;saveS();
-  // 合計セルのみ更新（グリッド再描画なし）
-  const dayTot=getDayCust(di);
+  // 合計セルのみ更新（グリッド再描画なし）。表の合計は入力欄のまま（補った数は出さない）
+  const dayTot=(S.cust[di]||[]).reduce((a,b)=>a+(Number(b)||0),0);
   const dEl=document.getElementById(`cust-day-${di}`);
   if(dEl)dEl.textContent=dayTot;
   const hTot=S.cust.reduce((s,r)=>s+(r[h]||0),0);
   const hEl=document.getElementById(`cust-h-${h}`);
   if(hEl)hEl.textContent=hTot;
   const wEl=document.getElementById('cust-week-total');
-  if(wEl)wEl.textContent=getWeekTotal();
+  if(wEl)wEl.textContent=(S.cust||[]).reduce((s,r)=>s+(r||[]).reduce((a,b)=>a+(Number(b)||0),0),0);
+  // 「客数が未入力の曜日」の注意は、曜日が埋まった／空になった時だけ描き直す
+  const note=document.querySelector('#cust-grid .cust-fill-note'); const need=!!custFillNote();
+  if(!!note!==need)renderCustGrid();
 }
 
 function resetCustZero(){
@@ -4833,7 +4869,7 @@ function suggestSlots(cat){
   const el=document.getElementById(key);
   // Find peak hour ranges
   const hourTotals=Array(24).fill(0);
-  S.cust.forEach(r=>r.forEach((v,h)=>hourTotals[h]+=v));
+  for(let d=0;d<7;d++)custEff(d).forEach((v,h)=>hourTotals[h]+=(Number(v)||0));
   const wt=getWeekTotal();
   // Suggest slots where hourly% is high before a slot
   const suggestions=ALL_SLOTS.filter(h=>{
@@ -6429,7 +6465,7 @@ function calcRuleSuggestions(){
   if(total>0){
     // 朝（6〜10時）・昼（10〜14時）・夕（14〜17時）・夜（17〜22時）のシェア
     const share=(hs,he)=>{
-      let c=0;for(let h=hs;h<he;h++)c+=S.cust.reduce((s,r)=>s+(r[h]||0),0);
+      let c=0;for(let h=hs;h<he;h++)c+=_hourCustWeek(h);
       return c/total;
     };
     const morningShare=share(6,10);
@@ -7591,7 +7627,7 @@ function getCustHoursRange(dayIdx,hs,he){
     const frac=segEnd-h;
     const di=wholeH<24?dayIdx:(dayIdx+1)%7;
     const hh=wholeH<24?wholeH:wholeH-24;
-    total+=((S.cust[di]||[])[hh]||0)*frac;
+    total+=(custEff(di)[hh]||0)*frac;
     h=segEnd;
   }
   return total;
@@ -8191,16 +8227,17 @@ function renderBudgetPlan(){
   const budTot=bud.reduce((a,b)=>({teika:a.teika+b.teika,target:a.target+b.target,make:a.make+b.make,opt:a.opt+b.opt,max:a.max+b.max,diff:a.diff+b.diff}),{teika:0,target:0,make:0,opt:0,max:0,diff:0});
   budTot.rate=budTot.target?budTot.teika/budTot.target:0;
   const newBudgetMax=Math.max(0,budTot.diff);   // 新商品・投資に使える予算（売変予算の 最大 − 最適）
-  // 新商品予算（正式）= 作成表に置かれる投資の数（週合計・getInvestWeekCnt）× 原価 の合計
+  // 新商品予算（正式）= 作成表に置かれる投資の数（週合計・getInvestWeekCnt）× 店頭売価 の合計
   //   ※以前は「1日あたり個数 × 7日 × 原価」。まとめ単位が2以上だと作成表の数と食い違うため、作成表と同じ関数から取る
+  //   ※2026-10-06 ソロの検算：枠（新商品予算＝売変予算の最大−最適）が売価ベースの売変額なので、使用額も売価にそろえた（以前は原価）
   const newBudgetFormal=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品')&&investKind(p)==='new')
-    .reduce((s,p)=>s+getInvestWeekCnt(p.id)*p.cost,0);
+    .reduce((s,p)=>s+getInvestWeekCnt(p.id)*(Number(p.shopPrice)||0),0);
   const newBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.category.endsWith('新商品')&&!investGridOf(p.id))   // 「個/日」は毎週の設定の数（マス目で入力中の商品は含めない）
     .reduce((s,p)=>s+(S.budget.newProductCounts[p.id]||0),0);
-  // 定番投資予算（正式）= 作成表に置かれる投資の数（週合計・getInvestWeekCnt）× 原価 の合計（以前は 1日あたり個数 × 選択曜日数 × 原価）
+  // 定番投資予算（正式）= 作成表に置かれる投資の数（週合計・getInvestWeekCnt）× 店頭売価 の合計（以前は 1日あたり個数 × 選択曜日数 × 原価。10/6 に売価へ）
   //   マス目に数がある商品は、種別の印（p.isInvest）が無くても数える
   const investBudgetFormal=S.PM.filter(p=>p.enabled&&investKind(p)==='invest')
-    .reduce((s,p)=>s+getInvestWeekCnt(p.id)*p.cost,0);
+    .reduce((s,p)=>s+getInvestWeekCnt(p.id)*(Number(p.shopPrice)||0),0);
   const investBudgetTotalCnt=S.PM.filter(p=>p.enabled&&p.isInvest&&!investGridOf(p.id))
     .reduce((s,p)=>s+(S.budget.investCounts[p.id]||0),0);
   _igBud={max:newBudgetMax,used:newBudgetFormal+investBudgetFormal};
@@ -8211,7 +8248,7 @@ function renderBudgetPlan(){
   const b=S.budget||{}; const tgt=b.target||0, wtgt=b.wasteTarget||0;
   const bar=(v,t,goodIfUnder)=>{ const pct=Math.min(100,t?v/t*100:0); const ok=goodIfUnder?v<=t:v>=t; return `<div class="bd-bar"><div style="width:${pct}%;background:${ok?'var(--green)':'var(--red)'}"></div></div>`; };
   const planEl=document.getElementById('bud-plan-summary');
-  if(planEl) planEl.innerHTML=`
+  if(planEl) planEl.innerHTML=custFillNote()+`
     ${noDataProds.length?`<div class="alert alert-warn" style="font-size:12px;margin-bottom:10px">⚠️ 実績がない商品 <b>${noDataProds.length}件</b> は<b>廃棄100%</b>で見積もっています（①実績入力を入れると精度が上がります）：<span style="color:#92400e">${noDataProds.join('、')}</span></div>`:''}
     <div class="bd-flow">
       ${box('作成高',_budYen(T.make)+'円',`${_budYen(T.cnt)}個 × 売価`)}
@@ -8432,7 +8469,7 @@ function renderInvestGrid(){
     }).join('');
     let stale=''; if(g){ const st={}; Object.keys(g).forEach(d=>Object.keys(g[d]||{}).forEach(h=>{ if(cfg.slots.indexOf(Number(h))<0&&_igCell(g,d,h))st[h]=(st[h]||0)+_igCell(g,d,h); }));
       const ks=Object.keys(st); if(ks.length)stale=`<div style="font-size:12px;color:#b45309;margin-top:6px">⚠ 今は無い時間帯（${ks.map(h=>h+'時 +'+st[h]).join('、')}）の数が残っています。数えていません。</div>`; }
-    const sum=getInvestWeekCnt(p.id), amt=sum*(Number(p.cost)||0), rest=_igBud.max-_igBud.used;
+    const sum=getInvestWeekCnt(p.id), amt=sum*(Number(p.shopPrice)||0), rest=_igBud.max-_igBud.used;   // 使用額は売価ベース（枠と同じ単位）
     const tile=(l,v,c)=>`<div style="flex:1 1 90px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:11px;color:#64748b">${l}</div><div style="font-size:18px;font-weight:800;color:${c||'#0f172a'}">${v}</div></div>`;
     const btn=(fn,label,col)=>`<button type="button" onclick="${fn}" style="flex:1 1 140px;padding:10px 8px;min-height:44px;font-size:13px;font-weight:700;border-radius:10px;border:1px solid ${col||'#cbd5e1'};background:#fff;color:${col||'#334155'};cursor:pointer;font-family:inherit">${label}</button>`;
     body=`
@@ -8774,7 +8811,7 @@ function renderBudgetFormula(){
     <div><b>適正販売率</b> ＝ Σ定価販売数 ÷ Σ週の目標販売数（定価＋ゆとり）　※「ゆとり」の分だけ売れ残る想定</div>
     <div><b>売変予算（最適）</b> ＝ 作成高（基本作成分）×（100% − 適正販売率）　　<b>売変予算（最大）</b> ＝ 1日平均の作成高 × 0.5</div>
     <div><b>新商品・投資に使える予算</b> ＝ 売変予算の最大 − 最適</div>
-    <div><b>新商品予算（使用中）</b>・<b>定番投資（使用中）</b> ＝ ④作成表に置かれる「投資+N」の週合計 × 原価　※まとめ単位が2以上の商品は、入れた数より多くなることがあります（作成表と同じ数で計算）</div>
+    <div><b>新商品予算（使用中）</b>・<b>定番投資（使用中）</b> ＝ ④作成表に置かれる「投資+N」の週合計 × 店頭売価（枠＝売変予算の最大−最適 と同じ売価ベース）　※まとめ単位が2以上の商品は、入れた数より多くなることがあります（作成表と同じ数で計算）</div>
     <div class="bd-sub" style="margin-top:4px">実績廃棄率・値引率は ①実績入力（全週の累計）から商品ごとに計算。実績が無い商品は廃棄100%で見積もります。曜日別サマリー・カテゴリ別の計画・上の集計はすべて同じ計算です。</div>`;
 }
 
