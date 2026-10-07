@@ -102,7 +102,12 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     B.ev(`Object.assign(S,JSON.parse(${J(staleRaw)})); saveS()`); B.be.setOnline(true); await sync();
     const ch2=await A.win.__v2.colls.t1.changes(1); const eb=ch2.find(x=>x.id==='p:p1'&&/端末B/.test(x.by)); const hb=eb?await A.win.__v2.colls.t1.historyOf(eb.id,eb.rev):null;
     check('16','B が、画面の中身を古い中身に書き戻して保存した → B が知らなかった A の新しい入力（売価）は消えない。B が書き戻した分は「B の変更」として履歴に残り、戻せる',prod(A,'p1').shopPrice===298&&prod(B,'p1').shopPrice===298&&!!hb&&/からあげ（新しい名前）/.test(J(hb)),`売価 ${prod(A,'p1').shopPrice}・履歴に前の名前 ${hb?'あり':'なし'}`);
-    check('17','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    // ごはんの残り（週データ rice）：2台が同じ時間帯を別々に押した → 後に押したほうが残り、負けたほうは履歴に残る
+    const rice=(d,dd,hh,lv)=>d.ev(`(()=>{ const w=S.weeks[S.activeWeek]; if(!w.rice)w.rice={}; if(!w.rice[${dd}])w.rice[${dd}]={}; w.rice[${dd}][${hh}]={level:${J(lv)},at:Date.now(),by:'試験'}; saveS(); })()`);
+    off(); rice(A,0,8,'more'); await sleep(30); rice(B,0,8,'less'); B.be.setOnline(true); await B.store.settle(); A.be.setOnline(true); await sync();
+    const ch4=await A.win.__v2.colls.t1.changes(1); const lw=ch4.find(x=>x.lost&&/^w:/.test(x.id)); const hw=lw?await A.win.__v2.colls.t1.historyOf(lw.id,lw.h||lw.rev):null;
+    check('17','ごはんの残りを2台が同じ時間帯に別々に押した → あとから押したほうが残り、負けたほうは履歴に残る',A.ev('S.weeks[S.activeWeek].rice[0][8].level')==='less'&&B.ev('S.weeks[S.activeWeek].rice[0][8].level')==='less'&&!!hw&&/more/.test(J(hw))&&same(),`A:${A.ev('S.weeks[S.activeWeek].rice[0][8].level')} B:${B.ev('S.weeks[S.activeWeek].rice[0][8].level')}・履歴 ${hw?'あり':'なし'}`);
+    check('18','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
   $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;

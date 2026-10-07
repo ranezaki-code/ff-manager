@@ -2048,6 +2048,8 @@ function syncActiveWeek(){
   S.weeks[S.activeWeek]={
     // 今週の投資（曜日×時間帯のマス目）は週のデータの中に持つ。ここで作り直す時に落とさない
     ...(_isPlainObj(_prevWeek.invest)?{invest:_prevWeek.invest}:{}),
+    // 厨房「ごはんの残り」の記録（曜日×時間帯）も週のデータの中。作り直す時に落とさない
+    ...(_isPlainObj(_prevWeek.rice)?{rice:_prevWeek.rice}:{}),
     ji:JSON.parse(JSON.stringify(S.ji||{})),
     cust:(S.cust||[]).map(r=>[...r]),
     checks:{...(S.checks||{})},
@@ -2123,6 +2125,7 @@ function _merge3(local,remote,base,depth,path,conflicts){
 function saveS(){
   if(typeof clearAllocCache==='function')clearAllocCache();   // 作成数の配り方の覚え書きを捨てる（設定が変わった直後の計算を新しくする）
   if(typeof clearCustFillCache==='function')clearCustFillCache();   // 客数の補いの覚え書きも捨てる
+  if(typeof clearRiceCache==='function')clearRiceCache();           // ごはんの残りの覚え書きも捨てる
   syncActiveWeek();
   const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
 
@@ -3396,6 +3399,9 @@ function getCatWeekTotal(cat){ let s=0; for(let d=0;d<7;d++)s+=getCatDayCust(cat
 //   週の目標 ＝ 定価販売数 ＋ ゆとり
 function getWeekTargetBase(pid){
   const p=getP(pid);if(!p)return null;
+  // パック商品（子）：親（本数）の週の目標 × 取り分 ÷ 本/パック（単位はパック）。親子商品の説明は getWithdraw の下
+  const par=packParentOf(p);
+  if(par){ const b=getWeekTargetBase(par.id); if(!b)return null; const f=packShareNorm(p)/packSizeOf(p); return {wt:b.wt,teika:b.teika*f,rate:b.rate,sd:b.sd,aggressive:b.aggressive,slack:b.slack*f,target:b.target*f,pack:true}; }
   const wt=getCatWeekTotal(p.category);
   const teika=getRecentAvgTeika(pid,4);
   const rate=wt?teika/wt:0;
@@ -3530,10 +3536,54 @@ function getWithdraw(pid){
   const p=getP(pid);if(!p)return 0;
   const wt=getCatWeekTotal(p.category);if(!wt)return 0;   // 撤退客数＝原価率÷購入率（購入率は売っている時間の客数で）
   // 購入率の定価販売数は、週の目標と同じ「直近4週の平均」（2026-10-06 ソロの検算：今週の実績だけだと火曜は 0 でガードが効かなかった）
+  const par=packParentOf(p); if(par)return getWithdraw(par.id);   // パック商品（子）の撤退客数は親（本数）で
   const teika=getRecentAvgTeika(pid,4);
   const rate=teika/wt;
   if(!rate)return 0;
   return (p.cost/p.shopPrice)/rate;
+}
+// ---------- 親子商品（2026-10-07 店長の決定 1A：焼き鳥の本数とパック） ----------
+//   実績（定価・値引・廃棄）は「本数の商品（親）」に本数で入れる。売場に出る「パック商品（子）」は packOf（親のID）・packSize（1パック＝◯本）・packShare（本数の取り分％）を持つ。
+//   子の週の目標（パック）＝親の週の目標 × 取り分（合計100%に正規化。全部空なら均等）÷ 本/パック。配り方は今の式（週単位の最大剰余法）を子ごとに回す。
+//   作成表・印刷・予算・完売/余りの記録は子。ランキング・発注（本数＝子の作成数×本/パック）・撤退客数は親で1行。親は作成表に出ない（作成数0）。
+//   親かどうかは「子が1つ以上あるか」で決める（印を別に持たない。古い印が残らないように）。
+function packChildren(pid){ return (S.PM||[]).filter(c=>c&&c.enabled&&c.packOf===pid&&c.id!==pid); }
+function isPackParent(p){ return !!p&&packChildren(p.id).length>0; }
+function packParentOf(p){ if(!p||!p.packOf||p.packOf===p.id)return null; const par=getP(p.packOf); return (par&&par.enabled&&!par.packOf)?par:null; }
+function packSizeOf(p){ return Math.max(1,Math.round(Number(p&&p.packSize)||1)); }
+function packShareNorm(p){ const par=packParentOf(p); if(!par)return 1; const kids=packChildren(par.id); if(!kids.length)return 1; const tot=kids.reduce((s,k)=>s+Math.max(0,Number(k.packShare)||0),0); return tot>0?Math.max(0,Number(p.packShare)||0)/tot:1/kids.length; }
+function packShareSum(pid){ return packChildren(pid).reduce((s,k)=>s+Math.max(0,Number(k.packShare)||0),0); }
+// 発注・親の1行用：親なら 子の作成数×本/パック（本数）、ふつうの商品はそのまま
+function orderCnt(pid,d,h){ const p=getP(pid); if(!p)return {base:0,extra:0}; if(isPackParent(p)){ let base=0,extra=0; packChildren(pid).forEach(c=>{ const n=packSizeOf(c); base+=getProdCnt(c.id,d,h)*n; extra+=getInvestExtra(c.id,d,h)*n; }); return {base,extra}; } return {base:getProdCnt(pid,d,h),extra:getInvestExtra(pid,d,h)}; }
+// ---------- ケース容量・最低陳列数・投入日と終売日（2026-10-07 店長の決定 2A：まず警告と印だけ。数は変えない） ----------
+//   ケース容量：S.catCfg[本体カテゴリ].caseCap[時間帯]={rows,cols,per}（段×列×1列の個数）。空なら警告なし。新商品カテゴリは本体と同じケース。
+//   時間帯の合計＝そのカテゴリ（新商品も合算）の 作成数＋投資＋完売の追加。合計＞容量 なら ⚠（作成表の見出し・印刷）。
+//   最低陳列数 p.minDisplay：マスの数が未満なら印だけ（第2段階で品切れ防止の置き換え候補）。投入日 p.startDate／終売日 p.endDate：日付の外なら印だけ。
+function caseCapOf(cat,slotH){ const cfg=S.catCfg[mainCatOf(cat)]; const c=cfg&&cfg.caseCap&&cfg.caseCap[slotH]; if(!c)return 0; const n=(Number(c.rows)||0)*(Number(c.cols)||0)*(Number(c.per)||0); return n>0?n:0; }
+function caseTotal(cat,dayIdx,slotH){ const m=mainCatOf(cat); let s=0; (S.PM||[]).forEach(p=>{ if(!p||!p.enabled||mainCatOf(p.category||'')!==m||!S.catOn[p.category])return; s+=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH)+(typeof getSoldOutTotal==='function'?getSoldOutTotal(p.id,dayIdx,slotH):0); }); return s; }
+function caseCapInfo(cat,dayIdx,slotH){ const cap=caseCapOf(cat,slotH); if(!cap)return null; const total=caseTotal(cat,dayIdx,slotH); return {cap,total,over:total>cap}; }
+function caseCapBadge(cat,dayIdx,slotH){ const i=caseCapInfo(cat,dayIdx,slotH); if(!i)return ''; return `<span title="ケース容量（段×列×個）と、この時間帯のカテゴリ合計（作成＋投資＋完売の追加）。超えても数は変えません" style="font-size:10px;white-space:nowrap;border-radius:8px;padding:0 6px;font-weight:700;${i.over?'background:#fee2e2;color:#991b1b':'background:#f1f5f9;color:#475569'}">${i.over?'⚠ ':''}合計${i.total}／容量${i.cap}</span>`; }
+function setCaseCap(cat,slotH,key,val){ const cfg=S.catCfg[cat]; if(!cfg)return; if(!cfg.caseCap)cfg.caseCap={}; const c=cfg.caseCap[slotH]||(cfg.caseCap[slotH]={rows:0,cols:0,per:0}); c[key]=Math.max(0,parseInt(toHalf(String(val||'')))||0); if(!c.rows&&!c.cols&&!c.per)delete cfg.caseCap[slotH]; if(!Object.keys(cfg.caseCap).length)delete cfg.caseCap; saveS(); renderCatCfgArea(); }
+function caseCapEditor(cat){ const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.length)return ''; const cc=cfg.caseCap||{};
+  return `<div class="cc-sec" style="margin-top:10px"><b>🗄️ ケース容量</b><span class="cc-sub">時間帯ごとに 段×列×1列の個数。空なら警告なし。超えた時は作成表に ⚠（数は変えません）</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px">${cfg.slots.map(h=>{ const c=cc[h]||{}; const cap=caseCapOf(cat,h); const inp=(k,v)=>`<input type="text" inputmode="numeric" value="${v||''}" placeholder="0" style="width:38px;text-align:center" onchange="setCaseCap('${cat}',${h},'${k}',this.value)">`;
+      return `<label style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><b>${h}時</b> ${inp('rows',c.rows)}段×${inp('cols',c.cols)}列×${inp('per',c.per)}個${cap?` <span style="color:#475569">＝${cap}</span>`:''}</label>`; }).join('')}</div>`; }
+// 投入日・終売日：その日付の外なら印（'notyet'＝投入前／'ended'＝終売後／null）
+function prodDateState(p,date){ if(!p||!date)return null; const ymd=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; if(p.endDate&&ymd>p.endDate)return 'ended'; if(p.startDate&&ymd<p.startDate)return 'notyet'; return null; }
+function prodDateBadge(p,date){ const s=prodDateState(p,date); if(!s)return ''; return s==='ended'?`<span title="終売日 ${escapeHtmlP(p.endDate)} を過ぎています（数は変えていません）" style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">終売</span>`:`<span title="投入日 ${escapeHtmlP(p.startDate)} より前です（数は変えていません）" style="font-size:9px;background:#e5e7eb;color:#374151;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">未投入</span>`; }
+// 最低陳列数の印（マスの右下。数は変えない）
+function minDisplayBadge(p,cnt){ const m=Math.round(Number(p&&p.minDisplay)||0); if(!m||cnt<=0||cnt>=m)return ''; return `<span title="最低陳列数 ${m} 未満（いまは印だけ。数は変えていません）" style="position:absolute;right:2px;bottom:2px;z-index:1;font-size:9px;font-weight:800;color:#0e7490;background:#ecfeff;border:1px solid #67e8f9;border-radius:6px;padding:0 3px;white-space:nowrap;line-height:1.4">陳列${m}未満</span>`; }
+function lifeSettingHtml(p){ const d=(k,v)=>`<input type="date" value="${escapeHtmlP(p[k]||'')}" style="font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:6px" onchange="setProdField('${p.id}','${k}',this.value||'')">`;
+  return `<div style="grid-column:span 2;background:#ecfeff;border:1px solid #a5f3fc;border-radius:6px;padding:8px 10px">
+    <div style="font-size:11px;color:#0e7490;font-weight:700;margin-bottom:6px">🗄️ 陳列と販売期間 <span class="info" title="最低陳列数：マスの数がこれより少ない時に印（いまは印だけ）。投入日・終売日：その日付の外の日は作成表に印（数は変えません。将来の取り分の材料に記録）">ℹ️</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:12px">
+      <label>最低陳列数 <input type="text" inputmode="numeric" value="${p.minDisplay||''}" placeholder="なし" style="width:52px;text-align:center" onchange="setProdField('${p.id}','minDisplay',Math.max(0,parseInt(toHalf(this.value))||0))">個</label>
+      <label>投入日 ${d('startDate')}</label><label>終売日 ${d('endDate')}</label>
+    </div></div>`; }
+function setPackOf(pid,val){
+  const p=getP(pid); if(!p)return; const prev=p.packOf;
+  if(val&&val!==pid&&getP(val)){ p.packOf=val; } else { delete p.packOf; }
+  saveS(); renderProductCardInPlace(pid); if(prev&&prev!==p.packOf)renderProductCardInPlace(prev); if(p.packOf)renderProductCardInPlace(p.packOf);
 }
 // ---------- 撤退ラインの印（2026-10-06 店長の決定 B：数は減らさず印だけ） ----------
 //   そのマスの「売る範囲の客数」が撤退客数（原価率÷購入率＝1個売るのに要る客数）より少なければ「撤退ライン以下」。
@@ -3583,13 +3633,54 @@ function getSlotMake(p,slotH){
 //   natural = 需要から計算された自然算出分（haiki_rate_p で評価する分）
 //   forced  = 強制最低分（自然算出0で minSlots ON のため作る分）。100%廃棄想定にすべき
 //   total   = natural + forced
+// ---------- 厨房「ごはんの残り」（2026-10-07 店長の決定 3A：＋1／−1 で始める） ----------
+//   作成表の厨房の時間帯の見出しで 多い／ふつう／少ない を1タップ（押すのは作る人・作る直前）。
+//   記録：S.weeks[週].rice[曜日][時間帯]={level,at,by}（週データ。学習（余り）とは別の項目）。将来 amount（◯食ぶん）を足せば N＝amount になる。
+//   多い＝その時間帯の「ごはんを使う商品」（まちかど厨房の弁当・丼など）に＋1を、作成数（配り分）の大きい順に。少ない＝−1（0未満にしない）。
+//   品切れ防止・まとめ単位の後に足す。印「🍚+1」とタップの説明で知らせる。
+const RICE_LEVELS={more:{label:'多い',d:1},normal:{label:'ふつう',d:0},less:{label:'少ない',d:-1}};
+let _riceCache=new Map(), _riceClearQueued=false;
+function clearRiceCache(){ _riceCache.clear(); }
+function riceRec(dayIdx,slotH){ const w=S.weeks&&S.activeWeek&&S.weeks[S.activeWeek]; const r=w&&w.rice&&w.rice[dayIdx]&&w.rice[dayIdx][slotH]; return (r&&RICE_LEVELS[r.level])?r:null; }
+function riceUses(p){ return !!p&&mainCatOf(p.category||'')==='まちかど厨房'&&(p.mkType==='弁当'||/丼|弁当|ごはん|ライス|チャーハン|カレー|おにぎり|めし/.test(p.name||'')); }
+function riceAdjMap(dayIdx,slotH){
+  const key=dayIdx+'|'+slotH; if(_riceCache.has(key))return _riceCache.get(key);
+  const m={}; const rec=riceRec(dayIdx,slotH);
+  if(rec){ const step=RICE_LEVELS[rec.level].d, n=Math.max(1,Math.round(Number(rec.amount)||1));
+    if(step!==0){
+      const cands=(S.PM||[]).filter(p=>p&&p.enabled&&S.catOn[p.category]&&riceUses(p)&&S.catCfg[p.category]&&S.catCfg[p.category].slots.includes(slotH)&&getSlotMake(p,slotH)&&!isPackParent(p))
+        .map(p=>({p,base:_prodCntBase(p.id,dayIdx,slotH).total})).sort((a,b)=>(b.base-a.base)||((a.p.order??0)-(b.p.order??0)));
+      let left=n; for(let i=0;cands.length&&i<cands.length*n&&left>0;i++){ const c=cands[i%cands.length]; const cur=c.base+(m[c.p.id]||0); if(step>0){ m[c.p.id]=(m[c.p.id]||0)+1; left--; } else if(cur>0){ m[c.p.id]=(m[c.p.id]||0)-1; left--; } }
+    } }
+  _riceCache.set(key,m);
+  if(!_riceClearQueued){ _riceClearQueued=true; Promise.resolve().then(()=>{ _riceClearQueued=false; _riceCache.clear(); }); }
+  return m;
+}
+function riceAdj(pid,dayIdx,slotH){ return riceAdjMap(dayIdx,slotH)[pid]||0; }
+function setRice(dayIdx,slotH,level){
+  if(!RICE_LEVELS[level])return; const w=_igWeekObj(true); if(!w)return;
+  if(!_isPlainObj(w.rice))w.rice={}; if(!_isPlainObj(w.rice[dayIdx]))w.rice[dayIdx]={};
+  const cur=w.rice[dayIdx][slotH]; let msg;
+  if(cur&&cur.level===level){ delete w.rice[dayIdx][slotH]; if(!Object.keys(w.rice[dayIdx]).length)delete w.rice[dayIdx]; if(!Object.keys(w.rice).length)delete w.rice; msg='ごはんの残りの記録を取り消しました'; }
+  else { w.rice[dayIdx][slotH]={level,at:Date.now(),by:(typeof V2FF!=='undefined'&&V2FF&&V2FF.device)||''}; msg=`🍚 ごはんの残り「${RICE_LEVELS[level].label}」を記録しました${level==='more'?'（厨房の作成数に＋1）':level==='less'?'（厨房の作成数に−1）':''}`; }
+  clearRiceCache(); saveS(); if(typeof currentTab!=='undefined'&&currentTab===3)renderProdDayContent(currentProdDay||0); if(typeof showToast==='function')showToast(msg,'success');
+}
+function riceButtons(dayIdx,slotH){ const rec=riceRec(dayIdx,slotH); const cur=rec?rec.level:'';
+  return `<span style="display:inline-flex;gap:2px;margin-top:2px" title="ごはんの残り（作る直前に、作る人が押す）。多い＝この時間帯の弁当・丼に＋1、少ない＝−1。もう一度押すと取り消し">${Object.keys(RICE_LEVELS).map(k=>`<button type="button" onclick="event.stopPropagation();setRice(${dayIdx},${slotH},'${k}')" style="font-size:10px;font-weight:700;padding:2px 6px;min-height:22px;border-radius:8px;border:1px solid ${cur===k?'#b45309':'#e2e8f0'};background:${cur===k?'#fde68a':'#fff'};color:${cur===k?'#78350f':'#64748b'};cursor:pointer;font-family:inherit;white-space:nowrap">${k==='more'?'🍚':''}${RICE_LEVELS[k].label}</button>`).join('')}</span>`; }
+function riceBadge(pid,dayIdx,slotH){ const r=riceAdj(pid,dayIdx,slotH); if(!r)return ''; return `<span title="ごはんの残りが${r>0?'多い':'少ない'}ため ${r>0?'+':''}${r}" style="background:#fef3c7;color:#92400e;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">🍚${r>0?'+':''}${r}</span>`; }
+
 function getProdCntDetail(pid,dayIdx,slotH){
+  const b=_prodCntBase(pid,dayIdx,slotH); const r=riceAdj(pid,dayIdx,slotH); if(!r)return b;
+  const total=Math.max(0,b.total+r); return {total,natural:b.natural,forced:Math.max(0,total-b.natural),rice:r};
+}
+function _prodCntBase(pid,dayIdx,slotH){
   const ZERO={total:0,natural:0,forced:0};
   const p=getP(pid);if(!p||!p.enabled)return ZERO;
   if(!S.catOn[p.category])return ZERO;
   const cfg=S.catCfg[p.category];if(!cfg)return ZERO;
   if(!cfg.slots.includes(slotH))return ZERO;
   if(!getSlotMake(p,slotH))return ZERO;   // 「作らない」時間帯 → 0
+  if(isPackParent(p))return ZERO;         // 本数の商品（親）は作成表に出ない。作るのはパック商品（子）
   const range=getProdSlotRange(p,slotH);if(!range)return ZERO;   // 商品ごとの範囲（オフにした時間帯のぶんを前の作成に足す）
   const[hs,he]=range;
   const batch=getBatchUnit(p);
@@ -3760,7 +3851,7 @@ function openCellMenu(pid,dayIdx,slotH){
     ${rows}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
       完売・余りの記録は、同じ曜日・同じ時間帯で<b>直近4週のうち2週以上続いた時だけ</b>、来週以降の数を自動で増減します（1回だけなら変わりません）<br>
-      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${wd.below?`<br><span style="color:#6b21a8;font-weight:700">⤵ ${withdrawText(wd)}</span>`:''}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>${gaibuWhy(p.category,dayIdx,slotH)?`　理由：${escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))}`:''}（③のタブで変えられます）`:''}
+      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${riceAdj(pid,dayIdx,slotH)?`<br><span style="color:#92400e;font-weight:700">🍚 ごはんの残りが${riceAdj(pid,dayIdx,slotH)>0?'多い':'少ない'}ため ${riceAdj(pid,dayIdx,slotH)>0?'+':''}${riceAdj(pid,dayIdx,slotH)}（学習とは別の、この時間帯だけの記録）</span>`:''}${packParentOf(p)?`<br>🍢 1パック＝${packSizeOf(p)}本。週の目標は「${escapeHtmlP(packParentOf(p).name)}」の目標（本）× 取り分 ${Math.round(packShareNorm(p)*100)}% ÷ ${packSizeOf(p)}本`:''}${wd.below?`<br><span style="color:#6b21a8;font-weight:700">⤵ ${withdrawText(wd)}</span>`:''}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>${gaibuWhy(p.category,dayIdx,slotH)?`　理由：${escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))}`:''}（③のタブで変えられます）`:''}
     </div>
     <button type="button" onclick="closeCellMenu()" style="width:100%;margin-top:12px;padding:13px;font-size:15px;font-weight:700;border:none;border-radius:10px;background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit">閉じる</button>
   </div>`;
@@ -3828,6 +3919,7 @@ function slotShows(p,dayIdx,slotH){ return getSlotMake(p,slotH)||getInvestExtra(
 
 function getInvestExtra(pid,dayIdx,slotH){
   const p=getP(pid);if(!p||!p.enabled)return 0;
+  if(isPackParent(p))return 0;   // 本数の商品（親）には投資を置かない（子に置く）
   const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.length)return 0;
   if(cfg.slots.indexOf(slotH)<0)return 0;
   // 今週のマス目がある商品：マスの数をそのまま返す（作らない時間帯のマスは数えない）
@@ -4251,8 +4343,11 @@ function renderJissekiTable(){
       const ji=S.ji[p.id]||{teika:0,nebiki:0,haiki:0};
       const met=_jiMetHtml(p.id);
       const open=_jiOpen.has(p.id);
-      const mk=(key,ci,label)=>`<div class="ji-in" data-key="jin-${p.id}-${key}"><span class="ji-lbl">${label}</span><input type="number" min="0" inputmode="numeric" value="${ji[key]||0}" data-ji-r="${r}" data-ji-c="${ci}" onfocus="this.select()" onkeydown="jiKeyNav(event,${r},${ci})" onchange="setJi('${p.id}','${key}',parseInt(toHalf(this.value))||0)"></div>`;
-      html+=`<div class="ji-name" data-key="jn-${p.id}" onclick="toggleJiDetail('${p.id}')" title="タップで詳細指標を表示"><span class="n">${p.name}</span><span class="mob-met" id="ji-mm-${p.id}">販売率 ${met.sell}　利益率 ${met.profit}</span></div>
+      const par=packParentOf(p);   // パック商品（子）：実績は親（本数）に入れるので、ここは入力不可
+      const mk=(key,ci,label)=>par?`<div class="ji-in" data-key="jin-${p.id}-${key}" title="本数の商品「${escapeHtmlP(par.name)}」に本数で入れます"><span class="ji-lbl">${label}</span><input type="text" value="—" disabled style="color:#9ca3af;background:#f8fafc"></div>`
+        :`<div class="ji-in" data-key="jin-${p.id}-${key}"><span class="ji-lbl">${label}</span><input type="number" min="0" inputmode="numeric" value="${ji[key]||0}" data-ji-r="${r}" data-ji-c="${ci}" onfocus="this.select()" onkeydown="jiKeyNav(event,${r},${ci})" onchange="setJi('${p.id}','${key}',parseInt(toHalf(this.value))||0)"></div>`;
+      const packNote=par?`<span class="mob-met" style="color:#6b21a8">🍢 1パック＝${packSizeOf(p)}本。実績は「${escapeHtmlP(par.name)}」に本数で</span>`:isPackParent(p)?`<span class="mob-met" style="color:#6b21a8">🍢 本数で入力（パック：${packChildren(p.id).map(c=>escapeHtmlP(c.name)).join('・')}）</span>`:'';
+      html+=`<div class="ji-name" data-key="jn-${p.id}" onclick="toggleJiDetail('${p.id}')" title="タップで詳細指標を表示"><span class="n">${p.name}</span>${packNote}<span class="mob-met" id="ji-mm-${p.id}">${par?'':`販売率 ${met.sell}　利益率 ${met.profit}`}</span></div>
         ${mk('teika',0,t('jisseki.teikaSales'))}${mk('nebiki',1,t('jisseki.discountSales'))}${mk('haiki',2,t('jisseki.wasteCount'))}
         <div class="ji-met" id="ji-sell-${p.id}">${met.sell}</div><div class="ji-met" id="ji-prof-${p.id}">${met.profit}</div>
         <div class="ji-detail" id="ji-detail-${p.id}" style="${open?'':'display:none'}">${open?_jiDetailHtml(p.id):''}</div>`;
@@ -4860,6 +4955,7 @@ function renderCatCfgArea(){
           <button type="button" class="btn-secondary" style="font-size:11px;padding:4px 10px;margin-left:auto" onclick="suggestSlots('${c}')">${t('product.suggestSlot')}</button></div>
         ${_slotEditor(c)}
         <div id="suggest_${c.replace(/\s/g,'_')}" style="display:none;margin-top:6px;background:var(--accent-lt);border-radius:6px;padding:8px;font-size:12px"></div>
+        ${caseCapEditor(c)}
         <div class="cc-sec" style="margin-top:10px"><b>${t('product.allowedHours')}</b>
           <input type="number" value="${cfg.ah}" min="1" max="24" style="width:64px;text-align:center" onchange="setCatCfg('${c}','ah',parseInt(this.value)||6)"><span>${t('common.hour')}</span>
           <span class="cc-sub">${t('product.discountTimeBase')}: ${cfg.slots.map(h=>`${getMarkdownTime(c,h)}:00`).join(' / ')||'—'}</span></div>
@@ -5103,6 +5199,8 @@ function renderProductCard(p){
   let badges='';
   if(p.isNew||isNewCat) badges+=`<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:1px 6px;border-radius:8px;font-weight:700">🆕</span>`;
   if(p.isInvest) badges+=`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:8px;font-weight:700">📈</span>`;
+  if(isPackParent(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="本数の実績用（親）。作成表にはパック商品で出ます">🍢親</span>`;
+  else if(packParentOf(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="パック商品（子）。実績は親に本数で">🍢${packSizeOf(p)}本</span>`;
 
   // 一覧で見える要約: カテゴリ + 売価 + 値引
   const summary=`<span>${tCat(p.category)}</span><span>¥${p.shopPrice}</span><span class="s-disc">値引 -¥${p.disc}</span>`;
@@ -5191,6 +5289,8 @@ function renderProductCard(p){
           <span>品切れ防止（算出0でも最低1個作る） <span class="info" title="主力商品向け・既定OFF。ONにすると廃棄が増える可能性があります">ℹ️</span></span>
         </label>
       </div>
+      ${packSettingHtml(p)}
+      ${lifeSettingHtml(p)}
       <!-- タグ（チェックボックス） -->
       <div style="grid-column:span 2">
         <label style="display:block;margin-bottom:4px">${t('product.tags')}</label>
@@ -5389,11 +5489,33 @@ const _advOpen=new Set();
 function _advToggle(key,open){ if(open)_advOpen.add(key); else _advOpen.delete(key); _uiSave(); }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
-const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','microwaveMin','fryerMin','fryerCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason','mkContainer']);
+const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','minDisplay','startDate','endDate','microwaveMin','fryerMin','fryerCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason','mkContainer']);
 
+// ②商品設定：本数とパック（親子）の欄。子＝親を選ぶ・1パック＝◯本・取り分％。親＝子の一覧（絵つき）
+function packSettingHtml(p){
+  const esc=escapeHtmlP;
+  const kids=packChildren(p.id), par=packParentOf(p);
+  const box=inner=>`<div style="grid-column:span 2;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:6px;padding:8px 10px">
+      <div style="font-size:11px;color:#6b21a8;font-weight:700;margin-bottom:6px">🍢 本数とパック <span class="info" title="焼き鳥のように、本部の実績が「本数」でしか取れず、売場では2本入り・3本入りで売る商品のための設定。実績は本数の商品（親）に入れ、作成数はパック商品（子）に配ります">ℹ️</span></div>${inner}</div>`;
+  if(kids.length){
+    const sum=packShareSum(p.id);
+    return box(`<div style="font-size:12px;color:#334155;line-height:1.7">この商品は<b>本数の実績用（親）</b>です。①実績入力は本数で。作成表・印刷・予算には下のパック商品で出ます。発注・ランキングはこの商品で1行。</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${kids.map(c=>`<span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d8b4fe;border-radius:10px;padding:4px 10px;font-size:12px"><span style="font-size:18px">${'🍢'.repeat(Math.min(5,packSizeOf(c)))}</span><b>${esc(c.name||'(名称未設定)')}</b><span style="color:#64748b">1パック＝${packSizeOf(c)}本・取り分 ${Math.round(packShareNorm(c)*100)}%</span></span>`).join('')}</div>
+      ${sum>0&&Math.round(sum)!==100?`<div style="font-size:11px;color:#b45309;margin-top:6px">取り分の合計が ${Math.round(sum)}% です。100% になおして配ります（子の欄で直せます）</div>`:sum===0?`<div style="font-size:11px;color:#64748b;margin-top:6px">取り分が未入力なので均等に配ります（${kids.length}商品で ${Math.round(100/kids.length)}% ずつ）</div>`:''}`);
+  }
+  const cands=(S.PM||[]).filter(x=>x&&x.enabled&&x.id!==p.id&&x.category===p.category&&!x.packOf);
+  const sel=`<select onchange="setPackOf('${p.id}',this.value)" style="max-width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:6px"><option value="">（なし：ふつうの商品）</option>${cands.map(x=>`<option value="${x.id}" ${par&&par.id===x.id?'selected':''}>${esc(x.name||'(名称未設定)')}</option>`).join('')}</select>`;
+  const detail=par?`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px;font-size:12px">
+      <label>1パック＝<input type="text" inputmode="numeric" value="${packSizeOf(p)}" style="width:48px;text-align:center" onchange="setProdField('${p.id}','packSize',Math.max(1,parseInt(toHalf(this.value))||1))">本</label>
+      <label>本数の取り分 <input type="text" inputmode="numeric" value="${p.packShare!=null&&p.packShare!==''?p.packShare:''}" placeholder="均等" style="width:52px;text-align:center" onchange="setProdField('${p.id}','packShare',toHalf(this.value).trim()===''?'':Math.max(0,parseFloat(toHalf(this.value))||0))">％ <span style="color:#64748b">→ 配る時は ${Math.round(packShareNorm(p)*100)}%</span></label>
+    </div>
+    <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">この商品の週の目標（パック）＝「${esc(par.name)}」の週の目標（本）× 取り分 ÷ ${packSizeOf(p)}本。売価・原価はこの商品の欄（1パックの値）を使います。完売・余りの記録はこの商品のマスで。</div>`:'';
+  return box(`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px"><span>本数の商品（親）：</span>${sel}</div>${detail}`);
+}
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
   p[key]=val;saveS();
+  if(key==='packSize'||key==='packShare'){ renderProductCardInPlace(pid); if(p.packOf)renderProductCardInPlace(p.packOf); return; }
   // 入力系フィールドは再描画しない（フォーカス奪取を防ぐ）
   if(_PROD_FIELDS_SILENT.has(key)) return;
   renderProductCardInPlace(pid);   // そのカードだけ描き直す（一覧の並べ直しはしない）
@@ -6756,7 +6878,8 @@ function printMakePlan(){
         .filter(o=>o.cnt>0);
       if(!rows.length)return;
       const doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah, md=getMarkdownTime(cat,slotH);
-      const meta=`完成 ${fmtHour(doneH)}　廃棄 ${fmtHour(disposeH)}${isDiscountOn(cat,di)?`　値引 ${fmtHour(md)}〜`:''}`;
+      const _cc=caseCapInfo(cat,di,slotH);
+      const meta=`完成 ${fmtHour(doneH)}　廃棄 ${fmtHour(disposeH)}${isDiscountOn(cat,di)?`　値引 ${fmtHour(md)}〜`:''}${_cc?`　${_cc.over?'⚠ ':''}合計${_cc.total}／容量${_cc.cap}`:''}`;
       body+=`<div class="pcat">
         <div class="pcat-head">
           <span class="pcat-name">${escapeHtmlP(cat)}</span>
@@ -6764,7 +6887,7 @@ function printMakePlan(){
         </div>
         <table class="ptbl">
           <thead><tr><th class="pname">商品名</th><th class="pcnt">作成数</th><th class="pchk">作成</th></tr></thead>
-          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}${(()=>{ const g=gaibuPct(cat,di,slotH); return g?` <span class="pgb">調整 ${_gbFmt(g)}</span>`:''; })()}${hasThermal(o.p)&&(o.p.thermalNo||'').trim()?` <span class="pth">No.${escapeHtmlP(o.p.thermalNo)}</span>`:''}${withdrawInfo(o.p.id,di,slotH).below?` <span class="pwd">⤵撤退</span>`:''}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
+          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}${(()=>{ const g=gaibuPct(cat,di,slotH); return g?` <span class="pgb">調整 ${_gbFmt(g)}</span>`:''; })()}${hasThermal(o.p)&&(o.p.thermalNo||'').trim()?` <span class="pth">No.${escapeHtmlP(o.p.thermalNo)}</span>`:''}${withdrawInfo(o.p.id,di,slotH).below?` <span class="pwd">⤵撤退</span>`:''}${prodDateState(o.p,dt)==='ended'?' <span class="pwd" style="color:#991b1b;border-color:#fca5a5">終売</span>':prodDateState(o.p,dt)==='notyet'?' <span class="pwd" style="color:#374151;border-color:#d1d5db">未投入</span>':''}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
         </table>
       </div>`;
     });
@@ -7385,7 +7508,7 @@ function renderProdDayContent(dayIdx){
   CATS.forEach(cat=>{
     if(!S.catOn[cat])return;
     const cfg=S.catCfg[cat];if(!cfg||!cfg.slots.length)return;
-    const prods0=S.PM.filter(p=>p.enabled&&p.category===cat);
+    const prods0=S.PM.filter(p=>p.enabled&&p.category===cat&&!isPackParent(p));   // 本数の商品（親）は作成表に出ない（作るのはパック商品）
     const prods=_prodSortMode==='efficient'
       ?[...prods0].sort(compareEfficient)
       :[...prods0].sort((a,b)=>(a.order??0)-(b.order??0));
@@ -7461,7 +7584,7 @@ function renderProdDayContent(dayIdx){
         <div style="display:flex;flex-direction:column;gap:2px;line-height:1.2;align-items:center">
           <span style="white-space:nowrap"><span style="font-size:10px;color:#64748b">作成</span> <span style="font-size:17px;font-weight:800;color:#1d4ed8">${fmtHour(h)}</span></span>
           <span style="font-size:10px;color:#64748b;white-space:nowrap">完成 ${fmtHour(doneH)}${discOn?`　値引 ${fmtHour(md)}〜`:''}</span>
-          ${gaibuBadge(cat,dayIdx,h)}
+          ${gaibuBadge(cat,dayIdx,h)}${caseCapBadge(cat,dayIdx,h)}${mainCatOf(cat)==='まちかど厨房'?riceButtons(dayIdx,h):''}
         </div>
       </th>`;
     });
@@ -7486,7 +7609,7 @@ function renderProdDayContent(dayIdx){
       const orderBadge=(gIdx!=null)?`<span style="font-size:13px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(gIdx)}</span>`:'';
       const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'';
       const endingBadge=p.orderEnding?`<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px" title="${t('order.endingHint')}">${t('order.endingBadge')}</span>`:'';
-      html+=`<tr><td style="text-align:left;font-size:12px;${p.orderEnding?'background:#fef2f2':''}">${orderBadge}${p.name}${newBadge}${endingBadge}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
+      html+=`<tr><td style="text-align:left;font-size:12px;${p.orderEnding?'background:#fef2f2':''}">${orderBadge}${p.name}${newBadge}${endingBadge}${prodDateBadge(p,dt)}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
       cfg.slots.forEach(slotH=>{
         const cnt=getProdCnt(p.id,dayIdx,slotH);
         const extra=getInvestExtra(p.id,dayIdx,slotH);
@@ -7535,12 +7658,13 @@ function renderProdDayContent(dayIdx){
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
         const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
         // マスは「数字（タップ＝記録メニュー）」と「完了チェック」だけ。完売／余り／在庫欠品は openCellMenu の文字つきボタンで記録
-        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':gaibuCellBadge(cat,dayIdx,slotH,true)+thermalBadge(p,true,true)+withdrawBadge(wd,true)}${isZero?'':`
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':gaibuCellBadge(cat,dayIdx,slotH,true)+thermalBadge(p,true,true)+withdrawBadge(wd,true)+minDisplayBadge(p,grandTotal)}${isZero?'':`
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
             <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${dayIdx},${slotH})" aria-label="${escapeHtmlP(p.name)} ${fmtHour(slotH)} の記録メニュー">
               <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
             </button>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">投資+${extra}</span>`:''}
+            ${riceBadge(p.id,dayIdx,slotH)}
             ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">在庫欠品</span>`:''}
             ${leftover?`<span style="background:#ffedd5;color:#9a3412;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">余り</span>`:''}
             ${learnAdj!==1?`<span style="background:#ede9fe;color:#5b21b6;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700" title="完売/余りの記録から自動調整">学習${learnAdj>1?'+':''}${Math.round((learnAdj-1)*100)}%</span>`:''}
@@ -8207,7 +8331,8 @@ function calcPlanBreakdown(){
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category];if(!cfg)return;
-    const ji=getJiAllWeeks(p.id);
+    if(isPackParent(p))return;                       // 親（本数）は作成しない。予算は子（パック）で
+    const ji=getJiAllWeeks((packParentOf(p)||p).id); // 子の廃棄率・値引率は親の実績（本数）から
     const hasJi=ji.total>0;
     const hr=hasJi?ji.haiki/ji.total:1.0;       // 実績廃棄率（実績なし＝100%想定）
     const nr=hasJi?ji.nebiki/ji.total:0;        // 実績値引率
@@ -8959,7 +9084,7 @@ function _legacyRemoved(){
   let grandWeek=0;
   activeCats.forEach(cat=>{
     const cfg=S.catCfg[cat];
-    const prods=S.PM.filter(p=>p.enabled&&p.category===cat).sort((a,b)=>a.order-b.order);
+    const prods=S.PM.filter(p=>p.enabled&&p.category===cat&&!packParentOf(p)).sort((a,b)=>a.order-b.order);   // 発注は親で1行（子は親に本数で合算）
     if(!prods.length)return;
 
     // カテゴリの曜日別合計を先に計算（小計行用）
@@ -8984,8 +9109,7 @@ function _legacyRemoved(){
 
       // 曜日別合計を計算
       const dayTotals=DAYS.map((_,di)=>{
-        const base=cfg.slots.reduce((s,h)=>s+getProdCnt(p.id,di,h),0);
-        const extra=cfg.slots.reduce((s,h)=>s+getInvestExtra(p.id,di,h),0);
+        let base=0,extra=0; cfg.slots.forEach(h=>{ const o=orderCnt(p.id,di,h); base+=o.base; extra+=o.extra; });   // 親は子の作成数×本/パック
         return{base,extra,total:base+extra};
       });
       const weekTotal=dayTotals.reduce((s,d)=>s+d.total,0);
@@ -9152,13 +9276,13 @@ function getOrderCheckProgress(){
   const activeCats=CATS.filter(c=>S.catOn[c]&&S.catCfg[c]?.slots.length);
   activeCats.forEach(cat=>{
     const cfg=S.catCfg[cat];
-    const prods=S.PM.filter(p=>p.enabled&&p.category===cat);
+    const prods=S.PM.filter(p=>p.enabled&&p.category===cat&&!packParentOf(p));   // 発注は親で1行
     prods.forEach(p=>{
       ORDER_COLS.forEach(col=>{
         if(col.noOrder)return;
         const covers=ORDER_COL_COVERS[col.id];if(!covers)return;
         const qty=covers.reduce((sum,di)=>{
-          return sum+cfg.slots.reduce((s,h)=>s+getProdCnt(p.id,di,h)+getInvestExtra(p.id,di,h),0);
+          return sum+cfg.slots.reduce((s,h)=>{ const o=orderCnt(p.id,di,h); return s+o.base+o.extra; },0);
         },0);
         if(qty>0){
           const checked=!!(S.orderChecks||{})[`${p.id}_${col.id}`];
@@ -9217,7 +9341,7 @@ function buildOrderScheduleHTML(dates, activeCats){
 
   activeCats.forEach(cat=>{
     const cfg=S.catCfg[cat];
-    const prods=S.PM.filter(p=>p.enabled&&p.category===cat).sort((a,b)=>a.order-b.order);
+    const prods=S.PM.filter(p=>p.enabled&&p.category===cat&&!packParentOf(p)).sort((a,b)=>a.order-b.order);   // 発注は親で1行（本数）
     if(!prods.length)return;
 
     const catColTotals = Array(COL_COUNT).fill(0);
@@ -9248,8 +9372,7 @@ function buildOrderScheduleHTML(dates, activeCats){
         const covers = ORDER_COL_COVERS[col.id];
         if(!covers) return 0;
         return covers.reduce((sum,createDayIdx)=>{
-          const base=cfg.slots.reduce((s,h)=>s+getProdCnt(p.id,createDayIdx,h),0);
-          const extra=cfg.slots.reduce((s,h)=>s+getInvestExtra(p.id,createDayIdx,h),0);
+          let base=0,extra=0; cfg.slots.forEach(h=>{ const o=orderCnt(p.id,createDayIdx,h); base+=o.base; extra+=o.extra; });   // 親は子の作成数×本/パック
           return sum+base+extra;
         },0);
       });
