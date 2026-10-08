@@ -5147,7 +5147,8 @@ function completeBy(name){
   if(goal){
     showGoalAchieved(goal.savedSec);
   }
-  if(award){
+  // 2026-10-08 店長：ゲームのタブを隠したので、完了時のゲーム表示は出さない（ポイントの記録は裏で今までどおり）。?legacy=1 の時だけ出す
+  if(award && wsGameFxOn()){
     fireConfetti(originEl);
     showPointsPop(originEl, award.pts, award.reasons);
     if(award.rankUp){
@@ -6983,7 +6984,7 @@ function bumpTeamProgress(staffName){
   s.cleanliness = Math.min(100, s.cleanliness + 1);
   logStoreActivity('task', staffName, '+1チームpt / +1清掃度');
   const afterStage = getMascotStage(s.teamTotalEarned);
-  if(afterStage.currentIdx > beforeStage.currentIdx){
+  if(afterStage.currentIdx > beforeStage.currentIdx && wsGameFxOn()){   // みんなのペットの進化演出も、ゲームを隠している間は出さない
     setTimeout(() => triggerEvolutionCelebration(beforeStage.current, afterStage.current), 600);
   }
 }
@@ -8826,7 +8827,8 @@ function completeRequestBy(name){
   let originEl = document.querySelector(`.request-card[data-request-id="${r.id}"]`);
   refreshCurrentView();
   updateRequestBadges();
-  if(award){
+  // 2026-10-08 店長：ゲームのタブを隠したので、完了時のゲーム表示は出さない（ポイントの記録は裏で今までどおり）。?legacy=1 の時だけ出す
+  if(award && wsGameFxOn()){
     fireConfetti(originEl);
     showPointsPop(originEl, award.pts, award.reasons);
     if(award.newTitles && award.newTitles.length > 0){
@@ -10155,6 +10157,8 @@ document.addEventListener('keydown',e=>{
 setInterval(()=>{ try{ if(_amEd)return; if(currentView==='map') renderMapView(); else updateMapBadge(); }catch(_){} }, 30000);
 
 /* 一旦非表示にした画面（2026-10-08 店長）。?legacy=1 の時だけ開ける。ほかの所から呼ばれても売場マップに読み替える */
+// タスク完了時のゲーム表示を出すか（ゲームのタブが見えている時だけ＝?legacy=1）
+function wsGameFxOn(){ return !wsViewHidden('game'); }
 function wsViewHidden(v){ return !window.WS_LEGACY && ['timeline','retire','thanks','game','store','floor'].indexOf(v) >= 0; }
 function setView(v){
   if(wsViewHidden(v)) v = 'map';
