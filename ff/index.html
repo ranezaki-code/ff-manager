@@ -1201,6 +1201,7 @@ const I18N = {
     'make.batchOf':'第',
     'make.batch':'陣',
     'make.tipsTitle':'作成順のコツ（電子レンジ1台想定）',
+    'make.dateFrom':'{0}から（この日は作りません）','make.dateEnded':'{0}で終売（この日は作りません）',
     'make.rules':'作成ルール7か条（毎週確認）',
     'make.completed':'✓ 完了',
     'make.newBadge':'新',
@@ -1547,6 +1548,7 @@ const I18N = {
     'make.batchOf':'Batch ',
     'make.batch':'',
     'make.tipsTitle':'Tips (single microwave)',
+    'make.dateFrom':'From {0} (not made on this day)','make.dateEnded':'Ended on {0} (not made on this day)',
     'make.rules':'Production rules (review weekly)',
     'make.completed':'✓ Done',
     'make.newBadge':'New',
@@ -1837,6 +1839,7 @@ const I18N = {
     'make.scheduleParallel':'└ अघिल्लो ब्याचसँग फ्राइयरमा स्ट्याक गर्न सकिन्छ',
     'make.batchOf':'ब्याच ','make.batch':'',
     'make.tipsTitle':'सुझाव (एउटा माइक्रोवेभ)',
+    'make.dateFrom':'{0} देखि (आज बनाउँदैन)','make.dateEnded':'{0} मा बिक्री बन्द (आज बनाउँदैन)',
     'make.rules':'उत्पादन नियम (हप्ताको समीक्षा)',
     'make.completed':'✓ सम्पन्न',
     'make.newBadge':'नयाँ',
@@ -3478,9 +3481,11 @@ function getProdSlotRange(p,slotH){
   return [slotH,Math.max(base[1],Math.min(nextOn,cap))];
 }
 // 商品ごとの、作る時間帯の範囲の客数（係数つき）の週合計＝時間帯配分の分母。オフが無い商品は getCatWeekTotalWeighted と同じ値
-function getProdWeekTotalWeighted(p){
+//   dw＝日ごとの重み（prodDayW。並ばない日は 0）。省くか全部 1 の時は今までと同じ値
+function getProdWeekTotalWeighted(p,dw){
   const cfg=p&&S.catCfg[p.category]; if(!cfg)return 0; let s=0;
-  cfg.slots.forEach(h=>{ if(!getSlotMake(p,h))return; const r=getProdSlotRange(p,h); if(!r)return; const k=getSlotCoef(p.category,h); for(let d=0;d<7;d++)s+=getSlotCust(d,r[0],r[1])*k; });
+  if(!dw||dw===_ONES7){ cfg.slots.forEach(h=>{ if(!getSlotMake(p,h))return; const r=getProdSlotRange(p,h); if(!r)return; const k=getSlotCoef(p.category,h); for(let d=0;d<7;d++)s+=getSlotCust(d,r[0],r[1])*k; }); return s; }
+  cfg.slots.forEach(h=>{ if(!getSlotMake(p,h))return; const r=getProdSlotRange(p,h); if(!r)return; const k=getSlotCoef(p.category,h); for(let d=0;d<7;d++){ if(dw[d]>0)s+=getSlotCust(d,r[0],r[1])*k*dw[d]; } });
   return s;
 }
 // 画面の説明用：「10〜16時のぶん」
@@ -3508,13 +3513,24 @@ function getWeekTargetBase(pid){
   const p=getP(pid);if(!p)return null;
   // パック商品（子）：親（本数）の週の目標 × 取り分 ÷ 本/パック（単位はパック）。親子商品の説明は getWithdraw の下
   const par=packParentOf(p);
-  if(par){ const b=getWeekTargetBase(par.id); if(!b)return null; const f=packShareNorm(p)/packSizeOf(p); return {wt:b.wt,teika:b.teika*f,rate:b.rate,sd:b.sd,aggressive:b.aggressive,slack:b.slack*f,target:b.target*f,pack:true}; }
+  if(par){ const b=getWeekTargetBase(par.id); if(!b)return null; let f=packShareNorm(p)/packSizeOf(p);
+    // 子だけに販売期間がある時（2026-10-09）：親の日ごとの重みのうち、子が並ぶ日の分だけ
+    const pw=prodDayW(par.id), cw=prodDayW(p.id);
+    if(cw!==pw){ let a=0,c=0; for(let d=0;d<7;d++){ const k=getCatDayCust(par.category,d); a+=pw[d]*k; c+=cw[d]*k; } f*=a>0?c/a:0; }
+    return {wt:b.wt,teika:b.teika*f,rate:b.rate,sd:b.sd,aggressive:b.aggressive,slack:b.slack*f,target:b.target*f,pack:true}; }
   const wt=getCatWeekTotal(p.category);
   const teika=getRecentAvgTeika(pid,4);
-  const rate=wt?teika/wt:0;
   const valInput=p.shopPrice-p.cost;
   const aggressive=(p.cost+valInput)>0?valInput/(p.cost+valInput):0;
   const sd=stdDev(DAYS.map((_,i)=>getCatDayCust(p.category,i)));
+  // 販売期間で週の一部の日だけ並ぶ商品（2026-10-09）：teika は並ぶ日の需要の合計（catDemandModel）。購入率は並ぶ日の客数で、ゆとりは並ぶ日数ぶん
+  const on=prodOnDays(p);
+  if(on!==_ALL_ON&&on.some(b=>!b)){
+    let wtOn=0, nOn=0; for(let d=0;d<7;d++)if(on[d]){ wtOn+=getCatDayCust(p.category,d); nOn++; }
+    const rate=wtOn?teika/wtOn:0, slack=sd*rate*aggressive*nOn;
+    return {wt,teika,rate,sd,aggressive,slack,target:teika+slack,wtOn,nOn};
+  }
+  const rate=wt?teika/wt:0;
   const slack=sd*rate*aggressive*7;
   return {wt,teika,rate,sd,aggressive,slack,target:teika+slack};
 }
@@ -3581,14 +3597,16 @@ function getProdWeekAlloc(pid){
   const a={};
   const p=getP(pid), cfg=p&&S.catCfg[p.category];
   if(p&&cfg){
-    const wt=getProdWeekTotalWeighted(p);
+    // 日ごとの重み（2026-10-09 販売期間）：並ばない日は 0 で、そのマスには配らない。並ぶ日は「その日の取り分」の比。日付の無い商品だけのカテゴリは全部 1（今までと同じ）
+    const dw=prodDayW(pid), wt=getProdWeekTotalWeighted(p,dw);
     if(wt>0){
       const ctD=[]; for(let d=0;d<7;d++)ctD[d]=getCorrTarget(pid,d);
       const main=mainCatOf(p.category); const cells=[]; let sum=0, floors=0;
       cfg.slots.forEach((h,si)=>{
         if(!getSlotMake(p,h))return; const r=getProdSlotRange(p,h); if(!r)return; const k=getSlotCoef(p.category,h);
         for(let d=0;d<7;d++){
-          let x=ctD[d]*getSlotCust(d,r[0],r[1])*k*getLearnAdj(pid,d,h)/wt*gaibuFactor(main,d,h); if(!isFinite(x)||x<0)x=0;
+          if(!(dw[d]>0))continue;
+          let x=(dw===_ONES7?ctD[d]*getSlotCust(d,r[0],r[1])*k:ctD[d]*getSlotCust(d,r[0],r[1])*k*dw[d])*getLearnAdj(pid,d,h)/wt*gaibuFactor(main,d,h); if(!isFinite(x)||x<0)x=0;
           const f=Math.floor(x); a[d+'|'+h]=f; floors+=f; sum+=x; cells.push({d,h,si,frac:x-f});
         }
       });
@@ -3642,7 +3660,9 @@ function getCorrTarget(pid,dayIdx){
 
 function getWithdraw(pid){
   const p=getP(pid);if(!p)return 0;
-  const wt=getCatWeekTotal(p.category);if(!wt)return 0;   // 撤退客数＝原価率÷購入率（購入率は売っている時間の客数で）
+  let wt=getCatWeekTotal(p.category);   // 撤退客数＝原価率÷購入率（購入率は売っている時間の客数で）
+  if(!packParentOf(p)&&prodPartWeek(p)){ const on=prodOnDays(p); wt=0; for(let d=0;d<7;d++)if(on[d])wt+=getCatDayCust(p.category,d); }   // 週の一部だけ並ぶ商品は、並ぶ日の客数で（teika も並ぶ日の分。2026-10-09）
+  if(!wt)return 0;
   // 購入率の定価販売数は、週の目標と同じ「定価販売の見込み（カテゴリ需要×取り分）」（2026-10-06 ソロの検算：今週の実績だけだと火曜は 0 でガードが効かなかった）
   const par=packParentOf(p); if(par)return getWithdraw(par.id);   // パック商品（子）の撤退客数は親（本数）で
   const teika=getRecentAvgTeika(pid,4);
@@ -3666,7 +3686,7 @@ function orderCnt(pid,d,h){ const p=getP(pid); if(!p)return {base:0,extra:0}; if
 // ---------- ケース容量・最低陳列数・投入日と終売日（2026-10-07 店長の決定 2A：まず警告と印だけ。数は変えない） ----------
 //   ケース容量：S.catCfg[本体カテゴリ].caseCap[時間帯]={rows,cols,per}（段×列×1列の個数）。空なら警告なし。新商品カテゴリは本体と同じケース。
 //   時間帯の合計＝そのカテゴリ（新商品も合算）の 作成数＋投資＋完売の追加。合計＞容量 なら ⚠（作成表の見出し・印刷）。
-//   最低陳列数 p.minDisplay：マスの数が未満なら印だけ（第2段階で品切れ防止の置き換え候補）。投入日 p.startDate／終売日 p.endDate：日付の外なら印だけ。
+//   最低陳列数 p.minDisplay：マスの数が未満なら印だけ（第2段階で品切れ防止の置き換え候補）。投入日 p.startDate／終売日 p.endDate：2026-10-09 から数に効かせる（日付の外の日は作成数0。下の prodOnDays）。
 function caseCapOf(cat,slotH){ const cfg=S.catCfg[mainCatOf(cat)]; const c=cfg&&cfg.caseCap&&cfg.caseCap[slotH]; if(!c)return 0; const n=(Number(c.rows)||0)*(Number(c.cols)||0)*(Number(c.per)||0); return n>0?n:0; }
 function caseTotal(cat,dayIdx,slotH){ const m=mainCatOf(cat); let s=0; (S.PM||[]).forEach(p=>{ if(!p||!p.enabled||mainCatOf(p.category||'')!==m||!S.catOn[p.category])return; s+=getProdCnt(p.id,dayIdx,slotH)+getInvestExtra(p.id,dayIdx,slotH)+(typeof getSoldOutTotal==='function'?getSoldOutTotal(p.id,dayIdx,slotH):0); }); return s; }
 function caseCapInfo(cat,dayIdx,slotH){ const cap=caseCapOf(cat,slotH); if(!cap)return null; const total=caseTotal(cat,dayIdx,slotH); return {cap,total,over:total>cap}; }
@@ -3676,18 +3696,141 @@ function caseCapEditor(cat){ const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.length
   return `<div class="cc-sec" style="margin-top:10px"><b>🗄️ ケース容量</b><span class="cc-sub">時間帯ごとに 段×列×1列の個数。空なら警告なし。超えた時は作成表に ⚠（数は変えません）</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px">${cfg.slots.map(h=>{ const c=cc[h]||{}; const cap=caseCapOf(cat,h); const inp=(k,v)=>`<input type="text" inputmode="numeric" value="${v||''}" placeholder="0" style="width:38px;text-align:center" onchange="setCaseCap('${cat}',${h},'${k}',this.value)">`;
       return `<label style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><b>${h}時</b> ${inp('rows',c.rows)}段×${inp('cols',c.cols)}列×${inp('per',c.per)}個${cap?` <span style="color:#475569">＝${cap}</span>`:''}</label>`; }).join('')}</div>`; }
-// 投入日・終売日：その日付の外なら印（'notyet'＝投入前／'ended'＝終売後／null）
+// 投入日・終売日：その日付の外なら 'notyet'＝投入前／'ended'＝終売後／null（その日は売る）
 function prodDateState(p,date){ if(!p||!date)return null; const ymd=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; if(p.endDate&&ymd>p.endDate)return 'ended'; if(p.startDate&&ymd<p.startDate)return 'notyet'; return null; }
-function prodDateBadge(p,date){ const s=prodDateState(p,date); if(!s)return ''; return s==='ended'?`<span title="終売日 ${escapeHtmlP(p.endDate)} を過ぎています（数は変えていません）" style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">終売</span>`:`<span title="投入日 ${escapeHtmlP(p.startDate)} より前です（数は変えていません）" style="font-size:9px;background:#e5e7eb;color:#374151;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">未投入</span>`; }
+// ---------- 販売期間を数に効かせる（2026-10-09 店長：「今週のうちに来週の新商品を設定すると今週の作成表に出てしまう。オフにしても月曜の夜に切り替えるしかない」） ----------
+//   投入日より前・終売日より後の日は、その商品のマスを作らない＝作成数 0（自然算出・品切れ防止の最低・まとめ単位・投資・新商品・ごはん±1・追加作成の提案 すべて）。
+//   日付は店のローカル日付（YYYY-MM-DD の文字の比べ）。投入日＝その日から売る、終売日＝その日まで売る。親子（1A）の子は親の期間も見る。
+//   オン／オフ（enabled）とは別物：投入日を入れた商品はオンのままでよく、その日になったら自動で作成表に出る。
+//   週の目標は「日ごとの売場」で出す（catDemandModel の Dd・sumD）。投入日・終売日が週の中に入る商品が無いカテゴリは、今までと1つも変わらない（日ごとの重みは全部 1）。
+const _ALL_ON=[true,true,true,true,true,true,true], _ONES7=[1,1,1,1,1,1,1];
+function _ymdOf(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function prodHasDates(p){ if(!p)return false; if(p.startDate||p.endDate)return true; const par=packParentOf(p); return !!(par&&(par.startDate||par.endDate)); }
+// 開いている週の7日それぞれに、その商品が売場に並ぶか（true／false）。日付の無い商品は _ALL_ON（同じ配列。書き換えない）
+function prodOnDays(p){
+  if(!prodHasDates(p))return _ALL_ON;
+  return _skuMemo('od|'+p.id+'|'+S.weekStart,()=>{ const par=packParentOf(p); return getWeekDates().map(dt=>!prodDateState(p,dt)&&!(par&&prodDateState(par,dt))); });
+}
+function prodOnDay(p,dayIdx){ return !!prodOnDays(p)[dayIdx]; }
+function prodPartWeek(p){ const on=prodOnDays(p); return on!==_ALL_ON&&on.some(b=>!b); }   // 週の一部の日だけ並ぶ（または1日も並ばない）
+// 日ごとの重み（週の目標の配り方・追加作成の見込みに使う）。並ばない日は 0、並ぶ日は「その日の取り分 ÷ 週の売場での取り分」。全部 1 の時は _ONES7（同じ配列）
+function prodDayW(pid){
+  const p=getP(pid); if(!p)return _ONES7;
+  const par=packParentOf(p);
+  if(par){ const pw=prodDayW(par.id), on=prodOnDays(p); if(on===_ALL_ON)return pw; return pw.map((v,d)=>on[d]?v:0); }
+  return getRecentAvgTeikaInfo(pid,4).dayW||_ONES7;
+}
+// 係数込みのカテゴリの週の客数を、日ごとの重みつきで（追加作成の見込み m0 の分母）
+function _catWeekWeightedDW(cat,dw){ const cfg=S.catCfg[cat]; if(!cfg)return 0; let s=0; cfg.slots.forEach(h=>{ const r=getCatSlotRange(cat,h); if(!r)return; const k=getSlotCoef(cat,h); for(let d=0;d<7;d++)s+=getSlotCust(d,r[0],r[1])*k*dw[d]; }); return s; }
+// 「来週の火曜」＝今日より後の、週の始まりの曜日（火曜）。「今日」は店のローカル日付（試験では window._dateTodayOverride で変えられる）
+function _todayYmdP(){ return (typeof window!=='undefined'&&window._dateTodayOverride)||_ymdOf(new Date()); }
+function _weekStartDow(){ try{ const d=parseLocalDate(String(S.weekStart||'')); if(!isNaN(d))return d.getDay(); }catch(_){ } return 2; }
+function _addDaysYmd(ymd,n){ const d=parseLocalDate(ymd); d.setDate(d.getDate()+n); return _ymdOf(d); }
+function nextWeekStartYmd(){ const t=_todayYmdP(), dow=_weekStartDow(); const d=parseLocalDate(t); let k=(dow-d.getDay()+7)%7; if(k===0)k=7; return _addDaysYmd(t,k); }
+function _isMidWeek(){ return parseLocalDate(_todayYmdP()).getDay()!==_weekStartDow(); }
+function _mdOf(ymd){ const a=String(ymd||'').split('-'); return a.length===3?`${+a[1]}/${+a[2]}`:String(ymd||''); }
+function _mdwOf(ymd){ try{ const d=parseLocalDate(ymd); return `${d.getMonth()+1}/${d.getDate()}（${'日月火水木金土'[d.getDay()]}）`; }catch(_){ return _mdOf(ymd); } }
+// 小さな印「10/13〜」「〜10/12」。ref（YYYY-MM-DD）より前に始まった投入日は出さない（もう売っている）。終売日は ref 以降だけ（過ぎた物は「終売」）
+function prodPeriodMarks(p,ref){
+  if(!p||(!p.startDate&&!p.endDate))return '';
+  const sty='font-size:10px;font-weight:700;border-radius:6px;padding:0 5px;margin-left:4px;white-space:nowrap;';
+  let s='';
+  if(p.startDate&&p.startDate>=ref)s+=`<span title="投入日 ${_mdwOf(p.startDate)} から作成表に出ます" style="${sty}background:#dbeafe;color:#1e40af">${_mdOf(p.startDate)}〜</span>`;
+  if(p.endDate){ if(p.endDate>=ref)s+=`<span title="終売日 ${_mdwOf(p.endDate)} まで作成表に出ます" style="${sty}background:#fef3c7;color:#92400e">〜${_mdOf(p.endDate)}</span>`;
+    else s+=`<span title="終売日 ${_mdwOf(p.endDate)} を過ぎています（作成表に出ません）" style="${sty}background:#f1f5f9;color:#64748b">終売 ${_mdOf(p.endDate)}</span>`; }
+  return s;
+}
+// 作成表で、その日に並ばない商品の1行に出す言葉（「10/13（火）から」「10/12（月）で終売」）
+function prodOffDayText(p,dayIdx){
+  const dt=getWeekDates()[dayIdx]; let s=prodDateState(p,dt); let q=p;
+  const par=packParentOf(p); if(!s&&par){ s=prodDateState(par,dt); q=par; }
+  if(s==='notyet')return t('make.dateFrom').replace('{0}',_mdwOf(q.startDate));
+  if(s==='ended')return t('make.dateEnded').replace('{0}',_mdwOf(q.endDate));
+  return '';
+}
 // 最低陳列数の印（マスの右下。数は変えない）
 function minDisplayBadge(p,cnt){ const m=Math.round(Number(p&&p.minDisplay)||0); if(!m||cnt<=0||cnt>=m)return ''; return `<span title="最低陳列数 ${m} 未満（いまは印だけ。数は変えていません）" style="position:absolute;right:2px;bottom:2px;z-index:1;font-size:9px;font-weight:800;color:#0e7490;background:#ecfeff;border:1px solid #67e8f9;border-radius:6px;padding:0 3px;white-space:nowrap;line-height:1.4">陳列${m}未満</span>`; }
-function lifeSettingHtml(p){ const d=(k,v)=>`<input type="date" value="${escapeHtmlP(p[k]||'')}" style="font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:6px" onchange="setProdField('${p.id}','${k}',this.value||'')">`;
+// 詳細設定の中：最低陳列数だけ（販売期間はカードのすぐ見える所 periodSettingHtml へ移した。2026-10-09）
+function lifeSettingHtml(p){
   return `<div style="grid-column:span 2;background:#ecfeff;border:1px solid #a5f3fc;border-radius:6px;padding:8px 10px">
-    <div style="font-size:11px;color:#0e7490;font-weight:700;margin-bottom:6px">🗄️ 陳列と販売期間 <span class="info" title="最低陳列数：マスの数がこれより少ない時に印（いまは印だけ）。投入日・終売日：その日付の外の日は作成表に印（数は変えません。将来の取り分の材料に記録）">ℹ️</span></div>
+    <div style="font-size:11px;color:#0e7490;font-weight:700;margin-bottom:6px">🗄️ 陳列 <span class="info" title="最低陳列数：マスの数がこれより少ない時に印（いまは印だけ）">ℹ️</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:12px">
       <label>最低陳列数 <input type="text" inputmode="numeric" value="${p.minDisplay||''}" placeholder="なし" style="width:52px;text-align:center" onchange="setProdField('${p.id}','minDisplay',Math.max(0,parseInt(toHalf(this.value))||0))">個</label>
-      <label>投入日 ${d('startDate')}</label><label>終売日 ${d('endDate')}</label>
     </div></div>`; }
+// ②商品設定のカードのすぐ見える所：販売期間（投入日・終売日）。日付の欄＋1タップのボタン
+function periodSettingHtml(p){
+  const nx=nextWeekStartYmd(), today=_todayYmdP(), mon=_addDaysYmd(nx,-1);
+  const btn=(fn,label,on,col)=>`<button type="button" onclick="${fn}" style="padding:6px 10px;min-height:34px;font-size:12px;font-weight:700;border-radius:16px;cursor:pointer;font-family:inherit;white-space:nowrap;border:1.5px solid ${on?(col||'#1d4ed8'):'#cbd5e1'};background:${on?(col||'#1d4ed8'):'#fff'};color:${on?'#fff':'#334155'}">${label}</button>`;
+  const inp=k=>`<input type="date" value="${escapeHtmlP(p[k]||'')}" style="font-size:13px;padding:5px 6px;border:1px solid var(--border);border-radius:6px" onchange="setProdDate('${p.id}','${k}',this.value)" aria-label="${k==='startDate'?'投入日':'終売日'}">`;
+  const st=p.startDate||'', en=p.endDate||'';
+  let state;
+  if(st&&en&&en<st)state=`<b style="color:#dc2626">⚠ 終売日が投入日より前です</b>`;
+  else if(en&&en<today)state=`終売しました（${_mdwOf(en)}まで）。作成表には出ません`;
+  else if(st&&st>today)state=`<b>${_mdwOf(st)}から</b>作成表に出ます${en?`（${_mdwOf(en)}まで）`:''}${p.enabled?'':'　<span style="color:#b45309">※ いまオフです。オンにしておけば、その日から自動で出ます</span>'}`;
+  else if(en)state=`<b>${_mdwOf(en)}まで</b>作成表に出ます`;
+  else state='期間の指定なし（いつでも出ます）';
+  return `<div class="pc-period" style="grid-column:span 2;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px">
+    <div style="font-size:12px;color:#1e40af;font-weight:800;margin-bottom:6px">📅 販売期間 <span class="info" title="投入日より前・終売日より後の日は、作成表に出ません（作成数0）。オン／オフとは別。投入日を入れた商品はオンのままでよく、その日から自動で出ます。週の目標も、並ぶ日の分だけになります">ℹ️</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;margin-bottom:6px">
+      <span style="min-width:44px;font-weight:700">投入日</span>${inp('startDate')}
+      ${btn(`setProdDate('${p.id}','startDate','next')`,`来週の火曜から（${_mdOf(nx)}）`,st===nx)}
+      ${btn(`setProdDate('${p.id}','startDate','today')`,'今日から',st===today)}
+      ${btn(`setProdDate('${p.id}','startDate','')`,'指定なし',!st,'#64748b')}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;margin-bottom:6px">
+      <span style="min-width:44px;font-weight:700">終売日</span>${inp('endDate')}
+      ${btn(`setProdDate('${p.id}','endDate','mon')`,`今週の月曜で終わり（${_mdOf(mon)}）`,en===mon,'#b45309')}
+      ${btn(`setProdDate('${p.id}','endDate','')`,'指定なし',!en,'#64748b')}
+    </div>
+    <div style="font-size:12px;color:#334155">${state}</div></div>`;
+}
+// 販売期間を入れる（ボタン：'next'＝来週の火曜／'today'＝今日／'mon'＝今週の月曜／''＝指定なし／YYYY-MM-DD＝日付の欄）
+let _dateAskedOn=new Set();
+function setProdDate(pid,key,val){
+  const p=getP(pid); if(!p||(key!=='startDate'&&key!=='endDate'))return;
+  let v=String(val||'').trim();
+  if(v==='next')v=nextWeekStartYmd(); else if(v==='today')v=_todayYmdP(); else if(v==='mon')v=_addDaysYmd(nextWeekStartYmd(),-1);
+  else if(v&&!/^\d{4}-\d{2}-\d{2}$/.test(v))return;
+  if((p[key]||'')===v){ renderProductCardInPlace(pid); return; }
+  if(v)p[key]=v; else delete p[key];
+  saveS(); renderProductCardInPlace(pid);
+  const st=p.startDate||'', en=p.endDate||'';
+  if(st&&en&&en<st){ showToast('終売日が投入日より前です。日付を確かめてください','info'); return; }
+  if(key==='startDate'&&v&&!p.enabled&&v>_todayYmdP()&&!_dateAskedOn.has(pid)){
+    _dateAskedOn.add(pid);
+    _dateAsk(`「${p.name||'(名称未設定)'}」はいまオフです`,`オンにしておけば ${_mdwOf(v)} から自動で作成表に出ます（それまでは出ません）。オンにしますか？`,
+      [{label:'オンにする',primary:true,fn:()=>{ setProdField(pid,'enabled',true); showToast(`オンにしました。${_mdwOf(v)}から作成表に出ます`,'success'); }},{label:'このまま（オフ）',fn:()=>{}}]);
+    return;
+  }
+  if(key==='startDate')showToast(v?`${_mdwOf(v)}から作成表に出ます`:'投入日を外しました（いつでも出ます）','success');
+  else showToast(v?`${_mdwOf(v)}まで作成表に出ます`:'終売日を外しました','success');
+}
+// 1回だけ聞く小さな画面（ボタンを押すか、外をタップで閉じる）
+let _dateAskCbs=[];
+function _dateAsk(title,sub,buttons){
+  let m=document.getElementById('dateAskModal');
+  if(!m){ m=document.createElement('div'); m.id='dateAskModal';
+    m.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9998;padding:16px;box-sizing:border-box;margin:0';
+    document.body.appendChild(m); m.addEventListener('click',e=>{ if(e.target===m)_dateAskClose(); }); }
+  _dateAskCbs=buttons.map(b=>b.fn);
+  m.innerHTML=`<div role="dialog" aria-modal="true" style="background:#fff;border-radius:14px;max-width:380px;width:100%;padding:18px 16px;box-shadow:0 10px 30px rgba(0,0,0,.25)">
+    <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px">${escapeHtmlP(title)}</div>
+    ${sub?`<div style="font-size:13px;color:#475569;line-height:1.6;margin-bottom:12px">${escapeHtmlP(sub)}</div>`:''}
+    <div style="display:flex;flex-direction:column;gap:8px">${buttons.map((b,i)=>`<button type="button" data-ask="${i}" onclick="_dateAskPick(${i})" style="padding:12px 10px;min-height:48px;font-size:15px;font-weight:800;border-radius:10px;cursor:pointer;font-family:inherit;border:2px solid ${b.primary?'#1d4ed8':(b.small?'transparent':'#cbd5e1')};background:${b.primary?'#1d4ed8':'#fff'};color:${b.primary?'#fff':(b.small?'#64748b':'#1e293b')};${b.small?'font-size:12px;min-height:34px;padding:6px;font-weight:600;text-decoration:underline':''}">${escapeHtmlP(b.label)}</button>`).join('')}</div></div>`;
+  m.style.display='flex';
+}
+function _dateAskPick(i){ const fn=_dateAskCbs[i]; _dateAskClose(); if(typeof fn==='function')fn(); }
+function _dateAskClose(){ const m=document.getElementById('dateAskModal'); if(m)m.style.display='none'; _dateAskCbs=[]; }
+// 新しい商品を足した時：週の途中なら「いつから売る？」（既定＝来週の火曜。先に入れておき、ボタン1つで変えられる）
+function askNewProductStart(pid,after){
+  const p=getP(pid); if(!p||!_isMidWeek()){ if(after)after(); return; }
+  const nx=nextWeekStartYmd(), today=_todayYmdP();
+  p.startDate=nx; saveS(); renderProductCardInPlace(pid);
+  _dateAsk('いつから売る？','いまは週の途中です。来週の新商品なら「来週の火曜から」のままで、今週の作成表には出ません。',[
+    {label:`来週の火曜から（${_mdwOf(nx)}）`,primary:true,fn:()=>{ showToast(`${_mdwOf(nx)}から作成表に出ます`,'success'); if(after)after(); }},
+    {label:`今日から（${_mdwOf(today)}）`,fn:()=>{ setProdDate(pid,'startDate','today'); if(after)after(); }},
+    {label:'指定なし（前から売っている商品）',small:true,fn:()=>{ setProdDate(pid,'startDate',''); if(after)after(); }}]);
+}
 function setPackOf(pid,val){
   const p=getP(pid); if(!p)return; const prev=p.packOf;
   if(val&&val!==pid&&getP(val)){ p.packOf=val; } else { delete p.packOf; }
@@ -3756,7 +3899,7 @@ function riceAdjMap(dayIdx,slotH){
   const m={}; const rec=riceRec(dayIdx,slotH);
   if(rec){ const step=RICE_LEVELS[rec.level].d, n=Math.max(1,Math.round(Number(rec.amount)||1));
     if(step!==0){
-      const cands=(S.PM||[]).filter(p=>p&&p.enabled&&S.catOn[p.category]&&riceUses(p)&&S.catCfg[p.category]&&S.catCfg[p.category].slots.includes(slotH)&&getSlotMake(p,slotH)&&!isPackParent(p))
+      const cands=(S.PM||[]).filter(p=>p&&p.enabled&&S.catOn[p.category]&&riceUses(p)&&S.catCfg[p.category]&&S.catCfg[p.category].slots.includes(slotH)&&getSlotMake(p,slotH)&&!isPackParent(p)&&prodOnDay(p,dayIdx))   // 販売期間の外の日の商品には足さない（2026-10-09）
         .map(p=>({p,base:_prodCntBase(p.id,dayIdx,slotH).total})).sort((a,b)=>(b.base-a.base)||((a.p.order??0)-(b.p.order??0)));
       let left=n; for(let i=0;cands.length&&i<cands.length*n&&left>0;i++){ const c=cands[i%cands.length]; const cur=c.base+(m[c.p.id]||0); if(step>0){ m[c.p.id]=(m[c.p.id]||0)+1; left--; } else if(cur>0){ m[c.p.id]=(m[c.p.id]||0)-1; left--; } }
     } }
@@ -3784,6 +3927,7 @@ function getProdCntDetail(pid,dayIdx,slotH){
 function _prodCntBase(pid,dayIdx,slotH){
   const ZERO={total:0,natural:0,forced:0};
   const p=getP(pid);if(!p||!p.enabled)return ZERO;
+  if(!prodOnDay(p,dayIdx))return ZERO;    // 販売期間（投入日より前・終売日より後）の外の日は作らない。品切れ防止の最低も置かない（2026-10-09）
   if(!S.catOn[p.category])return ZERO;
   const cfg=S.catCfg[p.category];if(!cfg)return ZERO;
   if(!cfg.slots.includes(slotH))return ZERO;
@@ -3983,13 +4127,16 @@ function catDemandModel(cat){
     const curNum=S.activeWeek?weekKeyNum(S.activeWeek):Infinity;
     const keys=[S.activeWeek].concat(sortWeekKeys(Object.keys(S.weeks||{}).filter(k=>k!==S.activeWeek&&weekKeyNum(k)<curNum)).reverse()).filter(Boolean);
     const weeks=[];
+    const ymdMinus=(k,days)=>{ const d=parseLocalDate(((S.weeks||{})[k]||{}).weekStart||weekKeyToDateStr(k)); d.setDate(d.getDate()-days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     for(const k of keys){
       if(weeks.length>=MNL_WEEKS)break;
-      const ji=_jiOfWeek(k), set=[], n={}; let N=0;
-      inCat.forEach(p=>{ const j=ji[p.id]; if(!j)return; const t=Number(j.teika)||0; if(t+(Number(j.nebiki)||0)+(Number(j.haiki)||0)>0){ set.push(p.id); n[p.id]=t; N+=t; } });
+      const ji=_jiOfWeek(k), set=[], n={}, e={}; let N=0;
+      inCat.forEach(p=>{ const j=ji[p.id]; if(!j)return; const t=Number(j.teika)||0; if(t+(Number(j.nebiki)||0)+(Number(j.haiki)||0)>0){ set.push(p.id); n[p.id]=t; N+=t;
+        // 並んでいた日の割合 e（2026-10-09）：その週の販売期間（週の始まりの7日前〜前日）のうち、投入日〜終売日に入る日数 ÷ 7。日付の無い商品は 1（入れない）。0 なら実績を信じて 1
+        if(p.startDate||p.endDate){ let c=0; for(let x=7;x>=1;x--){ const y=ymdMinus(k,x); if(!(p.startDate&&y<p.startDate)&&!(p.endDate&&y>p.endDate))c++; } if(c>0&&c<7)e[p.id]=c/7; } } });
       if(!(N>0))continue;
       const rows=(k===S.activeWeek)?(S.cust||[]):((S.weeks[k]||{}).cust||[]);
-      weeks.push({key:k,set,n,N,C:_catCustRows(ck,rows)});
+      weeks.push({key:k,set,n,e,N,C:_catCustRows(ck,rows)});
     }
     // 魅力度 a：MNL の最尤推定（MM 法）
     const K=[...new Set([].concat(...weeks.map(w=>w.set)))], W={};
@@ -3999,7 +4146,8 @@ function catDemandModel(cat){
     let iter=0, conv=false;
     while(iter<MNL_ITER&&K.length){
       const den={}; K.forEach(i=>den[i]=0);
-      weeks.forEach(w=>{ let sa=0; w.set.forEach(j=>sa+=a[j]); if(!(sa>0))return; const q=w.N/sa; w.set.forEach(i=>den[i]+=q); });
+      // 週の途中から並んだ（途中で終わった）商品は、並んでいた日の割合 e だけ選ばれる機会があった：Σ e_j a_j で割り、e_i × q を足す（e＝1 の商品は今までと同じ）
+      weeks.forEach(w=>{ let sa=0; w.set.forEach(j=>sa+=(j in w.e)?a[j]*w.e[j]:a[j]); if(!(sa>0))return; const q=w.N/sa; w.set.forEach(i=>den[i]+=(i in w.e)?q*w.e[i]:q); });
       const b={}; K.forEach(i=>b[i]=den[i]>0?W[i]/den[i]:0); norm(b);
       let mx=0; K.forEach(i=>{ const d=Math.abs(b[i]-a[i]), rel=a[i]>0?d/a[i]:(b[i]>0?Infinity:0); if(rel>mx)mx=rel; });
       a=b; iter++; if(mx<MNL_TOL){ conv=true; break; }
@@ -4010,11 +4158,10 @@ function catDemandModel(cat){
     let aMed=med(Lk.map(i=>a[i]).filter(v=>v>0)); if(!(aMed>0))aMed=med(K.map(i=>a[i]).filter(v=>v>0));
     const sumKnown=Lk.reduce((s,i)=>s+a[i],0), sumNow=sumKnown+Lnew.length*aMed;
     // 購入率：入力漏れの週は取り分で戻す（κ_w）
-    const ymdMinus=(k,days)=>{ const d=parseLocalDate(((S.weeks||{})[k]||{}).weekStart||weekKeyToDateStr(k)); d.setDate(d.getDate()-days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     let Dsum=0, Csum=0, Dall=0;
     weeks.forEach((w,wi)=>{
       const older=weeks.slice(wi+1), salesStart=ymdMinus(w.key,7);
-      let sw=0; w.set.forEach(i=>sw+=a[i]); let su=sw; w.miss=[];
+      let sw=0; w.set.forEach(i=>sw+=(i in w.e)?a[i]*w.e[i]:a[i]); let su=sw; w.miss=[];
       Lk.forEach(i=>{ if(w.n[i]!==undefined||!(a[i]>0))return; const p=getP(i);
         if(older.some(o=>o.n[i]!==undefined)||(p&&p.startDate&&p.startDate<=salesStart)){ su+=a[i]; w.miss.push(i); } });
       w.kappa=su>0?sw/su:1; w.D=w.kappa>0?w.N/w.kappa:w.N; Dall+=w.D;
@@ -4024,7 +4171,14 @@ function catDemandModel(cat){
     let r=0, D=0, mode='none';
     if(Csum>0&&Cnow>0){ r=Dsum/Csum; D=Cnow*r; mode='cust'; }
     else if(weeks.length){ D=Dall/weeks.length; mode='avg'; }   // 客数が無い時は、需要の週平均（客数の増減は入れない）
-    return {main,ck,weeks,a,K,L,Lk,Lnew,aMed,sumNow,r,Cnow,D,mode,iter,conv};
+    // 日ごとの売場（2026-10-09 販売期間）：その日に並ぶ商品の集合 L_d で取り分を出す。
+    //   その日のカテゴリ需要 Dd ＝ その日の客数（売っている時間）× 購入率 r（客数が無い時は D ÷ 7）。sumD[d] ＝ Σ_{L_d} a（新商品は仮の a）
+    //   商品 i の週の需要 ＝ Σ_{i が並ぶ日 d} Dd × a_i ÷ sumD[d]（getRecentAvgTeikaInfo）。新商品が来た日から他の取り分が下がり、終売した日から上がる。
+    //   L の全商品が7日とも並ぶ週は daily＝false で、今までの式（D × a_i ÷ sumNow）のまま（数は1つも変わらない）
+    const Cd=[], Dd=[], sumD=[]; let daily=false;
+    for(let d=0;d<7;d++){ Cd[d]=getCatDayCust(ck,d); Dd[d]=mode==='cust'?Cd[d]*r:mode==='avg'?D/7:0;
+      let s=0; L.forEach(i=>{ if(!prodOnDay(getP(i),d)){ daily=true; return; } s+=(i in a)?a[i]:aMed; }); sumD[d]=s; }
+    return {main,ck,weeks,a,K,L,Lk,Lnew,aMed,sumNow,r,Cnow,D,mode,iter,conv,Cd,Dd,sumD,daily};
   });
 }
 // 自分の定価販売の平均（今までの式。逃げ道と、比べる用の raw）：開いている週＋前の週を新しい順に、0 の週は飛ばして最大 N 週
@@ -4043,9 +4197,23 @@ function getRecentAvgTeikaInfo(pid, windowSize){
   if(!p)return base;
   const m=catDemandModel(p.category);
   Object.assign(base,{D:m.D,C:m.Cnow,r:m.r,skuNow:m.L.length,nNew:m.Lnew.length,model:m});
-  if(!(pid in m.a)||!(m.D>0))return base;
-  const inL=m.L.includes(pid), den=inL?m.sumNow:(m.sumNow+m.a[pid]), share=den>0?m.a[pid]/den:0, avg=m.D*share;
-  return Object.assign(base,{avg,factor:own.avg>0?avg/own.avg:1,src:'mnl',share,inLineup:inL,a:m.a[pid]});
+  const on=prodOnDays(p), part=on!==_ALL_ON&&on.some(b=>!b);
+  if(!(pid in m.a)||!(m.D>0)){
+    // 逃げ道（自分の平均）：週の一部だけ並ぶ商品は「並ぶ日の客数 ÷ 週の客数」を掛ける（2026-10-09）
+    if(part){ let c=0,ca=0; for(let d=0;d<7;d++){ const k=getCatDayCust(p.category,d); ca+=k; if(on[d])c+=k; } const fr=ca>0?c/ca:on.filter(Boolean).length/7;
+      Object.assign(base,{avg:own.avg*fr,onFrac:fr,dayW:on.map(b=>b?1:0)}); base.factor=own.avg>0?base.avg/own.avg:1; }
+    return base;
+  }
+  const inL=m.L.includes(pid);
+  if(!m.daily&&!part){
+    const den=inL?m.sumNow:(m.sumNow+m.a[pid]), share=den>0?m.a[pid]/den:0, avg=m.D*share;
+    return Object.assign(base,{avg,factor:own.avg>0?avg/own.avg:1,src:'mnl',share,inLineup:inL,a:m.a[pid]});
+  }
+  // 日ごとの売場（2026-10-09）：並ぶ日 d ごとに Dd × a_i ÷ sumD[d] を足す。並べたら（売場に無い商品）は a_i を分母に足して出す
+  const ai=m.a[pid], denNow=inL?m.sumNow:(m.sumNow+ai), shareD=[0,0,0,0,0,0,0], dayW=[0,0,0,0,0,0,0]; let avg=0;
+  for(let d=0;d<7;d++){ if(!on[d])continue; const den=inL?m.sumD[d]:(m.sumD[d]+ai); if(!(den>0))continue; shareD[d]=ai/den; avg+=m.Dd[d]*shareD[d]; dayW[d]=(denNow>0&&ai>0)?shareD[d]/(ai/denNow):1; }
+  const share=m.D>0?avg/m.D:0;
+  return Object.assign(base,{avg,factor:own.avg>0?avg/own.avg:1,src:'mnl',share,shareD,dayW,daily:true,inLineup:inL,a:ai});
 }
 function getRecentAvgTeika(pid, windowSize){ return getRecentAvgTeikaInfo(pid, windowSize).avg; }
 // 数字タップの理由（内訳）の1行：「カテゴリ需要 412個（客数 9,870×購入率 4.17%）× 取り分 35.2%（SKU 6）」。親子の子は親の数で
@@ -4061,6 +4229,11 @@ function skuReasonText(pid){
   const miss=m.weeks.filter(w=>w.kappa<0.9995);
   if(miss.length)s+=`　※ ${miss.map(w=>`${_skuWkLabel(w.key)}は実績の無い商品 ${w.miss.length}品の分を取り分で補正（×${(1/w.kappa).toFixed(2)}）`).join('・')}`;
   if(m.Lnew.length)s+=`　※ 新商品 ${m.Lnew.length}品を、仮の取り分（カテゴリの中央値）で売場に数えています`;
+  if(i.daily&&i.shareD){   // 日ごとの売場（2026-10-09 販売期間）：取り分が日で変わる時は、曜日ごとに並べる
+    const parts=[]; let st=0;
+    for(let d=1;d<=7;d++){ if(d<7&&Math.abs(i.shareD[d]-i.shareD[st])<5e-4)continue; parts.push(`${DAYS[st]}${d-1>st?'〜'+DAYS[d-1]:''} ${i.shareD[st]>0?(i.shareD[st]*100).toFixed(1)+'%':'並ばない'}`); st=d; }
+    s+=`　※ 販売期間で売場が日ごとに変わるため、日ごとの取り分で出しています（${parts.join('・')}）`;
+  }
   return s;
 }
 // SKU の推移（①実績入力・④作成表の見出し・点検ページで使う）：実績の週（古い→新しい、最大 n 週）と今週
@@ -4298,11 +4471,12 @@ function getInvestWeekCnt(pid){
   return s;
 }
 // この時間帯の表・印刷にその商品を出すか：「作る」時間帯、または投資の数が置かれている時間帯（作る時間帯が1つも無い商品の投資を、画面によって出したり消したりしない）
-function slotShows(p,dayIdx,slotH){ return getSlotMake(p,slotH)||getInvestExtra(p.id,dayIdx,slotH)>0; }
+function slotShows(p,dayIdx,slotH){ return prodOnDay(p,dayIdx)&&(getSlotMake(p,slotH)||getInvestExtra(p.id,dayIdx,slotH)>0); }   // 販売期間の外の日は出さない（2026-10-09）
 
 function getInvestExtra(pid,dayIdx,slotH){
   const p=getP(pid);if(!p||!p.enabled)return 0;
   if(isPackParent(p))return 0;   // 本数の商品（親）には投資を置かない（子に置く）
+  if(!prodOnDay(p,dayIdx))return 0;   // 販売期間の外の日には置かない（週の投資＝並ぶ日数 × 1日の数。2026-10-09）
   const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.length)return 0;
   if(cfg.slots.indexOf(slotH)<0)return 0;
   // 作成済み（チェック）のマスは、チェックした時に写した数のまま（投資の数をあとで変えても動かない）
@@ -4356,7 +4530,7 @@ function suggestInvestPerDay(pid){
   const cfg=S.catCfg[p.category];if(!cfg)return 1;
   const ji=getJiAllWeeks(pid);
   // 日平均計画作成数
-  const avgDay=DAYS.reduce((s,_,di)=>s+cfg.slots.reduce((ss,h)=>ss+getProdCnt(pid,di,h),0),0)/7;
+  const avgDay=DAYS.reduce((s,_,di)=>s+cfg.slots.reduce((ss,h)=>ss+getProdCnt(pid,di,h),0),0)/Math.max(1,prodOnDays(p).filter(Boolean).length);   // 並ぶ日の平均（販売期間。日付の無い商品は /7 のまま）
   if(!ji.total)return 1; // 実績なし → 保守的に1個/日
   const haikiR=ji.haiki/ji.total;
   const sellR=(ji.teika+ji.nebiki)/ji.total;
@@ -5606,6 +5780,7 @@ function renderProductCard(p){
   if(p.isInvest) badges+=`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:8px;font-weight:700">📈</span>`;
   if(isPackParent(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="本数の実績用（親）。作成表にはパック商品で出ます">🍢親</span>`;
   else if(packParentOf(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="パック商品（子）。実績は親に本数で">🍢${packSizeOf(p)}本</span>`;
+  badges+=prodPeriodMarks(p,_todayYmdP());   // 販売期間「10/13〜」「〜10/12」（2026-10-09）
 
   // 一覧で見える要約: カテゴリ + 売価 + 値引
   const summary=`<span>${tCat(p.category)}</span><span>¥${p.shopPrice}</span><span class="s-disc">値引 -¥${p.disc}</span>`;
@@ -5629,6 +5804,7 @@ function renderProductCard(p){
     <div class="pc-body">
       <div style="grid-column:span 2"><label>${t('product.name')}</label>
         <input type="text" value="${p.name||''}" placeholder="${t('product.namePlaceholder')}" onchange="setProdField('${p.id}','name',this.value)"></div>
+      ${periodSettingHtml(p)}
       <div><label>${t('product.category')}</label>
         <select onchange="setProdField('${p.id}','category',this.value)">
           ${CATS.map(c=>`<option ${p.category===c?'selected':''} value="${c}">${tCat(c)}</option>`).join('')}
@@ -6123,6 +6299,7 @@ function addProductFromStore(key){
   if(!np.name)return;
   S.PM.push(np);
   saveS(); renderProductCards();
+  askNewProductStart(np.id);   // 週の途中なら「いつから売る？」（2026-10-09）
 }
 function renderCrossStoreImport(){
   const host=document.getElementById('cross-store-import'); if(!host)return;
@@ -6139,12 +6316,13 @@ function addProduct(){
   S.PM.unshift({id,name:'',category:'ホットFF',cost:100,stdPrice:200,shopPrice:200,disc:20,minCount:1,tags:'',order:minOrder-1,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22});
   _expandedCards.add(id); // 新規商品は自動で展開
   saveS();renderProductCards();
-  // 新規カードの商品名入力にフォーカス
-  setTimeout(()=>{
+  // 新規カードの商品名入力にフォーカス（週の途中なら、先に「いつから売る？」を聞いてから。2026-10-09）
+  const focusName=()=>setTimeout(()=>{
     const card=document.querySelector(`[data-pid="${id}"]`);
     const nameInput=card?.querySelector('input[type="text"]');
     if(nameInput){ nameInput.focus(); nameInput.select(); }
   },50);
+  askNewProductStart(id,focusName);
   // 追加カードの先頭へスクロール
   const el=document.getElementById('product-cards');
   if(el) el.scrollIntoView({block:'start',behavior:'smooth'});
@@ -7917,7 +8095,7 @@ function renderProdDayContent(dayIdx){
   CATS.forEach(cat=>{
     if(!S.catOn[cat])return;
     const cfg=S.catCfg[cat];if(!cfg||!cfg.slots.length)return;
-    const prods0=S.PM.filter(p=>p.enabled&&p.category===cat&&!isPackParent(p));   // 本数の商品（親）は作成表に出ない（作るのはパック商品）
+    const prods0=S.PM.filter(p=>p.enabled&&p.category===cat&&!isPackParent(p)&&prodOnDays(p).some(Boolean));   // 本数の商品（親）は作成表に出ない（作るのはパック商品）。販売期間がこの週に1日も無い商品も出さない（2026-10-09）
     const prods=_prodSortMode==='efficient'
       ?[...prods0].sort(compareEfficient)
       :[...prods0].sort((a,b)=>(a.order??0)-(b.order??0));
@@ -8019,7 +8197,12 @@ function renderProdDayContent(dayIdx){
       const orderBadge=(gIdx!=null)?`<span style="font-size:13px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(gIdx)}</span>`:'';
       const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'';
       const endingBadge=p.orderEnding?`<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px" title="${t('order.endingHint')}">${t('order.endingBadge')}</span>`:'';
-      html+=`<tr><td style="text-align:left;font-size:12px;${p.orderEnding?'background:#fef2f2':''}">${orderBadge}${p.name}${newBadge}${endingBadge}${prodDateBadge(p,dt)}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
+      // 販売期間の外の日（週の途中から並ぶ・途中で終わる）：数のマスは出さず、灰色の1行「10/13（火）から」「10/12（月）で終売」（2026-10-09）
+      if(!prodOnDay(p,dayIdx)){
+        html+=`<tr class="date-off"><td style="text-align:left;font-size:12px;color:#94a3b8">${orderBadge}${p.name}</td><td colspan="${cfg.slots.length}" style="text-align:center;font-size:13px;font-weight:700;color:#64748b;background:#f1f5f9;padding:8px 4px">📅 ${escapeHtmlP(prodOffDayText(p,dayIdx))}</td></tr>`;
+        return;
+      }
+      html+=`<tr><td style="text-align:left;font-size:12px;${p.orderEnding?'background:#fef2f2':''}">${orderBadge}${p.name}${newBadge}${endingBadge}${prodPeriodMarks(p,_ymdOf(dates[0]))}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
       cfg.slots.forEach(slotH=>{
         const cnt=getProdCnt(p.id,dayIdx,slotH);
         const extra=getInvestExtra(p.id,dayIdx,slotH);
@@ -8359,6 +8542,7 @@ function soShelfAsk(pid,dayIdx,slotH,nowH){
 //   記録にも shelfAt として残し、以後の計算では「並ぶ予定」の代わりに使う（1回目の記録の shelfAt＝最初の分、k回目の記録の shelfAt＝k−1回目の追加分）。
 function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
   const p=getP(pid);if(!p)return{error:t('sold.errProd')};
+  if(!prodOnDay(p,dayIdx))return{error:prodOffDayText(p,dayIdx)||t('so2.errNoQty')};   // 販売期間の外の日は追加作成を出さない（2026-10-09）
   const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲（この商品が次に作る時間帯まで。2026-10-06）
   if(!range)return{error:t('so2.errRange')};
   const cfg=S.catCfg[p.category]||{};
@@ -8407,7 +8591,9 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
   const teika=getRecentAvgTeika(pid,4), wtK=getCatWeekTotalWeighted(p.category);
   const kCoef=getSlotCoef(p.category,slotH), gF=gaibuFactor(main,dayIdx,slotH);
   let m0,m0Src,weeks;
-  if(teika>0&&wtK>0){ m0=teika*kCoef*gF/wtK; m0Src='jisseki'; weeks=Math.max(1,_soWeeksUsed(pid)); }
+  const dwSo=prodDayW(pid);   // 日ごとの売場（2026-10-09 販売期間）：teika は並ぶ日の分なので、分母も同じ重みの客数で。全部 1 の時は今までと同じ
+  if(teika>0&&wtK>0&&dwSo!==_ONES7){ const wd=_catWeekWeightedDW(p.category,dwSo); m0=wd>0?teika*kCoef*gF*dwSo[dayIdx]/wd:0; m0Src='jisseki'; weeks=Math.max(1,_soWeeksUsed(pid)); }
+  else if(teika>0&&wtK>0){ m0=teika*kCoef*gF/wtK; m0Src='jisseki'; weeks=Math.max(1,_soWeeksUsed(pid)); }
   else { m0=base/Ncell; m0Src='plan'; weeks=1; }
   if(!(m0>0))return{error:t('so2.errNoRate')};
   const disp=soDispersion(p.category), phi=disp.phi;
@@ -9018,8 +9204,9 @@ function renderBudgetPlan(){
 
 // 予算の表の小さな説明：入れた数（個×日）と、作成表に置かれる数（週合計）。食い違う時・置けない時は理由を出す
 function _investNote(p,cnt,days,wk){
-  let s=`${cnt}個 × ${days}日`;
-  if(wk!==cnt*days){
+  const daysOn=prodPartWeek(p)?getInvestDays(p.id).filter(d=>prodOnDay(p,d)).length:days;   // 販売期間の外の日には置かない（2026-10-09）。日付の無い商品は days のまま
+  let s=`${cnt}個 × ${daysOn}日${daysOn!==days?`（販売期間の外の ${days-daysOn}日は置きません）`:""}`;
+  if(wk!==cnt*daysOn){
     const why=!S.catOn[p.category]?'カテゴリがオフのため作成表に出ません'
       :(investHasFixed(p.id)?'作成表でチェック済みのマスの数を固定し、残りを未チェックのマスに配っているため'
       :(getBatchUnit(p)>1?`まとめ単位 ${getBatchUnit(p)}個のため`:''));
@@ -9053,6 +9240,7 @@ function igOpen(pid){ _igPid=pid||null; _igSelCell=null; switchBudSub('grid'); r
 function igSet(pid,d,h,raw){
   const p=getP(pid); if(!p)return;
   const cfg=S.catCfg[p.category]; if(!cfg||cfg.slots.indexOf(h)<0||!getSlotMake(p,h))return;
+  if(!prodOnDay(p,d)){ showToast(`${DAYS[d]}曜は販売期間の外です（${prodOffDayText(p,d)}）`,'info'); return; }   // 2026-10-09
   let g=investGridOf(pid);
   if(!g&&investLegacyKind(p))return;
   let n=parseInt(toHalf(String(raw==null?'':raw)).replace(/[^\d]/g,''),10); if(!isFinite(n)||n<0)n=0; n=Math.min(n,999);
@@ -9162,6 +9350,7 @@ function renderInvestGrid(){
       if(!getSlotMake(p,h)){ let st=0; if(g)for(let d=0;d<7;d++)st+=_igCell(g,d,h);
         return `<tr><th style="font-size:13px;white-space:nowrap;padding:6px 4px;background:#f8fafc">${h}時</th><td colspan="7" style="text-align:center;font-size:12px;color:#94a3b8;background:#f1f5f9;padding:10px 4px">作らない${st?`<span style="color:#b45309">（入っていた +${st} は数えません）</span>`:''}</td></tr>`; }
       return `<tr><th style="font-size:13px;white-space:nowrap;padding:6px 4px;background:#f8fafc">${h}時</th>${DAYS.map((_,d)=>{
+        if(!prodOnDay(p,d))return `<td style="padding:3px 2px"><input type="text" data-ig="1" data-key="ig_${d}_${h}" value="" placeholder="—" disabled title="${escapeHtmlP(prodOffDayText(p,d))}" aria-label="${DAYS[d]}曜 ${h}時（販売期間の外）" style="width:100%;min-width:0;box-sizing:border-box;padding:8px 0;text-align:center;font-size:14px;border-radius:8px;border:2px solid #e2e8f0;background:#f1f5f9;color:#94a3b8"></td>`;   // 販売期間の外の日（2026-10-09）
         const fx=investFixed(p.id,d,h), fixed=fx!=null; if(fixed)fixedCnt++;
         const n=fixed?fx:(g?_igCell(g,d,h):getInvestExtra(p.id,d,h)); const bad=!ro&&!fixed&&batch>1&&n>0&&n%batch!==0; if(bad)offBatch++;
         return `<td style="padding:3px 2px"><input type="text" inputmode="numeric" data-ig="1" data-key="ig_${d}_${h}" value="${n>0?n:''}" placeholder="0" ${(ro||fixed)?'disabled':''} aria-label="${DAYS[d]}曜 ${h}時 の投資${fixed?'（作成済み・固定）':''}" ${fixed?'title="作成表で「作った」のチェック済み。数はこのまま固定です"':''}
@@ -9262,7 +9451,7 @@ function renderNewProductBudgetTable(maxBudget){
         </div>
         <button onclick="setNewProductCount('${p.id}',${sug})" style="padding:3px 10px;font-size:11px;background:#eff6ff;color:var(--main);border:1px solid var(--main);border-radius:6px;cursor:pointer;white-space:nowrap">🤖 提案: ${sug}個</button>`}
       </td>
-      <td style="font-size:12px;font-weight:600;color:var(--main)">${fmt(amt)}円</td>
+      <td style="font-size:12px;font-weight:600;color:var(--main)">${fmt(amt)}円${(!investGridOf(p.id)&&prodPartWeek(p))?`<div style="font-size:10px;color:#64748b;font-weight:400">${cnt}個 × 並ぶ日 ${prodOnDays(p).filter(Boolean).length}日（販売期間）</div>`:''}</td>
     </tr>`;
   });
   html+=`</tbody><tfoot><tr style="font-weight:700;background:var(--main-lt)">

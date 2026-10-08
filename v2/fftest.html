@@ -41,6 +41,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     const mk=async(fid,name,seed)=>{ const be=cloud.device(); const store=new V2.Store({backend:be,space:'T',device:name,kv:new V2.MemKV(),snapshot:false}); const win=await load($(fid),'ff/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; await win.__v2go(Object.assign({store,stores,current:'t1'},seed||{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); return {be,store,win,name,ev:s=>win.eval(s)}; };
     const A=await mk('fa','端末A',{states:{t1:J(st)},setup:{t1:true}});
     const B=await mk('fb','端末B');
+    A.win._dateTodayOverride=B.win._dateTodayOverride='2026-10-06';   // 「今日」を週の始まり（火曜）に固定する（販売期間の「＋商品追加」の質問が、試験を動かす日で変わらないように）
     const sync=async()=>{ for(let i=0;i<3;i++){ for(const d of [A,B]){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(1300); };   // 最後の待ちは、画面が受け取って描き直すまで
     const nz=s=>J(V2.SPECS.ff.normalize(JSON.parse(s)));
     const same=()=>nz(A.ev('JSON.stringify(S)'))===nz(B.ev('JSON.stringify(S)'));
@@ -233,7 +234,77 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         &&J(sv.ask3)===J([false,true])&&!sv.e3&&ex(sv.n1c,sv.exp3)&&sv.ask4===false&&ex(sv.n1d,sv.exp5),
       sv.err||`前は「${sv.errOld}」／1回目 聞く ${J(sv.ask1)}・選択肢 ${J(sv.opts1)}・画面 ${sv.ui0}個→${sv.ui1} ・n1=${(+sv.n1a).toFixed(1)}（10:30〜10:45）・記録 ${J(sv.rec1)}／2回目 聞く ${J(sv.ask2)}・n1=${(+sv.n1b).toFixed(1)}（空${sv.gap2}分。答えないと ${(+sv.n1old).toFixed(1)}）／「作った」11:05 → 聞く ${J(sv.ask3)}・n1=${(+sv.n1c).toFixed(1)}／予定後 聞く ${sv.ask4}／3回目 n1=${(+sv.n1d).toFixed(1)}`);
     A.ev(`(()=>{ delete S.soldOuts['2_10_p1']; closeSoldOutModal(); saveS(); })()`); await sync();
-    check('24','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    // 販売期間（投入日・終売日）を数に効かせる（2026-10-09 店長：「来週の新商品を今週のうちに設定すると、今週の作成表に出てしまう」）。画面の中だけで見本を作って計算し、元に戻す（保存しない）
+    const dp=JSON.parse(A.ev(`(()=>{ const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,ji:S.ji,cust:S.cust,catOn:S.catOn,budget:S.budget}); const out={};
+      try{
+        const mk=(id,x)=>Object.assign({id,name:id,category:'中華まん',cost:60,stdPrice:150,shopPrice:150,disc:30,minCount:1,tags:'',order:90,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},x||{});
+        const ymd=d=>_ymdOf(getWeekDates()[d]); out.ws=[ymd(0),ymd(2),ymd(4)];
+        S.catOn['中華まん新商品']=true;
+        S.PM.push(mk('c1'),mk('c2'));
+        const pw=S.weeks['2026.9.29']; pw.cust=S.cust.map(r=>[...r]);
+        pw.ji=Object.assign({},pw.ji,{c1:{teika:20,nebiki:0,haiki:0},c2:{teika:10,nebiki:0,haiki:0}});
+        S.ji=Object.assign({},S.ji,{c1:{teika:20,nebiki:0,haiki:0},c2:{teika:10,nebiki:0,haiki:0}});
+        clearAllocCache();
+        const day=id=>{ const a=[0,0,0,0,0,0,0]; for(let d=0;d<7;d++)[6,10].forEach(h=>a[d]+=getProdCnt(id,d,h)+getInvestExtra(id,d,h)); return a; };
+        const T=id=>getWeekTargetBase(id).teika;
+        out.t0=[T('c1'),T('c2')]; out.day0=day('c1');
+        // ① 投入日が木曜の新商品（実績なし・品切れ防止ON・新商品の 1日2個）→ 火・水は 0、木から数が出る
+        S.PM.push(mk('c3',{category:'中華まん新商品',startDate:ymd(2),noStockout:true})); S.budget.newProductCounts=Object.assign({},S.budget.newProductCounts,{c3:2}); clearAllocCache();
+        out.c3=day('c3'); out.c3forced=[getProdCntDetail('c3',0,6).forced,getProdCntDetail('c3',2,6).forced]; out.c3show=[slotShows(getP('c3'),1,6),slotShows(getP('c3'),2,6)];
+        out.c3so=calcSoldOutSuggestion('c3',0,6,8,30).error||'';
+        renderProdDayContent(0); const tue=(document.getElementById('prod-day-content').textContent||'').replace(/\\s+/g,' ');
+        out.tueRow=/c3/.test(tue)&&tue.includes(_mdwOf(ymd(2))+'から');
+        renderProdDayContent(2); const thu=(document.getElementById('prod-day-content').textContent||'').replace(/\\s+/g,' ');
+        out.thuRow=!thu.includes(_mdwOf(ymd(2))+'から')&&/c3/.test(thu);
+        // ② ほかの商品の取り分は木曜から下がる（日ごとの売場）。カテゴリの需要は日ごとに分け合う（合計＝D）
+        const m=catDemandModel('中華まん'), i1=getRecentAvgTeikaInfo('c1',4), i2=getRecentAvgTeikaInfo('c2',4);
+        out.daily=m.daily; out.sh1=i1.shareD; out.t1=[T('c1'),T('c2')];
+        let exp1=0; for(let d=0;d<7;d++)exp1+=m.Dd[d]*m.a.c1/m.sumD[d]; out.exp1=exp1;
+        let newPart=0; for(let d=2;d<7;d++)newPart+=m.Dd[d]*m.aMed/m.sumD[d]; out.cons=[i1.avg+i2.avg+newPart,m.D];
+        out.day1=day('c1'); out.why=skuReasonText('c1');
+        // 比べ：新商品が週の初めから並んだ時（取り分は7日とも下がる）
+        getP('c3').startDate=ymd(0); clearAllocCache(); out.tFull=T('c1'); getP('c3').startDate=ymd(2); clearAllocCache();
+        // ③ 終売日が土曜の商品 → 日・月は 0、土曜までは出る。週の目標の元は並ぶ日の分だけ
+        getP('c2').endDate=ymd(4); getP('c2').noStockout=true; clearAllocCache();
+        const m3=catDemandModel('中華まん'); out.c2=day('c2'); let exp2=0; for(let d=0;d<=4;d++)exp2+=m3.Dd[d]*m3.a.c2/m3.sumD[d]; out.t2=[T('c2'),exp2];
+        out.sh1b=getRecentAvgTeikaInfo('c1',4).shareD;
+        // ④ 投資の 1日◯個は並ぶ日だけ（週の合計＝並ぶ日数 × 1日の数）
+        out.inv=[getInvestWeekCnt('c3'),prodOnDays(getP('c3')).filter(Boolean).length];
+        // 日付の無いカテゴリ（常温FF など）はそのまま：日ごとの重みは全部 1
+        out.flat=prodDayW('p1')===_ONES7;
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      const o=JSON.parse(bk); S.PM=o.PM; S.weeks=o.weeks; S.ji=o.ji; S.cust=o.cust; S.catOn=o.catOn; S.budget=o.budget; clearAllocCache(); renderProdDayContent(0);
+      return JSON.stringify(out); })()`));
+    const near=(a,b)=>Math.abs(a-b)<1e-6, sum=a=>a.reduce((s,v)=>s+v,0);
+    check('24','【販売期間①】投入日が木曜の商品 → 火・水は作成数・品切れ防止の最低・新商品の数・追加作成の提案がすべて 0、作成表は灰色の1行「木曜から」。木曜から数が出る',
+      !dp.err&&dp.c3[0]===0&&dp.c3[1]===0&&dp.c3.slice(2).every(v=>v>0)&&J(dp.c3forced)===J([0,1])&&J(dp.c3show)===J([false,true])&&!!dp.c3so&&dp.tueRow&&dp.thuRow,
+      dp.err||`日ごと ${J(dp.c3)}・品切れ防止の最低（火/木）${J(dp.c3forced)}・作成表に出す（水/木）${J(dp.c3show)}・火曜の追加作成「${dp.c3so}」・火曜の灰色の行 ${dp.tueRow}・木曜は数 ${dp.thuRow}`);
+    check('25','【販売期間②】日ごとの売場：ほかの商品の取り分は木曜から下がり（火・水は前のまま）、週の目標＝Σ並ぶ日の（その日のカテゴリ需要×その日の取り分）。カテゴリの需要は分け合うだけ（合計＝D）。週の初めから並ぶ時より下がり方は小さい',
+      !dp.err&&dp.daily&&dp.sh1[0]>dp.sh1[2]&&near(dp.sh1[0],dp.sh1[1])&&near(dp.sh1[2],dp.sh1[6])&&near(dp.sh1[0],20/30)&&near(dp.t1[0],dp.exp1)&&near(dp.cons[0],dp.cons[1])&&dp.t1[0]<dp.t0[0]&&dp.t1[0]>dp.tFull&&/日ごとの取り分/.test(dp.why)&&dp.flat,
+      dp.err||`取り分（火〜月）${dp.sh1.map(v=>(v*100).toFixed(1)).join('/')}・目標の元 ${(+dp.t0[0]).toFixed(2)}→${(+dp.t1[0]).toFixed(2)}（式 ${(+dp.exp1).toFixed(2)}・週の初めからなら ${(+dp.tFull).toFixed(2)}）・分け合い ${(+dp.cons[0]).toFixed(2)}＝D ${(+dp.cons[1]).toFixed(2)}・作成数 ${J(dp.day0)}→${J(dp.day1)}「${dp.why}」`);
+    check('26','【販売期間③】終売日が土曜の商品 → 日・月は 0（品切れ防止ONでも）、土曜までは出る。週の目標の元は並ぶ日の分だけ。ほかの商品の取り分は日曜から上がる',
+      !dp.err&&dp.c2[5]===0&&dp.c2[6]===0&&dp.c2.slice(0,5).every(v=>v>0)&&near(dp.t2[0],dp.t2[1])&&dp.sh1b[5]>dp.sh1b[4],
+      dp.err||`日ごと ${J(dp.c2)}・目標の元 ${(+dp.t2[0]).toFixed(2)}（式 ${(+dp.t2[1]).toFixed(2)}）・ほかの取り分（土→日）${(dp.sh1b[4]*100).toFixed(1)}%→${(dp.sh1b[5]*100).toFixed(1)}%`);
+    check('27','【販売期間④】新商品・投資の「1日◯個」は並ぶ日だけに置く（週の合計＝並ぶ日数 × 1日の数）',
+      !dp.err&&dp.inv[0]===2*dp.inv[1]&&dp.inv[1]===5,dp.err||`週 ${dp.inv[0]}個＝2個 × 並ぶ日 ${dp.inv[1]}日`);
+    // ⑤ 2台：A が投入日を入れる（B は別の所を変える）→ B にも届き、B でも火曜は 0。外すと B からも消える。「＋商品追加」は週の途中なら「いつから売る？」、オフの商品に投入日を入れると「オンにしますか？」
+    const thuYmd=A.ev('_ymdOf(getWeekDates()[2])');
+    const p2day=(d,dd)=>d.ev(`[6,10,14,17].reduce((s,h)=>s+getProdCnt('p2',${dd},h),0)`);
+    const p2before=[p2day(B,0),p2day(B,2)];
+    off(); A.ev(`setProdDate('p2','startDate',${J(thuYmd)})`); setP(B,'p1','cost',123); on(); await sync();
+    const setB=[prod(B,'p2').startDate||'—',p2day(B,0),p2day(B,1),p2day(B,2)];
+    const okSet=prod(B,'p2').startDate===thuYmd&&p2day(B,0)===0&&p2day(B,1)===0&&p2day(B,2)>0&&prod(A,'p1').cost===123&&same();
+    A.ev(`setProdDate('p2','startDate','')`); await sync();
+    const okClear=!('startDate' in prod(B,'p2'))&&p2day(B,0)===p2before[0]&&same();
+    A.win._dateTodayOverride='2026-10-09'; A.win.addProduct(); const np=A.ev('S.PM[0].id'); const ask1=A.ev(`(()=>{ const m=document.getElementById('dateAskModal'); return !!m&&m.style.display!=='none'&&/いつから売る/.test(m.textContent); })()`);
+    const def=prod(A,np).startDate; A.ev('_dateAskPick(1)'); const today=prod(A,np).startDate;
+    A.win.delProduct(np);
+    A.ev(`setProdField('p2','enabled',false)`); A.ev(`setProdDate('p2','startDate','next')`); const ask2=A.ev(`(()=>{ const m=document.getElementById('dateAskModal'); return m.style.display!=='none'&&/オンにしますか/.test(m.textContent); })()`);
+    A.ev('_dateAskPick(0)'); const onAfter=prod(A,'p2').enabled; A.ev(`setProdDate('p2','startDate','')`); A.win._dateTodayOverride='2026-10-06'; await sync();
+    check('28','【販売期間⑤】2台：A が投入日（木曜）を入れ、B が同時に別の所を変えた → 両方残り、B でも火・水は 0。外すと B からも消える／「＋商品追加」を週の途中に押すと「いつから売る？」（既定＝来週の火曜。「今日から」に変えられる）／オフの商品に投入日を入れると「オンにしますか？」',
+      okSet&&okClear&&ask1&&def==='2026-10-13'&&today==='2026-10-09'&&ask2&&onAfter===true&&!prod(B,np)&&same(),
+      `入れた後 B:${setB[0]} 火${setB[1]}・水${setB[2]}・木${setB[3]}（入れる前 火・木 ${J(p2before)}）${okSet}・外した後 ${okClear}・追加の質問 ${ask1}（既定 ${def}→今日から ${today}）・オンの質問 ${ask2}→${onAfter}`);
+    check('29','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
   $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
