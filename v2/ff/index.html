@@ -597,6 +597,8 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
           <div class="section-title" data-i18n="jisseki.weekSummary">週合計サマリー</div>
           <div id="jsum-cats" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
           <div class="summary-grid" id="jisseki-summary"></div>
+          <div id="jsum-zero" style="display:none"></div><!-- 今週 作成0の商品の印（renderZeroMakeHome） -->
+          <div id="jsum-sku" style="display:none"></div><!-- カテゴリ別の SKU の推移（renderJsumSku） -->
         </div>
         <div class="card">
           <div class="flex justify-between items-center mb-2" style="flex-wrap:wrap;gap:6px">
@@ -762,6 +764,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
     <!-- Tab 3: 作成表 -->
     <div class="tab-panel" id="tab3">
       <div class="day-tabs" id="prod-day-tabs"></div>
+      <div id="zero-make-band" style="display:none;margin:8px 0 0"></div><!-- 週に作成0の商品の帯（0件なら出さない。renderZeroMakeBand） -->
       <div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">
         <button type="button" onclick="toggleMakeRules()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer">📋 作成ルール7か条</button>
         <button type="button" onclick="toggleCellGuide()" style="padding:7px 13px;font-size:12px;font-weight:600;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer">💡 セルの見方</button>
@@ -1217,6 +1220,26 @@ const I18N = {
     'make.rule5':'値引きは廃棄約2時間前に行う',
     'make.rule6':'値引き時は新規に一列作り、定価商品と列を分ける',
     'make.rule7':'運用ルールは変更する場合があるので毎週確認する',
+
+    // 作成0の商品（2026-10-08 店長の依頼。英語・ネパール語は日本語のまま）
+    'zero.band':'今週 作成0の商品',
+    'zero.unit':'件',
+    'zero.open':'一覧を見る',
+    'zero.close':'閉じる',
+    'zero.grayNote':'うち {0}件は終売・投入前・親商品で、0 が正しい物',
+    'zero.hint':'この週の作成表（全曜日・全時間帯）で作成数の合計が 0 の商品です。数は変えていません。計算上 0 でも作るなら「品切れ防止をON」（算出0のマスに最低1個＝まとめ単位が入ります）。',
+    'zero.rCust0':'計算上0：客数が 0',
+    'zero.rNoSales':'計算上0：直近4週の定価販売が 0',
+    'zero.rSmall':'計算上0：週の目標 {0}個 → 四捨五入で 0',
+    'zero.rNoStockoutOff':'品切れ防止がOFF',
+    'zero.rSlotsOff':'作る時間帯が全部OFF',
+    'zero.rEnded':'終売（終売日 {0}）',
+    'zero.rNotyet':'投入前（投入日 {0}）',
+    'zero.rParent':'本数の親商品（作るのはパック商品）',
+    'zero.btnOn':'品切れ防止をON',
+    'zero.btnOpen':'商品設定を開く',
+    'zero.onDone':'品切れ防止をONにしました（算出0のマスに最低1個）',
+    'zero.goMake':'④作成表で見る',
     // Tab 4 - Budget
     'budget.lastWeekSummary':'先週の実績サマリー',
     'budget.planTitle':'予算計画',
@@ -1332,13 +1355,36 @@ const I18N = {
     'so2.whyMake':'この数の理由',
     'so2.whyNone':'作らない理由',
     'so2.done':'作った',
+    'so2.plan':'あと {0}個 作る（記録して閉じる）',
+    'so2.planHint':'閉じたあと、ほかの商品の完売も続けて記録できます。作り終わったら、マスの「✓ 作った」を押します',
+    'so2.pendingBadge':'+{0} 作る予定',
+    'so2.doneBtn':'✓ 作った +{0}',
+    'so2.doneBadge':'✓+{0}',
+    'so2.pendingTitle':'🔔 追加で作るもの（{0}件）',
+    'so2.pendingDesc':'完売の記録で決めた追加分です。作り終わったら「作った」を押します（ほかの商品の完売も、この一覧を気にせず記録できます）',
+    'so2.pendingRow':'{0} 作成のぶん　あと <b>{1}個</b>　{2} に売場へ',
+    'so2.menuDone':'追加分（+{0}個）を作った',
+    'so2.menuDoneDesc':'作り終わった印を付けます（数は変わりません）',
+    'so2.menuUndoDone':'「作った」の印を外す（+{0}個）',
+    'so2.menuUndoDoneDesc':'まちがえて押した時。追加分は「作る予定」に戻ります',
+    'so2.toastDone':'✓ 追加分（+{0}個）を作った印を付けました',
+    'so2.toastUndoDone':'追加分（+{0}個）を「作る予定」に戻しました',
     'so2.ok':'わかった',
     'so2.repick':'「{0}分後」を選び直す',
     'so2.details':'計算の中身を見る',
     'so2.yen':'{0}円',
-    'so2.toastAdd':'🔔 完売を記録しました（追加 +{0}個）。まちがえた時は、マスの数字 →「取り消す」',
+    'so2.toastAdd':'🔔 完売を記録しました（追加 +{0}個）。作り終わったら、マスの「✓ 作った」を押してください。まちがえた時は、マスの数字 →「取り消す」',
     'so2.toastZero':'🔔 完売を記録しました（追加なし）。まちがえた時は、マスの数字 →「取り消す」',
     'so2.errBefore':'まだ売場に並ぶ前の時間です（{0} に並びます）。完売してから押してください',
+    'so2.shelfAsk':'いつ売場に並べましたか？',
+    'so2.shelfHint':'並ぶ予定（{0}）より前に完売しました。並べた時刻を1つ選ぶと、棚にあった時間で売れ方を計算します',
+    'so2.shelfMade':'作成時刻',
+    'so2.shelfAgo':'{0}分前',
+    'so2.shelfNow':'今さっき',
+    'so2.shelfPicked':'並べた時刻：<b>{0}</b>',
+    'so2.shelfRepick':'選び直す',
+    'so2.d2c':'└ 並べた時刻は、答えた {0}（予定は {1}）',
+    'so2.d2d':'└ 前の追加分は「作った」を押した {0} までに並んだとして計算（予定は {1}）',
     'so2.errRange':'この時間帯の設定が見つかりません',
     'so2.errNoQty':'この時間帯の作成数が 0 のため計算できません',
     'so2.errNoCust':'この時間帯の客数が 0 です（①実績入力の「曜日別・時間帯別客数」を確認してください）',
@@ -1356,6 +1402,7 @@ const I18N = {
     'so2.d1':'{0}回目の完売。今日ここまでに売場に出した数：<b>{1}個</b>',
     'so2.d1b':'（最初 {0}＋追加 {1}）',
     'so2.d2':'並べた {0} 〜 押した {1} の客数：約{2}人',
+    'so2.d2b':'└ 前の完売で棚が空だった {0}分（約{1}人）は除く（除く前は約{2}人。買いたくても買えなかった客のため）',
     'so2.d3':'これまでの見込み：{0}人に1個（{1}。重み＝客{2}人ぶん）',
     'so2.d3a':'直近{0}週の定価販売数から',
     'so2.d3b':'実績が無いので計画数から',
@@ -1519,6 +1566,26 @@ const I18N = {
     'make.rule5':'Discount about 2 hours before discard',
     'make.rule6':'When discounting, separate the line from full-price items',
     'make.rule7':'Rules may change — review weekly',
+
+    // 作成0の商品（2026-10-08 店長の依頼。英語・ネパール語は日本語のまま）
+    'zero.band':'今週 作成0の商品',
+    'zero.unit':'件',
+    'zero.open':'一覧を見る',
+    'zero.close':'閉じる',
+    'zero.grayNote':'うち {0}件は終売・投入前・親商品で、0 が正しい物',
+    'zero.hint':'この週の作成表（全曜日・全時間帯）で作成数の合計が 0 の商品です。数は変えていません。計算上 0 でも作るなら「品切れ防止をON」（算出0のマスに最低1個＝まとめ単位が入ります）。',
+    'zero.rCust0':'計算上0：客数が 0',
+    'zero.rNoSales':'計算上0：直近4週の定価販売が 0',
+    'zero.rSmall':'計算上0：週の目標 {0}個 → 四捨五入で 0',
+    'zero.rNoStockoutOff':'品切れ防止がOFF',
+    'zero.rSlotsOff':'作る時間帯が全部OFF',
+    'zero.rEnded':'終売（終売日 {0}）',
+    'zero.rNotyet':'投入前（投入日 {0}）',
+    'zero.rParent':'本数の親商品（作るのはパック商品）',
+    'zero.btnOn':'品切れ防止をON',
+    'zero.btnOpen':'商品設定を開く',
+    'zero.onDone':'品切れ防止をONにしました（算出0のマスに最低1個）',
+    'zero.goMake':'④作成表で見る',
     'budget.lastWeekSummary':'Last week summary',
     'budget.planTitle':'Budget plan',
     'budget.nextMake':'Next week production (formal)',
@@ -1637,6 +1704,15 @@ const I18N = {
     'so2.toastAdd':'🔔 Sold out recorded (extra +{0}). To undo: tap the number in the cell → "Undo"',
     'so2.toastZero':'🔔 Sold out recorded (no extra). To undo: tap the number in the cell → "Undo"',
     'so2.errBefore':'This batch is not on the shelf yet (it goes out at {0}). Tap after it has sold out',
+    'so2.shelfAsk':'When did you put it on the shelf?',
+    'so2.shelfHint':'It sold out before the planned shelf time ({0}). Pick when it went out so the sales rate uses the real shelf time',
+    'so2.shelfMade':'Start time',
+    'so2.shelfAgo':'{0} min ago',
+    'so2.shelfNow':'Just now',
+    'so2.shelfPicked':'On the shelf at: <b>{0}</b>',
+    'so2.shelfRepick':'Change',
+    'so2.d2c':'└ Shelf time from your answer: {0} (planned {1})',
+    'so2.d2d':'└ The previous extra batch counted as on the shelf by its "Made" time {0} (planned {1})',
     'so2.errRange':'Settings for this time slot were not found',
     'so2.errNoQty':'The planned quantity for this slot is 0, so it cannot be calculated',
     'so2.errNoCust':'Customer count for this slot is 0 (check the customer table in tab ①)',
@@ -1654,6 +1730,7 @@ const I18N = {
     'so2.d1':'Sold-out #{0}. Put on the shelf so far today: <b>{1}</b>',
     'so2.d1b':' (first {0} + extra {1})',
     'so2.d2':'Customers from {0} (on shelf) to {1} (tapped): about {2}',
+    'so2.d2b':'└ excludes {0} min (about {1} customers) when the shelf was empty after the previous sell-out (about {2} before excluding)',
     'so2.d3':'Expected so far: 1 per {0} customers ({1}; weight = {2} customers)',
     'so2.d3a':'from full-price sales of the last {0} week(s)',
     'so2.d3b':'no sales history, so from the planned quantity',
@@ -1779,6 +1856,26 @@ const I18N = {
     'make.rule5':'फाल्नुभन्दा करिब २ घण्टा अघि छुट दिनुहोस्',
     'make.rule6':'छुट दिँदा पूर्ण मूल्यबाट अलग गर्नुहोस्',
     'make.rule7':'नियम परिवर्तन हुन सक्छ — हप्ताको समीक्षा',
+
+    // 作成0の商品（2026-10-08 店長の依頼。英語・ネパール語は日本語のまま）
+    'zero.band':'今週 作成0の商品',
+    'zero.unit':'件',
+    'zero.open':'一覧を見る',
+    'zero.close':'閉じる',
+    'zero.grayNote':'うち {0}件は終売・投入前・親商品で、0 が正しい物',
+    'zero.hint':'この週の作成表（全曜日・全時間帯）で作成数の合計が 0 の商品です。数は変えていません。計算上 0 でも作るなら「品切れ防止をON」（算出0のマスに最低1個＝まとめ単位が入ります）。',
+    'zero.rCust0':'計算上0：客数が 0',
+    'zero.rNoSales':'計算上0：直近4週の定価販売が 0',
+    'zero.rSmall':'計算上0：週の目標 {0}個 → 四捨五入で 0',
+    'zero.rNoStockoutOff':'品切れ防止がOFF',
+    'zero.rSlotsOff':'作る時間帯が全部OFF',
+    'zero.rEnded':'終売（終売日 {0}）',
+    'zero.rNotyet':'投入前（投入日 {0}）',
+    'zero.rParent':'本数の親商品（作るのはパック商品）',
+    'zero.btnOn':'品切れ防止をON',
+    'zero.btnOpen':'商品設定を開く',
+    'zero.onDone':'品切れ防止をONにしました（算出0のマスに最低1個）',
+    'zero.goMake':'④作成表で見る',
     'budget.lastWeekSummary':'गत हप्ताको सारांश','budget.planTitle':'बजेट योजना',
     'budget.nextMake':'अर्को हप्ता उत्पादन (औपचारिक)',
     'budget.nextMakeNote':'योजना + लगानी/नयाँ उत्पादन थप',
@@ -1892,6 +1989,15 @@ const I18N = {
     'so2.toastAdd':'🔔 बिक्री समाप्त रेकर्ड भयो (थप +{0} वटा)। गल्ती भए: कोठाको संख्या थिच्नुहोस् → "रद्द"',
     'so2.toastZero':'🔔 बिक्री समाप्त रेकर्ड भयो (थप छैन)। गल्ती भए: कोठाको संख्या थिच्नुहोस् → "रद्द"',
     'so2.errBefore':'यो ब्याच अझै शेल्फमा राखिएको छैन ({0} मा राखिन्छ)। बिक्री समाप्त भएपछि थिच्नुहोस्',
+    'so2.shelfAsk':'कहिले शेल्फमा राख्नुभयो?',
+    'so2.shelfHint':'योजना गरिएको समय ({0}) भन्दा पहिले बिक्री समाप्त भयो। राखेको समय छान्नुहोस्',
+    'so2.shelfMade':'बनाउन सुरु',
+    'so2.shelfAgo':'{0} मिनेट अघि',
+    'so2.shelfNow':'भर्खरै',
+    'so2.shelfPicked':'शेल्फमा राखेको: <b>{0}</b>',
+    'so2.shelfRepick':'फेरि छान्नुहोस्',
+    'so2.d2c':'└ राखेको समय (उत्तर): {0} (योजना {1})',
+    'so2.d2d':'└ अघिल्लो थप ब्याच "बनायो" थिचेको {0} सम्म शेल्फमा थियो भनी गणना (योजना {1})',
     'so2.errRange':'यो समय स्लटको सेटिङ फेला परेन',
     'so2.errNoQty':'यो स्लटको उत्पादन संख्या ० भएकाले गणना सम्भव छैन',
     'so2.errNoCust':'यो स्लटको ग्राहक संख्या ० छ (① को ग्राहक डाटा जाँच्नुहोस्)',
@@ -1909,6 +2015,7 @@ const I18N = {
     'so2.d1':'Sold-out #{0}. Put on the shelf so far today: <b>{1}</b>',
     'so2.d1b':' (first {0} + extra {1})',
     'so2.d2':'Customers from {0} (on shelf) to {1} (tapped): about {2}',
+    'so2.d2b':'└ excludes {0} min (about {1} customers) when the shelf was empty after the previous sell-out (about {2} before excluding)',
     'so2.d3':'Expected so far: 1 per {0} customers ({1}; weight = {2} customers)',
     'so2.d3a':'from full-price sales of the last {0} week(s)',
     'so2.d3b':'no sales history, so from the planned quantity',
@@ -2050,6 +2157,8 @@ function syncActiveWeek(){
     ...(_isPlainObj(_prevWeek.invest)?{invest:_prevWeek.invest}:{}),
     // 厨房「ごはんの残り」の記録（曜日×時間帯）も週のデータの中。作り直す時に落とさない
     ...(_isPlainObj(_prevWeek.rice)?{rice:_prevWeek.rice}:{}),
+    // 作成済み（チェック）のマスの投資の数の写し（曜日×時間帯）も週のデータの中。作り直す時に落とさない
+    ...(_isPlainObj(_prevWeek.investDone)?{investDone:_prevWeek.investDone}:{}),
     ji:JSON.parse(JSON.stringify(S.ji||{})),
     cust:(S.cust||[]).map(r=>[...r]),
     checks:{...(S.checks||{})},
@@ -2126,6 +2235,7 @@ function saveS(){
   if(typeof clearAllocCache==='function')clearAllocCache();   // 作成数の配り方の覚え書きを捨てる（設定が変わった直後の計算を新しくする）
   if(typeof clearCustFillCache==='function')clearCustFillCache();   // 客数の補いの覚え書きも捨てる
   if(typeof clearRiceCache==='function')clearRiceCache();           // ごはんの残りの覚え書きも捨てる
+  if(typeof clearZeroMemo==='function')clearZeroMemo();             // 作成0の商品の一覧の覚え書きも捨てる
   syncActiveWeek();
   const key=currentStoreId?'ffv6_store_'+currentStoreId:'ffv6';
 
@@ -3392,7 +3502,8 @@ function getCatDayCust(cat,dayIdx){
 function getCatWeekTotal(cat){ let s=0; for(let d=0;d<7;d++)s+=getCatDayCust(cat,d); return s; }
 
 // ---------- 週の目標販売数（FF計画シートの式そのまま） ----------
-//   購入率   ＝ 定価販売数（直近4週平均）÷ 週の総客数（売っている時間）
+//   定価販売の見込み teika ＝ カテゴリの需要 × 取り分（getRecentAvgTeika → catDemandModel。2026-10-08 以前は「直近4週平均」）
+//   購入率   ＝ teika ÷ 週の総客数（売っている時間）
 //   強気度   ＝ 値入額 ÷（原価＋値入額）＝ 値入率（店頭売価ベース）
 //   客数の波 ＝ 曜日別客数（売っている時間）の標準偏差
 //   ゆとり   ＝ 客数の波 × 購入率 × 強気度 × 7日
@@ -3467,7 +3578,8 @@ function roundCnt(v){
 //   撤退ライン・品切れ防止・まとめ単位・投資は、この後に今までどおりマスごとに掛ける（getProdCntDetail）。
 //   計算の結果は同じ処理の間だけ覚える（saveS と、処理が終わった直後に消す）。
 let _allocCache=new Map(), _allocClearQueued=false;
-function clearAllocCache(){ _allocCache.clear(); }
+let _skuCache=new Map(), _skuClearQueued=false;   // SKU の数の覚え書き（skuActual／skuLineup。同じ処理の間だけ）
+function clearAllocCache(){ _allocCache.clear(); _skuCache.clear(); }
 function getProdWeekAlloc(pid){
   const hit=_allocCache.get(pid); if(hit)return hit;
   const a={};
@@ -3506,7 +3618,7 @@ function getDayCust(dayIdx){
 
 function getCorrTarget(pid,dayIdx){
   const p=getP(pid);if(!p)return 0;
-  // 週の目標＝定価販売数（直近4週平均）＋ゆとり（getWeekTargetBase：シートの式）
+  // 週の目標＝定価販売の見込み（カテゴリ需要×取り分）＋ゆとり（getWeekTargetBase）
   const b=getWeekTargetBase(pid);if(!b||!b.wt)return 0;
   const teika=b.teika, slack=b.slack;
   // 2026-10-06 店長の指摘で外した：以前は「品切れ防止ON」の商品だけ、週の目標に下限（作る時間帯数×まとめ単位×7日）を置いていた。
@@ -3535,7 +3647,7 @@ function getCorrTarget(pid,dayIdx){
 function getWithdraw(pid){
   const p=getP(pid);if(!p)return 0;
   const wt=getCatWeekTotal(p.category);if(!wt)return 0;   // 撤退客数＝原価率÷購入率（購入率は売っている時間の客数で）
-  // 購入率の定価販売数は、週の目標と同じ「直近4週の平均」（2026-10-06 ソロの検算：今週の実績だけだと火曜は 0 でガードが効かなかった）
+  // 購入率の定価販売数は、週の目標と同じ「定価販売の見込み（カテゴリ需要×取り分）」（2026-10-06 ソロの検算：今週の実績だけだと火曜は 0 でガードが効かなかった）
   const par=packParentOf(p); if(par)return getWithdraw(par.id);   // パック商品（子）の撤退客数は親（本数）で
   const teika=getRecentAvgTeika(pid,4);
   const rate=teika/wt;
@@ -3703,6 +3815,90 @@ function getProdCnt(pid,dayIdx,slotH){
   return getProdCntDetail(pid,dayIdx,slotH).total;
 }
 
+// ---------- 週に作成0の商品（2026-10-08 店長の依頼：「週を通して一つも作成されない単品は知らせてほしい」） ----------
+//   判定：開いている週の作成表（全曜日×全時間帯）の作成数（自然算出＋品切れ防止・まとめ単位の最低＋投資）の合計が 0 の商品。
+//   数は変えない（帯と一覧だけ）。理由を全部つけ、「0 で正しい物」（終売・投入前・本数の親商品）は灰色で分ける。
+//   商品設定でオフの商品・カテゴリがオフの商品は作成表に出ないので対象にしない。覚え書き（_zeroMemo）は saveS と処理の終わりで捨てる。
+let _zeroMemo=null, _zeroMemoQueued=false, _zeroOpen=false;
+function clearZeroMemo(){ _zeroMemo=null; }
+function getZeroMakeList(){
+  if(_zeroMemo)return _zeroMemo;
+  const out=[]; const dates=(typeof getWeekDates==='function')?getWeekDates():[];
+  (S.PM||[]).forEach(p=>{
+    if(!p||!p.enabled||!S.catOn[p.category])return;
+    const cfg=S.catCfg[p.category]; if(!cfg||!cfg.slots||!cfg.slots.length)return;
+    let week=0;
+    for(let d=0;d<7&&week===0;d++){ for(const h of cfg.slots){ week+=getProdCntDetail(p.id,d,h).total+getInvestExtra(p.id,d,h); if(week>0)break; } }
+    if(week>0)return;
+    const reasons=[]; let gray=false;
+    if(isPackParent(p)){ reasons.push({k:'parent',t:t('zero.rParent')}); gray=true; }
+    const ds=dates.map(dt=>prodDateState(p,dt));
+    if(ds.length&&ds.every(s=>s==='ended')){ reasons.push({k:'ended',t:t('zero.rEnded').replace('{0}',p.endDate||'')}); gray=true; }
+    else if(ds.length&&ds.every(s=>s==='notyet')){ reasons.push({k:'notyet',t:t('zero.rNotyet').replace('{0}',p.startDate||'')}); gray=true; }
+    const allOff=cfg.slots.every(h=>!getSlotMake(p,h));
+    if(allOff)reasons.push({k:'slotsOff',t:t('zero.rSlotsOff')});
+    if(!gray&&!allOff){
+      // 計算上0：週の目標（定価販売の見込み＝カテゴリ需要×取り分 ＋ゆとり）を配っても、週合計が四捨五入で 0
+      const b=getWeekTargetBase(p.id); const wt=b?b.wt:0, teika4=b?b.teika:0, target=b?b.target:0;
+      reasons.push({k:'calc',t:!wt?t('zero.rCust0'):!teika4?t('zero.rNoSales'):t('zero.rSmall').replace('{0}',target.toFixed(1))});
+      if(!p.noStockout)reasons.push({k:'noStockoutOff',t:t('zero.rNoStockoutOff')});
+    }
+    out.push({pid:p.id,name:p.name||'(名称未設定)',cat:p.category,order:p.order??0,gray,noStockout:!!p.noStockout,canOn:!gray&&!allOff&&!p.noStockout,reasons});
+  });
+  out.sort((a,b)=>(a.gray-b.gray)||(CATS.indexOf(a.cat)-CATS.indexOf(b.cat))||(a.order-b.order));
+  _zeroMemo=out;
+  if(!_zeroMemoQueued){ _zeroMemoQueued=true; Promise.resolve().then(()=>{ _zeroMemoQueued=false; _zeroMemo=null; }); }
+  return out;
+}
+function toggleZeroMake(){ _zeroOpen=!_zeroOpen; renderZeroMakeBand(); }
+// 一覧の「品切れ防止をON」：商品設定と同じ欄を変える（算出0のマスに最低1個＝まとめ単位が入る）
+function zeroMakeOn(pid){
+  const p=getP(pid); if(!p)return;
+  setProdField(pid,'noStockout',true);
+  renderZeroMakeBand(); renderZeroMakeHome();
+  if(typeof currentTab!=='undefined'&&currentTab===3)renderProdDayContent(currentProdDay||0);
+  if(typeof showToast==='function')showToast(`${p.name||''}：${t('zero.onDone')}`,'success');
+}
+// 一覧の「商品設定を開く」：②のタブでそのカードを開いて見せる
+function zeroOpenProduct(pid){
+  _expandedCards.add(pid); _advOpen.add(pid+":adv"); _uiSave(); showTab(1); renderProductCards();   // 詳細設定（品切れ防止の欄がある所）も開く
+  setTimeout(()=>{ const c=document.querySelector(`#product-cards [data-pid="${pid}"]`); if(c)c.scrollIntoView({block:'start',behavior:'smooth'}); },60);
+}
+function _zeroReasonChips(x){ return x.reasons.map(r=>`<span style="display:inline-block;font-size:11px;border-radius:999px;padding:1px 8px;margin:1px 2px 1px 0;background:${x.gray?'#f1f5f9':'#fef2f2'};color:${x.gray?'#475569':'#991b1b'}">${escapeHtmlP(r.t)}</span>`).join(''); }
+// ④作成表の上の帯（曜日タブの下）。0件なら出さない。印刷には入らない（印刷は別の HTML を作る）
+function renderZeroMakeBand(){
+  const el=document.getElementById('zero-make-band'); if(!el)return;
+  const list=getZeroMakeList(); if(!list.length){ el.innerHTML=''; el.style.display='none'; return; }
+  const red=list.filter(x=>!x.gray).length, gray=list.length-red;
+  const bg=red?'#fef2f2':'#f8fafc', bd=red?'#fca5a5':'#e2e8f0', tx=red?'#991b1b':'#475569';
+  el.style.display='block';
+  let html=`<div onclick="toggleZeroMake()" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:${bg};border:1.5px solid ${bd};border-radius:${_zeroOpen?'10px 10px 0 0':'10px'};padding:8px 12px;font-size:13px;font-weight:700;color:${tx};cursor:pointer;user-select:none">
+    <span>${red?'⚠️':'ℹ️'} ${t('zero.band')}：<b style="font-size:15px">${list.length}</b>${t('zero.unit')}</span>
+    ${gray?`<span style="font-size:11px;font-weight:600;color:#64748b">（${t('zero.grayNote').replace('{0}',gray)}）</span>`:''}
+    <span style="margin-left:auto;font-size:12px">${_zeroOpen?'▼ '+t('zero.close'):'▶ '+t('zero.open')}</span></div>`;
+  if(_zeroOpen){
+    html+=`<div style="border:1.5px solid ${bd};border-top:none;border-radius:0 0 10px 10px;background:#fff;padding:6px 10px 8px">
+      <div style="font-size:11px;color:#64748b;margin:2px 0 6px;line-height:1.6">${t('zero.hint')}</div>`;
+    html+=list.map(x=>`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 0;border-top:1px solid #f1f5f9;${x.gray?'opacity:.75':''}">
+      <div style="min-width:150px;flex:1"><b style="font-size:14px;color:${x.gray?'#475569':'#0f172a'}">${escapeHtmlP(x.name)}</b> <span style="font-size:11px;color:#64748b">${tCat(x.cat)}</span><div style="margin-top:2px">${_zeroReasonChips(x)}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${x.canOn?`<button type="button" onclick="event.stopPropagation();zeroMakeOn('${x.pid}')" style="padding:7px 12px;font-size:12px;font-weight:700;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;min-height:34px;font-family:inherit">${t('zero.btnOn')}</button>`:''}
+        <button type="button" onclick="event.stopPropagation();zeroOpenProduct('${x.pid}')" style="padding:7px 12px;font-size:12px;font-weight:600;background:#fff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer;min-height:34px;font-family:inherit">${t('zero.btnOpen')}</button>
+      </div></div>`).join('');
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+// ①実績入力の「週合計サマリー」の下の印（同じ件数）。タップで④の一覧を開く
+function renderZeroMakeHome(){
+  const el=document.getElementById('jsum-zero'); if(!el)return;
+  const list=getZeroMakeList(); if(!list.length){ el.innerHTML=''; el.style.display='none'; return; }
+  const red=list.filter(x=>!x.gray).length;
+  el.style.display='block';
+  el.innerHTML=`<div onclick="_zeroOpen=true;showTab(3);renderZeroMakeBand();" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;background:${red?'#fef2f2':'#f8fafc'};border:1.5px solid ${red?'#fca5a5':'#e2e8f0'};border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;color:${red?'#991b1b':'#475569'};cursor:pointer;user-select:none">
+    <span>${red?'⚠️':'ℹ️'} ${t('zero.band')}：<b style="font-size:15px">${list.length}</b>${t('zero.unit')}</span><span style="margin-left:auto;font-size:12px;color:#1d4ed8">${t('zero.goMake')} ▶</span></div>`;
+}
+
 // 全週の実績を集計するヘルパー（グローバル）
 function getJiAllWeeks(pid){
   const base=S.ji[pid]||{teika:0,nebiki:0,haiki:0};
@@ -3715,28 +3911,174 @@ function getJiAllWeeks(pid){
   return{teika:t,nebiki:n,haiki:h,total:t+n+h};
 }
 
-// 直近 N 週分の teika（定価販売数）平均を返す（移動平均）
-// activeWeek を含む直近4週まで使う。週が足りなければあるだけ使う。
-function getRecentAvgTeika(pid, windowSize){
-  windowSize = windowSize || 4;
-  const list = [];
-  // activeWeek（今表示中の週＝直近実績）
-  const cur = S.ji[pid];
-  if(cur && (cur.teika||0) > 0) list.push(cur.teika);
-  // 過去週：開いている週より前の週だけを、日付の新しい順に（文字の順で並べない。上の sortWeekKeys の説明を参照）
-  const curNum = S.activeWeek ? weekKeyNum(S.activeWeek) : Infinity;
-  const keys = sortWeekKeys(Object.keys(S.weeks||{})
-    .filter(k => k !== S.activeWeek && weekKeyNum(k) < curNum));
-  keys.reverse();
-  for(const k of keys){
-    if(list.length >= windowSize) break;
-    const j = (S.weeks[k].ji||{})[pid];
-    if(!j) continue;
-    const v = j.teika||0;
-    if(v > 0) list.push(v);
+// ---------- 週の目標の元＝カテゴリの需要 × 取り分（2026-10-08 店長：「カテゴリ別のトータル販売数、そのカテゴリの購入率等から。理論的な算出を」） ----------
+//   アトラクション型の需要モデル（MNL＝多項ロジットの集計版）。お客がそのカテゴリで1個買う時、売場に並ぶ商品の中から「魅力度 a」に比例して選ぶ
+//   （ルースの選択公理：2つの商品の選ばれ方の比は、ほかに何が並んでいても変わらない）。
+//     ① カテゴリの需要（週） D ＝ 今週のカテゴリの客数 C_now（getCatWeekTotal＝売っている時間の客数。計画と同じ custEff）× 購入率 r
+//     ② 商品の取り分        s_i ＝ a_i ÷ Σ_{j∈今週の売場 L} a_j
+//     ③ 商品の週の目標の元   teika_i ＝ D × s_i　→ ゆとり・天気・学習・最大剰余法の配り方・品切れ防止・投資は、この後に今までどおり掛ける
+//     ※ 客数は D の中で1回だけ掛かる。配り方（getProdWeekAlloc）は客数の比で配るだけ（合計は変えない）なので二重にはならない。
+//        ゆとりの購入率（teika_i ÷ 今週の客数）は r × s_i になり、今週の客数に依らない（今までと同じ形）。
+//   魅力度 a：直近4週（カテゴリの定価販売の合計 N_w ＞ 0 の週。開いている週に入れた実績＝前の週の販売 から新しい順）の
+//     単品の定価販売 n_iw と、その週の売場 S_w（実績＝定価＋値引＋廃棄 ＞ 0 の商品）から、MNL の最尤推定を MM 法（Hunter 2004／Zermelo の反復）で求める：
+//       a_i ← Σ_w n_iw ÷ Σ_{w: i∈S_w} ( N_w ÷ Σ_{j∈S_w} a_j )　　初期値＝並んだ週の取り分 n_iw/N_w の平均。毎回 合計1 に正規化。相対変化 1e-6 未満か 100回で止める。
+//     S_w が週ごとに違っても（季節商品・終売・入力漏れ）、その週に無かった商品とは比べないので、取り分の比は正しく推定できる。
+//   購入率 r ＝ Σ_w ( N_w ÷ κ_w ) ÷ Σ_w C_w　（C_w＝その週の客数・売っている時間。客数 0 の曜日は、入っている曜日から 7日分に伸ばす）
+//     κ_w ＝ Σ_{S_w} a ÷ Σ_{S_w ∪ M_w} a。M_w＝「その週にも売場にあったはずなのに実績が無い、今週も並ぶ商品」
+//       ＝ 窓の中でその週より古い週に実績がある、または 投入日がその週の販売期間（週の始まりの7日前）以前。→ 入力漏れの分だけ N_w が少なく出るのを、取り分で戻す。
+//     今週やめた商品（S_w にだけある）と、窓の中で後から入った商品・新商品は M_w に入れない（入れると「商品が増えても他が下がらない」＝分け合いが消える）。
+//   今週の売場 L（skuLineupIds）：enabled・カテゴリON・投入日〜終売日が週に重なる・作る時間帯が1つ以上ON（全部OFF は並ばない）。親子（1A）は親で1（子のどれかが ON なら並ぶ）。
+//   新商品（L にあって直近4週に実績が無い）：a が推定できない → カテゴリの a の中央値（今週並ぶ・推定できた商品）を仮の a として分母にだけ入れる。
+//     自分の数は今までどおり投資・新商品予算から（teika は下の逃げ道＝自分の平均＝実績なしなら 0）。※ 仮の a は店長の判断点（2026-10-08）。
+//   逃げ道（a が推定できない商品だけ）：直近4週のカテゴリの実績に入っていない商品は、今までの「自分の定価販売の平均（直近4週・0 の週は飛ばす）」。
+//   今週の売場に無い商品（作る時間帯が全部OFF など）は「並べたら」の取り分 a_i ÷（Σ_L a ＋ a_i）で出す（作成0の一覧の説明用）。
+//   入れる場所はこの1か所（getRecentAvgTeikaInfo）。週の目標・撤退客数・追加作成の見込み m0・予算の表・作成0の一覧が同時にそろう。ランキングは実績のまま。
+//   保存しない（導出）。同じ処理の間だけ覚える（clearAllocCache と処理の終わりで捨てる）。
+const MNL_WEEKS=4, MNL_TOL=1e-6, MNL_ITER=100;
+function _skuMemo(key,fn){
+  if(_skuCache.has(key))return _skuCache.get(key);
+  const v=fn(); _skuCache.set(key,v);
+  if(!_skuClearQueued){ _skuClearQueued=true; Promise.resolve().then(()=>{ _skuClearQueued=false; _skuCache.clear(); }); }
+  return v;
+}
+function _jiOfWeek(wk){ return (wk===S.activeWeek)?(S.ji||{}):((((S.weeks||{})[wk])||{}).ji||{}); }
+// 実績の週の SKU（weekKey を省くと開いている週の S.ji）＝その週の売場 S_w の数
+function skuActual(cat,weekKey){
+  const main=mainCatOf(cat||''), wk=weekKey||S.activeWeek;
+  return _skuMemo('a|'+main+'|'+wk,()=>{
+    const ji=_jiOfWeek(wk);
+    let n=0;
+    (S.PM||[]).forEach(p=>{ if(!p||mainCatOf(p.category||'')!==main||packParentOf(p))return; const j=ji[p.id]; if(j&&((j.teika||0)+(j.nebiki||0)+(j.haiki||0))>0)n++; });
+    return n;
+  });
+}
+// 作る時間帯が1つ以上 ON か（親は子のどれか）。全部 OFF の商品は売場に並ばない
+function _hasMakeSlot(p){
+  const kids=packChildren(p.id), list=kids.length?kids:[p];
+  return list.some(q=>{ const cfg=S.catCfg[q.category]; return !!cfg&&(cfg.slots||[]).some(h=>getSlotMake(q,h)); });
+}
+// 今週（開いている週）に売場に並ぶ商品の ID（上の L）
+function skuLineupIds(cat){
+  const main=mainCatOf(cat||'');
+  return _skuMemo('n|'+main+'|'+S.activeWeek+'|'+S.weekStart,()=>{
+    const dates=getWeekDates(), ids=[];
+    (S.PM||[]).forEach(p=>{ if(!p||!p.enabled||!S.catOn[p.category]||mainCatOf(p.category||'')!==main||packParentOf(p))return;
+      if(!dates.some(dt=>!prodDateState(p,dt)))return; if(!_hasMakeSlot(p))return; ids.push(p.id); });
+    return ids;
+  });
+}
+function skuLineup(cat){ return skuLineupIds(cat).length; }
+// SKU の数（1つの入口）：開いている週は「並ぶ商品」、ほかの週は「実績がある商品」
+function skuCount(cat,weekKey){ return (!weekKey||weekKey===S.activeWeek)?skuLineup(cat):skuActual(cat,weekKey); }
+function _skuWkLabel(k){ const a=String(k||'').split('.'); return a.length===3?`${+a[1]}/${+a[2]}週`:String(k||''); }
+// その週の客数（カテゴリが売っている時間）。客数 0 の曜日は、入っている曜日から 7日分に伸ばす（未入力で購入率が高く出ないように）
+function _catCustRows(cat,rows){
+  const cfg=S.catCfg[cat]; if(!cfg||!Array.isArray(rows))return 0;
+  let s=0, days=0;
+  for(let d=0;d<7;d++){ if(_custRowZero(rows[d]))continue; days++;
+    cfg.slots.forEach(h=>{ const r=getCatSlotRange(cat,h); if(!r)return; for(let x=r[0];x<r[1];x++)s+=x<24?(Number(rows[d][x])||0):(Number((rows[(d+1)%7]||[])[x-24])||0); }); }
+  return days?s*7/days:0;
+}
+// カテゴリの需要と魅力度（本体カテゴリごとに1回だけ計算して覚える）
+function catDemandModel(cat){
+  const main=mainCatOf(cat||''), ck=S.catCfg[main]?main:cat;
+  return _skuMemo('m|'+main+'|'+S.activeWeek+'|'+S.weekStart,()=>{
+    const inCat=(S.PM||[]).filter(p=>p&&mainCatOf(p.category||'')===main&&!packParentOf(p));
+    const curNum=S.activeWeek?weekKeyNum(S.activeWeek):Infinity;
+    const keys=[S.activeWeek].concat(sortWeekKeys(Object.keys(S.weeks||{}).filter(k=>k!==S.activeWeek&&weekKeyNum(k)<curNum)).reverse()).filter(Boolean);
+    const weeks=[];
+    for(const k of keys){
+      if(weeks.length>=MNL_WEEKS)break;
+      const ji=_jiOfWeek(k), set=[], n={}; let N=0;
+      inCat.forEach(p=>{ const j=ji[p.id]; if(!j)return; const t=Number(j.teika)||0; if(t+(Number(j.nebiki)||0)+(Number(j.haiki)||0)>0){ set.push(p.id); n[p.id]=t; N+=t; } });
+      if(!(N>0))continue;
+      const rows=(k===S.activeWeek)?(S.cust||[]):((S.weeks[k]||{}).cust||[]);
+      weeks.push({key:k,set,n,N,C:_catCustRows(ck,rows)});
+    }
+    // 魅力度 a：MNL の最尤推定（MM 法）
+    const K=[...new Set([].concat(...weeks.map(w=>w.set)))], W={};
+    K.forEach(i=>{ W[i]=0; weeks.forEach(w=>{ if(w.n[i]!==undefined)W[i]+=w.n[i]; }); });
+    const norm=o=>{ let t=0; K.forEach(i=>t+=o[i]); if(t>0)K.forEach(i=>o[i]/=t); return o; };
+    let a={}; K.forEach(i=>{ let s=0,c=0; weeks.forEach(w=>{ if(w.n[i]!==undefined){ s+=w.n[i]/w.N; c++; } }); a[i]=c?s/c:0; }); norm(a);
+    let iter=0, conv=false;
+    while(iter<MNL_ITER&&K.length){
+      const den={}; K.forEach(i=>den[i]=0);
+      weeks.forEach(w=>{ let sa=0; w.set.forEach(j=>sa+=a[j]); if(!(sa>0))return; const q=w.N/sa; w.set.forEach(i=>den[i]+=q); });
+      const b={}; K.forEach(i=>b[i]=den[i]>0?W[i]/den[i]:0); norm(b);
+      let mx=0; K.forEach(i=>{ const d=Math.abs(b[i]-a[i]), rel=a[i]>0?d/a[i]:(b[i]>0?Infinity:0); if(rel>mx)mx=rel; });
+      a=b; iter++; if(mx<MNL_TOL){ conv=true; break; }
+    }
+    // 今週の売場：推定できた商品 Lk と新商品 Lnew（仮の a＝中央値）
+    const L=skuLineupIds(main), Lk=L.filter(i=>i in a), Lnew=L.filter(i=>!(i in a));
+    const med=arr=>{ const s=arr.slice().sort((x,y)=>x-y), m=s.length; return m?(m%2?s[(m-1)/2]:(s[m/2-1]+s[m/2])/2):0; };
+    let aMed=med(Lk.map(i=>a[i]).filter(v=>v>0)); if(!(aMed>0))aMed=med(K.map(i=>a[i]).filter(v=>v>0));
+    const sumKnown=Lk.reduce((s,i)=>s+a[i],0), sumNow=sumKnown+Lnew.length*aMed;
+    // 購入率：入力漏れの週は取り分で戻す（κ_w）
+    const ymdMinus=(k,days)=>{ const d=parseLocalDate(((S.weeks||{})[k]||{}).weekStart||weekKeyToDateStr(k)); d.setDate(d.getDate()-days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    let Dsum=0, Csum=0, Dall=0;
+    weeks.forEach((w,wi)=>{
+      const older=weeks.slice(wi+1), salesStart=ymdMinus(w.key,7);
+      let sw=0; w.set.forEach(i=>sw+=a[i]); let su=sw; w.miss=[];
+      Lk.forEach(i=>{ if(w.n[i]!==undefined||!(a[i]>0))return; const p=getP(i);
+        if(older.some(o=>o.n[i]!==undefined)||(p&&p.startDate&&p.startDate<=salesStart)){ su+=a[i]; w.miss.push(i); } });
+      w.kappa=su>0?sw/su:1; w.D=w.kappa>0?w.N/w.kappa:w.N; Dall+=w.D;
+      if(w.C>0){ Dsum+=w.D; Csum+=w.C; }
+    });
+    const Cnow=getCatWeekTotal(ck);
+    let r=0, D=0, mode='none';
+    if(Csum>0&&Cnow>0){ r=Dsum/Csum; D=Cnow*r; mode='cust'; }
+    else if(weeks.length){ D=Dall/weeks.length; mode='avg'; }   // 客数が無い時は、需要の週平均（客数の増減は入れない）
+    return {main,ck,weeks,a,K,L,Lk,Lnew,aMed,sumNow,r,Cnow,D,mode,iter,conv};
+  });
+}
+// 自分の定価販売の平均（今までの式。逃げ道と、比べる用の raw）：開いている週＋前の週を新しい順に、0 の週は飛ばして最大 N 週
+function _ownAvgTeika(pid,windowSize){
+  windowSize=windowSize||4; const list=[];
+  const cur=(S.ji||{})[pid]; if(cur&&(cur.teika||0)>0)list.push({key:S.activeWeek,teika:cur.teika});
+  const curNum=S.activeWeek?weekKeyNum(S.activeWeek):Infinity;
+  const keys=sortWeekKeys(Object.keys(S.weeks||{}).filter(k=>k!==S.activeWeek&&weekKeyNum(k)<curNum)).reverse();
+  for(const k of keys){ if(list.length>=windowSize)break; const j=((S.weeks[k]||{}).ji||{})[pid]; if(j&&(j.teika||0)>0)list.push({key:k,teika:j.teika}); }
+  return {avg:list.length?list.reduce((s,e)=>s+e.teika,0)/list.length:0,weeks:list};
+}
+// 商品の週の目標の元（teika）。返り値：avg＝D×取り分（逃げ道の時は自分の平均）／raw＝自分の平均（今までの式）／share・D・C・r・src（'mnl'｜'own'）
+function getRecentAvgTeikaInfo(pid, windowSize){
+  const p=getP(pid), own=_ownAvgTeika(pid,windowSize);
+  const base={avg:own.avg,raw:own.avg,factor:1,src:'own',share:null,D:0,C:0,r:0,skuNow:0,nNew:0,weeks:own.weeks,model:null};
+  if(!p)return base;
+  const m=catDemandModel(p.category);
+  Object.assign(base,{D:m.D,C:m.Cnow,r:m.r,skuNow:m.L.length,nNew:m.Lnew.length,model:m});
+  if(!(pid in m.a)||!(m.D>0))return base;
+  const inL=m.L.includes(pid), den=inL?m.sumNow:(m.sumNow+m.a[pid]), share=den>0?m.a[pid]/den:0, avg=m.D*share;
+  return Object.assign(base,{avg,factor:own.avg>0?avg/own.avg:1,src:'mnl',share,inLineup:inL,a:m.a[pid]});
+}
+function getRecentAvgTeika(pid, windowSize){ return getRecentAvgTeikaInfo(pid, windowSize).avg; }
+// 数字タップの理由（内訳）の1行：「カテゴリ需要 412個（客数 9,870×購入率 4.17%）× 取り分 35.2%（SKU 6）」。親子の子は親の数で
+function skuReasonText(pid){
+  let p=getP(pid); if(!p)return ''; const par=packParentOf(p); if(par)p=par;
+  const i=getRecentAvgTeikaInfo(p.id,4), m=i.model; if(!m)return '';
+  if(i.src!=='mnl'){
+    if(!(i.raw>0))return '';
+    return `直近4週のカテゴリの実績にこの商品が無いため、この商品の定価販売の平均 ${i.raw.toFixed(1)}個（${i.weeks.length}週）を使っています`;
   }
-  if(list.length === 0) return 0;
-  return list.reduce((a,b)=>a+b, 0) / list.length;
+  const dTxt=m.mode==='cust'?`（客数 ${fmt(Math.round(m.Cnow))}×購入率 ${(m.r*100).toFixed(2)}%）`:`（直近${m.weeks.length}週の平均。客数が無いため）`;
+  let s=`カテゴリ需要 ${m.D.toFixed(0)}個${dTxt}× 取り分 ${(i.share*100).toFixed(1)}%（SKU ${m.L.length}${i.inLineup?'':'＋この商品'}）＝ ${i.avg.toFixed(1)}個`;
+  const miss=m.weeks.filter(w=>w.kappa<0.9995);
+  if(miss.length)s+=`　※ ${miss.map(w=>`${_skuWkLabel(w.key)}は実績の無い商品 ${w.miss.length}品の分を取り分で補正（×${(1/w.kappa).toFixed(2)}）`).join('・')}`;
+  if(m.Lnew.length)s+=`　※ 新商品 ${m.Lnew.length}品を、仮の取り分（カテゴリの中央値）で売場に数えています`;
+  return s;
+}
+// SKU の推移（①実績入力・④作成表の見出し・点検ページで使う）：実績の週（古い→新しい、最大 n 週）と今週
+function skuTrend(cat,n){
+  n=n||4; const curNum=S.activeWeek?weekKeyNum(S.activeWeek):Infinity;
+  const keys=sortWeekKeys(Object.keys(S.weeks||{}).filter(k=>k!==S.activeWeek&&weekKeyNum(k)<curNum));
+  if(S.activeWeek)keys.push(S.activeWeek);
+  const past=keys.slice(-n).map(k=>({key:k,sku:skuActual(cat,k)}));
+  return {past,now:skuLineup(cat),last:S.activeWeek?skuActual(cat,S.activeWeek):0};
+}
+function skuHeadBadge(cat){
+  const tr=skuTrend(cat,1); if(!(tr.now>0))return '';
+  const isNew=cat.endsWith('新商品');
+  return `<span title="SKU＝売場に並ぶ単品の数（${escapeHtmlP(mainCatOf(cat))}${isNew?'。本体と新商品を合わせて':'。新商品も合わせて'}・焼き鳥などの親子は親で1）。先週＝この週に入れた実績（前の週の販売）がある商品の数。目標は「カテゴリの需要（客数×購入率）× 取り分」：今週並ぶ SKU の魅力度の合計で、カテゴリの需要を分け合います（作る時間帯が全部OFFの商品は数えません）" style="background:#eef2ff;color:#3730a3;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">SKU ${tr.now}（先週 ${tr.last>0?tr.last:'—'}）</span>`;
 }
 
 // 投資/新商品の対象曜日を返す（デフォルト全7日）。配列 [0..6]
@@ -3841,6 +4183,9 @@ function openCellMenu(pid,dayIdx,slotH){
     </button>`;
   let rows='';
   rows+=row('sold','🔔',t('so2.menuTitle'),so.length?_soT('so2.menuDescDone',so.length,soSum):t('so2.menuDesc'),so.length>0,'#16a34a');
+  const soPend=getSoldOutPending(pid,dayIdx,slotH);
+  if(soPend.length)rows+=row('done','✓',_soT('so2.menuDone',soPend[0].e.added),t('so2.menuDoneDesc'),false,'#d97706');
+  else { const lastDone=so.slice().reverse().find(e=>(e.added||0)>0&&e.done===true); if(lastDone)rows+=row('undone','↶',_soT('so2.menuUndoDone',lastDone.added),t('so2.menuUndoDoneDesc'),false,'#64748b'); }
   if(so.length)rows+=row('undo','↶',(so[so.length-1].added>0)?_soT('so2.undoAdd',so[so.length-1].added):t('so2.undoZero'),t('so2.undoDesc'),false,'#dc2626');
   rows+=row('left','📦',leftover?'余った（記録済み）':'余った',leftover?'もう一度タップすると記録を取り消します':'廃棄や値引きが出た時に押します',leftover,'#ea580c');
   if(!isSkip)rows+=row('skip','⊘',skipped?'在庫がなくて作れなかった（記録済み）':'在庫がなくて作れなかった',skipped?'もう一度タップすると記録を取り消します':'材料の欠品などで作れなかった時に押します',skipped,'#475569');
@@ -3851,7 +4196,7 @@ function openCellMenu(pid,dayIdx,slotH){
     ${rows}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
       完売・余りの記録は、同じ曜日・同じ時間帯で<b>直近4週のうち2週以上続いた時だけ</b>、来週以降の数を自動で増減します（1回だけなら変わりません）<br>
-      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${riceAdj(pid,dayIdx,slotH)?`<br><span style="color:#92400e;font-weight:700">🍚 ごはんの残りが${riceAdj(pid,dayIdx,slotH)>0?'多い':'少ない'}ため ${riceAdj(pid,dayIdx,slotH)>0?'+':''}${riceAdj(pid,dayIdx,slotH)}（学習とは別の、この時間帯だけの記録）</span>`:''}${packParentOf(p)?`<br>🍢 1パック＝${packSizeOf(p)}本。週の目標は「${escapeHtmlP(packParentOf(p).name)}」の目標（本）× 取り分 ${Math.round(packShareNorm(p)*100)}% ÷ ${packSizeOf(p)}本`:''}${wd.below?`<br><span style="color:#6b21a8;font-weight:700">⤵ ${withdrawText(wd)}</span>`:''}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>${gaibuWhy(p.category,dayIdx,slotH)?`　理由：${escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))}`:''}（③のタブで変えられます）`:''}
+      直近4週：完売 <b>${li.so}</b>週／余り <b>${li.lo}</b>週　→　${adjTxt}${skuReasonText(pid)?`<br><span style="color:#3730a3">${skuReasonText(pid)}</span>`:''}${riceAdj(pid,dayIdx,slotH)?`<br><span style="color:#92400e;font-weight:700">🍚 ごはんの残りが${riceAdj(pid,dayIdx,slotH)>0?'多い':'少ない'}ため ${riceAdj(pid,dayIdx,slotH)>0?'+':''}${riceAdj(pid,dayIdx,slotH)}（学習とは別の、この時間帯だけの記録）</span>`:''}${packParentOf(p)?`<br>🍢 1パック＝${packSizeOf(p)}本。週の目標は「${escapeHtmlP(packParentOf(p).name)}」の目標（本）× 取り分 ${Math.round(packShareNorm(p)*100)}% ÷ ${packSizeOf(p)}本`:''}${wd.below?`<br><span style="color:#6b21a8;font-weight:700">⤵ ${withdrawText(wd)}</span>`:''}${k!==1?`<br>時間帯別購入率の係数：×${k.toFixed(2)}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>天気・イベント調整：<b>${_gbFmt(gaibuPct(p.category,dayIdx,slotH))}</b>${gaibuWhy(p.category,dayIdx,slotH)?`　理由：${escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))}`:''}（③のタブで変えられます）`:''}
     </div>
     <button type="button" onclick="closeCellMenu()" style="width:100%;margin-top:12px;padding:13px;font-size:15px;font-weight:700;border:none;border-radius:10px;background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit">閉じる</button>
   </div>`;
@@ -3863,6 +4208,8 @@ function cellMenuAct(act){
   closeCellMenu();
   if(act==='sold')return openSoldOutModal(c.pid,c.dayIdx,c.slotH);
   if(act==='undo')return removeLastSoldOut(c.pid,c.dayIdx,c.slotH);
+  if(act==='done')return markSoldOutDone(c.pid,c.dayIdx,c.slotH);
+  if(act==='undone')return unmarkSoldOutDone(c.pid,c.dayIdx,c.slotH);
   if(act==='left'){ const was=!!(S.leftovers&&S.leftovers[c.key]); toggleLeftover(c.key); showToast(was?'「余った」の記録を取り消しました':'📦「余った」を記録しました',was?'info':'success'); return; }
   if(act==='skip'){ const was=!!(S.skipped&&S.skipped[c.key]); toggleSkipped(c.key); showToast(was?'「在庫がなくて作れなかった」の記録を取り消しました':'⊘「在庫がなくて作れなかった」を記録しました',was?'info':'success'); return; }
 }
@@ -3890,6 +4237,46 @@ function investGridOf(pid){
   return _isPlainObj(g)?g:null;
 }
 function _igCell(g,d,h){ const v=g&&g[d]?g[d][h]:0; const n=Math.round(Number(v)||0); return n>0?n:0; }
+// ---------- 作成済み（チェック）のマスの投資の数は固定（2026-10-08 店長の質問から） ----------
+//   S.weeks[週キー].investDone = { 商品ID: { 曜日idx: { 時刻: 個数 } } }
+//   作成表で「作った」のチェックを付けた時に、そのマスの投資の数（その時の値。0 も）を写しておく。
+//   チェック済みのマスは、あとで投資の数（1日◯個・マス目）を変えても、写した数のまま（作った物は変わらないため）。
+//   毎週効く設定（1日◯個）の商品は、その日の数からチェック済みのマスの数を引いた残りだけを、未チェックの時間帯に配る（穴埋め）。
+//   チェックを外すと写しも消え、ふつうの計算に戻る。写しが無いマス（この仕組みより前のチェック）は、今までどおり計算する。
+function investDoneOf(pid){
+  const w=S.activeWeek&&S.weeks&&S.weeks[S.activeWeek];
+  const g=w&&_isPlainObj(w.investDone)?w.investDone[pid]:null;
+  return _isPlainObj(g)?g:null;
+}
+// そのマスの固定された投資の数。固定されていなければ null
+function investFixed(pid,d,h){
+  const g=investDoneOf(pid); if(!g||!_isPlainObj(g[d]))return null;
+  const v=g[d][h]; if(v===undefined||v===null)return null;
+  const n=Math.round(Number(v)||0); return n>0?n:0;
+}
+// チェックを付けた（on=true）時：いまの投資の数を写す（すでに写しがあればそのまま）。外した時：写しを消す
+function setInvestFixed(pid,d,h,on){
+  if(!S.activeWeek)return;
+  if(on){
+    if(investFixed(pid,d,h)!=null)return;
+    const w=_igWeekObj(true); if(!w)return;
+    if(!_isPlainObj(w.investDone))w.investDone={};
+    if(!_isPlainObj(w.investDone[pid]))w.investDone[pid]={};
+    if(!_isPlainObj(w.investDone[pid][d]))w.investDone[pid][d]={};
+    w.investDone[pid][d][h]=getInvestExtra(pid,d,h);
+  }else{
+    const w=S.weeks&&S.weeks[S.activeWeek]; const g=w&&_isPlainObj(w.investDone)?w.investDone[pid]:null;
+    if(!g||!_isPlainObj(g[d])||g[d][h]===undefined)return;
+    delete g[d][h]; if(!Object.keys(g[d]).length)delete g[d]; if(!Object.keys(g).length)delete w.investDone[pid]; if(!Object.keys(w.investDone).length)delete w.investDone;
+  }
+}
+// マスの鍵（曜日_時刻_商品ID）から、固定の写しを付ける／消す（setCheck・setSkipped・checkCurrentSlot から呼ぶ）
+function _investFixByKey(cellKey){
+  const m=String(cellKey).match(/^(\d+)_(\d+)_(.+)$/); if(!m||/_b\d+$/.test(m[3]))return;
+  setInvestFixed(m[3],parseInt(m[1]),parseInt(m[2]),!!(S.checks&&S.checks[cellKey]));
+}
+// この商品に、今週 固定されたマスが1つ以上あるか（予算の表の注意書き・マス目の表示に使う）
+function investHasFixed(pid){ const g=investDoneOf(pid); return !!g&&Object.keys(g).some(d=>_isPlainObj(g[d])&&Object.keys(g[d]).length>0); }
 // 毎週効く設定（以前の入れ方）の種類。マス目は見ない
 function investLegacyKind(p){
   if(!p)return null;
@@ -3922,6 +4309,9 @@ function getInvestExtra(pid,dayIdx,slotH){
   if(isPackParent(p))return 0;   // 本数の商品（親）には投資を置かない（子に置く）
   const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.length)return 0;
   if(cfg.slots.indexOf(slotH)<0)return 0;
+  // 作成済み（チェック）のマスは、チェックした時に写した数のまま（投資の数をあとで変えても動かない）
+  const fixed=investFixed(pid,dayIdx,slotH);
+  if(fixed!=null)return fixed;
   // 今週のマス目がある商品：マスの数をそのまま返す（作らない時間帯のマスは数えない）
   const grid=investGridOf(pid);
   if(grid)return getSlotMake(p,slotH)?_igCell(grid,dayIdx,slotH):0;
@@ -3939,10 +4329,15 @@ function getInvestExtra(pid,dayIdx,slotH){
   // 置く先は「作る」時間帯だけ。配り方（2026-10-06 店長の承認。以前は均等＋余りは早い時間帯から）：
   //   時間帯ごとの「範囲の客数 × 時間帯の購入率の係数」の割合で配る（既存商品の自然算出と同じ考え方）。整数化は最大剰余法。
   //   まとめ単位がある時は、まとめ単位の数で同じ配り方。今週のマス目に手で入れた商品はここに来ない（上で返している）。
-  const slots=getInvestSlots(p);
+  // 穴埋め（2026-10-08）：この日のチェック済み（固定）のマスの数を 1日の数から引き、残りだけを未チェックの時間帯に同じ配り方で配る。
+  //   固定の合計が 1日の数を超えていれば残りは 0（作った物は減らせない。その日は固定の合計のまま）。
+  let fixedSum=0; cfg.slots.forEach(h=>{ const f=investFixed(pid,dayIdx,h); if(f!=null)fixedSum+=f; });
+  const slots=getInvestSlots(p).filter(h=>investFixed(pid,dayIdx,h)==null);
   const slotIdx=slots.indexOf(slotH);if(slotIdx<0)return 0;
+  const remain=Math.max(0,perDay-fixedSum);
+  if(!remain)return 0;
   const batch=getBatchUnit(p);
-  const units=batch>1?Math.round(perDay/batch):perDay;   // 配る単位の数（まとめ単位なら「何まとめ」）
+  const units=batch>1?Math.round(remain/batch):remain;   // 配る単位の数（まとめ単位なら「何まとめ」）
   return _investSplit(p,dayIdx,slots,units)[slotIdx]*(batch>1?batch:1);
 }
 // 1日ぶんの投資の数 units を、時間帯 slots に「範囲の客数×係数」の割合で配る（最大剰余法：切り捨て → 小数部の大きい順に1個ずつ、同点は早い時間帯）。
@@ -4274,7 +4669,21 @@ function renderJissekiTitle(){
 // 週合計サマリーの表示対象：'all'＝全体／主カテゴリ名＝そのカテゴリ（新商品は本体に合算）
 let _jsumCat='all';
 function setJsumCat(c){ _jsumCat=c; _uiSave(); renderJissekiSummary(); }
+// ①実績入力の週合計サマリーの下：カテゴリ別の SKU の推移（直近4週の実績 → 今週並ぶ数）。目標の「カテゴリ需要×取り分」（catDemandModel）と同じ数え方
+function renderJsumSku(){
+  const el=document.getElementById('jsum-sku'); if(!el)return;
+  const mains=CATS.filter(c=>!c.endsWith('新商品')&&(_jsumCat==='all'||c===_jsumCat)&&(S.PM||[]).some(p=>p.enabled&&mainCatOf(p.category)===c));
+  const rows=mains.map(c=>{ const tr=skuTrend(c,4); if(!(tr.now>0)&&!tr.past.some(x=>x.sku>0))return '';
+    const seq=tr.past.map(x=>`<span title="${escapeHtmlP(_skuWkLabel(x.key))}に入れた実績（前の週の販売）がある商品の数" style="display:inline-block;min-width:22px;text-align:center">${x.sku>0?x.sku:'—'}<span style="display:block;font-size:9px;color:#94a3b8;font-weight:400;line-height:1.1">${escapeHtmlP(_skuWkLabel(x.key).replace('週',''))}</span></span>`).join('<span style="color:#cbd5e1">›</span>');
+    return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:3px 0"><span style="min-width:84px;font-weight:700;color:#334155">${escapeHtmlP(tCat(c))}</span>${seq}<span style="color:#cbd5e1">›</span><span style="display:inline-block;text-align:center;color:#3730a3;font-weight:800;font-size:14px">${tr.now}<span style="display:block;font-size:9px;font-weight:700;line-height:1.1">今週</span></span></div>`; }).filter(Boolean);
+  if(!rows.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='block';
+  el.innerHTML=`<div style="margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:7px 12px;font-size:12px;color:#334155">
+    <div style="font-weight:700;color:#3730a3;margin-bottom:2px">SKU の推移 <span style="font-weight:400;color:#64748b">（売場に並ぶ単品の数。実績の週 → 今週。親子は親で1・新商品は本体に合算・作る時間帯が全部OFFは数えない。目標は「カテゴリの需要（客数×購入率）× 取り分」で、今週並ぶ SKU で分け合います）</span></div>${rows.join('')}</div>`;
+}
 function renderJissekiSummary(){
+  renderZeroMakeHome();   // 今週 作成0の商品の印（サマリーの下）
+  renderJsumSku();        // カテゴリ別の SKU の推移（その下）
   // カテゴリ切替チップ（商品があるカテゴリだけ）
   const catsEl=document.getElementById('jsum-cats');
   const cats=CATS.filter(c=>!c.endsWith('新商品')&&S.PM.some(p=>p.enabled&&mainCatOf(p.category)===c));
@@ -5755,6 +6164,7 @@ function delProduct(pid){
   delete S.ji[pid];
   Object.values(S.weeks||{}).forEach(w=>{if(w.ji)delete w.ji[pid];});
   Object.keys(S.checks).forEach(k=>{if(k.endsWith('_'+pid))delete S.checks[k];});
+  Object.values(S.weeks||{}).forEach(w=>{if(w&&_isPlainObj(w.investDone))delete w.investDone[pid];});   // 作成済みマスの投資の写しも消す
   if(S.budget.newProductBudgets)delete S.budget.newProductBudgets[pid];
   if(S.budget.investBudgets)delete S.budget.investBudgets[pid];
   if(S.budget.newProductCounts)delete S.budget.newProductCounts[pid];
@@ -6681,6 +7091,7 @@ function renderProdDayTabs(){
     </div>`;
   }).join('');
   document.getElementById('prod-day-tabs').innerHTML=tabsHTML+`<div class="day-tab-bar" style="flex:1;align-self:flex-end"></div>`;
+  renderZeroMakeBand();   // 週に作成0の商品の帯（曜日タブの下）
 }
 
 function selectProdDay(i){currentProdDay=i;_uiSave();renderProdDayTabs();renderProdDayContent(i);}
@@ -7264,7 +7675,7 @@ function renderSlotGroupedView(dayIdx){
         if(_hasGrp){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
         return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
           <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
-          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">投資+${extra}</span>`:''} ${gaibuCellBadge(cat,di,slotH)}${thermalBadge(p,true)}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">在庫欠品</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">余り</span>':''}${getSoldOutTotal(p.id,di,slotH)>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">追加+${getSoldOutTotal(p.id,di,slotH)}</span>`:''}</span>
+          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">投資+${extra}</span>`:''} ${gaibuCellBadge(cat,di,slotH)}${thermalBadge(p,true)}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">在庫欠品</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">余り</span>':''}${getSoldOutTotal(p.id,di,slotH)>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">追加+${getSoldOutTotal(p.id,di,slotH)}</span>`:''}${getSoldOutPending(p.id,di,slotH).map(x=>' '+soDoneBtn(p.id,di,slotH,x.i,x.e.added,false)).join('')}</span>
           <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${di},${slotH})" aria-label="${escapeHtmlP(p.name)} の記録メニュー" style="flex-shrink:0"><span style="font-size:21px;font-weight:800;color:#1d4ed8;line-height:1">${grandTotal}</span></button>
         </div>`;
       }).join('');
@@ -7437,6 +7848,8 @@ function renderProdDayContent(dayIdx){
     </div>
   </div>`;
 
+  // 追加で作るもの（完売の記録で「作る予定」になっている追加分）の一覧。どの並び順でも上に出す
+  html+=renderSoldOutPending(dayIdx);
   // 時間帯別モード：時刻ごとにカテゴリ→商品をまとめて表示（チェックは通常の作成表と共有）
   if(_prodSortMode==='slot'){
     html+=renderSlotGroupedView(dayIdx);
@@ -7565,6 +7978,7 @@ function renderProdDayContent(dayIdx){
     html+=`<div class="section-title" style="cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap" onclick="toggleCatCollapse('${cat}')">
       <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
       <span>${cat}</span>
+      ${skuHeadBadge(cat)}
       ${(_st.state==='none'||_st.state==='future')?'':`<span style="background:${_badgeBg};color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${_badgeTxt}</span>`}
     </div>`;
     if(_isCollapsed){
@@ -7646,8 +8060,9 @@ function renderProdDayContent(dayIdx){
         const soEvents=getSoldOutEvents(p.id,dayIdx,slotH);
         const soSum=soEvents.reduce((s,e)=>s+(e.added||0),0);
         const grandTotal=totalCnt+soSum;
-        const soBadges=soEvents.map(e=>{
+        const soBadges=soEvents.map((e,ei)=>{
           const at=e.readyAt!=null?e.readyAt:e.soldAt;
+          if(soPending(e))return soDoneBtn(p.id,dayIdx,slotH,ei,e.added,false);   // 作る予定：「✓ 作った +N」のボタン（押すと印が付く）
           return `<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${_soFmtHM(at)} ${t('sold.badgeReady').replace('{0}',e.added)}">${e.added>0?'+'+e.added:t('so2.badgeSold')}</span>`;
         }).join('');
         // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、0(作らない)は中身を出さず真っ白、それ以外はチェック状態次第
@@ -7708,7 +8123,7 @@ function setSkipped(key,val){
   if(!S.skipped)S.skipped={};
   if(val){
     S.skipped[key]=true;
-    if(S.checks[key]) delete S.checks[key]; // 作成済とは排他
+    if(S.checks[key]){ delete S.checks[key]; _investFixByKey(key); } // 作成済とは排他（投資の固定も外す）
   } else {
     delete S.skipped[key];
   }
@@ -7758,13 +8173,17 @@ function setCheck(key,val){
       }catch(e){}
     }
   }
+  // 作成済みのマスの投資の数を固定する／外す（マスの鍵で判定。バッチの鍵からはマスの鍵を作る）
+  _investFixByKey(batchMatch?`${batchMatch[1]}_${batchMatch[2]}_${batchMatch[3]}`:key);
   saveS();
   renderProdDayContent(currentProdDay);
 }
 
 function resetChecks(){
   if(!confirm('チェックをリセットしますか？'))return;
-  S.checks={};saveS();renderProdDayContent(currentProdDay);
+  S.checks={};
+  const _w=S.weeks&&S.activeWeek?S.weeks[S.activeWeek]:null; if(_w&&_w.investDone)delete _w.investDone;   // 投資の固定も全部外す
+  saveS();renderProdDayContent(currentProdDay);
 }
 
 // ============================================================
@@ -7926,24 +8345,65 @@ function soDispersion(cat){
 }
 // 画面のデータから、計算に入れる数を集めて計算する
 //   nowH＝「完売した」を押した時刻（時）、leadMin＝追加分が売場に並ぶまでの分（ボタンで選ぶ）
-function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin){
+// 「いつ並べた？」を聞くか（2026-10-08 店長：「完了予定までに完成したものが完売した場合、追加作成が算出されない」）
+//   完売を押した時刻が、売り切れた分の「並ぶ予定」より前（＝予定より早く並べて、もう売り切れた）の時だけ聞く。予定どおりの時は聞かない（タップを増やさない）。
+//     1回目：予定＝作成時刻＋PREP_HOURS（displayStart）。選べる時刻＝作成時刻〜押した時刻の前
+//     2回目以降：予定＝前の追加分の readyAt。選べる時刻＝前の完売を押した時刻（追加分の作り始め）〜押した時刻の前
+//   前の追加分に「✓ 作った」の時刻 doneAt があり、それが予定より前なら聞かない：「作った」は作り終えてから押すので、並んだのは doneAt 以前と分かる
+//   （押し忘れて後で押すことはあっても、作る前に押すことは無い＝doneAt は並んだ時刻の上限）。その時は doneAt を並んだ時刻として使う。
+function soShelfAsk(pid,dayIdx,slotH,nowH){
+  const events=getSoldOutEvents(pid,dayIdx,slotH);
+  if(!events.length){ const plan=slotH+PREP_HOURS; return nowH<=plan?{need:true,plan,min:slotH,first:true}:{need:false}; }
+  const e=events[events.length-1];
+  if(!e||!((e.added||0)>0)||e.v!==2||typeof e.readyAt!=='number'||typeof e.noticedAt!=='number')return{need:false};
+  if(typeof e.doneAt==='number'&&e.doneAt<e.readyAt&&e.doneAt<nowH)return{need:false,byDone:true};
+  return nowH<=e.readyAt?{need:true,plan:e.readyAt,min:e.noticedAt,first:false}:{need:false};
+}
+//   shelfAt（省略可）＝「いつ並べた？」の答え。この完売で売り切れた分（1回目は最初の分、2回目以降は前の追加分）が実際に並んだ時刻。
+//   記録にも shelfAt として残し、以後の計算では「並ぶ予定」の代わりに使う（1回目の記録の shelfAt＝最初の分、k回目の記録の shelfAt＝k−1回目の追加分）。
+function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
   const p=getP(pid);if(!p)return{error:t('sold.errProd')};
   const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲（この商品が次に作る時間帯まで。2026-10-06）
   if(!range)return{error:t('so2.errRange')};
   const cfg=S.catCfg[p.category]||{};
   const main=mainCatOf(p.category);
   const calcMax=CALC_MAX_HOURS[main]||4;
-  const displayStart=slotH+PREP_HOURS;                                   // 最初の分が売場に並ぶ時刻
-  const slotEnd=Math.min(range[1]+PREP_HOURS,displayStart+calcMax);      // 次の作成分が並ぶ時刻（＝この時間帯の終わり）
-  if(nowH<=displayStart)return{error:_soT('so2.errBefore',_soFmtHM(displayStart))};
+  const displayPlan=slotH+PREP_HOURS;                                    // 最初の分が売場に並ぶ予定の時刻
+  const slotEnd=Math.min(range[1]+PREP_HOURS,displayPlan+calcMax);       // 次の作成分が並ぶ時刻（＝この時間帯の終わり）
   const events=getSoldOutEvents(pid,dayIdx,slotH);
+  const shelfIn=(typeof shelfAt==='number'&&isFinite(shelfAt)&&shelfAt>=slotH&&shelfAt<nowH)?shelfAt:null;
+  const shelfPlan=events.length?((events[events.length-1]||{}).readyAt):displayPlan;   // 答えた時刻の「予定」（画面の説明用）
+  // 最初の分が実際に並んだ時刻：1つ目の記録に shelfAt があればそれ／今回が1回目で「いつ並べた？」に答えた時はその時刻／ほかは予定
+  const displayStart=events.length?((events[0]&&typeof events[0].shelfAt==='number')?events[0].shelfAt:displayPlan):(shelfIn!=null?shelfIn:displayPlan);
+  if(nowH<=displayStart)return{error:_soT('so2.errBefore',_soFmtHM(displayStart))};
+  // 追加分 i が実際に並んだ時刻：次の記録の shelfAt（答えた時刻）→ 今回の答え（i が最後の時）→「作った」の時刻（予定より前の時だけ）→ 予定 readyAt
+  let doneUsed=null;
+  const shelfOf=i=>{ const e=events[i];
+    if(i+1<events.length&&events[i+1]&&typeof events[i+1].shelfAt==='number')return events[i+1].shelfAt;
+    if(i===events.length-1&&shelfIn!=null)return shelfIn;
+    if(typeof e.doneAt==='number'&&e.doneAt<e.readyAt){ const v=Math.max(e.noticedAt,e.doneAt); if(i===events.length-1)doneUsed={at:v,plan:e.readyAt}; return v; }
+    return e.readyAt; };
   const base=getProdCnt(pid,dayIdx,slotH)+getInvestExtra(pid,dayIdx,slotH);   // 作成表の数（計画＋投資）
   const prevAdded=events.reduce((s,e)=>s+(e.added||0),0);
   const Q=base+prevAdded;                                                // 今日ここまでに売場に出した数（2回目以降は前の追加も足す）
   if(Q<=0)return{error:t('so2.errNoQty')};
   const readyAt=nowH+leadMin/60;
   const sellEnd=Math.min(slotEnd,readyAt+(cfg.ah||calcMax));              // 追加分の販売期限が先に来る時はそこまで
-  const n1=getCustHoursRange(dayIdx,displayStart,nowH);
+  // n1＝棚に商品があった間の客数（2026-10-08 店長の決定「理論上正確なほう」）：
+  //   n1 ＝ N(並んだ時刻, 押した時刻) − Σ N(前の完売に気づいた時刻_i, その追加分が並んだ時刻_i)
+  //   i＝同じマスの前の完売の記録（v2 の記録で noticedAt と readyAt があるもの。古い記録は引かない）。区間は [並んだ時刻, 押した時刻] に切り詰め、重なりは1つにまとめて二重に引かない。
+  //   棚が空だった間の客は「買いたくても買えなかった」ので、売れ方（Q 個 ÷ n1 人）の分母に入れない。気づくまでの遅れ（売り切れ〜押した時刻）は記録が無いので扱わない
+  //   前の完売で「作らない（0個）」にした時は、追加分が並んでいないので、押した時刻まで棚は空のまま（readyAt の代わりに押した時刻まで）
+  const gaps=[];
+  //   2026-10-08：追加分が予定より早く並んだ時は、並んだ時刻（shelfOf：答えた時刻・「作った」の時刻）までを空とする（棚にあった時間を空として引かない）
+  events.forEach((e,i)=>{ if(!e||e.v!==2||typeof e.noticedAt!=='number'||typeof e.readyAt!=='number')return;
+    const a=Math.max(displayStart,e.noticedAt), z=Math.min(nowH,(e.added||0)>0?shelfOf(i):nowH); if(z>a)gaps.push([a,z]); });
+  gaps.sort((u,v)=>u[0]-v[0]);
+  const merged=[]; gaps.forEach(g=>{ const l=merged[merged.length-1]; if(l&&g[0]<=l[1])l[1]=Math.max(l[1],g[1]); else merged.push(g.slice()); });
+  const n1Raw=getCustHoursRange(dayIdx,displayStart,nowH);
+  const emptyCust=merged.reduce((s,g)=>s+getCustHoursRange(dayIdx,g[0],g[1]),0);
+  const emptyMin=Math.round(merged.reduce((s,g)=>s+(g[1]-g[0]),0)*60);
+  const n1=Math.max(0,n1Raw-emptyCust);
   const n2=readyAt<sellEnd?getCustHoursRange(dayIdx,readyAt,sellEnd):0;
   const Ncell=getCustHoursRange(dayIdx,displayStart,slotEnd);
   if(!(n1>0)||!(Ncell>0))return{error:t('so2.errNoCust')};
@@ -7986,7 +8446,7 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin){
   const t0=(typeof performance!=='undefined')?performance.now():0;
   const core=soCalcCore({Q,n1,n2,m0,b,phi,past,cu,co,B});
   const ms=(typeof performance!=='undefined')?performance.now()-t0:0;
-  const r={p,pid,dayIdx,slotH,nowH,leadMin,readyAt,displayStart,slotEnd,sellEnd,base,prevAdded,Q,n1,n2,Ncell,m0,m0Src,weeks,phi,phiDf:disp.df,b,
+  const r={p,pid,dayIdx,slotH,nowH,leadMin,readyAt,displayStart,displayPlan,shelfIn,shelfPlan,doneUsed,slotEnd,sellEnd,base,prevAdded,Q,n1,n1Raw,emptyCust,emptyMin,n2,Ncell,m0,m0Src,weeks,phi,phiDf:disp.df,b,
     past,pastSo,pastLo,cu,co,h,coNote,B,ms,eventCount:events.length+1,
     suggest:core.y,postMean:core.postMean,priorSO:core.priorSO,predMean:core.predMean,pSell1:core.pSell1,loss0:core.loss0,lossB:core.lossB,lossY:core.lossY};
   r.reason=soReason(r);
@@ -8025,7 +8485,8 @@ let _soldOutCtx=null;
 function openSoldOutModal(pid,dayIdx,slotH){
   const p=getP(pid);if(!p)return;
   const nowH=_soNowH();                         // 押した時刻＝完売に気づいた時刻
-  _soldOutCtx={pid,dayIdx,slotH,p,nowH};
+  const ask=soShelfAsk(pid,dayIdx,slotH,nowH);  // 予定より早く並べて売り切れた時だけ「いつ並べた？」を先に聞く
+  _soldOutCtx={pid,dayIdx,slotH,p,nowH,ask,shelfAt:null};
   let m=document.getElementById('soldOutModal');
   if(!m){
     m=document.createElement('div');
@@ -8044,7 +8505,14 @@ function openSoldOutModal(pid,dayIdx,slotH){
   m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:18px;width:100%;max-width:520px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box;margin:auto">
     <div style="font-weight:800;font-size:17px;color:#0f172a">${escapeHtmlP(p.name)}</div>
     <div style="font-size:12px;color:#64748b;margin:2px 0 14px">${_soT('so2.head',LANG==='ja'?DAYS[dayIdx]:t('day.'+((dayIdx+2)%7)),fmtHour(slotH),_soFmtHM(nowH))}</div>
-    <div id="soldOutPhase1">
+    ${ask.need?`<div id="soldOutPhase0">
+      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${t('so2.shelfAsk')}</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:10px">${_soT('so2.shelfHint',_soFmtHM(ask.plan))}</div>
+      <div style="display:grid;grid-template-columns:repeat(${Math.max(1,_soShelfOpts(ask,nowH).length)},1fr);gap:5px">${_soShelfOpts(ask,nowH).map(o=>`<button type="button" data-shelf="${o.at}" onclick="pickSoldOutShelf(${o.at})" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68px;padding:6px 2px;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid #cbd5e1;background:#fff;color:#0f172a">
+        <span style="font-size:14px;font-weight:800;line-height:1.2">${o.label}</span><span style="font-size:12px;font-weight:700;color:#475569">${_soFmtHM(o.at)}</span></button>`).join('')}</div>
+    </div>`:''}
+    <div id="soldOutPhase1"${ask.need?' style="display:none"':''}>
+      <div id="soldOutShelfLine" style="display:none;font-size:12px;color:#334155;background:#eef2ff;border-radius:8px;padding:6px 10px;margin-bottom:8px"></div>
       <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${t('so2.ask')}</div>
       <div style="font-size:12px;color:#64748b;margin-bottom:10px">${t('so2.askHint')}</div>
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px">${btns}</div>
@@ -8056,10 +8524,33 @@ function openSoldOutModal(pid,dayIdx,slotH){
   </div>`;
   m.style.display='flex';
 }
+// 「いつ並べた？」の選択肢：作成時刻（2回目以降は追加分の作り始め）・30／20／10分前・今さっき（1分前）。作成時刻より前と、押した時刻より後は出さない
+function _soShelfOpts(ask,nowH){
+  const out=[]; const add=(at,label)=>{ if(at<ask.min-1e-9||at>=nowH)return; if(out.some(o=>Math.abs(o.at-at)<1/120))return; out.push({at,label}); };
+  add(ask.min,t('so2.shelfMade'));
+  [30,20,10].forEach(m=>add(nowH-m/60,_soT('so2.shelfAgo',m)));
+  add(nowH-1/60,t('so2.shelfNow'));
+  return out.sort((a,b)=>a.at-b.at);
+}
+// 「いつ並べた？」を選ぶ → 「何分後に並ぶ？」へ
+function pickSoldOutShelf(at){
+  const c=_soldOutCtx; if(!c||!c.ask||!c.ask.need)return;
+  if(!(at>=c.ask.min-1e-9&&at<c.nowH))return;
+  c.shelfAt=at;
+  const p0=document.getElementById('soldOutPhase0'), p1=document.getElementById('soldOutPhase1'), ln=document.getElementById('soldOutShelfLine');
+  if(p0)p0.style.display='none'; if(p1)p1.style.display='block';
+  if(ln){ ln.style.display='block'; ln.innerHTML=`${_soT('so2.shelfPicked',_soFmtHM(at))} <button type="button" onclick="repickSoldOutShelf()" style="background:none;border:none;color:#2563eb;font-size:12px;cursor:pointer;text-decoration:underline;padding:2px 4px;font-family:inherit">${t('so2.shelfRepick')}</button>`; }
+}
+function repickSoldOutShelf(){
+  const c=_soldOutCtx; if(!c)return; c.shelfAt=null; c.result=null; c.suggest=null;
+  const p0=document.getElementById('soldOutPhase0'), p1=document.getElementById('soldOutPhase1'), p2=document.getElementById('soldOutPhase2');
+  if(p0)p0.style.display='block'; if(p1)p1.style.display='none'; if(p2){p2.style.display='none';p2.innerHTML='';}
+}
 // 「◯分後」を選ぶ → 数と理由を出す
 function pickSoldOutLead(min){
   const c=_soldOutCtx; if(!c)return;
-  const r=calcSoldOutSuggestion(c.pid,c.dayIdx,c.slotH,c.nowH,min);
+  if(c.ask&&c.ask.need&&c.shelfAt==null){ repickSoldOutShelf(); return; }   // 先に「いつ並べた？」
+  const r=calcSoldOutSuggestion(c.pid,c.dayIdx,c.slotH,c.nowH,min,c.shelfAt);
   const ph1=document.getElementById('soldOutPhase1'), ph2=document.getElementById('soldOutPhase2');
   if(!ph1||!ph2)return;
   ph1.style.display='none'; ph2.style.display='block';
@@ -8077,6 +8568,9 @@ function pickSoldOutLead(min){
   const detail=`
     <div>${_soT('so2.d1',r.eventCount,r.Q)}${r.prevAdded?_soT('so2.d1b',r.base,r.prevAdded):''}</div>
     <div>${_soT('so2.d2',_soFmtHM(r.displayStart),_soFmtHM(r.nowH),r.n1.toFixed(0))}</div>
+    ${r.shelfIn!=null?`<div>${_soT('so2.d2c',_soFmtHM(r.shelfIn),_soFmtHM(r.shelfPlan))}</div>`:''}
+    ${r.doneUsed?`<div>${_soT('so2.d2d',_soFmtHM(r.doneUsed.at),_soFmtHM(r.doneUsed.plan))}</div>`:''}
+    ${r.emptyMin>0?`<div>${_soT('so2.d2b',r.emptyMin,Math.round(r.emptyCust),Math.round(r.n1Raw))}</div>`:''}
     <div>${_soT('so2.d3',per0,r.m0Src==='jisseki'?_soT('so2.d3a',r.weeks):t('so2.d3b'),Math.round(r.b))}</div>
     <div>${_soT('so2.d4',(r.priorSO*100).toFixed(1))}</div>
     <div>${_soT('so2.d5',r.past.length?_soT('so2.d5a',r.pastSo,r.pastLo):'',per1)}</div>
@@ -8090,7 +8584,8 @@ function pickSoldOutLead(min){
       <div style="font-size:12px;color:#64748b;margin-top:6px">${zero?'':_soT('so2.toShelf',min,_soFmtHM(r.readyAt))}</div>
     </div>
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:13px;color:#334155;line-height:1.7;margin-bottom:12px"><b style="color:#0f172a">${zero?t('so2.whyNone'):t('so2.whyMake')}</b><br><span id="soldOutReason">${r.reason.text}</span></div>
-    <button type="button" onclick="acceptSoldOut()" class="btn-primary" style="width:100%;padding:15px;font-size:17px;font-weight:800;border-radius:12px">${zero?t('so2.ok'):t('so2.done')}</button>
+    <button type="button" onclick="acceptSoldOut()" class="btn-primary" style="width:100%;padding:15px;font-size:17px;font-weight:800;border-radius:12px">${zero?t('so2.ok'):_soT('so2.plan',r.suggest)}</button>
+    ${zero?'':`<div style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6;text-align:center">${t('so2.planHint')}</div>`}
     <div style="text-align:center;margin-top:4px">${back}</div>
     <details style="margin-top:4px">
       <summary style="cursor:pointer;font-size:12px;color:#6b7280;padding:6px 8px">${t('so2.details')}</summary>
@@ -8106,7 +8601,10 @@ function closeSoldOutModal(){
   const m=document.getElementById('soldOutModal');if(m)m.style.display='none';
   _soldOutCtx=null;
 }
-// 「作った」／「わかった」：完売の記録を残す（0個でも残す＝完売した週として学習に使う）
+// 「あと◯個 作る（記録して閉じる）」／「わかった」：完売の記録を残す（0個でも残す＝完売した週として学習に使う）
+//   2026-10-08（店長：「追加作成は『作った』を押すまで他のが作れない」）：ここで記録して画面を閉じる。追加分は「作る予定」（done:false）として
+//   マスと一覧に残り、作り終わったら別に「✓ 作った」を押す（markSoldOutDone）。商品ごとに独立なので、何品でも続けて記録できる。
+//   古い記録（done が無い）は「作った済み」として扱う。追加の数（added）の意味は変えない（作成表の合計・ケース容量・学習は今までどおり）。
 function acceptSoldOut(){
   if(!_soldOutCtx||!_soldOutCtx.result||_soldOutCtx.suggest==null)return;
   const{pid,dayIdx,slotH,suggest,result:r}=_soldOutCtx;
@@ -8117,11 +8615,55 @@ function acceptSoldOut(){
   // readyAt・soldAt・added は今までと同じ意味（以前の版でも読める）。それより後ろは答え合わせ用に足した項目
   S.soldOuts[k].push({readyAt:rd(r.readyAt,3),soldAt:rd(r.readyAt,3),added:suggest,
     v:2,noticedAt:rd(r.nowH,3),lead:r.leadMin,made:r.Q,base:r.base,n1:rd(r.n1,1),n2:rd(r.n2,1),ncell:rd(r.Ncell,1),
-    m0:rd(r.m0,5),post:rd(r.postMean,5),pred:rd(r.predMean,2),phi:rd(r.phi,2),wk:r.weeks,cu:Math.round(r.cu),co:Math.round(r.co),why:r.reason.type});
+    m0:rd(r.m0,5),post:rd(r.postMean,5),pred:rd(r.predMean,2),phi:rd(r.phi,2),wk:r.weeks,cu:Math.round(r.cu),co:Math.round(r.co),why:r.reason.type,
+    ...(r.shelfIn!=null?{shelfAt:rd(r.shelfIn,3)}:{}),   // 「いつ並べた？」の答え（予定より早く並べて売り切れた時だけ）＝この完売で売り切れた分が実際に並んだ時刻
+    ...(suggest>0?{done:false}:{})});   // 追加分がある時だけ「作る予定」の印
   saveS();
   closeSoldOutModal();
   renderProdDayContent(currentProdDay);
   showToast(suggest>0?_soT('so2.toastAdd',suggest):t('so2.toastZero'),'success');
+}
+// 追加分が「作る予定」（まだ作っていない）か
+function soPending(e){ return !!e&&(e.added||0)>0&&e.done===false; }
+// そのマスの「作る予定」の追加分（配列の番号つき）
+function getSoldOutPending(pid,dayIdx,slotH){ const out=[]; getSoldOutEvents(pid,dayIdx,slotH).forEach((e,i)=>{ if(soPending(e))out.push({e,i}); }); return out; }
+// その曜日の「作る予定」の追加分を全部（上の一覧に出す）。時間帯 → 商品の並び
+function getSoldOutPendingDay(dayIdx){
+  const out=[]; const pre=`${dayIdx}_`;
+  Object.keys(S.soldOuts||{}).forEach(k=>{ if(!k.startsWith(pre))return; const m=k.match(/^(\d+)_(\d+)_(.+)$/); if(!m)return;
+    const p=getP(m[3]); if(!p)return; (S.soldOuts[k]||[]).forEach((e,i)=>{ if(soPending(e))out.push({p,dayIdx,slotH:parseInt(m[2]),e,i}); }); });
+  return out.sort((a,b)=>(a.slotH-b.slotH)||((a.e.readyAt||0)-(b.e.readyAt||0))||(a.p.order??0)-(b.p.order??0));
+}
+// 「✓ 作った」：追加分を作り終わった印（数は変えない）。idx を省くと、いちばん古い「作る予定」
+function markSoldOutDone(pid,dayIdx,slotH,idx){
+  const arr=getSoldOutEvents(pid,dayIdx,slotH); let e=null;
+  if(idx!=null){ e=arr[idx]; if(!soPending(e))e=null; } else { const pd=getSoldOutPending(pid,dayIdx,slotH); e=pd.length?pd[0].e:null; }
+  if(!e)return;
+  const rd=(v,d)=>{const f=Math.pow(10,d);return Math.round(v*f)/f;};
+  e.done=true; e.doneAt=rd(_soNowH(),3);
+  saveS(); renderProdDayContent(currentProdDay); showToast(_soT('so2.toastDone',e.added),'success');
+}
+// 「作った」の印を外す（まちがえて押した時）：いちばん新しい「作った済み（この仕組みで付けた印）」を「作る予定」に戻す
+function unmarkSoldOutDone(pid,dayIdx,slotH){
+  const arr=getSoldOutEvents(pid,dayIdx,slotH);
+  for(let i=arr.length-1;i>=0;i--){ const e=arr[i]; if((e.added||0)>0&&e.done===true){ e.done=false; delete e.doneAt; saveS(); renderProdDayContent(currentProdDay); showToast(_soT('so2.toastUndoDone',e.added),'info'); return; } }
+}
+// 「✓ 作った」の小さなボタン（マスの中・時間帯別・一覧で同じ物を使う）
+function soDoneBtn(pid,dayIdx,slotH,idx,added,big){
+  return `<button type="button" onclick="event.stopPropagation();markSoldOutDone('${pid}',${dayIdx},${slotH},${idx})" aria-label="${escapeHtmlP(getP(pid)?.name||'')} の追加分 +${added} を作った" style="padding:${big?'8px 14px':'3px 7px'};min-height:${big?'40px':'26px'};font-size:${big?'14px':'11px'};font-weight:800;border-radius:8px;border:2px solid #f59e0b;background:#fff7ed;color:#9a3412;cursor:pointer;font-family:inherit;line-height:1.2">${_soT('so2.doneBtn',added)}</button>`;
+}
+// 作成表の上に出す「追加で作るもの」の一覧（その曜日の「作る予定」が1つも無ければ何も出さない）
+function renderSoldOutPending(dayIdx){
+  const list=getSoldOutPendingDay(dayIdx); if(!list.length)return '';
+  const rows=list.map(x=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px dashed #fde68a;flex-wrap:wrap">
+      <span style="flex:1;min-width:160px;font-size:14px;color:#0f172a"><b>${escapeHtmlP(x.p.name)}</b><span style="font-size:12px;color:#64748b;margin-left:6px">${_soT('so2.pendingRow',fmtHour(x.slotH),x.e.added,_soFmtHM(x.e.readyAt!=null?x.e.readyAt:x.e.soldAt))}</span></span>
+      ${soDoneBtn(x.p.id,x.dayIdx,x.slotH,x.i,x.e.added,true)}
+    </div>`).join('');
+  return `<div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:10px 14px;margin-bottom:10px">
+    <div style="font-size:15px;font-weight:800;color:#9a3412">${_soT('so2.pendingTitle',list.length)}</div>
+    <div style="font-size:12px;color:#92400e;line-height:1.5;margin:2px 0 4px">${t('so2.pendingDesc')}</div>
+    ${rows}
+  </div>`;
 }
 function removeLastSoldOut(pid,dayIdx,slotH){
   const k=`${dayIdx}_${slotH}_${pid}`;
@@ -8140,7 +8682,7 @@ function checkCurrentSlot(){
   let slot=6;
   if(h>=17)slot=17;else if(h>=14)slot=14;else if(h>=10)slot=10;
   const prods=S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]?.slots.includes(slot));
-  prods.forEach(p=>{S.checks[`${currentProdDay}_${slot}_${p.id}`]=true;});
+  prods.forEach(p=>{const k=`${currentProdDay}_${slot}_${p.id}`; S.checks[k]=true; _investFixByKey(k);});
   saveS();renderProdDayContent(currentProdDay);
 }
 
@@ -8433,7 +8975,7 @@ function renderBudgetPlan(){
     <div style="font-size:13px;font-weight:700;color:var(--main);margin:14px 0 6px">売変予算 <span class="bd-sub">FF計画シートの式。列見出しに式</span></div>
     <div class="overflow-auto"><table class="bd-table"><thead><tr>
       <th style="text-align:left">カテゴリ</th>
-      <th title="Σ定価販売数（直近4週平均）÷ Σ週の目標販売数（定価販売数＋ゆとり）">適正販売率</th>
+      <th title="Σ定価販売の見込み（カテゴリ需要×取り分）÷ Σ週の目標販売数（定価販売の見込み＋ゆとり）">適正販売率</th>
       <th title="基本作成分の作成高 ×（100% − 適正販売率）＝ 廃棄・値引きに使ってよい金額の目安" class="bd-opt">作成高（基本）</th>
       <th title="作成高 ×（100% − 適正販売率）">売変予算（最適）</th>
       <th title="1日平均の作成高 × 0.5">売変予算（最大）</th>
@@ -8483,7 +9025,8 @@ function _investNote(p,cnt,days,wk){
   let s=`${cnt}個 × ${days}日`;
   if(wk!==cnt*days){
     const why=!S.catOn[p.category]?'カテゴリがオフのため作成表に出ません'
-      :(getBatchUnit(p)>1?`まとめ単位 ${getBatchUnit(p)}個のため`:'');
+      :(investHasFixed(p.id)?'作成表でチェック済みのマスの数を固定し、残りを未チェックのマスに配っているため'
+      :(getBatchUnit(p)>1?`まとめ単位 ${getBatchUnit(p)}個のため`:''));
     s+=` → <b style="color:#b45309">作成表は週 ${wk}個</b>${why?`（${why}）`:''}`;
   }
   if(cnt>0&&investNoMakeSlot(p)) s+=`<div class="inv-warn" style="color:var(--red);font-weight:700">⚠ 「作る時間帯」が全部オフです。投資の数は全部の時間帯に置いています（②商品設定で作る時間帯を選んでください）</div>`;
@@ -8517,6 +9060,7 @@ function igSet(pid,d,h,raw){
   let g=investGridOf(pid);
   if(!g&&investLegacyKind(p))return;
   let n=parseInt(toHalf(String(raw==null?'':raw)).replace(/[^\d]/g,''),10); if(!isFinite(n)||n<0)n=0; n=Math.min(n,999);
+  if(investFixed(pid,d,h)!=null){ showToast(`${DAYS[d]}曜 ${h}時 は作成表で「作った」のチェック済みのため、投資の数は変えられません（変える時は先にチェックを外してください）`,'info'); renderInvestGrid(); return; }
   if(_igCell(g,d,h)===n)return;
   const w=_igWeekObj(true); if(!w)return;
   if(!g){ g=w.invest[pid]={}; }
@@ -8617,15 +9161,16 @@ function renderInvestGrid(){
     body=`<div style="color:#64748b;font-size:13px;padding:14px 4px">「＋ 商品を選ぶ」から、投資を入れる商品を選んでください。</div>`;
   }else{
     const cfg=S.catCfg[p.category], g=investGridOf(p.id), legacy=investLegacyKind(p), ro=!g&&!!legacy, batch=getBatchUnit(p);
-    let offBatch=0;
+    let offBatch=0, fixedCnt=0;
     const rows=cfg.slots.map(h=>{
       if(!getSlotMake(p,h)){ let st=0; if(g)for(let d=0;d<7;d++)st+=_igCell(g,d,h);
         return `<tr><th style="font-size:13px;white-space:nowrap;padding:6px 4px;background:#f8fafc">${h}時</th><td colspan="7" style="text-align:center;font-size:12px;color:#94a3b8;background:#f1f5f9;padding:10px 4px">作らない${st?`<span style="color:#b45309">（入っていた +${st} は数えません）</span>`:''}</td></tr>`; }
       return `<tr><th style="font-size:13px;white-space:nowrap;padding:6px 4px;background:#f8fafc">${h}時</th>${DAYS.map((_,d)=>{
-        const n=g?_igCell(g,d,h):getInvestExtra(p.id,d,h); const bad=!ro&&batch>1&&n>0&&n%batch!==0; if(bad)offBatch++;
-        return `<td style="padding:3px 2px"><input type="text" inputmode="numeric" data-ig="1" data-key="ig_${d}_${h}" value="${n>0?n:''}" placeholder="0" ${ro?'disabled':''} aria-label="${DAYS[d]}曜 ${h}時 の投資"
+        const fx=investFixed(p.id,d,h), fixed=fx!=null; if(fixed)fixedCnt++;
+        const n=fixed?fx:(g?_igCell(g,d,h):getInvestExtra(p.id,d,h)); const bad=!ro&&!fixed&&batch>1&&n>0&&n%batch!==0; if(bad)offBatch++;
+        return `<td style="padding:3px 2px"><input type="text" inputmode="numeric" data-ig="1" data-key="ig_${d}_${h}" value="${n>0?n:''}" placeholder="0" ${(ro||fixed)?'disabled':''} aria-label="${DAYS[d]}曜 ${h}時 の投資${fixed?'（作成済み・固定）':''}" ${fixed?'title="作成表で「作った」のチェック済み。数はこのまま固定です"':''}
           onfocus="igFocus(this,${d},${h})" onkeydown="igKey(event,this)" onchange="igSet('${p.id}',${d},${h},this.value)"
-          style="width:100%;min-width:0;box-sizing:border-box;padding:8px 0;text-align:center;font-size:16px;font-weight:800;border-radius:8px;border:2px solid ${bad?'#f59e0b':(n>0?'#fcd34d':'#e2e8f0')};background:${ro?'#f1f5f9':(n>0?'#fffbeb':'#fff')};color:${n>0?'#b45309':'#334155'}">${bad?'<div style="font-size:9px;color:#b45309;text-align:center;line-height:1.2">※</div>':''}</td>`; }).join('')}</tr>`;
+          style="width:100%;min-width:0;box-sizing:border-box;padding:8px 0;text-align:center;font-size:16px;font-weight:800;border-radius:8px;border:2px solid ${fixed?'#86efac':(bad?'#f59e0b':(n>0?'#fcd34d':'#e2e8f0'))};background:${fixed?'#f0fdf4':(ro?'#f1f5f9':(n>0?'#fffbeb':'#fff'))};color:${fixed?'#166534':(n>0?'#b45309':'#334155')}">${fixed?'<div style="font-size:9px;color:#166534;text-align:center;line-height:1.2;font-weight:700">済</div>':(bad?'<div style="font-size:9px;color:#b45309;text-align:center;line-height:1.2">※</div>':'')}</td>`; }).join('')}</tr>`;
     }).join('');
     let stale=''; if(g){ const st={}; Object.keys(g).forEach(d=>Object.keys(g[d]||{}).forEach(h=>{ if(cfg.slots.indexOf(Number(h))<0&&_igCell(g,d,h))st[h]=(st[h]||0)+_igCell(g,d,h); }));
       const ks=Object.keys(st); if(ks.length)stale=`<div style="font-size:12px;color:#b45309;margin-top:6px">⚠ 今は無い時間帯（${ks.map(h=>h+'時 +'+st[h]).join('、')}）の数が残っています。数えていません。</div>`; }
@@ -8640,6 +9185,7 @@ function renderInvestGrid(){
         <thead><tr><th style="width:44px;background:#f8fafc"></th>${DAYS.map((d,i)=>`<th style="padding:4px 0;font-size:13px;background:#f8fafc;line-height:1.2">${d}<div style="font-size:10px;font-weight:400;color:#64748b">${md(dates[i])}</div></th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody></table></div>
       ${offBatch?`<div style="font-size:12px;color:#b45309;margin-top:6px">※ まとめ単位（${batch}個）の倍数でないマスが ${offBatch}つあります。入れた数のまま作成表に出ます。</div>`:''}
+      ${fixedCnt?`<div style="font-size:12px;color:#166534;margin-top:6px">済 ＝ 作成表で「作った」のチェック済みのマス（${fixedCnt}つ）。数は固定で変えられません${ro?'（1日の数を変えた時は、その日の残りを未チェックのマスに配ります）':''}。</div>`:''}
       ${stale}
       ${ro?'':`<div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:#475569;flex-wrap:wrap">選んだマス：<b id="ig-sel-label" style="min-width:70px">${_igSelCell?`${DAYS[_igSelCell.d]}曜 ${_igSelCell.h}時`:'（マスをタップ）'}</b>
         <button type="button" onclick="igStep(-1)" aria-label="選んだマスを1減らす" style="width:56px;min-height:40px;font-size:16px;font-weight:800;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer">−1</button>
@@ -8965,10 +9511,10 @@ function renderBudgetFormula(){
     <div><b>売変額</b> ＝ 廃棄額 ＋ 値引額　　<b>売変率</b> ＝ 売変額 ÷ 売上高</div>
     <div><b>売上高</b> ＝ 作成高 − 売変額</div>
     <div><b>原価</b> ＝ 作成数 × 原価　　<b>利益</b> ＝ 売上高 − 原価　　<b>利益率</b> ＝ 利益 ÷ 売上高</div>
-    <div style="margin-top:6px"><b>作成数の元（FF計画シートの式）</b>：購入率 ＝ 定価販売数（直近4週平均）÷ 週の総客数（そのカテゴリが売っている時間の客数）／
-      強気度 ＝ 値入率／客数の波 ＝ 曜日別客数の標準偏差／<b>ゆとり</b> ＝ 客数の波 × 購入率 × 強気度 × 7日／<b>週の目標</b> ＝ 定価販売数 ＋ ゆとり／
+    <div style="margin-top:6px"><b>作成数の元</b>：<b>定価販売の見込み（カテゴリ需要×取り分）</b> ＝ カテゴリの客数（売っている時間）× カテゴリの購入率（直近4週の定価販売の合計 ÷ 客数）× 取り分（その商品の魅力度 ÷ 今週並ぶ商品の魅力度の合計。魅力度は直近4週の実績から多項ロジットで推定）／購入率 ＝ 定価販売の見込み ÷ 週の総客数（そのカテゴリが売っている時間の客数）／
+      強気度 ＝ 値入率／客数の波 ＝ 曜日別客数の標準偏差／<b>ゆとり</b> ＝ 客数の波 × 購入率 × 強気度 × 7日／<b>週の目標</b> ＝ 定価販売の見込み ＋ ゆとり／
       時間帯別 ＝ 週の目標 × その時間帯の客数 ÷ 週の総客数／撤退客数 ＝ 原価率 ÷ 購入率</div>
-    <div><b>適正販売率</b> ＝ Σ定価販売数 ÷ Σ週の目標販売数（定価＋ゆとり）　※「ゆとり」の分だけ売れ残る想定</div>
+    <div><b>適正販売率</b> ＝ Σ定価販売の見込み（カテゴリ需要×取り分）÷ Σ週の目標販売数（見込み＋ゆとり）　※「ゆとり」の分だけ売れ残る想定</div>
     <div><b>売変予算（最適）</b> ＝ 作成高（基本作成分）×（100% − 適正販売率）　　<b>売変予算（最大）</b> ＝ 1日平均の作成高 × 0.5</div>
     <div><b>新商品・投資に使える予算</b> ＝ 売変予算の最大 − 最適</div>
     <div><b>新商品予算（使用中）</b>・<b>定番投資（使用中）</b> ＝ ④作成表に置かれる「投資+N」の週合計 × 店頭売価（枠＝売変予算の最大−最適 と同じ売価ベース）　※まとめ単位が2以上の商品は、入れた数より多くなることがあります（作成表と同じ数で計算）</div>
