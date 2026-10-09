@@ -55,18 +55,21 @@ iframe{width:0;height:0;border:0;position:absolute;left:-9999px}
         if(k!==1)cond.add('時間帯係数'); if(a!==1)cond.add('学習'); if(g!==1)cond.add('天気イベント'); if(wl>0&&sc<wl)cond.add(typeof withdrawInfo==='function'?(withdrawInfo(p.id,d,h).below?'撤退（印）':'撤退（完売ありで印なし）'):'撤退');
         if(det.forced>0)cond.add(p.noStockout?'品切れ防止':'まとめ単位'); if(det.rice)cond.add('ごはん'+(det.rice>0?'+':'')+det.rice);
       });
+      const rest=(typeof prodRestThisWeek==='function')&&on&&prodRestThisWeek(p); if(rest)cond.add('今週は休み');   // 今週のメニュー（2026-10-09）
       if(offs.length)cond.add('作らない時間帯あり'); if(/新商品$/.test(p.category))cond.add('新商品'); if(getBatchUnit(p)>1)cond.add('まとめ'+getBatchUnit(p)); if(p.noStockout)cond.add('品切れ防止ON');
       const ji=(S.ji[p.id]||{}); const last=(ji.teika||0)+(ji.nebiki||0);
       // 週の目標の元＝カテゴリ需要 × 取り分（2026-10-08 店長：MNL の集計版）。取り分・SKU・カテゴリ需要（客数×購入率）。親子の子は親の数。逃げ道（自分の平均）の商品は src=own
-      let sku=null; if(on&&typeof getRecentAvgTeikaInfo==='function'){ const pp=(typeof packParentOf==='function'&&packParentOf(p))||p; const si=getRecentAvgTeikaInfo(pp.id,4), m=si.model; if(m)sku={src:si.src,share:si.share,now:m.L.length,nNew:m.Lnew.length,D:m.D,C:m.Cnow,r:m.r,mode:m.mode,isNew:m.Lnew.includes(pp.id),fix:m.weeks.filter(w=>w.kappa<0.9995).length}; }
-      rows.push({name:p.name,cat:p.category,on,target:tgt(target),teika4:tgt(b&&b.teika),last,week,invest,cells,frac,offs,cond:[...cond],sku});
+      let sku=null; if(on&&typeof getRecentAvgTeikaInfo==='function'){ const pp=(typeof packParentOf==='function'&&packParentOf(p))||p; const si=getRecentAvgTeikaInfo(pp.id,4), m=si.model; if(m)sku={src:si.src,share:si.share,now:m.L.length,nNew:m.Lnew.length,D:m.D,C:m.Cnow,r:m.r,mode:m.mode,isNew:m.Lnew.includes(pp.id),fix:m.weeks.filter(w=>w.kappa<0.9995).length,restW:m.weeks.filter(w=>w.rest&&w.rest.length).length}; }
+      rows.push({name:p.name,cat:p.category,on,rest,target:tgt(target),teika4:tgt(b&&b.teika),last,week,invest,cells,frac,offs,cond:[...cond],sku});
     });
     // カテゴリ別の SKU の推移（実績の週 → 今週）
     const skuCats=(typeof skuTrend==='function')?CATS.filter(c=>!c.endsWith('新商品')&&S.PM.some(p=>p.enabled&&mainCatOf(p.category)===c)).map(c=>{ const t=skuTrend(c,4); return {cat:c,past:t.past.map(x=>x.sku),now:t.now}; }):[];
     // 週に作成0の商品（2026-10-08 店長の依頼）：画面と同じ関数で一覧を取る。赤＝計算上0・品切れ防止OFF・時間帯OFF／灰＝終売・投入前・親商品
     const zero=(typeof getZeroMakeList==='function')?getZeroMakeList().map(x=>({name:x.name,cat:x.cat,gray:x.gray,reasons:x.reasons.map(r=>r.t)})):[];
 
-    return {store:S.storeName,week:S.activeWeek,rows,zero,skuCats};
+    // 今週のメニュー：週ごとの休みの数（S.weeks[週].menu の false の数。新しい6週）
+    const menuWeeks=(typeof weekRestIds==='function')?sortWeekKeys(Object.keys(S.weeks||{})).slice(-6).map(k=>({k,n:weekRestIds(k).length,act:k===S.activeWeek})):[];
+    return {store:S.storeName,week:S.activeWeek,rows,zero,skuCats,menuWeeks};
   })()`;
   async function run(data,label){
     $('go-dev').disabled=$('go-file').disabled=true; $('out').innerHTML=''; $('src').textContent=label; $('sum').textContent='点検中…'; const all=[];
@@ -77,26 +80,30 @@ iframe{width:0;height:0;border:0;position:absolute;left:-9999px}
         for(let i=0;i<100&&!w.__v2ready;i++)await sleep(100);
         const r=w.eval(PROBE); r.storeName=s.name; all.push(r);
       }
-      let nBad=0,nWarn=0,nProd=0; let html=''; let nZero=0;
+      let nBad=0,nWarn=0,nProd=0; let html=''; let nZero=0, nRest=0;
       all.forEach(r=>{
         const rows=r.rows.filter(x=>x.on).map(x=>{ const pct=x.target>0?Math.round(x.week/x.target*100):null; const lastPct=x.last>0?Math.round(x.week/x.last*100):null;
-          const bad=(pct!==null&&Math.abs(pct-100)>20)||(x.target>0&&x.week===0)||(x.target===0&&x.week>0&&x.last>0); const warn=!bad&&lastPct!==null&&Math.abs(lastPct-100)>30; if(bad)nBad++; else if(warn)nWarn++; nProd++;
+          const bad=!x.rest&&((pct!==null&&Math.abs(pct-100)>20)||(x.target>0&&x.week===0)||(x.target===0&&x.week>0&&x.last>0)); const warn=!x.rest&&!bad&&lastPct!==null&&Math.abs(lastPct-100)>30; if(bad)nBad++; else if(warn)nWarn++; nProd++;   // 今週のメニューで休む商品は 0 で正しい（灰。赤・黄に数えない）
           return Object.assign({pct,lastPct,bad,warn},x); }).sort((a,b)=>(b.bad-a.bad)||(b.warn-a.warn)||(Math.abs((b.pct||100)-100)-Math.abs((a.pct||100)-100)));
+        nRest+=rows.filter(x=>x.rest).length;
         html+=`<h2 style="font-size:16px;margin:16px 0 4px">${esc(r.storeName)}　<span style="font-size:13px;color:#64748b">${esc(r.week)}週・${rows.length}商品（オフの商品は除く）</span></h2>`;
+        // 今週のメニュー（2026-10-09）：週ごとの休みの数
+        if((r.menuWeeks||[]).length)html+=`<div class="sub" style="margin:0">今週のメニューの休み（週ごと・新しい6週）：${r.menuWeeks.map(m=>`${esc(m.k.split('.').slice(1).join('/'))}週${m.act?'（今週）':''} <b>${m.n}品</b>`).join('　')}</div>`;
         if((r.skuCats||[]).length)html+=`<div class="sub" style="margin:0">SKU の推移（実績の週 → 今週）：${r.skuCats.map(c=>`${esc(c.cat)} ${c.past.map(v=>v||'—').join('›')} → <b>今週 ${c.now}</b>`).join('　')}</div>`;
         html+='<table><tr><th>商品</th><th>カテゴリ</th><th>週の目標</th><th title="取り分＝この商品の魅力度 ÷ 今週並ぶ商品の魅力度の合計（魅力度は直近4週の実績から多項ロジットで推定）。SKU＝今週並ぶ数（新商品は仮の取り分）。「自分の平均」＝カテゴリの直近4週に実績が無く、自分の定価販売の平均を使った商品">取り分</th><th title="カテゴリ需要＝今週のカテゴリの客数（売っている時間）× 購入率（直近4週。入力漏れの週は取り分で補正）。週の目標の元＝カテゴリ需要 × 取り分">カテゴリ需要</th><th>週合計</th><th>差</th><th>先週の販売</th><th>先週比</th><th>マスの小数 &lt;0.3／0.3〜1／≥1</th><th>作らない時間帯</th><th>効いている条件</th></tr>';
-        html+=rows.map(x=>`<tr class="${x.bad?'ng':x.warn?'warn':''}"><td>${esc(x.name)}</td><td>${esc(x.cat.replace('まちかど厨房','厨房'))}</td><td>${x.target}</td><td>${x.sku&&x.sku.src==='mnl'?`${(x.sku.share*100).toFixed(1)}%<br><span style="font-size:11px;color:#64748b">SKU ${x.sku.now}${x.sku.nNew?`（新${x.sku.nNew}）`:''}</span>`:(x.sku?(x.sku.isNew?'新商品（仮の取り分で分母だけ）':'自分の平均'):'—')}</td><td>${x.sku&&x.sku.D>0?`${Math.round(x.sku.D)}<br><span style="font-size:11px;color:#64748b">${x.sku.mode==='cust'?`客数 ${Math.round(x.sku.C)}×${(x.sku.r*100).toFixed(2)}%`:'客数なし'}${x.sku.fix?`・補正${x.sku.fix}週`:''}</span>`:'—'}</td><td>${x.week}${x.invest?` <span class="tag">投資+${x.invest}</span>`:''}</td><td class="pct">${x.pct===null?'—':x.pct+'%'}</td><td>${x.last}</td><td class="pct">${x.lastPct===null?'—':x.lastPct+'%'}</td><td>${x.frac.lt03}／${x.frac['03to1']}／${x.frac.ge1}</td><td>${x.offs.length?x.offs.map(h=>h+'時').join('・'):'なし'}</td><td>${x.cond.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}</td></tr>`).join('');
+        html+=rows.map(x=>`<tr class="${x.rest?'gray':x.bad?'ng':x.warn?'warn':''}"><td>${esc(x.name)}</td><td>${esc(x.cat.replace('まちかど厨房','厨房'))}</td><td>${x.target}</td><td>${x.sku&&x.sku.src==='mnl'?`${(x.sku.share*100).toFixed(1)}%<br><span style="font-size:11px;color:#64748b">SKU ${x.sku.now}${x.sku.nNew?`（新${x.sku.nNew}）`:''}</span>`:(x.sku?(x.sku.isNew?'新商品（仮の取り分で分母だけ）':'自分の平均'):'—')}</td><td>${x.sku&&x.sku.D>0?`${Math.round(x.sku.D)}<br><span style="font-size:11px;color:#64748b">${x.sku.mode==='cust'?`客数 ${Math.round(x.sku.C)}×${(x.sku.r*100).toFixed(2)}%`:'客数なし'}${x.sku.fix?`・補正${x.sku.fix}週`:''}${x.sku.restW?`・休みの記録${x.sku.restW}週`:''}</span>`:'—'}</td><td>${x.week}${x.invest?` <span class="tag">投資+${x.invest}</span>`:''}</td><td class="pct">${x.pct===null?'—':x.pct+'%'}</td><td>${x.last}</td><td class="pct">${x.lastPct===null?'—':x.lastPct+'%'}</td><td>${x.frac.lt03}／${x.frac['03to1']}／${x.frac.ge1}</td><td>${x.offs.length?x.offs.map(h=>h+'時').join('・'):'なし'}</td><td>${x.cond.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}</td></tr>`).join('');
         html+='</table>';
         // 作成0の商品（週合計 0。上の表の「週合計 0」と同じ物を、理由つきで1か所に）
         const zr=r.zero||[]; const zRed=zr.filter(x=>!x.gray).length; nZero+=zRed;
-        html+=`<h3 style="font-size:14px;margin:12px 0 2px">作成0の商品　<span style="font-size:12px;color:#64748b;font-weight:400">${zr.length}件（<span style="color:#b91c1c">赤 ${zRed}</span>＝計算上0・品切れ防止OFF・作る時間帯が全部OFF／灰 ${zr.length-zRed}＝終売・投入前・親商品）</span></h3>`;
+        html+=`<h3 style="font-size:14px;margin:12px 0 2px">作成0の商品　<span style="font-size:12px;color:#64748b;font-weight:400">${zr.length}件（<span style="color:#b91c1c">赤 ${zRed}</span>＝計算上0・品切れ防止OFF・作る時間帯が全部OFF／灰 ${zr.length-zRed}＝終売・投入前・親商品・今週は休み）</span></h3>`;
         html+=zr.length?'<table><tr><th>商品</th><th>カテゴリ</th><th>理由</th></tr>'+zr.map(x=>`<tr class="${x.gray?'gray':'ng'}"><td>${esc(x.name)}</td><td>${esc(x.cat.replace('まちかど厨房','厨房'))}</td><td>${x.reasons.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}</td></tr>`).join('')+'</table>':'<div class="sub" style="margin:4px 0 0">なし</div>';
 
       });
       $('out').innerHTML=html;
       $('sum').innerHTML=`${all.length} 店舗・${nProd} 商品：<span style="color:#b91c1c">赤 ${nBad}</span>（目標との差 ±20% 超・目標ありで0・目標0で作成あり）／<span style="color:#b45309">黄 ${nWarn}</span>（先週の販売に対して ±30% 超）`;
       $('sum').innerHTML+=`／<span style="color:#b91c1c">作成0 赤 ${nZero}</span>（週に一つも作らない商品。終売・投入前・親商品は数えない）`;
-      window.__results={stores:all.length,products:nProd,bad:nBad,warn:nWarn,zero:nZero,rows:all.map(r=>({store:r.storeName,n:r.rows.filter(x=>x.on).length}))};
+      if(nRest)$('sum').innerHTML+=`／今週のメニューで休み ${nRest}品（灰。0 で正しい）`;
+      window.__results={stores:all.length,products:nProd,bad:nBad,warn:nWarn,zero:nZero,rest:nRest,menuWeeks:all.map(r=>r.menuWeeks),rows:all.map(r=>({store:r.storeName,n:r.rows.filter(x=>x.on).length}))};
     }catch(e){ $('sum').textContent='途中で止まりました：'+(e&&e.message||e); }
     finally{ $('f').src='about:blank'; $('go-dev').disabled=$('go-file').disabled=false; }
   }

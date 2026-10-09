@@ -25,6 +25,7 @@
   V2.defineSpec('ff', {
     weekIso: weekIso, MIR: MIR,
     // 「開いている週」の2か所持ちを1本にした形（いまの保存処理 syncActiveWeek と同じ重ね方）
+    // 週の中だけにある項目（invest・rice・investDone・menu＝今週のメニュー {商品ID:false}）は MIR ではないので、ここでは触らず週の記録の中にそのまま残る（2026-10-09）
     normalize: function (st) {
       st = clone(st || {}); var act = st.activeWeek;
       if (act && isObj(st.weeks)) { var w = isObj(st.weeks[act]) ? st.weeks[act] : {}; MIR.forEach(function (m) { if (st[m] !== undefined) w[m] = st[m]; }); st.weeks[act] = w;
@@ -96,7 +97,7 @@
       try {
         var v = JSON.parse(d);
         if (key.indexOf('p:') === 0) return '商品 ' + ((v.v && v.v.name) || '(名前なし)');
-        if (key.indexOf('w:') === 0) return '週 ' + key.slice(2) + ' の実績・客数・記録';
+        if (key.indexOf('w:') === 0) return '週 ' + key.slice(2) + ' の実績・客数・記録・今週のメニュー';
         if (key.indexOf('g:') === 0) return '週 ' + key.slice(2) + ' の天気・イベント調整';
         if (key.indexOf('h:') === 0) return '時間帯別購入率 ' + key.slice(2);
       } catch (e) {}

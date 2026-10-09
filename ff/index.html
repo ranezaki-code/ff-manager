@@ -766,6 +766,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
     <!-- Tab 3: 作成表 -->
     <div class="tab-panel" id="tab3">
       <div class="day-tabs" id="prod-day-tabs"></div>
+      <div id="week-menu-band" style="margin:8px 0 0"></div><!-- 今週のメニュー（出す⇄休む。renderWeekMenuBand。2026-10-09） -->
       <div id="zero-make-band" style="display:none;margin:8px 0 0"></div><!-- 週に作成0の商品の帯（0件なら出さない。renderZeroMakeBand） -->
       <div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">
         <button type="button" onclick="toggleMakeRules()" data-i18n="mk.tabRules" style="padding:7px 13px;font-size:12px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer">📋 作成ルール7か条</button>
@@ -1225,7 +1226,7 @@ const I18N = {
     'zero.unit':'件',
     'zero.open':'一覧を見る',
     'zero.close':'閉じる',
-    'zero.grayNote':'うち {0}件は終売・投入前・親商品で、0 が正しい物',
+    'zero.grayNote':'うち {0}件は終売・投入前・親商品・今週は休みで、0 が正しい物',
     'zero.hint':'この週の作成表（全曜日・全時間帯）で作成数の合計が 0 の商品です。数は変えていません。計算上 0 でも作るなら「品切れ防止をON」（算出0のマスに最低1個＝まとめ単位が入ります）。',
     'zero.rCust0':'計算上0：客数が 0',
     'zero.rNoSales':'計算上0：直近4週の定価販売が 0',
@@ -1235,6 +1236,14 @@ const I18N = {
     'zero.rEnded':'終売（終売日 {0}）',
     'zero.rNotyet':'投入前（投入日 {0}）',
     'zero.rParent':'本数の親商品（作るのはパック商品）',
+    'zero.rRest':'今週は休み（今週のメニュー）',
+    // 今週のメニュー（2026-10-09）
+    'menu.title':'今週のメニュー','menu.summary':'出す {0}・休む {1}','menu.open':'入れ替える','menu.close':'閉じる','menu.week':'{0}〜{1}の週',
+    'menu.hint':'タップで 出す ⇄ 休む。休む商品は今週の作成数が全部0になり、その分は同じカテゴリのほかの商品に回ります（カテゴリの合計は同じ）。次の週は今週のメニューを引き継ぎます（変える所だけ押す）。',
+    'menu.diff':'違い：オフ（②商品設定）＝もう扱わない／販売期間＝始まりと終わりの日／今週のメニュー＝毎週の入れ替え',
+    'menu.serve':'出す','menu.rest':'休む','menu.allServe':'全部出す','menu.restRow':'今週は休み（今週のメニュー）','menu.restLine':'今週は休み：{0}',
+    'menu.restNames':'（休む：{0}）','menu.more':' ほか{0}品','menu.toastRest':'{0}：今週は休み（作成数0）','menu.toastServe':'{0}：今週は出す',
+    'menu.inherited':'前の週のメニューを引き継ぎました（休む {0}品）',
     'zero.btnOn':'品切れ防止をON',
     'zero.btnOpen':'商品設定を開く',
     'zero.onDone':'品切れ防止をONにしました（算出0のマスに最低1個）',
@@ -1541,6 +1550,7 @@ const I18N = {
     'sku.rNew':'新商品 {0}品を、仮の取り分（カテゴリの中央値）で売場に数えています',
     'sku.rDaily':'販売期間で売場が日ごとに変わるため、日ごとの取り分で出しています（{0}）',
     'sku.rOff':'並ばない',
+    'sku.rRest':'今週のメニューで休む {0}品を売場から外しています','sku.rRestPast':'{0}は、休みの記録がある商品を売場にも入力漏れの補正にも入れていません',
     'sku.sep':'・',
     'sku.wk':'{0}/{1}週',
   },
@@ -1676,7 +1686,7 @@ const I18N = {
     'zero.unit':' item(s)',
     'zero.open':'Show list',
     'zero.close':'Close',
-    'zero.grayNote':'{0} of them are ended, not started yet, or parent items — 0 is correct',
+    'zero.grayNote':'{0} of them are ended, not started yet, parent items, or resting this week — 0 is correct',
     'zero.hint':'Items whose total in this week\'s production table (all days, all slots) is 0. The numbers have not been changed. To make one even when the calculation gives 0, turn on "Stock-out guard" (cells calculated as 0 get at least 1 batch).',
     'zero.rCust0':'Calculated 0: customer count is 0',
     'zero.rNoSales':'Calculated 0: no full-price sales in the last 4 weeks',
@@ -1686,6 +1696,13 @@ const I18N = {
     'zero.rEnded':'Ended (end date {0})',
     'zero.rNotyet':'Not started (start date {0})',
     'zero.rParent':'Parent item counted in pieces (the packs are what is made)',
+    'zero.rRest':'Resting this week (this week\'s menu)',
+    'menu.title':'This week\'s menu','menu.summary':'Serve {0} · Rest {1}','menu.open':'Change','menu.close':'Close','menu.week':'Week of {0}–{1}',
+    'menu.hint':'Tap to switch Serve ⇄ Rest. A resting item is not made at all this week; its share goes to the other items in the same category (the category total stays the same). Next week starts with this week\'s menu (only tap what changes).',
+    'menu.diff':'Difference: Off (② Products) = no longer sold / Sales period = start and end dates / This week\'s menu = weekly rotation',
+    'menu.serve':'Serve','menu.rest':'Rest','menu.allServe':'Serve all','menu.restRow':'Resting this week (this week\'s menu)','menu.restLine':'Resting this week: {0}',
+    'menu.restNames':' (rest: {0})','menu.more':' +{0} more','menu.toastRest':'{0}: resting this week (not made)','menu.toastServe':'{0}: served this week',
+    'menu.inherited':'Carried over last week\'s menu ({0} resting)',
     'zero.btnOn':'Turn on stock-out guard',
     'zero.btnOpen':'Open product settings',
     'zero.onDone':'Stock-out guard is ON (at least 1 in cells calculated as 0)',
@@ -1971,6 +1988,7 @@ const I18N = {
     'sku.rNew':'{0} new item(s) counted on the shelf with a provisional share (category median)',
     'sku.rDaily':'The shelf changes by day because of sales periods, so a daily share is used ({0})',
     'sku.rOff':'not on shelf',
+    'sku.rRest':'{0} item(s) resting in this week\'s menu are taken off the shelf','sku.rRestPast':'In {0}, items recorded as resting are not counted on the shelf or as missing input',
     'sku.sep':', ',
     'sku.wk':'wk of {0}/{1}',
   },
@@ -2082,7 +2100,7 @@ const I18N = {
     'zero.unit':' वटा',
     'zero.open':'सूची हेर्नुहोस्',
     'zero.close':'बन्द',
-    'zero.grayNote':'तीमध्ये {0} वटा बिक्री बन्द, सुरु नभएको वा मूल सामान हुन् — 0 नै सही हो',
+    'zero.grayNote':'तीमध्ये {0} वटा बिक्री बन्द, सुरु नभएको, मूल सामान वा यो हप्ता बिदा हुन् — 0 नै सही हो',
     'zero.hint':'यो हप्ताको उत्पादन तालिका (सबै दिन, सबै समय) मा जम्मा 0 भएका सामान। संख्या बदलिएको छैन। गणनामा 0 भए पनि बनाउने हो भने "स्टक नसकिने ON" गर्नुहोस् (0 भएका कोठामा कम्तीमा 1 ब्याच)।',
     'zero.rCust0':'गणनामा 0: ग्राहक 0',
     'zero.rNoSales':'गणनामा 0: पछिल्लो ४ हप्ता पूर्ण मूल्यको बिक्री 0',
@@ -2092,6 +2110,13 @@ const I18N = {
     'zero.rEnded':'बिक्री बन्द (अन्तिम मिति {0})',
     'zero.rNotyet':'सुरु भएको छैन (सुरु मिति {0})',
     'zero.rParent':'गन्तीको मूल सामान (बनाउने प्याक हो)',
+    'zero.rRest':'यो हप्ता बिदा (यो हप्ताको मेनु)',
+    'menu.title':'यो हप्ताको मेनु','menu.summary':'राख्ने {0} · बिदा {1}','menu.open':'फेर्ने','menu.close':'बन्द गर्ने','menu.week':'{0}–{1} को हप्ता',
+    'menu.hint':'थिच्दा राख्ने ⇄ बिदा फेरिन्छ। बिदाको सामान यो हप्ता एउटा पनि बनाइँदैन; त्यसको भाग उही श्रेणीका अरू सामानमा जान्छ (श्रेणीको जम्मा उस्तै रहन्छ)। अर्को हप्ताले यो हप्ताको मेनु नै लिन्छ (फेर्ने मात्र थिच्ने)।',
+    'menu.diff':'फरक: बन्द (② सामान सेटिङ) = अब नबेच्ने / बिक्री अवधि = सुरु र अन्त्यको दिन / यो हप्ताको मेनु = हरेक हप्ताको फेरबदल',
+    'menu.serve':'राख्ने','menu.rest':'बिदा','menu.allServe':'सबै राख्ने','menu.restRow':'यो हप्ता बिदा (यो हप्ताको मेनु)','menu.restLine':'यो हप्ता बिदा: {0}',
+    'menu.restNames':' (बिदा: {0})','menu.more':' अरू {0} वटा','menu.toastRest':'{0}: यो हप्ता बिदा (बनाउँदैन)','menu.toastServe':'{0}: यो हप्ता राख्ने',
+    'menu.inherited':'अघिल्लो हप्ताको मेनु लिइयो (बिदा {0} वटा)',
     'zero.btnOn':'स्टक नसकिने ON',
     'zero.btnOpen':'उत्पादन सेटिङ खोल्नुहोस्',
     'zero.onDone':'स्टक नसकिने ON गरियो (0 भएका कोठामा कम्तीमा 1)',
@@ -2372,6 +2397,7 @@ const I18N = {
     'sku.rNew':'नयाँ {0} सामानलाई अस्थायी भाग (वर्गको बीचको मान) मा गनिएको छ',
     'sku.rDaily':'बिक्री अवधिले शेल्फ दिनअनुसार फरक हुने भएकाले दिनको भाग प्रयोग गरिएको ({0})',
     'sku.rOff':'शेल्फमा छैन',
+    'sku.rRest':'यो हप्ताको मेनुमा बिदा भएका {0} वटा सामान शेल्फबाट हटाइएका छन्','sku.rRestPast':'{0} मा बिदा भनी राखिएका सामानलाई शेल्फमा वा छुटेको इनपुटमा गनिएको छैन',
     'sku.sep':', ',
     'sku.wk':'{0}/{1} को हप्ता',
   }
@@ -2500,6 +2526,8 @@ function syncActiveWeek(){
     ...(_isPlainObj(_prevWeek.rice)?{rice:_prevWeek.rice}:{}),
     // 作成済み（チェック）のマスの投資の数の写し（曜日×時間帯）も週のデータの中。作り直す時に落とさない
     ...(_isPlainObj(_prevWeek.investDone)?{investDone:_prevWeek.investDone}:{}),
+    // 今週のメニュー（休む商品だけ false。2026-10-09）も週のデータの中。作り直す時に落とさない
+    ...(_isPlainObj(_prevWeek.menu)?{menu:_prevWeek.menu}:{}),
     ji:JSON.parse(JSON.stringify(S.ji||{})),
     cust:(S.cust||[]).map(r=>[...r]),
     checks:{...(S.checks||{})},
@@ -4048,8 +4076,40 @@ function prodDateState(p,date){ if(!p||!date)return null; const ymd=`${date.getF
 const _ALL_ON=[true,true,true,true,true,true,true], _ONES7=[1,1,1,1,1,1,1];
 function _ymdOf(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function prodHasDates(p){ if(!p)return false; if(p.startDate||p.endDate)return true; const par=packParentOf(p); return !!(par&&(par.startDate||par.endDate)); }
-// 開いている週の7日それぞれに、その商品が売場に並ぶか（true／false）。日付の無い商品は _ALL_ON（同じ配列。書き換えない）
+// ---------- 今週のメニュー（2026-10-09 店長：「まちかどは SKU が多いから、作らないメニューと作るメニューを毎週入れ替えている。全カテゴリで」） ----------
+//   記録：S.weeks[週].menu = { 商品ID: false }（休む商品だけ false。無い＝出す。menu の無い今までの週は全部「出す」）。週の記録の中に持つ（syncActiveWeek で落とさない）。
+//   3つの違い：オン／オフ（enabled）＝もう扱わない／販売期間（startDate・endDate）＝始まりと終わりの日／今週のメニュー＝毎週の入れ替え（新しい週は前の週の menu を引き継ぐ。addWeek）。
+//   計算への効かせ方：
+//     ① 今週休む商品は、その週の7日とも「並ばない」（prodOnDays が全部 false）→ 販売期間の外と同じ道で、作成数・品切れ防止の最低・まとめ単位・投資・新商品・ごはん±1・追加作成 すべて 0。
+//        今週の売場 L（skuLineupIds）から外す → 取り分 s_i＝a_i÷Σ_{L}a の分母が小さくなり、ほかの商品の取り分が上がる。カテゴリ需要 D＝客数×購入率 は変わらない（分け合うだけ）。
+//     ② 過去の週：実績の週 k の ji は「前の週の販売」。その販売の週（週の始まりが k の7日前の週）の menu で休んだ商品は、
+//        S_w（その週の売場）に入れない（定価販売が1以上ある時だけは、実績を信じて入れる）、かつ κ_w の M_w（入力漏れとみなす商品）に入れない。menu の無い古い週は今までどおり。
+//   親子（1A）：親を休むと子（パック）も全部休む。メニューの画面には親を出す（子は出さない）。
+const _ALL_OFF=[false,false,false,false,false,false,false];
+let _menuInherited=null, _menuOpen=false;
+function weekMenuOf(k){ const w=k&&S.weeks?S.weeks[k]:null; return (w&&_isPlainObj(w.menu))?w.menu:null; }
+function weekRestIds(k){ const m=weekMenuOf(k); return m?Object.keys(m).filter(id=>m[id]===false):[]; }
+// 開いている週に休む商品か（親が休みなら子も）
+function prodRestThisWeek(p){
+  if(!p||!S.activeWeek)return false; const m=weekMenuOf(S.activeWeek); if(!m)return false;
+  if(m[p.id]===false)return true; const par=packParentOf(p); return !!(par&&m[par.id]===false);
+}
+function _weekStartOfKey(k){ return (k===S.activeWeek&&S.weekStart)?S.weekStart:((((S.weeks||{})[k])||{}).weekStart||weekKeyToDateStr(k)); }
+// 実績の週 k（ji＝前の週の販売）の売場を決めた週＝週の始まりが k の7日前の週。無ければ null
+function salesMenuWeekOf(k){
+  if(!k)return null; let ws; try{ ws=_addDaysYmd(_weekStartOfKey(k),-7); }catch(_){ return null; }
+  return Object.keys(S.weeks||{}).find(x=>x!==k&&_weekStartOfKey(x)===ws)||null;
+}
+function salesRestMenu(k){ const sk=salesMenuWeekOf(k); return sk?weekMenuOf(sk):null; }
+// 実績の週 k で、その商品が「休み」だったか（休みの記録があり、定価販売が 0）
+function salesWeekRested(k,pid){ const rm=salesRestMenu(k); if(!rm||rm[pid]!==false)return false; const j=_jiOfWeek(k)[pid]; return !(j&&(Number(j.teika)||0)>0); }
+// 開いている週の7日それぞれに、その商品が売場に並ぶか（true／false）。日付の無い商品は _ALL_ON（同じ配列。書き換えない）。今週休む商品は _ALL_OFF
 function prodOnDays(p){
+  if(prodRestThisWeek(p))return _ALL_OFF;
+  return prodDateOnDays(p);
+}
+// 販売期間だけで見た並ぶ日（今週のメニューは見ない）
+function prodDateOnDays(p){
   if(!prodHasDates(p))return _ALL_ON;
   return _skuMemo('od|'+p.id+'|'+S.weekStart,()=>{ const par=packParentOf(p); return getWeekDates().map(dt=>!prodDateState(p,dt)&&!(par&&prodDateState(par,dt))); });
 }
@@ -4084,6 +4144,7 @@ function prodPeriodMarks(p,ref){
 }
 // 作成表で、その日に並ばない商品の1行に出す言葉（「10/13（火）から」「10/12（月）で終売」）
 function prodOffDayText(p,dayIdx){
+  if(prodRestThisWeek(p))return t('menu.restRow');   // 今週のメニューで休み（2026-10-09）
   const dt=getWeekDates()[dayIdx]; let s=prodDateState(p,dt); let q=p;
   const par=packParentOf(p); if(!s&&par){ s=prodDateState(par,dt); q=par; }
   if(s==='notyet')return t('make.dateFrom').replace('{0}',_mdwOf(q.startDate));
@@ -4124,7 +4185,8 @@ function periodSettingHtml(p){
       ${btn(`setProdDate('${p.id}','endDate','mon')`,`今週の月曜で終わり（${_mdOf(mon)}）`,en===mon,'#b45309')}
       ${btn(`setProdDate('${p.id}','endDate','')`,'指定なし',!en,'#64748b')}
     </div>
-    <div style="font-size:12px;color:#334155">${state}</div></div>`;
+    <div style="font-size:12px;color:#334155">${state}</div>
+    <div style="font-size:11px;color:#5b21b6;margin-top:4px;line-height:1.5">🍽 毎週の入れ替え（作らない週）は、オフにせず ④作成表の上の「今週のメニュー」で${_menuRestOf(p.id)?'　<b>（この商品は今週 休み）</b>':''}</div></div>`;
 }
 // 販売期間を入れる（ボタン：'next'＝来週の火曜／'today'＝今日／'mon'＝今週の月曜／''＝指定なし／YYYY-MM-DD＝日付の欄）
 let _dateAskedOn=new Set();
@@ -4314,6 +4376,7 @@ function getZeroMakeList(){
     if(week>0)return;
     const reasons=[]; let gray=false;
     if(isPackParent(p)){ reasons.push({k:'parent',t:t('zero.rParent')}); gray=true; }
+    if(prodRestThisWeek(p)){ reasons.push({k:'rest',t:t('zero.rRest')}); gray=true; }   // 今週のメニューで休み（0 で正しい。2026-10-09）
     const ds=dates.map(dt=>prodDateState(p,dt));
     if(ds.length&&ds.every(s=>s==='ended')){ reasons.push({k:'ended',t:t('zero.rEnded').replace('{0}',p.endDate||'')}); gray=true; }
     else if(ds.length&&ds.every(s=>s==='notyet')){ reasons.push({k:'notyet',t:t('zero.rNotyet').replace('{0}',p.startDate||'')}); gray=true; }
@@ -4445,7 +4508,9 @@ function skuLineupIds(cat){
   return _skuMemo('n|'+main+'|'+S.activeWeek+'|'+S.weekStart,()=>{
     const dates=getWeekDates(), ids=[];
     (S.PM||[]).forEach(p=>{ if(!p||!p.enabled||!S.catOn[p.category]||mainCatOf(p.category||'')!==main||packParentOf(p))return;
-      if(!dates.some(dt=>!prodDateState(p,dt)))return; if(!_hasMakeSlot(p))return; ids.push(p.id); });
+      if(!dates.some(dt=>!prodDateState(p,dt)))return; if(!_hasMakeSlot(p))return;
+      if(prodRestThisWeek(p))return;   // 今週のメニューで休む商品は売場に数えない（2026-10-09）
+      ids.push(p.id); });
     return ids;
   });
 }
@@ -4472,13 +4537,16 @@ function catDemandModel(cat){
     const ymdMinus=(k,days)=>{ const d=parseLocalDate(((S.weeks||{})[k]||{}).weekStart||weekKeyToDateStr(k)); d.setDate(d.getDate()-days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     for(const k of keys){
       if(weeks.length>=MNL_WEEKS)break;
-      const ji=_jiOfWeek(k), set=[], n={}, e={}; let N=0;
-      inCat.forEach(p=>{ const j=ji[p.id]; if(!j)return; const t=Number(j.teika)||0; if(t+(Number(j.nebiki)||0)+(Number(j.haiki)||0)>0){ set.push(p.id); n[p.id]=t; N+=t;
+      const ji=_jiOfWeek(k), set=[], n={}, e={}, rest=[], rm=salesRestMenu(k); let N=0;
+      inCat.forEach(p=>{ const j=ji[p.id];
+        // 今週のメニューで休んだ週（2026-10-09）：その週の売場 S_w に入れない（定価販売が1以上ある時だけは実績を信じて入れる）。下の M_w にも入れない
+        if(rm&&rm[p.id]===false&&!(j&&(Number(j.teika)||0)>0)){ rest.push(p.id); return; }
+        if(!j)return; const t=Number(j.teika)||0; if(t+(Number(j.nebiki)||0)+(Number(j.haiki)||0)>0){ set.push(p.id); n[p.id]=t; N+=t;
         // 並んでいた日の割合 e（2026-10-09）：その週の販売期間（週の始まりの7日前〜前日）のうち、投入日〜終売日に入る日数 ÷ 7。日付の無い商品は 1（入れない）。0 なら実績を信じて 1
         if(p.startDate||p.endDate){ let c=0; for(let x=7;x>=1;x--){ const y=ymdMinus(k,x); if(!(p.startDate&&y<p.startDate)&&!(p.endDate&&y>p.endDate))c++; } if(c>0&&c<7)e[p.id]=c/7; } } });
       if(!(N>0))continue;
       const rows=(k===S.activeWeek)?(S.cust||[]):((S.weeks[k]||{}).cust||[]);
-      weeks.push({key:k,set,n,e,N,C:_catCustRows(ck,rows)});
+      weeks.push({key:k,set,n,e,N,C:_catCustRows(ck,rows),rest});
     }
     // 魅力度 a：MNL の最尤推定（MM 法）
     const K=[...new Set([].concat(...weeks.map(w=>w.set)))], W={};
@@ -4504,7 +4572,8 @@ function catDemandModel(cat){
     weeks.forEach((w,wi)=>{
       const older=weeks.slice(wi+1), salesStart=ymdMinus(w.key,7);
       let sw=0; w.set.forEach(i=>sw+=(i in w.e)?a[i]*w.e[i]:a[i]); let su=sw; w.miss=[];
-      Lk.forEach(i=>{ if(w.n[i]!==undefined||!(a[i]>0))return; const p=getP(i);
+      Lk.forEach(i=>{ if(w.n[i]!==undefined||!(a[i]>0))return; if(w.rest.includes(i))return;   // 休みの記録がある商品は入力漏れとみなさない（2026-10-09）
+        const p=getP(i);
         if(older.some(o=>o.n[i]!==undefined)||(p&&p.startDate&&p.startDate<=salesStart)){ su+=a[i]; w.miss.push(i); } });
       w.kappa=su>0?sw/su:1; w.D=w.kappa>0?w.N/w.kappa:w.N; Dall+=w.D;
       if(w.C>0){ Dsum+=w.D; Csum+=w.C; }
@@ -4520,7 +4589,9 @@ function catDemandModel(cat){
     const Cd=[], Dd=[], sumD=[]; let daily=false;
     for(let d=0;d<7;d++){ Cd[d]=getCatDayCust(ck,d); Dd[d]=mode==='cust'?Cd[d]*r:mode==='avg'?D/7:0;
       let s=0; L.forEach(i=>{ if(!prodOnDay(getP(i),d)){ daily=true; return; } s+=(i in a)?a[i]:aMed; }); sumD[d]=s; }
-    return {main,ck,weeks,a,K,L,Lk,Lnew,aMed,sumNow,r,Cnow,D,mode,iter,conv,Cd,Dd,sumD,daily};
+    // 今週のメニューで休む商品（このカテゴリ・オン・販売期間が週に重なる物。説明と点検ページ用）
+    const restNow=inCat.filter(p=>p.enabled&&S.catOn[p.category]&&prodRestThisWeek(p)&&prodDateOnDays(p).some(Boolean)).map(p=>p.id);
+    return {main,ck,weeks,a,K,L,Lk,Lnew,aMed,sumNow,r,Cnow,D,mode,iter,conv,Cd,Dd,sumD,daily,restNow};
   });
 }
 // 自分の定価販売の平均（今までの式。逃げ道と、比べる用の raw）：開いている週＋前の週を新しい順に、0 の週は飛ばして最大 N 週
@@ -4571,6 +4642,8 @@ function skuReasonText(pid){
   const miss=m.weeks.filter(w=>w.kappa<0.9995);
   if(miss.length)s+=`　※ ${miss.map(w=>tf('sku.rMiss',_skuWkLabel(w.key),w.miss.length,(1/w.kappa).toFixed(2))).join(t('sku.sep'))}`;
   if(m.Lnew.length)s+=`　※ ${tf('sku.rNew',m.Lnew.length)}`;
+  if(m.restNow&&m.restNow.length)s+=`　※ ${tf('sku.rRest',m.restNow.length)}`;   // 今週のメニューで休む商品を売場から外した（2026-10-09）
+  { const rw=m.weeks.filter(w=>w.rest&&w.rest.length); if(rw.length)s+=`　※ ${tf('sku.rRestPast',rw.map(w=>_skuWkLabel(w.key)).join(t('sku.sep')))}`; }
   if(i.daily&&i.shareD){   // 日ごとの売場（2026-10-09 販売期間）：取り分が日で変わる時は、曜日ごとに並べる
     const parts=[]; let st=0;
     for(let d=1;d<=7;d++){ if(d<7&&Math.abs(i.shareD[d]-i.shareD[st])<5e-4)continue; parts.push(`${tDayLbl(st)}${d-1>st?'〜'+tDayLbl(d-1):''} ${i.shareD[st]>0?(i.shareD[st]*100).toFixed(1)+'%':t('sku.rOff')}`); st=d; }
@@ -5057,24 +5130,28 @@ function rankWeeks(){
 }
 function calcRank4w(pid){
   const p=getP(pid); if(!p)return null;
-  let teika=0,nebiki=0,haiki=0,weeksWith=0;
-  rankWeeks().forEach(k=>{ const j=(k===S.activeWeek?S.ji:((S.weeks[k]||{}).ji||{}))[pid]; if(!j)return; const t=j.teika||0,nb=j.nebiki||0,h=j.haiki||0; teika+=t;nebiki+=nb;haiki+=h; if(t+nb+h>0)weeksWith++; });
+  let teika=0,nebiki=0,haiki=0,weeksWith=0,weeksRest=0; const wks=rankWeeks();
+  wks.forEach(k=>{ if(salesWeekRested(k,(packParentOf(p)||p).id))weeksRest++;   // 今週のメニューで休んだ週（その販売の週の menu。2026-10-09）
+    const j=(k===S.activeWeek?S.ji:((S.weeks[k]||{}).ji||{}))[pid]; if(!j)return; const t=j.teika||0,nb=j.nebiki||0,h=j.haiki||0; teika+=t;nebiki+=nb;haiki+=h; if(t+nb+h>0)weeksWith++; });
   const sold=teika+nebiki, made=sold+haiki;
+  // 判定に使う販売数：休んだ週がある商品は、出した週の平均 × 週の数（＝ずっと出していたら）。休みが無ければ sold と同じ
+  const soldJ=(weeksRest>0&&wks.length>weeksRest)?sold*wks.length/(wks.length-weeksRest):sold;
   const profit=teika*(p.shopPrice||0)+nebiki*((p.shopPrice||0)-(p.disc||0))-haiki*(p.cost||0)-sold*(p.cost||0);
-  return {p,teika,nebiki,haiki,sold,made,weeksWith,wasteRate:made?haiki/made:0,discRate:sold?nebiki/sold:0,profit,wdRatio:withdrawRatio(pid)};
+  return {p,teika,nebiki,haiki,sold,made,weeksWith,weeksRest,soldJ,wasteRate:made?haiki/made:0,discRate:sold?nebiki/sold:0,profit,wdRatio:withdrawRatio(pid)};
 }
 function rankJudge(r,median){
   if(r.p.category.endsWith('新商品')&&r.weeksWith<RANK_NEW_WEEKS)return {k:'watch',t:'様子見',why:`新商品（実績 ${r.weeksWith}週）`};
-  const low=r.sold<median, waste=r.wasteRate>=RANK_WASTE_LINE;
-  if(waste&&low)return {k:'cut',t:'カット候補',why:`廃棄${Math.round(r.wasteRate*100)}%・販売数がまん中（${median}）より下`};
+  // 販売数は soldJ（今週のメニューで休んだ週がある商品は、出した週の平均×週の数。休みが無ければ sold と同じ。2026-10-09）
+  const sj=(r.soldJ!=null?r.soldJ:r.sold), low=sj<median, waste=r.wasteRate>=RANK_WASTE_LINE, mdT=+(+median).toFixed(1), rw=r.weeksRest?`（休み${r.weeksRest}週を除いた週あたり）`:'';
+  if(waste&&low)return {k:'cut',t:'カット候補',why:`廃棄${Math.round(r.wasteRate*100)}%・販売数がまん中（${mdT}）より下${rw}`};
   if(waste)return {k:'reduce',t:'作成数を減らす',why:`廃棄${Math.round(r.wasteRate*100)}%`};
-  if(low)return {k:'watch',t:'様子見',why:`販売数がまん中（${median}）より下`};
+  if(low)return {k:'watch',t:'様子見',why:`販売数がまん中（${mdT}）より下${rw}`};
   return {k:'keep',t:'そのまま',why:''};
 }
 function renderRankingTotal(el){
   const rows=(S.PM||[]).filter(p=>p.enabled&&S.catOn[p.category]&&(_rankCategory==='all'||p.category===_rankCategory)).map(p=>calcRank4w(p.id)).filter(r=>r&&r.made>0);
   // まん中（中央値）は同じ主カテゴリの中で
-  const med={}; CATS.forEach(c=>{ const m=mainCatOf(c); if(med[m]!==undefined)return; const a=(S.PM||[]).filter(p=>p.enabled&&S.catOn[p.category]&&mainCatOf(p.category)===m).map(p=>calcRank4w(p.id)).filter(r=>r&&r.made>0).map(r=>r.sold).sort((x,y)=>x-y); med[m]=a.length?(a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2):0; });
+  const med={}; CATS.forEach(c=>{ const m=mainCatOf(c); if(med[m]!==undefined)return; const a=(S.PM||[]).filter(p=>p.enabled&&S.catOn[p.category]&&mainCatOf(p.category)===m).map(p=>calcRank4w(p.id)).filter(r=>r&&r.made>0).map(r=>r.soldJ).sort((x,y)=>x-y); med[m]=a.length?(a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2):0; });
   rows.forEach(r=>{ r.j=rankJudge(r,med[mainCatOf(r.p.category)]||0); });
   const key=_rankSort.key, dir=_rankSort.dir, ORD={cut:0,reduce:1,watch:2,keep:3};
   const val=r=>key==='name'?r.p.name:key==='cat'?r.p.category:key==='judge'?ORD[r.j.k]:key==='waste'?r.wasteRate:key==='disc'?r.discRate:key==='profit'?r.profit:key==='wd'?r.wdRatio:r.sold;
@@ -5092,7 +5169,7 @@ function renderRankingTotal(el){
       <span style="font-size:11px;color:#64748b;margin-left:auto">直近${wk.length}週の合計（${wk.map(k=>k.split('.').slice(1).join('/')).join('・')}）。列の見出しをタップで並べ替え</span>
     </div>
     <div class="overflow-auto"><table class="bd-table" style="font-size:12px"><thead><tr>${th('name','商品')}${th('cat','カテゴリ')}${th('sold','販売数','定価＋値引の販売数（直近4週）')}${th('waste','廃棄率','廃棄数 ÷ 作成数（定価＋値引＋廃棄）')}${th('disc','値引率','値引販売数 ÷ 販売数')}${th('profit','利益','販売高 − 廃棄の原価 − 売れた分の原価（いまの売価・原価で）')}${th('wd','撤退以下','今週の作成表のマスのうち、範囲の客数が撤退客数より少ないマスの割合（表示だけ。判定には使わない。直近4週に完売があれば0%）')}${th('judge','判定','販売数が同じカテゴリのまん中より上か／廃棄率10%／新商品は実績4週未満なら様子見')}</tr></thead><tbody>
-      ${rows.map(r=>`<tr><td style="text-align:left;font-weight:600">${escapeHtmlP(r.p.name)}</td><td style="text-align:left;color:#64748b">${tCat(r.p.category)}</td><td>${r.sold}</td><td style="${r.wasteRate>=RANK_WASTE_LINE?'color:#b91c1c;font-weight:700':''}">${(r.wasteRate*100).toFixed(0)}%</td><td>${(r.discRate*100).toFixed(0)}%</td><td>${fmt(r.profit)}</td><td style="${r.wdRatio>=0.5?'color:#6b21a8;font-weight:700':''}">${(r.wdRatio*100).toFixed(0)}%</td><td><span title="${escapeHtmlP(r.j.why)}" style="display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;white-space:nowrap;${JC[r.j.k]}">${r.j.t}</span></td></tr>`).join('')}
+      ${rows.map(r=>`<tr><td style="text-align:left;font-weight:600">${escapeHtmlP(r.p.name)}</td><td style="text-align:left;color:#64748b">${tCat(r.p.category)}</td><td>${r.sold}${r.weeksRest?`<span title="直近の週のうち、今週のメニューで休んだ週。判定は出した週の平均で比べます" style="display:inline-block;margin-left:4px;font-size:10px;font-weight:700;color:#5b21b6;background:#f5f3ff;border-radius:6px;padding:0 5px;white-space:nowrap">💤休み${r.weeksRest}週</span>`:''}</td><td style="${r.wasteRate>=RANK_WASTE_LINE?'color:#b91c1c;font-weight:700':''}">${(r.wasteRate*100).toFixed(0)}%</td><td>${(r.discRate*100).toFixed(0)}%</td><td>${fmt(r.profit)}</td><td style="${r.wdRatio>=0.5?'color:#6b21a8;font-weight:700':''}">${(r.wdRatio*100).toFixed(0)}%</td><td><span title="${escapeHtmlP(r.j.why)}" style="display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;white-space:nowrap;${JC[r.j.k]}">${r.j.t}</span></td></tr>`).join('')}
     </tbody></table></div>
     <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">判定の線：販売数＝同じカテゴリの中のまん中（中央値）より上か／廃棄率 10%／新商品は実績が4週未満なら「様子見」。判定をタップ（長押し）で理由。</div>`;
 }
@@ -5157,7 +5234,7 @@ function renderRanking(){
       const barCls=isTop3?barClasses[i]:'';
       return `<div class="rank-row">
         <div class="rank-badge ${isTop3?'medal':''}">${badge}</div>
-        <div class="pname" title="${r.p.name}">${r.p.name}</div>
+        <div class="pname" title="${r.p.name}">${r.p.name}${salesWeekRested(S.activeWeek,(packParentOf(r.p)||r.p).id)?' <span style="font-size:10px;color:#5b21b6" title="先週は今週のメニューで休み">💤休み</span>':''}</div>
         <div class="pval">${fmtVal(r.metric)}</div>
         <div class="rank-bar"><div class="rank-bar-fill ${barCls}" style="width:${pct}%"></div></div>
       </div>`;
@@ -5416,12 +5493,17 @@ function switchWeek(key){
   renderCustGrid();
   gaibuWeekChanged();   // 天気・イベント調整は週ごと。別の週の調整は効かせない
   _igSelCell=null; if(currentTab===4)renderBudgetTab();   // 今週の投資（マス目）も週ごと。開いている週の分に描き直す
+  renderWeekMenuBand();   // 今週のメニュー（週ごと）
 }
 function addWeek(dateStr){
   syncActiveWeek();
   const key=weekKeyFromDate(dateStr);
   if(!S.weeks[key]){
     S.weeks[key]={ji:{},cust:Array.from({length:7},()=>new Array(24).fill(0)),checks:{},skipped:{},weekStart:dateStr};
+    // 今週のメニュー：前の週（日付で1つ前の週）の「休む」を引き継ぐ（変える所だけ押せばよい。2026-10-09）
+    const _pk=sortWeekKeys(Object.keys(S.weeks).filter(k=>k!==key&&weekKeyNum(k)<weekKeyNum(key))).pop();
+    const _pm=_pk?weekMenuOf(_pk):null;
+    if(_pm&&Object.keys(_pm).length){ S.weeks[key].menu=JSON.parse(JSON.stringify(_pm)); _menuInherited={from:_pk,n:weekRestIds(key).length}; }
   }
   if(S.deleted&&S.deleted.weeks)delete S.deleted.weeks[key];   // 作り直した週は墓標を外す
   S.activeWeek=key;
@@ -5439,6 +5521,8 @@ function addWeek(dateStr){
   renderCustGrid();
   gaibuWeekChanged();   // 天気・イベント調整は週ごと。別の週の調整は効かせない
   _igSelCell=null; if(currentTab===4)renderBudgetTab();   // 今週の投資（マス目）も週ごと。開いている週の分に描き直す
+  renderWeekMenuBand();   // 今週のメニュー（週ごと）
+  if(_menuInherited){ if(typeof showToast==='function')showToast(tf('menu.inherited',_menuInherited.n),'info'); _menuInherited=null; }
 }
 function deleteWeek(key){
   const keys=Object.keys(S.weeks);
@@ -7607,7 +7691,72 @@ function renderProdDayTabs(){
     </div>`;
   }).join('');
   document.getElementById('prod-day-tabs').innerHTML=tabsHTML+`<div class="day-tab-bar" style="flex:1;align-self:flex-end"></div>`;
+  renderWeekMenuBand();   // 今週のメニュー（曜日タブの下。2026-10-09）
   renderZeroMakeBand();   // 週に作成0の商品の帯（曜日タブの下）
+}
+// ---------- ④作成表の上：今週のメニュー（出す⇄休む。2026-10-09 店長の依頼） ----------
+//   置き場所＝④作成表の上（曜日タブのすぐ下）。週ごとに変わる物は「その週の作成表」の所に置き、押すと下の表がすぐ変わる（休む行が灰色の1行になり、ほかの数が増える）。
+//   ②商品設定は「ずっと変わらない設定」（オン／オフ・販売期間）の場所なので分ける。ふだんは1行（出す◯・休む◯・休む商品の名前3つまで）。開くとカテゴリごとの商品ボタン。1タップで 出す⇄休む。
+//   並べる商品：オン・カテゴリON・作る時間帯のあるカテゴリ・販売期間が今週に重なる商品（親子は親だけ。親を休むと子も休む）。
+function weekMenuGroups(){
+  const out=[];
+  CATS.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots||!cfg.slots.length)return;
+    const list=(S.PM||[]).filter(p=>p&&p.enabled&&p.category===cat&&!packParentOf(p)&&prodDateOnDays(p).some(Boolean)).sort((a,b)=>(a.order??0)-(b.order??0));
+    if(list.length)out.push({cat,list}); });
+  return out;
+}
+function _menuRestOf(pid){ const m=weekMenuOf(S.activeWeek); return !!m&&m[pid]===false; }
+function renderWeekMenuBand(){
+  const el=document.getElementById('week-menu-band'); if(!el)return;
+  if(!S.activeWeek||!S.weeks||!S.weeks[S.activeWeek]){ el.innerHTML=''; return; }
+  const groups=weekMenuGroups(), all=[].concat(...groups.map(g=>g.list));
+  if(!all.length){ el.innerHTML=''; return; }
+  const rests=all.filter(p=>_menuRestOf(p.id)), nR=rests.length, nS=all.length-nR;
+  const dates=getWeekDates(), md=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const names=nR?tf('menu.restNames',rests.slice(0,3).map(p=>escapeHtmlP(p.name||'')).join(t('mk.sep'))+(nR>3?tf('menu.more',nR-3):'')):'';
+  const bd=nR?'#c4b5fd':'#e2e8f0';
+  let html=`<div onclick="toggleWeekMenuOpen()" role="button" aria-expanded="${_menuOpen}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:${nR?'#f5f3ff':'#f8fafc'};border:1.5px solid ${bd};border-radius:${_menuOpen?'10px 10px 0 0':'10px'};padding:8px 12px;font-size:13px;font-weight:700;color:${nR?'#5b21b6':'#475569'};cursor:pointer;user-select:none">
+    <span>🍽 ${t('menu.title')}${t('mk.colon')}${tf('menu.summary',`<b style="font-size:15px">${nS}</b>`,`<b style="font-size:15px">${nR}</b>`)}</span>
+    ${names?`<span style="font-size:12px;font-weight:600">${names}</span>`:''}
+    <span style="margin-left:auto;font-size:12px;color:#1d4ed8">${_menuOpen?'▼ '+t('menu.close'):'▶ '+t('menu.open')}</span></div>`;
+  if(_menuOpen){
+    html+=`<div style="border:1.5px solid ${bd};border-top:none;border-radius:0 0 10px 10px;background:#fff;padding:8px 10px 10px">
+      <div style="font-size:12px;color:#334155;line-height:1.6;margin-bottom:4px"><b>${tf('menu.week',md(dates[0]),md(dates[6]))}</b>　${t('menu.hint')}</div>
+      <div style="font-size:11px;color:#64748b;line-height:1.6;margin-bottom:4px">${t('menu.diff')}</div>`;
+    groups.forEach(g=>{
+      const gr=g.list.filter(p=>_menuRestOf(p.id)).length;
+      html+=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 5px"><b style="font-size:13px">${tCat(g.cat)}</b><span style="font-size:11px;color:#64748b">${tf('menu.summary',g.list.length-gr,gr)}</span>${gr?`<button type="button" onclick="event.stopPropagation();weekMenuServeAll('${g.cat}')" style="padding:4px 10px;min-height:30px;font-size:11px;font-weight:700;border-radius:14px;border:1px solid #cbd5e1;background:#fff;color:#334155;cursor:pointer;font-family:inherit">${t('menu.allServe')}</button>`:''}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${g.list.map(p=>{ const r=_menuRestOf(p.id);
+          return `<button type="button" class="menu-chip" data-pid="${p.id}" aria-pressed="${r?'false':'true'}" onclick="event.stopPropagation();toggleWeekMenu('${p.id}')" style="min-height:38px;padding:6px 12px;border-radius:19px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;${r?'background:#f1f5f9;color:#94a3b8;border:1.5px dashed #cbd5e1':'background:#fff;color:#0f172a;border:1.5px solid #86efac'}">${r?'💤':'✓'} <span style="${r?'text-decoration:line-through':''}">${escapeHtmlP(p.name||'')}</span> <span style="font-size:10px;color:${r?'#64748b':'#16a34a'}">${r?t('menu.rest'):t('menu.serve')}</span></button>`; }).join('')}</div>`;
+    });
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+function toggleWeekMenuOpen(){ _menuOpen=!_menuOpen; renderWeekMenuBand(); }
+// 開いている週の menu を書く（serve＝true で「出す」＝その商品の印を外す）。menu は空でも {} を残す（2台で同時に入れた時、片方の休みが消えないように）
+function setWeekMenu(pid,serve){
+  const w=S.weeks&&S.activeWeek?S.weeks[S.activeWeek]:null; if(!w)return false;
+  if(!_isPlainObj(w.menu))w.menu={};
+  if(serve)delete w.menu[pid]; else w.menu[pid]=false;
+  return true;
+}
+function _afterWeekMenu(){
+  clearAllocCache(); saveS();
+  renderWeekMenuBand(); renderZeroMakeBand(); renderZeroMakeHome();
+  if(typeof currentTab!=='undefined'&&currentTab===3)renderProdDayContent(currentProdDay||0);
+}
+function toggleWeekMenu(pid){
+  const p=getP(pid); if(!p)return;
+  const wasRest=_menuRestOf(pid);
+  if(!setWeekMenu(pid,wasRest))return;
+  _afterWeekMenu();
+  if(typeof showToast==='function')showToast(tf(wasRest?'menu.toastServe':'menu.toastRest',p.name||''),'info');
+}
+function weekMenuServeAll(cat){
+  const g=weekMenuGroups().find(x=>x.cat===cat); if(!g)return;
+  g.list.forEach(p=>{ if(_menuRestOf(p.id))setWeekMenu(p.id,true); });
+  _afterWeekMenu();
 }
 
 function selectProdDay(i){currentProdDay=i;_uiSave();renderProdDayTabs();renderProdDayContent(i);}
@@ -8440,7 +8589,10 @@ function renderProdDayContent(dayIdx){
     const prods=_prodSortMode==='efficient'
       ?[...prods0].sort(compareEfficient)
       :[...prods0].sort((a,b)=>(a.order??0)-(b.order??0));
-    if(!prods.length)return;
+    // 今週のメニューで休む商品（2026-10-09）：数のマスは出さず、カテゴリの下に灰色の1行「今週は休み：A・B」。全部休みのカテゴリも1行だけ出す
+    const restP=S.PM.filter(p=>p.enabled&&p.category===cat&&!isPackParent(p)&&prodRestThisWeek(p)&&prodDateOnDays(p).some(Boolean)).sort((a,b)=>(a.order??0)-(b.order??0));
+    const restLine=restP.length?`<div class="menu-rest-line" style="margin-top:6px;background:#f1f5f9;color:#64748b;border:1px dashed #cbd5e1;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700;line-height:1.6">💤 ${escapeHtmlP(tf('menu.restLine',restP.map(p=>p.name||'').join(t('mk.sep'))))}</div>`:'';
+    if(!prods.length){ if(restLine)html+=`<div class="card"><div class="section-title">${tCat(cat)}</div>${restLine}</div>`; return; }
     // 効率順ではグローバル番号を使う
     const globalOrderMap=_prodSortMode==='efficient'?buildGlobalOrderMap():null;
 
@@ -8613,6 +8765,7 @@ function renderProdDayContent(dayIdx){
     });
 
     html+=`</tbody></table></div>`;
+    html+=restLine;   // 今週のメニューで休む商品（灰色の1行。2026-10-09）
 
     // Category daily total
     let catDayHigh=0;
@@ -9546,7 +9699,7 @@ function renderBudgetPlan(){
 // 予算の表の小さな説明：入れた数（個×日）と、作成表に置かれる数（週合計）。食い違う時・置けない時は理由を出す
 function _investNote(p,cnt,days,wk){
   const daysOn=prodPartWeek(p)?getInvestDays(p.id).filter(d=>prodOnDay(p,d)).length:days;   // 販売期間の外の日には置かない（2026-10-09）。日付の無い商品は days のまま
-  let s=`${cnt}個 × ${daysOn}日${daysOn!==days?`（販売期間の外の ${days-daysOn}日は置きません）`:""}`;
+  let s=`${cnt}個 × ${daysOn}日${daysOn!==days?(prodRestThisWeek(p)?'（今週のメニューで休みのため置きません）':`（販売期間の外の ${days-daysOn}日は置きません）`):""}`;
   if(wk!==cnt*daysOn){
     const why=!S.catOn[p.category]?'カテゴリがオフのため作成表に出ません'
       :(investHasFixed(p.id)?'作成表でチェック済みのマスの数を固定し、残りを未チェックのマスに配っているため'
@@ -9581,7 +9734,7 @@ function igOpen(pid){ _igPid=pid||null; _igSelCell=null; switchBudSub('grid'); r
 function igSet(pid,d,h,raw){
   const p=getP(pid); if(!p)return;
   const cfg=S.catCfg[p.category]; if(!cfg||cfg.slots.indexOf(h)<0||!getSlotMake(p,h))return;
-  if(!prodOnDay(p,d)){ showToast(`${DAYS[d]}曜は販売期間の外です（${prodOffDayText(p,d)}）`,'info'); return; }   // 2026-10-09
+  if(!prodOnDay(p,d)){ showToast(prodRestThisWeek(p)?`${p.name}：今週のメニューで休みです（④作成表の上の「今週のメニュー」で出すに戻せます）`:`${DAYS[d]}曜は販売期間の外です（${prodOffDayText(p,d)}）`,'info'); return; }   // 2026-10-09
   let g=investGridOf(pid);
   if(!g&&investLegacyKind(p))return;
   let n=parseInt(toHalf(String(raw==null?'':raw)).replace(/[^\d]/g,''),10); if(!isFinite(n)||n<0)n=0; n=Math.min(n,999);
@@ -9792,7 +9945,7 @@ function renderNewProductBudgetTable(maxBudget){
         </div>
         <button onclick="setNewProductCount('${p.id}',${sug})" style="padding:3px 10px;font-size:11px;background:#eff6ff;color:var(--main);border:1px solid var(--main);border-radius:6px;cursor:pointer;white-space:nowrap">🤖 提案: ${sug}個</button>`}
       </td>
-      <td style="font-size:12px;font-weight:600;color:var(--main)">${fmt(amt)}円${(!investGridOf(p.id)&&prodPartWeek(p))?`<div style="font-size:10px;color:#64748b;font-weight:400">${cnt}個 × 並ぶ日 ${prodOnDays(p).filter(Boolean).length}日（販売期間）</div>`:''}</td>
+      <td style="font-size:12px;font-weight:600;color:var(--main)">${fmt(amt)}円${(!investGridOf(p.id)&&prodPartWeek(p))?`<div style="font-size:10px;color:#64748b;font-weight:400">${prodRestThisWeek(p)?'💤 今週は休み（今週のメニュー）':`${cnt}個 × 並ぶ日 ${prodOnDays(p).filter(Boolean).length}日（販売期間）`}</div>`:''}</td>
     </tr>`;
   });
   html+=`</tbody><tfoot><tr style="font-weight:700;background:var(--main-lt)">

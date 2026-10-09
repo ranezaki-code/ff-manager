@@ -304,7 +304,79 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     check('28','【販売期間⑤】2台：A が投入日（木曜）を入れ、B が同時に別の所を変えた → 両方残り、B でも火・水は 0。外すと B からも消える／「＋商品追加」を週の途中に押すと「いつから売る？」（既定＝来週の火曜。「今日から」に変えられる）／オフの商品に投入日を入れると「オンにしますか？」',
       okSet&&okClear&&ask1&&def==='2026-10-13'&&today==='2026-10-09'&&ask2&&onAfter===true&&!prod(B,np)&&same(),
       `入れた後 B:${setB[0]} 火${setB[1]}・水${setB[2]}・木${setB[3]}（入れる前 火・木 ${J(p2before)}）${okSet}・外した後 ${okClear}・追加の質問 ${ask1}（既定 ${def}→今日から ${today}）・オンの質問 ${ask2}→${onAfter}`);
-    check('29','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    // 今週のメニュー（2026-10-09 店長：「まちかどは SKU が多いから、作らないメニューと作るメニューを毎週入れ替えている。全カテゴリで」）。①② は画面の中だけで見本を作って計算し、元に戻す（保存しない）
+    const mn=JSON.parse(A.ev(`(()=>{ const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,ji:S.ji,cust:S.cust,budget:S.budget}); const out={};
+      try{
+        const mk=(id,x)=>Object.assign({id,name:id,category:'中華まん',cost:60,stdPrice:150,shopPrice:150,disc:30,minCount:1,tags:'',order:90,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},x||{});
+        S.PM.push(mk('c1'),mk('c2',{noStockout:true,isInvest:true,batchUnit:2}),mk('c3'));
+        S.budget.investCounts=Object.assign({},S.budget.investCounts,{c2:2}); S.budget.investDays=Object.assign({},S.budget.investDays,{c2:[0,1,2,3,4,5,6]});
+        const pw=S.weeks['2026.9.29']; pw.cust=S.cust.map(r=>[...r]);
+        pw.ji=Object.assign({},pw.ji,{c1:{teika:20,nebiki:0,haiki:0},c2:{teika:10,nebiki:0,haiki:0},c3:{teika:10,nebiki:0,haiki:0}});
+        S.ji=Object.assign({},S.ji,{c1:{teika:20,nebiki:0,haiki:0},c2:{teika:10,nebiki:0,haiki:0},c3:{teika:10,nebiki:0,haiki:0}});
+        clearAllocCache();
+        const T=id=>getWeekTargetBase(id).teika, M=()=>catDemandModel('中華まん');
+        const all=id=>{ let s=0, f=0; for(let d=0;d<7;d++)[6,10].forEach(h=>{ const det=getProdCntDetail(id,d,h); s+=det.total+getInvestExtra(id,d,h); f+=det.forced; }); return [s,f]; };
+        let m=M(); out.D0=m.D; out.t0=[T('c1'),T('c2'),T('c3')]; out.c2before=all('c2'); out.sku0=skuCount('中華まん');
+        // ① 今週 c2 を休む
+        setWeekMenu('c2',false); clearAllocCache();
+        m=M(); out.D1=m.D; out.t1=[T('c1'),T('c2'),T('c3')]; out.c2after=all('c2'); out.sku1=skuCount('中華まん'); out.L1=m.L.slice();
+        out.show=[slotShows(getP('c2'),0,6),slotShows(getP('c2'),3,10)]; out.so=calcSoldOutSuggestion('c2',0,6,8,30).error||''; out.wd=getWithdraw('c2');
+        const z=getZeroMakeList().find(x=>x.pid==='c2'); out.zero=z?{gray:z.gray,canOn:z.canOn,r:z.reasons.map(r=>r.k)}:null;
+        renderProdDayContent(0); const line=document.querySelector('#prod-day-content .menu-rest-line'); out.line=line?line.textContent.replace(/\\s+/g,' '):'';
+        out.row=[...document.querySelectorAll('#prod-day-content tr')].some(tr=>tr.cells[0]&&tr.cells[0].textContent.trim()==='c2');
+        renderWeekMenuBand(); out.band=(document.getElementById('week-menu-band').textContent||'').replace(/\\s+/g,' ');
+        out.why=skuReasonText('c1');
+        setWeekMenu('c2',true); out.menuEmpty=JSON.stringify(S.weeks[S.activeWeek].menu);
+        // ② 過去の週：10/6週の実績（＝9/29週の販売）に c3 が無い。9/29週の menu に c3 の休みがある → 入力漏れとみなさない（κ＝1）
+        delete S.ji.c3; S.ji.c1={teika:22,nebiki:0,haiki:0}; S.ji.c2={teika:11,nebiki:0,haiki:0};
+        const k3=()=>{ const mm=M(), w0=mm.weeks[0]; return {D:mm.D,kappa:w0.kappa,miss:w0.miss.slice(),rest:w0.rest.slice(),inSet:w0.set.includes('c3'),a3:mm.a.c3,key:w0.key}; };
+        pw.menu={c3:false}; clearAllocCache(); out.r1=k3();
+        delete pw.menu; clearAllocCache(); out.r0=k3();
+        // 休みの週に廃棄だけ（定価0）がある：休みの記録ありなら売場に入れない（取り分は c3 が無い時と同じ）／記録なしなら「出す・売れなかった」で取り分が下がる
+        S.ji.c3={teika:0,nebiki:0,haiki:3};
+        pw.menu={c3:false}; clearAllocCache(); out.h1=k3();
+        delete pw.menu; clearAllocCache(); out.h0=k3();
+        // 休みの記録があっても定価販売がある → 実績を信じて売場に入れる
+        S.ji.c3={teika:5,nebiki:0,haiki:0}; pw.menu={c3:false}; clearAllocCache(); out.t5=k3();
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      const o=JSON.parse(bk); S.PM=o.PM; S.weeks=o.weeks; S.ji=o.ji; S.cust=o.cust; S.budget=o.budget; clearAllocCache(); renderProdDayContent(0); renderWeekMenuBand();
+      return JSON.stringify(out); })()`));
+    const nr=(a,b)=>Math.abs(a-b)<1e-6;
+    check('29','【今週のメニュー①】今週休む商品 → その週の作成数・品切れ防止の最低・まとめ・投資・追加作成がすべて 0、作成表は数のマスを出さず灰色の1行「今週は休み」。ほかの商品の取り分が上がり（比はそのまま）、カテゴリ需要の合計は不変。作成0の一覧は灰（理由＝今週は休み）',
+      !mn.err&&mn.c2before[0]>0&&mn.c2after[0]===0&&mn.c2after[1]===0&&J(mn.show)===J([false,false])&&!!mn.so&&mn.wd===0
+        &&nr(mn.D1,mn.D0)&&nr(mn.t1[0]+mn.t1[2],mn.D1)&&nr(mn.t0[0]+mn.t0[1]+mn.t0[2],mn.D0)&&mn.t1[0]>mn.t0[0]&&mn.t1[1]===0&&nr(mn.t1[0]/mn.t1[2],mn.t0[0]/mn.t0[2])
+        &&mn.sku0===3&&mn.sku1===2&&J(mn.L1)===J(['c1','c3'])&&!!mn.zero&&mn.zero.gray&&!mn.zero.canOn&&mn.zero.r.includes('rest')
+        &&/今週は休み/.test(mn.line)&&mn.line.includes('c2')&&!mn.row&&/休む/.test(mn.band)&&mn.band.includes('c2')&&/休む 1品/.test(mn.why)&&mn.menuEmpty==='{}',
+      mn.err||`c2 の週合計 ${mn.c2before[0]}→${mn.c2after[0]}（品切れ防止の最低 ${mn.c2before[1]}→${mn.c2after[1]}）・追加作成「${mn.so}」／需要 ${(+mn.D0).toFixed(2)}→${(+mn.D1).toFixed(2)}・目標の元 ${mn.t0.map(v=>(+v).toFixed(2))}→${mn.t1.map(v=>(+v).toFixed(2))}・SKU ${mn.sku0}→${mn.sku1}・作成0 ${J(mn.zero)}・灰色の行「${mn.line}」・表の行 ${mn.row}・帯「${mn.band.slice(0,60)}」「${mn.why}」`);
+    check('30','【今週のメニュー②】過去の週に休みの記録がある商品は、その週を入力漏れとみなさない（κ＝1・需要が膨らまない）。休みの週に廃棄だけがあっても売場に入れない（記録なし＝「出す・売れなかった」より取り分が高い＝休みに引っ張られない）。定価販売があれば実績を信じる',
+      !mn.err&&mn.r1.key==='2026.10.6'&&mn.r1.kappa===1&&mn.r1.miss.length===0&&J(mn.r1.rest)===J(['c3'])&&mn.r0.kappa<1&&J(mn.r0.miss)===J(['c3'])&&mn.r1.D<mn.r0.D
+        &&!mn.h1.inSet&&mn.h1.kappa===1&&mn.h0.inSet&&nr(mn.h1.a3,mn.r1.a3)&&mn.h0.a3<mn.h1.a3-1e-6&&mn.t5.inSet&&mn.t5.rest.length===0,
+      mn.err||`休みの記録あり κ ${(+mn.r1.kappa).toFixed(3)}・需要 ${(+mn.r1.D).toFixed(2)}／記録なし κ ${(+mn.r0.kappa).toFixed(3)}（入力漏れ ${J(mn.r0.miss)}）・需要 ${(+mn.r0.D).toFixed(2)}／廃棄だけの週：c3 の魅力度 記録あり ${(+mn.h1.a3).toFixed(4)}（無い時 ${(+mn.r1.a3).toFixed(4)}）・記録なし ${(+mn.h0.a3).toFixed(4)}／定価5 → 売場に ${mn.t5.inSet}`);
+    // ③ 新しい週は前の週の menu を引き継ぐ（保存する。B にも届く）。引き継いだ後に変えても前の週はそのまま
+    A.win.switchWeek('2026.10.13'); A.win.toggleWeekMenu('p2'); await sync();
+    const m13=A.ev('JSON.stringify(S.weeks["2026.10.13"].menu||null)');
+    A.win.addWeek('2026-10-20'); await sync();
+    const m20=A.ev('JSON.stringify(S.weeks["2026.10.20"].menu||null)'), rest20=A.ev('prodRestThisWeek(getP("p2"))'), p2wk=A.ev('[0,1,2,3,4,5,6].reduce((s,d)=>s+[6,10,14,17].reduce((t,h)=>t+getProdCnt("p2",d,h)+getInvestExtra("p2",d,h),0),0)');
+    A.win.toggleWeekMenu('p2'); await sync();
+    const m20b=B.ev('JSON.stringify(S.weeks["2026.10.20"].menu||null)'), m13b=B.ev('JSON.stringify(S.weeks["2026.10.13"].menu||null)');
+    check('31','【今週のメニュー③】新しい週を作ると、前の週の「休む」を引き継ぐ（その週も作成数0）。引き継いだ週で戻しても前の週はそのまま。B にも届く',
+      m13===J({p2:false})&&m20===J({p2:false})&&rest20===true&&p2wk===0&&m20b==='{}'&&m13b===J({p2:false}),
+      `10/13週 ${m13}・10/20週（作った時）${m20} 休み ${rest20}・p2 の週合計 ${p2wk}／戻した後 B:10/20週 ${m20b}・10/13週 ${m13b}`);
+    A.win.switchWeek('2026.10.6'); A.ev('deleteConfirmKey="2026.10.20"; deleteWeek("2026.10.20")'); A.ev('S.weeks["2026.10.13"].menu={}; saveS()'); await sync();
+    // ④ 2台：同じ週の別の商品を同時に休む → 両方残る。B の作成表でも 0。片方を戻す間に B が実績を入れても両方残る
+    const p12=d=>d.ev('[0,1,2,3,4,5,6].reduce((s,dd)=>s+[6,10,14,17].reduce((t,h)=>t+getProdCnt("p1",dd,h)+getProdCnt("p2",dd,h),0),0)');
+    const p12before=p12(B);
+    off(); A.win.toggleWeekMenu('p1'); B.win.toggleWeekMenu('p2'); on(); await sync();
+    const mA=A.ev('JSON.stringify(S.weeks[S.activeWeek].menu)'), mB=B.ev('JSON.stringify(S.weeks[S.activeWeek].menu)'), p12B=p12(B);
+    B.ev('showTab(3); selectProdDay(0)'); const lineB=B.ev('(()=>{ const l=document.querySelector("#prod-day-content .menu-rest-line"); return l?l.textContent:""; })()');
+    off(); A.win.toggleWeekMenu('p1'); B.win.setJi('p1','nebiki',4); on(); await sync();
+    const mA2=A.ev('JSON.stringify(S.weeks[S.activeWeek].menu)'), mB2=B.ev('JSON.stringify(S.weeks[S.activeWeek].menu)'), nb=A.ev('S.ji.p1.nebiki');
+    A.win.toggleWeekMenu('p2'); await sync();
+    const mEnd=B.ev('JSON.stringify(S.weeks[S.activeWeek].menu)'), p12end=p12(B);
+    check('32','【今週のメニュー④】2台：A と B が同じ週の別の商品を同時に休む → 両方残り、B でも2品とも作成数0・灰色の1行。A が1品戻す間に B が実績を入れても両方残る。全部戻すと数も元どおり',
+      JSON.parse(mA).p1===false&&JSON.parse(mA).p2===false&&mA===mB&&p12before>0&&p12B===0&&lineB.includes(prod(B,'p1').name)&&lineB.includes(prod(B,'p2').name)&&mA2===J({p2:false})&&mB2===mA2&&nb===4&&mEnd==='{}'&&p12end===p12before&&same(),
+      `同時に休んだ後 A:${mA} B:${mB}・B の p1+p2 の週合計 ${p12before}→${p12B}・B の灰色の行「${lineB}」／1品戻した後 ${mA2}・B の実績 ${nb}／全部戻した後 ${mEnd}・週合計 ${p12end}`);
+    check('33','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
   $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
