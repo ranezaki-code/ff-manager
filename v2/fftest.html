@@ -376,7 +376,402 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     check('32','【今週のメニュー④】2台：A と B が同じ週の別の商品を同時に休む → 両方残り、B でも2品とも作成数0・灰色の1行。A が1品戻す間に B が実績を入れても両方残る。全部戻すと数も元どおり',
       JSON.parse(mA).p1===false&&JSON.parse(mA).p2===false&&mA===mB&&p12before>0&&p12B===0&&lineB.includes(prod(B,'p1').name)&&lineB.includes(prod(B,'p2').name)&&mA2===J({p2:false})&&mB2===mA2&&nb===4&&mEnd==='{}'&&p12end===p12before&&same(),
       `同時に休んだ後 A:${mA} B:${mB}・B の p1+p2 の週合計 ${p12before}→${p12B}・B の灰色の行「${lineB}」／1品戻した後 ${mA2}・B の実績 ${nb}／全部戻した後 ${mEnd}・週合計 ${p12end}`);
-    check('33','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    // 追加作成「残り◯個」と「残り◯で追加」の目安（2026-10-09 店長：「完売しないと追加作成が出ない。残り何個になったら追加提案に」）。①〜⑤は画面の中だけで計算し、元に戻す（保存しない）
+    const ro=JSON.parse(A.ev(`(()=>{ const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,soldOuts:S.soldOuts}); const out={};
+      const back=()=>{ const o=JSON.parse(bk); S.PM=o.PM; S.weeks=o.weeks; S.soldOuts=o.soldOuts; clearAllocCache(); };
+      try{
+        // ① 残り0＝完売：「完売した」と「残り0個」と、広げた計算の中心（soCalcCore2・r=0・区切りなし）が、同じ入力で同じ y
+        out.r0=[];
+        [['p1',2,10],['p2',4,14],['p1',5,17],['p2',1,6]].forEach(([pid,d,h])=>{ delete S.soldOuts[d+'_'+h+'_'+pid];
+          [1.4,2.3,3.1].forEach(dt=>[10,30,60].forEach(L=>{ const a=calcSoldOutSuggestion(pid,d,h,h+dt,L), b=calcSoldOutSuggestion(pid,d,h,h+dt,L,null,0);
+            const c=a.error?null:soCalcCore2({Q:a.Q,n1:a.n1,n2:a.n2,m0:a.m0,b:a.b,phi:a.phi,past:a.past,cu:a.cu,co:a.co,B:a.B,r:0,chk:[]}).y;
+            out.r0.push([a.error?'E':a.suggest,b.error?'E':b.suggest,c==null?'E':c,a.error?'':a.reason.text===b.reason.text]); })); });
+        window._soNowOverride=12.4; openSoldOutModal('p1',2,10,{remain:true}); out.uiR=document.querySelectorAll('#soldOutPhaseR button[data-remain]').length;
+        pickSoldOutRemain(0); pickSoldOutLead(30); const u1=_soldOutCtx.result;
+        openSoldOutModal('p1',2,10); pickSoldOutLead(30); const u2=_soldOutCtx.result; closeSoldOutModal(); delete window._soNowOverride;
+        out.ui=[u1.suggest,u2.suggest,u1.reason.text===u2.reason.text,u1.remain,u2.remain];
+        // ② 残りが多い時は 0：今週の投資で 12個足したマス（Q が大きい）で、残り Q と Q−1
+        S.weeks[S.activeWeek].invest={p2:{3:{10:12}}}; clearAllocCache();
+        const q2=calcSoldOutSuggestion('p2',3,10,12.5,30,null,1); out.Q2=q2.Q;
+        out.big=[q2.Q,q2.Q-1,q2.Q-2].map(r=>{ const x=calcSoldOutSuggestion('p2',3,10,12.5,30,null,r); return [r,x.error||x.suggest,x.kind]; });
+        out.mono=[]; for(let r=0;r<=q2.Q;r++){ const x=calcSoldOutSuggestion('p2',3,10,12.5,30,null,r); out.mono.push(x.error?'E':x.suggest); }
+        back();
+        // ③ 作る時間が販売の終わりをまたぐ（nB=0）：14:42 に押して 30分後 → 並ぶのは 15:12、販売の終わり（次の分が並ぶ）は 15:00
+        S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; clearAllocCache();   // ③④ は残りの数を選べるように、このマスに投資5個を足す（画面の中だけ）
+        out.late=[1,2,3].map(r=>{ const x=calcSoldOutSuggestion('p1',2,10,14.7,30,null,r); return [x.error||x.suggest,x.n2,x.reason&&x.reason.type]; });
+        // ④ まとめ単位 B=3：いろいろな場面で、出す数はいつも 3 の倍数
+        const bu=getP('p1').batchUnit; getP('p1').batchUnit=3; out.B=[];
+        [11.4,12.2,13.0,13.6].forEach(now=>[0,1,2,3,4].forEach(r=>[10,20,40].forEach(L=>{ const x=calcSoldOutSuggestion('p1',2,10,now,L,null,r); if(!x.error)out.B.push(x.suggest); })));
+        getP('p1').batchUnit=bu;
+        back();
+        // ⑤ 目安（残り◯で追加）：本体の入力の形に、売れ方・数・作る時間・まとめ単位を決めた見本を入れ、おたすけの mine.js の動的計画（_v2tmp/ftref_probe.html）の答えと比べる（2026-10-09 動的計画に替えた）
+        //    作る時間が分からない単品は目安を出さないので、この試験の間だけ「揚げる 30分」にする（back() で戻す）。見本の作る時間は I.LM に入れる
+        //    （2026-10-09 ⑶ 実測が3件たまるまでは目安を出さないので、前の週の時間帯の無い時刻（8・12・20時）に「✓ 作った」の記録を3件足す。マスの直近4週の記録には入らない）
+        S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; getP('p1').prepMethod='fryer'; getP('p1').fryerMin=30;
+        { const so=S.weeks['2026.9.29'].soldOuts=Object.assign({},S.weeks['2026.9.29'].soldOuts); [[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at])=>{ so[d+'_'+h+'_p1']=[{readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:50,done:true,doneAt:at+34/60}]; }); }
+        clearAllocCache();
+        const base=_soRpInputs('p1',2,10), Nc=getCustHoursRange(2,base.ds,base.slotEnd);
+        const V=[[9,1.2,20,1],[9,1.5,60,1],[12,1.3,30,3],[8,1.0,30,1],[6,1.4,40,2]].map(([Q,f,L,B])=>Object.assign({},base,{Q,LM:{cook:{first:L,per:L},cap:null,meas:null,beta:0},B,past:[],phi:1.3,m0:f*Q/Nc,b:Nc/1.3,cu:100,co:60}));
+        out.roI=V; out.rp=V.map(I=>{ const o=soReorderCalc(2,I), lb=_soPost(I,[]).pm;
+          const ks=o.rows.map(z=>z.kind==='make'?'M':z.kind==='wait'?'W':z.kind==='none'?'N':z.kind==='late'?'L':'-').join('');
+          const tR=o.R?o.tR:null, chkT=tR==null?true:Math.abs(getCustHoursRange(2,I.ds,tR)-(I.Q-o.R)/lb)<1e-6;
+          return {R:o.R,below:o.below,ks,chkT,Nc}; });
+        // 記録：前の週の「残り◯個」だけの記録は完売に数えない（学習・撤退の印）。尤度は「ちょうど Q−R0 個」（eq）
+        const pw=S.weeks['2026.9.29']; pw.soldOuts=Object.assign({},pw.soldOuts,{'2_10_p1':[{readyAt:12,soldAt:12,added:0,v:2,noticedAt:11.5,made:5,remain:2,n1:60}],'2_14_p1':[{readyAt:16,soldAt:16,added:0,v:2,noticedAt:15.5,made:5,n1:60}]});
+        out.learn=[getLearnInfo('p1',2,10).so,getLearnInfo('p1',2,14).so];
+        S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; clearAllocCache(); const xp=calcSoldOutSuggestion('p1',2,10,12.5,30); out.xpErr=xp.error||''; out.pastEq=(xp.past||[]).map(e=>e.type+(e.R0?':'+e.R0:'')).join(',');
+        back();
+      }catch(e){ out.err=String(e&&e.stack||e); back(); }
+      return JSON.stringify(out); })()`));
+    { const pre=document.createElement('pre'); pre.id='roI'; pre.style.display='none'; pre.textContent=J(ro.roI||null); document.body.appendChild(pre); }   // 検算（perl）に渡す見本
+    check('34','【残り◯個①】残り0＝完売：「完売した」・「残り◯個 → 0」・広げた計算の中心（r=0）が、同じ入力で同じ数（36場面）と同じ理由。画面でも「残り◯個 → 0個 → 30分後」と「完売した → 30分後」が同じ答え',
+      !ro.err&&ro.r0.length===36&&ro.r0.every(r=>r[0]===r[1]&&r[1]===r[2]&&r[3]!==false)&&ro.r0.some(r=>r[0]>0)&&ro.uiR>=2&&ro.ui[0]===ro.ui[1]&&ro.ui[2]===true&&ro.ui[3]===0,
+      ro.err||`36場面の y：${ro.r0.map(r=>r[0]).join(',')}（完売した＝残り0＝中心 ${ro.r0.every(r=>r[0]===r[1]&&r[1]===r[2])}）・画面 残り0→${ro.ui[0]}／完売した→${ro.ui[1]}・理由同じ ${ro.ui[2]}`);
+    check('35','【残り◯個②】残りが多い時は 0（投資で Q＝'+ro.Q2+' のマス。残り Q・Q−1・Q−2）。残りが多いほど出す数は増えない',
+      !ro.err&&ro.big.every(x=>x[1]===0)&&ro.mono.every((v,i)=>i===0||v<=ro.mono[i-1]),
+      ro.err||`残り Q,Q−1,Q−2 → ${J(ro.big)}／残り0..Q の数 ${ro.mono.join(',')}`);
+    check('36','【残り◯個③】作る時間が販売の終わりをまたぐ（14:42 に押して 30分後＝15:12 に並ぶ。次の分は 15:00）→ 残り1〜3 のどれも 0、理由は「売る時間がない」',
+      !ro.err&&ro.late.every(x=>x[0]===0&&x[1]===0&&x[2]==='time'),ro.err||J(ro.late));
+    check('37','【残り◯個④】まとめ単位 B=3：60場面で、出す数はいつも 0 か 3 の倍数（3以上も出る）',
+      !ro.err&&ro.B.length>=40&&ro.B.every(v=>v%3===0)&&ro.B.some(v=>v>0),ro.err||`${ro.B.length}場面：${ro.B.join(',')}`);
+    const RO_DP=[1,4,3,null,2];   // おたすけの mine.js の動的計画（_v2tmp/ftref_probe.html、λ の目盛り 1500点）で出した答え（同じ見本）。前の perl（W の式）は [2,8,7,null,3]
+    check('38','【残り◯で追加⑤】目安 R＝見込みどおりに売れた時、残り r になる時刻に、動的計画で「今作り始める」になる最大の r（r＝1〜Q−1 を全部見る）。5つの見本で、おたすけの動的計画（mine.js）の答えと一致。「作る」の r は 1〜R の1続き（残り R 個以下で押す、が正しい）。R の時刻は「客数×見込み＝売れた数」',
+      !ro.err&&ro.rp.every((x,i)=>x.R===RO_DP[i]&&x.below!==false&&x.chkT&&x.Nc===178&&(x.R==null||/^M+$/.test(x.ks.slice(0,x.R).replace(/[L-]/g,'M')))),
+      ro.err||ro.rp.map((x,i)=>`見本${i+1}：R=${x.R}（mine ${RO_DP[i]}）r=1.. ${x.ks}`).join('／'));
+    check('39','【残り◯個⑥・記録】前の週の「残り◯個」だけの記録は完売に数えない（学習の完売の週 0、完売の記録は 1）。尤度は「ちょうど Q−R0 個売れた」（eq）',
+      !ro.err&&J(ro.learn)===J([0,1])&&/eq:2/.test(ro.pastEq),ro.err||`学習の完売の週 ${J(ro.learn)}・直近4週の記録 ${ro.pastEq}`);
+    // ⑥ 2台：A が「残り◯個」を記録（画面の流れ）、B が同時に別のマスで「完売した」を記録 → 両方残り、remain も届く。B でも同じ目安・同じ印
+    off();
+    const ra=JSON.parse(A.ev(`(()=>{ window._soNowOverride=12.6; openSoldOutModal('p1',4,10,{remain:true}); pickSoldOutRemain(1); pickSoldOutLead(20); const r=_soldOutCtx.result; acceptSoldOut(); delete window._soNowOverride; const e=S.soldOuts['4_10_p1'][0]; return JSON.stringify({y:r.suggest,kind:r.kind,e}); })()`));
+    const rb=JSON.parse(B.ev(`(()=>{ window._soNowOverride=16.2; openSoldOutModal('p1',5,14); pickSoldOutLead(30); const r=_soldOutCtx.result; acceptSoldOut(); delete window._soNowOverride; return JSON.stringify({y:r.suggest}); })()`));
+    on(); await sync();
+    const eB=JSON.parse(B.ev(`JSON.stringify((S.soldOuts['4_10_p1']||[])[0]||null)`)), eA=JSON.parse(A.ev(`JSON.stringify((S.soldOuts['5_14_p1']||[])[0]||null)`));
+    const rpA=A.ev(`JSON.stringify(soReorderPoint('p1',2,10))`), rpB=B.ev(`JSON.stringify(soReorderPoint('p1',2,10))`);
+    B.ev('showTab(3); selectProdDay(4)'); await sleep(200);
+    const badgeB=B.ev(`(()=>{ const t=document.getElementById('prod-day-content').textContent; return t.includes(${J(ra.y>0?'+'+ra.y:'残1')}); })()`);
+    check('40','【残り◯個⑥・2台】A が「残り1個」を記録（画面：残り◯個 → 1個 → 20分後 → 記録）、B が同時に別のマスで「完売した」を記録 → 両方残り、B にも remain:1 が届く（完売の記録には remain が付かない）。目安は2台で同じ。B の作成表に印',
+      !!eB&&eB.remain===1&&eB.made===ra.e.made&&!!eA&&!('remain' in eA)&&rpA===rpB&&badgeB&&same(),
+      `A：y=${ra.y}（${ra.kind}）・記録 ${J({remain:ra.e.remain,made:ra.e.made,added:ra.e.added,why:ra.e.why})}／B に届いた ${eB?J({remain:eB.remain,added:eB.added}):'なし'}・A に届いた完売 ${eA?('remain なし '+!('remain' in eA)):'なし'}／目安 A=B ${rpA===rpB}・B の印 ${badgeB}`);
+    // 画面：セルのメニューに「残り◯個」と目安、マスに「残り◯で追加」。「作る予定」の追加分がある時は先に「✓ 作った」
+    const ui=JSON.parse(A.ev(`(()=>{ const out={}; const bk=JSON.stringify(S.weeks); try{
+        // 目安の数そのものは試験38で確かめた。ここは画面のつなぎ（メニューとマス）を確かめるため、このマスだけ目安を R=3・作る時間20分にする（画面の中だけ。あとで元に戻す）
+        window.__rpOrig=soReorderPoint; soReorderPoint=function(pid,d,h){ return (pid==='p1'&&d===2&&h===10)?{R:3,L:20,Q:6,rows:[]}:window.__rpOrig(pid,d,h); };
+        const rp=soReorderPoint('p1',2,10); out.R=rp&&rp.R;
+        openCellMenu('p1',2,10); const m=document.getElementById('cellMenuModal'); const b=m.querySelector('button[data-act="remain"]'); out.menu=!!b&&b.textContent.replace(/\\s+/g,' '); closeCellMenu();
+        showTab(3); selectProdDay(2); return JSON.stringify(out);
+      }catch(e){ out.err=String(e&&e.stack||e); S.weeks=JSON.parse(bk); return JSON.stringify(out); } })()`));
+    await sleep(300);
+    const hint=A.ev(`(()=>{ const el=document.querySelector('.so-ro[data-ro="2_10_p1"]'); return el?el.textContent:'(なし)'; })()`);
+    const pd=JSON.parse(A.ev(`(()=>{ const out={}; const k='2_14_p1'; delete S.soldOuts[k];
+        S.soldOuts[k]=[{readyAt:16,soldAt:16,added:2,v:2,noticedAt:15.5,lead:30,made:4,remain:1,done:false}];
+        window._soNowOverride=15.8; openSoldOutModal('p1',2,14,{remain:true}); out.block=!!document.getElementById('soldOutPhaseP')&&!document.getElementById('soldOutPhaseR');
+        const btn=document.querySelector('#soldOutPhaseP button'); btn.click(); out.done=S.soldOuts[k][0].done===true&&typeof S.soldOuts[k][0].doneAt==='number'; out.after=!!document.getElementById('soldOutPhaseR')&&!document.getElementById('soldOutPhaseP');
+        closeSoldOutModal(); delete window._soNowOverride; delete S.soldOuts[k]; return JSON.stringify(out); })()`));
+    A.ev(`(()=>{ soReorderPoint=window.__rpOrig; delete window.__rpOrig; S.soldOuts={}; saveS(); })()`); await sync();
+    check('41','【残り◯個・画面】セルのメニューに「残り◯個」と目安「残り R 個以下になったら押す」、作成表のマスに「残りRで追加」。「残り◯個」の追加分が「作る予定」のままの時は、先に「✓ 作った」を押す（押すと残りの数のボタンへ）',
+      !ui.err&&ui.R>0&&ui.menu&&ui.menu.includes('残り◯個')&&ui.menu.includes('残り '+ui.R+'個')&&hint===('残り'+ui.R+'で追加')&&pd.block&&pd.done&&pd.after,
+      ui.err||`R=${ui.R}・メニュー「${ui.menu}」・マス「${hint}」／作る予定の時 先に作った ${pd.block}→押した ${pd.done}→残りのボタン ${pd.after}`);
+    // あわせて直した不具合：③天気・イベント調整の「読み込み済み」の印が、保存（週のデータの作り直し）で消えない
+    A.ev(`(()=>{ const w=S.weeks[S.activeWeek]; w.researchLoaded=true; w.researchLoadedAt='2026-10-09T01:23:00.000Z'; w.researchFileName='外部要因_2026-10-06週.json'; saveS(); })()`);
+    A.win.setJi('p1','nebiki',5); await sync();
+    const rfA=A.ev(`JSON.stringify([S.weeks[S.activeWeek].researchLoaded,S.weeks[S.activeWeek].researchLoadedAt,S.weeks[S.activeWeek].researchFileName])`), rfB=B.ev(`JSON.stringify([S.weeks[S.activeWeek].researchLoaded,S.weeks[S.activeWeek].researchLoadedAt,S.weeks[S.activeWeek].researchFileName])`);
+    B.ev('showTab(2)'); const card=B.ev(`(()=>{ renderResearchCard(); const el=document.getElementById('research-card-content'); return el?/読込済/.test(el.textContent):false; })()`);
+    check('42','【直した不具合】③の「読み込み済み」の印（researchLoaded・researchLoadedAt・researchFileName）が、保存のあとも消えない（実績を入れて保存しても残る）。B にも届き、B の画面に「読込済」',
+      rfA===J([true,'2026-10-09T01:23:00.000Z','外部要因_2026-10-06週.json'])&&rfB===rfA&&card,`A ${rfA}・B ${rfB}・B の画面 ${card}`);
+    // ===== 2026-10-09 追加：③を動的計画に・記録の並び・作る時間（D）=====
+    // ① 動的計画の「作らせない形」＝前の W（売り切れるまで待つ）、待つ(0,r) ≤ W
+    const dp1=JSON.parse(A.ev(`(()=>{ const out={w:[]}; const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,soldOuts:S.soldOuts}); const orig=soCalcCore2;
+      try{
+        S.weeks[S.activeWeek].invest={p1:{2:{10:5}},p2:{3:{10:6}}}; S.soldOuts={}; clearAllocCache();
+        let cap=null; soCalcCore2=function(o){ const w=typeof o.wait==='function'?o.wait():o.wait; cap={o,w}; return orig(Object.assign({},o,{wait:w})); };
+        [['p1',2,10,11.6,20],['p1',2,10,12.3,30],['p1',2,10,13.1,10],['p2',3,10,11.8,40],['p2',3,10,12.9,20],['p2',3,10,12.2,60]].forEach(([pid,d,h,now,L])=>[1,2,3,4].forEach(r=>{ cap=null;
+          const x=calcSoldOutSuggestion(pid,d,h,now,L,null,r); if(x.error||!cap||!(x.n2>0))return;
+          const o=cap.o, wt=cap.w, B=Math.max(1,o.B||1), P=_soPost(o,_soTodayObs(o.Q,o.n1,o.r,o.chk));
+          const a=_soDP(P.lam,P.post,o,wt,o.r,B,false,false), b=_soWaitOnlyW(P.lam,P.post,o,wt,o.r,B);
+          out.w.push({k:[pid,now,L,r].join('/'),dpw:a.cont0,W:b.W,cont:x.lossWait,kind:x.kind}); }));
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      soCalcCore2=orig; { const o=JSON.parse(bk); S.PM=o.PM; S.weeks=o.weeks; S.soldOuts=o.soldOuts; clearAllocCache(); }
+      return JSON.stringify(out); })()`));
+    { const okEq=dp1.w.every(z=>Math.abs(z.dpw-z.W)<=1e-9*Math.max(1,z.W)), okLe=dp1.w.every(z=>z.cont<=z.W+1e-9), lt=dp1.w.filter(z=>z.cont<z.W-1e-6).length;
+      check('43','【③動的計画①】「今作るを許さない形」の動的計画＝前の W（売り切れるまで待ってから「完売した」）と同じ値。許した時の「待つ」の値はいつも W 以下（同じか小さい）',
+        !dp1.err&&dp1.w.length>=12&&okEq&&okLe&&lt>0,dp1.err||`${dp1.w.length}場面・作らせない形＝W ${okEq}（差の最大 ${Math.max(...dp1.w.map(z=>Math.abs(z.dpw-z.W))).toExponential(1)}）・待つ ≤ W ${okLe}（小さくなった ${lt}場面）・答え ${dp1.w.map(z=>z.kind[0]).join('')}`); }
+    // ② おたすけの検算の場面（入力をそのまま入れる）：S3・S6・S9・S17 は「待つ」、S1 は「今作る」。待つ・今作るの損は mine.js の動的計画と同じ
+    const CAPS={"S1":{"B":1,"Q":5,"b":712,"chk":[],"co":50.609756097561,"cu":100,"m0":0.0308488612836439,"n1":51.8,"n2":104.2,"nA":22,"past":[{"A":4,"N":178,"Q":30,"type":"between"}],"phi":1,"r":2,"wait":{"c":[0,3.66666666666669,7.33333333333331,11,14.6666666666667,18.3333333333333,22,25.6666666666667,29.3333333333333,33,36.7,40.45,44.2,47.95,51.7,55.45,59.2,62.95,66.7,70.45,74.2,77.95,81.7333333333334,85.5666666666666,89.4,93.2333333333333,97.0666666666666,100.9,104.733333333333,108.566666666667,112.4,116.233333333333,120.066666666667,123.9,126.2],"lead":[22,22,22,22.0333333333333,22.1166666666667,22.2,22.2833333333333,22.3666666666667,22.45,22.5,22.5,22.5,22.5,22.5,22.5,22.5333333333333,22.6166666666667,22.7,22.7833333333333,22.8666666666667,22.95,23,23,23,23,23,23,21.4666666666668,17.6333333333334,13.8,9.96666666666675,6.13333333333339,2.30000000000003,0],"n2":[100.533333333333,96.8666666666667,93.2,89.5,85.7500000000001,82,78.25,74.5000000000001,70.75,67,63.2500000000001,59.5,55.75,52.0000000000001,48.25,44.4666666666667,40.6333333333334,36.8,32.9666666666667,29.1333333333334,25.3,21.4666666666667,17.6333333333334,13.8,9.96666666666675,6.13333333333339,2.30000000000003,0,0,0,0,0,0,0]}},"S17":{"B":1,"Q":5,"b":712,"chk":[],"co":50.609756097561,"cu":100,"m0":0.0925465838509317,"n1":43,"n2":120.333333333333,"nA":14.6666666666667,"past":[{"A":4,"N":178,"Q":30,"type":"between"}],"phi":1,"r":4,"wait":{"c":[0,3.66666666666669,7.33333333333331,11,14.6666666666667,18.3333333333333,22,25.6666666666667,29.3333333333333,33,36.6666666666667,40.3333333333333,44,47.75,51.5,55.25,59,62.75,66.5,70.25,74,77.75,81.5,85.25,89,92.8333333333333,96.6666666666666,100.5,104.333333333333,108.166666666667,112,115.833333333333,119.666666666667,123.5,127.333333333333,131.166666666667,135],"lead":[14.6666666666667,14.6666666666667,14.6666666666667,14.6666666666667,14.6666666666667,14.6666666666667,14.6666666666667,14.6666666666667,14.75,14.8333333333334,14.9166666666667,15,15,15,15,15,15,15,15,15,15.0833333333334,15.1666666666667,15.25,15.3333333333334,15.3333333333334,15.3333333333334,15.3333333333334,15.3333333333334,15.3333333333334,15.3333333333334,15.3333333333334,15.3333333333334,11.5,7.66666666666672,3.83333333333336,0],"n2":[116.666666666667,113,109.333333333333,105.666666666667,102,98.3333333333333,94.6666666666666,91,87.25,83.4999999999999,79.75,76,72.2499999999999,68.5,64.75,60.9999999999999,57.25,53.5,49.7499999999999,46,42.1666666666666,38.3333333333333,34.5,30.6666666666666,26.8333333333334,23,19.1666666666666,15.3333333333334,11.5,7.66666666666664,3.83333333333336,0,0,0,0,0]}},"S3":{"B":1,"Q":15,"b":712,"chk":[],"co":50.609756097561,"cu":100,"m0":0.0925465838509317,"n1":43,"n2":113,"nA":22,"past":[{"A":4,"N":178,"Q":30,"type":"between"}],"phi":1,"r":8,"wait":{"c":[0,3.66666666666669,7.33333333333331,11,14.6666666666667,18.3333333333333,22,25.6666666666667,29.3333333333333,33,36.6666666666667,40.3333333333333,44,47.75,51.5,55.25,59,62.75,66.5,70.25,74,77.75,81.5,85.25,89,92.8333333333333,96.6666666666666,100.5,104.333333333333,108.166666666667,112,115.833333333333,119.666666666667,123.5,127.333333333333,131.166666666667,135],"lead":[22,22,22,22,22,22,22.0833333333333,22.1666666666667,22.25,22.3333333333333,22.4166666666667,22.5,22.5,22.5,22.5,22.5,22.5,22.5,22.5833333333333,22.6666666666667,22.75,22.8333333333333,22.9166666666667,23,23,23,23,23,23,23,19.1666666666667,15.3333333333334,11.5,7.66666666666672,3.83333333333336,0],"n2":[109.333333333333,105.666666666667,102,98.3333333333333,94.6666666666667,91,87.25,83.5,79.75,76,72.25,68.5,64.75,61,57.25,53.5,49.75,46,42.1666666666666,38.3333333333334,34.5,30.6666666666666,26.8333333333334,23,19.1666666666667,15.3333333333334,11.5,7.66666666666672,3.83333333333336,0,0,0,0,0,0,0]}},"S6":{"B":3,"Q":6,"b":712,"chk":[],"co":50.609756097561,"cu":100,"m0":0.0308488612836439,"n1":65,"n2":91,"nA":22,"past":[{"A":4,"N":178,"Q":30,"type":"between"}],"phi":1,"r":5,"wait":{"c":[0,3.66666666666669,7.33333333333331,11,14.6666666666667,18.3333333333333,22,25.75,29.5,33.25,37,40.75,44.5,48.25,52,55.75,59.5,63.25,67,70.8333333333334,74.6666666666666,78.5,82.3333333333334,86.1666666666666,90,93.8333333333333,97.6666666666666,101.5,105.333333333333,109.166666666667,113],"lead":[22.0833333333333,22.1666666666667,22.25,22.3333333333333,22.4166666666667,22.5,22.5,22.5,22.5,22.5,22.5,22.5,22.5833333333333,22.6666666666667,22.75,22.8333333333333,22.9166666666667,23,23,23,23,23,23,23,19.1666666666667,15.3333333333334,11.5,7.66666666666672,3.83333333333336,0],"n2":[87.25,83.5,79.75,76,72.25,68.5,64.75,61,57.25,53.5,49.75,46,42.1666666666666,38.3333333333334,34.5,30.6666666666666,26.8333333333334,23,19.1666666666666,15.3333333333334,11.5,7.66666666666664,3.83333333333336,0,0,0,0,0,0,0]}},"S9":{"B":1,"Q":5,"b":712,"chk":[],"co":50.609756097561,"cu":100,"m0":0.0308488612836439,"n1":32.4161073825503,"n2":123.830029655065,"nA":21.7538629623849,"past":[{"A":4,"N":178,"Q":30,"type":"between"}],"phi":1,"r":3,"wait":{"c":[0,3.58333333333336,7.16666666666664,10.7538629623849,14.4205296290516,18.0871962957182,21.7538629623849,25.4205296290516,29.0871962957182,32.7538629623849,36.4205296290516,40.0871962957182,43.7538629623849,47.4205296290516,51.0871962957182,54.7577259247698,58.5077259247698,62.2577259247698,66.0077259247698,69.7577259247698,73.5077259247697,77.2577259247698,81.0077259247698,84.7577259247697,88.5077259247698,92.2577259247697,96.0077259247697,99.7615888871547,103.594922220488,107.428255553821,111.261588887155,115.094922220488,118.928255553821,122.761588887155,126.594922220488,130.428255553821,134.261588887155,138.094922220488,141.928255553821,145.58389261745],"lead":[21.8371962957182,21.9205296290516,22,22,22,22,22,22,22.0038629623849,22.0871962957182,22.1705296290516,22.2538629623849,22.3371962957182,22.4205296290516,22.5,22.5,22.5,22.5,22.5,22.5,22.5038629623849,22.5871962957182,22.6705296290516,22.7538629623849,22.8371962957182,22.9205296290516,23,23,23,23,23,23,22.8223037302951,18.9889703969618,15.1556370636284,11.3223037302951,7.48897039696179,3.65563706362843,0],"n2":[120.163362988398,116.496696321732,112.830029655065,109.163362988398,105.496696321732,101.830029655065,98.1633629883981,94.4966963217315,90.82616669268,87.0761666926799,83.32616669268,79.57616669268,75.8261666926799,72.07616669268,68.32616669268,64.5761666926799,60.82616669268,57.07616669268,53.3261666926799,49.57616669268,45.8223037302951,41.9889703969617,38.1556370636284,34.3223037302951,30.4889703969618,26.6556370636284,22.8223037302951,18.9889703969618,15.1556370636284,11.3223037302951,7.48897039696179,3.65563706362843,0,0,0,0,0,0,0]}}};
+    const CAPREF={S1:{kind:'make',now:174.718,cont:179.509},S3:{kind:'wait',now:232.470,cont:204.696},S6:{kind:'wait',now:153.777,cont:128.044},S9:{kind:'wait',now:179.798,cont:179.195},S17:{kind:'wait',now:226.728,cont:223.594}};
+    const dp2=JSON.parse(A.ev(`(()=>{ const caps=${J(CAPS)}, out={};
+      Object.keys(caps).forEach(k=>{ const o=caps[k], w=o.wait; const wt={c:w.c,lead:w.lead,n2:w.n2,cap:Infinity,at:(j,c)=>j===0?{nA:o.nA,nB:o.n2}:{nA:w.lead[j-1],nB:w.n2[j-1]}};
+        const r=soCalcCore2(Object.assign({},o,{wait:wt})); out[k]={kind:r.kind,y:r.y,now:r.lossNow,cont:r.lossWait}; });
+      return JSON.stringify(out); })()`));
+    check('44','【③動的計画②・検算の場面】おたすけの表の S3・S6・S9・S17 は「待つ」（前の W では「今作る」）、S1 は「今作る」。今作る・待つの損が、おたすけの動的計画（mine.js）と小数3けたで一致（目安 R は試験38）',
+      Object.keys(CAPREF).every(k=>dp2[k]&&dp2[k].kind===CAPREF[k].kind&&Math.abs(dp2[k].now-CAPREF[k].now)<0.002&&Math.abs(dp2[k].cont-CAPREF[k].cont)<0.002),
+      Object.keys(CAPREF).map(k=>`${k}：${dp2[k]&&dp2[k].kind}（今作る ${dp2[k]&&dp2[k].now.toFixed(3)}／待つ ${dp2[k]&&dp2[k].cont.toFixed(3)}・mine ${CAPREF[k].now}／${CAPREF[k].cont}）`).join('　'));
+    // ③ 記録の並び（2台で同時に記録した時）：「残り1」の後に「残り3」（時刻がその順）→ 止まらずに「順番が合いません」。配列の順が逆でも時刻が合っていれば、正しい順と同じ答え
+    const ord=JSON.parse(A.ev(`(()=>{ const out={}; const bk=JSON.stringify({weeks:S.weeks,soldOuts:S.soldOuts});
+      try{
+        S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; clearAllocCache(); const Q=getProdCnt('p1',2,10)+getInvestExtra('p1',2,10); out.Q=Q;
+        const e=(at,rem)=>({readyAt:at+0.5,soldAt:at+0.5,added:0,v:2,noticedAt:at,lead:30,made:Q,remain:rem,n1:20});
+        S.soldOuts={'2_10_p1':[e(11.333,1),e(11.833,3)]};
+        let thrown=''; let a; try{ a=calcSoldOutSuggestion('p1',2,10,12.4,30,null,1); }catch(err){ thrown=String(err); }
+        out.bad={thrown,error:a&&a.error||''};
+        window._soNowOverride=12.4; let t2=''; try{ openSoldOutModal('p1',2,10,{remain:true}); pickSoldOutRemain(1); pickSoldOutLead(30); }catch(err){ t2=String(err); }
+        const ph=document.getElementById('soldOutPhase2'); out.ui={thrown:t2,text:ph?ph.textContent.replace(/\\s+/g,' ').slice(0,80):''}; closeSoldOutModal(); delete window._soNowOverride;
+        S.soldOuts={'2_10_p1':[e(11.833,2),e(11.333,4)]}; const b=calcSoldOutSuggestion('p1',2,10,12.4,30,null,1);
+        S.soldOuts={'2_10_p1':[e(11.333,4),e(11.833,2)]}; const c=calcSoldOutSuggestion('p1',2,10,12.4,30,null,1);
+        out.rev={b:[b.error||'',b.suggest,b.lossNow,b.lossWait],c:[c.error||'',c.suggest,c.lossNow,c.lossWait]};
+      }catch(err){ out.err=String(err&&err.stack||err); }
+      { const o=JSON.parse(bk); S.weeks=o.weeks; S.soldOuts=o.soldOuts; clearAllocCache(); }
+      return JSON.stringify(out); })()`));
+    check('45','【直した不具合・記録の並び】同じマスで「残り1」の後に「残り3」の記録（2台で同時に記録した時など）→ 例外で止まらず「記録の順番が合いません」（計算も画面も）。配列の順が逆に入っていても、時刻の順に並べ直して正しい順と同じ答え',
+      !ord.err&&!ord.bad.thrown&&/順番が合いません/.test(ord.bad.error)&&!ord.ui.thrown&&/順番が合いません/.test(ord.ui.text)&&!ord.rev.b[0]&&J(ord.rev.b)===J(ord.rev.c),
+      ord.err||`Q=${ord.Q}・計算：${ord.bad.thrown||ord.bad.error}・画面：${ord.ui.thrown||ord.ui.text}／逆の順 ${J(ord.rev.b)}＝正しい順 ${J(ord.rev.c)}`);
+    // ④ 作る時間：設定のみ／記録のみ／両方／どちらも無し。1回に作れる数を超える時は回数ぶん
+    const ld=JSON.parse(A.ev(`(()=>{ const out={}; const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,soldOuts:S.soldOuts});
+      try{
+        S.weeks[S.activeWeek].invest={p1:{2:{10:5}},p2:{3:{10:6}}}; S.soldOuts={}; Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k])S.weeks[k].soldOuts={}; });
+        const p1=getP('p1'), p2=getP('p2'); ['prepMethod','fryerMin','microwaveMin','steamMin','warmMin','fryerCap','cookCap'].forEach(k=>{ delete p1[k]; delete p2[k]; }); clearAllocCache();
+        const modal=(pid,d,h,now)=>{ window._soNowOverride=now; openSoldOutModal(pid,d,h,{remain:true}); pickSoldOutRemain(1); const p1v=document.getElementById('soldOutPhase1'), c=_soldOutCtx;
+          const r={asked:!!p1v&&p1v.style.display!=='none',auto:!!(c&&c.auto),result:!!(c&&c.result),leadMin:c&&c.result?c.result.leadMin:null,src:c&&c.result?c.result.leadSrc:null,hint:!!document.getElementById('soldOutCookHint')}; closeSoldOutModal(); delete window._soNowOverride; return r; };
+        // (a) どちらも無し
+        out.a={LM:soLeadModel(p2),I:_soRpInputs('p2',3,10),rp:soReorderPoint('p2',3,10),ui:modal('p2',3,10,12.6)};
+        // (b) 設定のみ：蒸す 12分
+        p2.prepMethod='steam'; p2.steamMin=12; clearAllocCache();
+        const Ib=_soRpInputs('p2',3,10); out.b={LM:soLeadModel(p2),hasI:!!Ib,L:Ib?soLeadMin(Ib.LM,3,12,1):null,rp:soReorderPoint('p2',3,10),ui:modal('p2',3,10,12.6)};
+        // (c) 記録のみ：p1（作り方なし）の「押してから作った」まで 12・14・20分（ほかのマス・前の週）→ 中央値 14分。記録が3件そろうので「何分後」を聞かない
+        const rec=(at,min,added)=>({readyAt:at+0.5,soldAt:at+0.5,added,v:2,noticedAt:at,lead:30,made:5,n1:30,done:true,doneAt:at+min/60});
+        S.soldOuts['4_14_p1']=[rec(15.2,12,2)]; S.soldOuts['5_17_p1']=[rec(18.1,14,2)]; S.weeks['2026.9.29'].soldOuts={'3_10_p1':[rec(12.0,20,5)]}; clearAllocCache();
+        const Ic=_soRpInputs('p1',2,10); out.c={LM:soLeadModel(p1),L:Ic?soLeadMin(Ic.LM,2,12,1):null,ui:modal('p1',2,10,12.6)};
+        // (d) 両方：揚げる 8分・1回に3個まで → 記録は「作った − 調理」（追加5個は2回＝16分）：12−8, 14−8, 20−16 → 中央値 4分
+        p1.prepMethod='fryer'; p1.fryerMin=8; p1.fryerCap=3; clearAllocCache();
+        const LMd=soLeadModel(p1); out.d={LM:LMd,L1:soLeadMin(LMd,2,12,1),L2:soLeadMin(LMd,2,12,2),list:soMeasList('p1').map(z=>Math.round(z.M*1000)/1000),ui:modal('p1',2,10,12.6)};
+        // 回数で並ぶ時刻が変わる：完売（残り0）を記録の作る時間で。y が3以下なら 12分（1回）、4以上なら 20分（2回）
+        const pr=[12.1,12.6,13.2].map(now=>{ const r=calcSoldOutSuggestion('p1',2,10,now,'auto',null,0); return r.error?{e:r.error}:{y:r.suggest,cyc:r.cyc,lead:r.leadMin,ready:Math.round((r.readyAt-now)*600)/10}; });
+        out.d.press=pr;
+        // 1回に作れる数が無い時は、今までの「完売した」と同じ答え（同じ分を選んだ時）
+        delete p1.fryerCap; clearAllocCache(); const LMe=soLeadModel(p1); const e1=calcSoldOutSuggestion('p1',2,10,12.6,'auto',null,0), e2=calcSoldOutSuggestion('p1',2,10,12.6,soLeadMin(LMe,2,12.6,1),null,0);
+        out.e={a:[e1.suggest,e1.readyAt],b:[e2.suggest,e2.readyAt],L:soLeadMin(LMe,2,12.6,1),pso:[e1.priorSO,e2.priorSO]};   // 2026-10-09 ⑷：自動でも「完売する確率」（priorSO）が出る
+        // 回数で作る時間が変わる時の数の選び方を、全部の y を見た答えと比べる（λ を1つにした見本。1回に2個・1回ごとに作る間の客 10人）
+        { const lam=[0.05], post=[1], cu=100, co=50, at=c=>({nA:10*c,nB:Math.max(0,90-10*c)});
+          const d=_soStockoutDecide(lam,post,at,2,1,cu,co,1); let bb={y:0,T:cu*0.05*at(1).nA+_soNV(0.05,at(1).nB,1,0,cu,co)};
+          for(let y=1;y<=30;y++){ const a=at(Math.ceil(y/2)); if(!(a.nB>0))continue; const T=cu*0.05*a.nA+_soNV(0.05,a.nB,1,y,cu,co); if(T<bb.T-1e-9)bb={y,T}; }
+          const wt={c:[0,5,10],lead:[10,10],n2:[80,75],cap:2,at:(j,c)=>({nA:10*c,nB:Math.max(0,90-10*c-5*j)})};
+          const r=2, dp=_soDP(lam,post,{cu,co,phi:1},wt,r,1,true,true);
+          let bn={y:0,v:Infinity}; for(let y=0;y<=30;y++){ const a=wt.at(0,Math.max(1,Math.ceil(y/2))); if(y>0&&!(a.nB>0))continue; const pA=_soPmfArr(0.05*a.nA,1,r); let v=0,cdf=0; for(let dd=0;dd<r;dd++){ cdf+=pA[dd]; v+=pA[dd]*(_soNV(0.05,a.nB,1,r-dd+y,cu,co)); } v+=(1-cdf)*_soNV(0.05,a.nB,1,y,cu,co); let lost=0.05*a.nA-r; for(let dd=0;dd<r;dd++)lost+=(r-dd)*pA[dd]; v+=cu*lost; if(v<bn.v-1e-9)bn={y,v}; }
+          out.g={dec:[d.y,d.cyc],brute:bb.y,now:[dp.yNow,dp.cyc,dp.lossNow],nowBrute:[bn.y,bn.v]}; }
+      }catch(err){ out.err=String(err&&err.stack||err); }
+      { const o=JSON.parse(bk); S.PM=o.PM; S.weeks=o.weeks; S.soldOuts=o.soldOuts; clearAllocCache(); }
+      return JSON.stringify(out); })()`));
+    { const a=ld.a||{}, b=ld.b||{}, c=ld.c||{}, d=ld.d||{}, e=ld.e||{};
+      const okA=a.LM===null&&a.I===null&&a.rp===null&&a.ui&&a.ui.asked&&!a.ui.auto&&!a.ui.result&&!a.ui.hint;
+      const okB=!!b.LM&&b.LM.cook&&b.LM.cook.first===12&&!b.LM.meas&&!b.hasI&&b.rp===null&&b.ui.asked&&!b.ui.auto&&b.ui.hint;   // 2026-10-09 ⑶：作り方だけでは目安を出さない
+      const okC=!!c.LM&&!c.LM.cook&&c.LM.meas&&Math.abs(c.LM.meas.med-14)<1e-9&&Math.abs(c.L-14)<1e-9&&c.ui.auto&&!c.ui.asked&&c.ui.result&&c.ui.leadMin===14&&c.ui.src==='auto';
+      const okD=!!d.LM&&d.LM.cook&&d.LM.cook.first===8&&d.LM.cap===3&&J(d.list)===J([6,4,4])&&Math.abs(d.L1-12)<1e-9&&Math.abs(d.L2-20)<1e-9&&d.ui.auto&&(d.press||[]).every(x=>!x.e&&((x.y<=3&&x.cyc===1&&Math.abs(x.ready-12)<0.05)||(x.y>3&&x.cyc===2&&Math.abs(x.ready-20)<0.05)));
+      const okE=e.a&&J(e.a)===J(e.b)&&e.pso&&typeof e.pso[0]==='number'&&e.pso[0]===e.pso[1], g=ld.g||{}, okG=!!g.dec&&g.dec[0]===g.brute&&g.dec[1]===Math.max(1,Math.ceil(g.brute/2))&&g.brute>2&&g.now[0]===g.nowBrute[0]&&Math.abs(g.now[2]-g.nowBrute[1])<1e-6&&g.now[1]===Math.max(1,Math.ceil(g.now[0]/2));
+      check('46','【作る時間（D）】どちらも無し：目安なし・「何分後」を聞く／設定のみ（蒸す12分）：目安は出さない（2026-10-09 ⑶ 実測が3件たまるまで）・押した時は「何分後」を聞く（調理12分の1行）／記録のみ（12・14・20分）：中央値14分・聞かずに計算／両方（揚げる8分・1回3個）：記録は「作った−調理（回数ぶん）」＝6・4・4（新しい順）→ 1回 12分・2回 20分。出した数の回数で並ぶ時刻が決まり、数は回数ごとの損を全部見た答えと同じ／1回の数が無ければ、同じ分を選んだ「完売した」と同じ答え',
+        !ld.err&&okA&&okB&&okC&&okD&&okE&&okG,
+        ld.err||`無し ${okA}・設定のみ ${okB}（L=${b.L}）・記録のみ ${okC}（中央値 ${c.LM&&c.LM.meas&&c.LM.meas.med}・聞かない ${c.ui&&!c.ui.asked}）・両方 ${okD}（記録 ${J(d.list)}・1回 ${d.L1}分・2回 ${d.L2}分・押した時 ${J(d.press)}）・回数なし＝選んだ時 ${okE}（完売する確率 ${J(e.pso)}）・回数の選び方＝全部見た答え ${okG}（完売 ${J(g.dec)}／全部 ${g.brute}・今作る ${J(g.now)}／全部 ${J(g.nowBrute)}）`); }
+    // 混み具合：全商品の記録で、1時間あたりの客数が多いほど「並べるまで」が長い → 記録が10件以上で傾きが誤差の2倍を超えた時だけ足す
+    const bz=JSON.parse(A.ev(`(()=>{ const out={}; const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,soldOuts:S.soldOuts});
+      try{
+        S.soldOuts={}; Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k])S.weeks[k].soldOuts={}; });
+        const p1=getP('p1'), p2=getP('p2'); p1.prepMethod='fryer'; p1.fryerMin=5; p2.prepMethod='asis'; delete p1.fryerCap; clearAllocCache();
+        // 客数（1時間あたり）は 6〜21時で 30＋曜日＋時。並べるまで＝ 3 ＋ 0.2×(客数−40) 分（作った−押した ＝ 調理＋それ）
+        const rec=(d,at,pid)=>{ const x=custEff(d)[Math.floor(at)]; const M=3+0.2*(x-40), ck=pid==='p1'?5:0; return {readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:30,done:true,doneAt:at+(M+ck)/60}; };
+        const put=(pid,list)=>list.forEach(([d,h,at])=>{ const k=d+'_'+h+'_'+pid; (S.soldOuts[k]=S.soldOuts[k]||[]).push(rec(d,at,pid)); });
+        put('p1',[[0,6,7.1],[1,10,12.0],[2,14,15.2],[3,17,19.5],[4,6,8.0],[5,10,13.0]]); put('p2',[[0,10,10.2],[1,14,16.0],[2,17,20.2],[3,6,9.0],[6,10,11.4],[6,14,17.3]]);
+        clearAllocCache(); const f=soBusyFit(); out.fit={beta:f.beta,se:f.se,n:f.n,use:f.use}; const LM=soLeadModel(p1); out.beta=LM.beta;
+        out.L=[9,18].map(g=>soLeadMin(LM,2,g,1)); out.x=[9,18].map(g=>custEff(2)[g]);
+        // 記録が少ない時（6件）は足さない
+        S.soldOuts={}; put('p1',[[0,6,7.1],[1,10,12.0],[2,14,15.2]]); put('p2',[[0,10,10.2],[1,14,16.0],[2,17,20.2]]); clearAllocCache(); out.few=soBusyFit().use;
+      }catch(err){ out.err=String(err&&err.stack||err); }
+      { const o=JSON.parse(bk); S.PM=o.PM; S.weeks=o.weeks; S.soldOuts=o.soldOuts; clearAllocCache(); }
+      return JSON.stringify(out); })()`));
+    check('47','【作る時間・混み具合】全商品の記録（2商品×6件、各商品の直近5件＝10件）から「1時間あたりの客数」と「並べるまで」の傾きを出す（見本は 0.2分／人）→ 足す。混んでいる時刻ほど作る時間が長い。記録が少ない時（6件）は足さない',
+      !bz.err&&bz.fit.use&&Math.abs(bz.fit.beta-0.2)<0.02&&Math.abs(bz.beta-bz.fit.beta)<1e-12&&bz.L[1]>bz.L[0]&&bz.few===false,
+      bz.err||`傾き ${bz.fit.beta.toFixed(3)}（誤差 ${(bz.fit.se||0).toExponential(1)}・${bz.fit.n}件・使う ${bz.fit.use}）・9時 ${bz.L[0].toFixed(1)}分（客 ${bz.x[0]}人/時）・18時 ${bz.L[1].toFixed(1)}分（客 ${bz.x[1]}人/時）・6件の時 使う ${bz.few}`);
+    // ⑤ 2台：A が作り方（揚げる 9分・1回4個）を、B が別の商品の作り方（蒸す 10分）を同時に入れる → 両方残る。B が「✓ 作った」を押した記録が A の実測に入る。目安は2台で同じ
+    const inv0=A.ev(`JSON.stringify(S.weeks[S.activeWeek].invest||null)`);
+    //   2026-10-09 ⑶：目安は「並べるまで」の実測が3件たまってから出るので、先に A が商品1の「✓ 作った」の記録を3件（前の週・時間帯の無い時刻 8・12・20時）入れておく
+    A.ev(`(()=>{ const w=S.weeks['2026.9.29']; w.soldOuts=Object.assign({},w.soldOuts); [[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at])=>{ w.soldOuts[d+'_'+h+'_p1']=[{readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:50,done:true,doneAt:at+14/60}]; }); saveS(); })()`); await sync();
+    off();
+    setP(A,'p1','prepMethod','fryer'); setP(A,'p1','fryerMin',9); setP(A,'p1','fryerCap',4);
+    setP(B,'p2','prepMethod','steam'); setP(B,'p2','steamMin',10);
+    B.ev(`(()=>{ S.soldOuts['6_17_p2']=[{readyAt:18.5,soldAt:18.5,added:2,v:2,noticedAt:18.0,lead:30,made:4,n1:30,done:false}]; saveS(); window._soNowOverride=18.3; markSoldOutDone('p2',6,17,0); delete window._soNowOverride; })()`);
+    on(); await sync();
+    const lm=d=>d.ev(`JSON.stringify([soLeadModel(getP('p1')),soLeadModel(getP('p2')),soMeasList('p2').map(z=>Math.round(z.raw*1000)/1000)])`);
+    A.ev(`S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; clearAllocCache()`); B.ev(`S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; clearAllocCache()`);
+    const rpA2=A.ev(`JSON.stringify(soReorderPoint('p1',2,10))`), rpB2=B.ev(`JSON.stringify(soReorderPoint('p1',2,10))`);
+    const lA=JSON.parse(lm(A)), lB=JSON.parse(lm(B));
+    for(const d of [A,B])d.ev(`(()=>{ const v=${inv0}; if(v)S.weeks[S.activeWeek].invest=v; else delete S.weeks[S.activeWeek].invest; clearAllocCache(); })()`);
+    check('48','【作る時間・2台】A が商品1の作り方（揚げる9分・1回4個）、B が同時に商品2の作り方（蒸す10分）を入れる → 両方残る。B の「✓ 作った」（押してから18分）が A の記録にも入る。目安は2台で同じ',
+      J(lA)===J(lB)&&lA[0]&&lA[0].cook.first===9&&lA[0].cap===4&&lA[1]&&lA[1].cook.first===10&&lA[2].includes(18)&&rpA2===rpB2&&rpA2!=='null'&&same(),
+      `A ${J(lA)}／B ${J(lB)}・目安 A=B ${rpA2===rpB2}（${rpA2.slice(0,60)}）`);
+    // 画面：②商品設定の「作り方」（日本語・英語）・空の商品の一覧・似た商品から写す・まとめて入れる
+    const cui=JSON.parse(A.ev(`(()=>{ const out={}; const bk=JSON.stringify({PM:S.PM}); const lang0=LANG;
+      try{
+        showTab(1); _expandedCards.add('p2'); renderProductCards();
+        const card=()=>document.querySelector('#product-cards [data-pid="p2"] .cook-set');
+        out.ja=!!card()&&/作り方/.test(card().textContent)&&card().querySelectorAll('button[data-cook]').length===7;
+        setCookMethod('p2','none'); out.band1=(document.getElementById('cook-empty-band').textContent||'').replace(/\\s+/g,' ');
+        card().querySelector('button[data-cook="warm"]').click(); out.method=getP('p2').prepMethod;
+        const mi=card().querySelector('input[id$="_m"]'); mi.value='3'; mi.dispatchEvent(new Event('change')); out.warm=getP('p2').warmMin;
+        out.band2=(document.getElementById('cook-empty-band').textContent||'').replace(/\\s+/g,' ');
+        // 似た商品から写す：p2 に p1 の作り方（揚げる9分・4個）
+        cookCopyFrom('p2','p1'); out.copy=[getP('p2').prepMethod,getP('p2').fryerMin,getP('p2').fryerCap];
+        // まとめて入れる：同じカテゴリの空の商品に（入っている商品は変えない）
+        setCookMethod('p2','none');   // 空に戻して、まとめて入れる
+        const other=S.PM.find(q=>q.category==='ホットFF'&&q.id!=='p1'&&q.id!=='p2'); if(other){ other.prepMethod='steam'; other.steamMin=7; }   // もう入っている商品（変えない）
+        const emp=cookEmptySameCat(getP('p1')).map(q=>q.id); cookFillCategory('p1'); out.bulk={emp,p2:getP('p2').fryerMin,other:other?[other.prepMethod,other.steamMin]:null};
+        LANG='en'; renderProductCards(); out.en=!!card()&&/How to make/.test(card().textContent);
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      LANG=lang0; { const o=JSON.parse(bk); S.PM=o.PM; saveS(); } renderProductCards(); _expandedCards.delete('p2'); showTab(3);
+      return JSON.stringify(out); })()`));
+    await sync();
+    check('49','【作る時間・画面】②商品設定の商品に「作り方」の欄（日本語・英語。7つの作り方のボタン）。「温める」→ 3分を入れると保存され、「作り方が空の商品」の一覧から消える。「似た商品から写す」で揚げる9分・4個が写る。「まとめて入れる」は同じカテゴリの空の商品だけに入れる',
+      !cui.err&&cui.ja&&cui.en&&cui.method==='warm'&&cui.warm===3&&/商品2/.test(cui.band1)&&!/商品2/.test(cui.band2)&&J(cui.copy)===J(['fryer',9,4])&&cui.bulk.emp.includes('p2')&&cui.bulk.p2===9&&(cui.bulk.other==null||J(cui.bulk.other)===J(['steam',7])),
+      cui.err||`日本語 ${cui.ja}・英語 ${cui.en}・温める ${cui.method}/${cui.warm}分・一覧 前「${(cui.band1||'').slice(0,40)}」後「${(cui.band2||'').slice(0,40)}」・写す ${J(cui.copy)}・まとめて ${J(cui.bulk)}`);
+    // ===== 2026-10-09 公開前の直し（おたすけの2回目の検算を受けて）=====
+    // 試験の間だけ画面の中で見本を作り、終わったら元に戻す（保存しない）。A の中身は最後の試験で B と比べる
+    const SNAP=`window.__bkFix=JSON.stringify({PM:S.PM,weeks:S.weeks,soldOuts:S.soldOuts,ji:S.ji});`, BACK=`{ const o=JSON.parse(window.__bkFix); S.PM=o.PM; S.weeks=o.weeks; S.soldOuts=o.soldOuts; S.ji=o.ji; clearAllocCache(); _soRpCache=new Map(); _soRoLast=new Map(); delete window._soNoWorker; delete window._soNowOverride; }`;
+    //   見本：商品1（揚げる8分・1回3個）・商品2（温める15分）。週の定価販売を 300個・180個に（目安が出る大きさ）。前の週の時間帯の無い時刻に「✓ 作った」の記録を3件ずつ（並べるまで 12〜19分）。投資で作る数を増やしたマス
+    const FIXSEED=`S.ji=Object.assign({},S.ji,{p1:{teika:300,nebiki:10,haiki:6},p2:{teika:180,nebiki:6,haiki:4}}); Object.keys(S.weeks).forEach(k=>{ const w=S.weeks[k]; if(w)w.ji=Object.assign({},w.ji,{p1:{teika:290,nebiki:9,haiki:5},p2:{teika:170,nebiki:6,haiki:4}}); });
+      S.weeks[S.activeWeek].invest={p1:{2:{10:5},4:{14:4}},p2:{3:{10:6},5:{17:5}}}; S.soldOuts={};
+      ['p1','p2'].forEach(id=>{ const p=getP(id); ['prepMethod','fryerMin','microwaveMin','steamMin','warmMin','fryerCap','cookCap'].forEach(k=>delete p[k]); if(id==='p1'){ p.prepMethod='fryer'; p.fryerMin=8; p.fryerCap=3; } else { p.prepMethod='warm'; p.warmMin=15; } });
+      Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k])S.weeks[k].soldOuts={}; });
+      { const w=S.weeks['2026.9.29']; ['p1','p2'].forEach((id,i)=>[[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at],k)=>{ w.soldOuts[d+'_'+h+'_'+id]=[{readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:50,done:true,doneAt:at+(12+3*k+i)/60}]; })); }
+      clearAllocCache(); _soRpCache=new Map(); _soRoLast=new Map();`;
+    // ⑴ 同じ時刻（3.6秒単位）に残りの違う「残り◯個」の記録が2つ → 残りの少ない方を使う（前は事後が0になり「作らない・約0.0個・0円」）。それでも事後が0なら「順番が合いません」
+    const sameT=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP}
+      try{
+        S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; clearAllocCache(); const Q=getProdCnt('p1',2,10)+getInvestExtra('p1',2,10); out.Q=Q;
+        const e=(at,rem)=>({readyAt:at+0.5,soldAt:at+0.5,added:0,v:2,noticedAt:at,lead:30,made:Q,remain:rem,n1:20});
+        const pick=r=>r.error?{err:r.error}:{y:r.suggest,kind:r.kind,now:r.lossNow,wait:r.lossWait,pm:r.postMean,pred:r.predMean,chk:(r.chk||[]).length};
+        S.soldOuts={'2_10_p1':[e(11.5,Q-1),e(11.5,Q-2)]}; out.two=pick(calcSoldOutSuggestion('p1',2,10,12.4,30,null,1));
+        S.soldOuts={'2_10_p1':[e(11.5,Q-2),e(11.5,Q-1)]}; out.rev=pick(calcSoldOutSuggestion('p1',2,10,12.4,30,null,1));
+        S.soldOuts={'2_10_p1':[e(11.5,Q-2)]}; out.one=pick(calcSoldOutSuggestion('p1',2,10,12.4,30,null,1));
+        // 残りの数のボタン（0〜前の「残り◯個」の残り）：同じ時刻の2つは残りの少ない方（Q−2）まで。並びが逆でも同じ
+        window._soNowOverride=12.4; const nBtn=()=>{ openSoldOutModal('p1',2,10,{remain:true}); const v=document.querySelectorAll('#soldOutPhaseR button[data-remain]').length; closeSoldOutModal(); return v; };
+        S.soldOuts={'2_10_p1':[e(11.5,Q-1),e(11.5,Q-2)]}; out.btn=[nBtn()]; S.soldOuts={'2_10_p1':[e(11.5,Q-2),e(11.5,Q-1)]}; out.btn.push(nBtn());
+        S.soldOuts={'2_10_p1':[e(11.5,Q-1),e(11.5,Q-2)]}; openSoldOutModal('p1',2,10,{remain:true}); pickSoldOutRemain(1); pickSoldOutLead(30);
+        const ph=document.getElementById('soldOutPhase2'); out.ui=ph?ph.textContent.replace(/\\s+/g,' '):''; closeSoldOutModal();
+        // 事後が0になる記録（同じ客数の所で売れた数が違う）を、計算の中心に直接入れる → error 'order'（画面は「順番が合いません」）
+        const o={Q:5,n1:50,n2:40,m0:0.05,b:100,phi:1,past:[],cu:100,co:50,B:1,nA:5,r:1,chk:[{n1:30,sold:1},{n1:30,sold:2}],wait:{c:[0,4],lead:[5],n2:[35],cap:Infinity,at:(j,c)=>({nA:5,nB:j===0?40:35})}};
+        const d=soCalcCore2(o); out.deg={error:d.error||'',y:d.y};
+      }catch(err){ out.err=String(err&&err.stack||err); }
+      ${BACK} return JSON.stringify(out); })()`));
+    check('50','【⑴ 同じ時刻の「残り◯個」】同じ時刻に「残り Q−1」「残り Q−2」の記録が2つ → 残りの少ない方（Q−2）だけの時と同じ答え（並びが逆でも同じ）。残りの数のボタンも Q−2 まで。「作らない・約0.0個・0円」にならない。それでも事後が0になる記録（同じ客数で売れた数が違う）は「順番が合いません」（error order）',
+      !sameT.err&&!sameT.two.err&&J(sameT.two)===J(sameT.one)&&J(sameT.rev)===J(sameT.one)&&sameT.one.chk===1&&sameT.one.pm>0&&sameT.one.pred>0&&J(sameT.btn)===J([Math.min(9,sameT.Q-2)+1,Math.min(9,sameT.Q-2)+1])&&!/約0\.0個/.test(sameT.ui)&&sameT.deg.error==='order',
+      sameT.err||`Q=${sameT.Q}・2つ ${J(sameT.two)}／逆 ${J(sameT.rev)}／Q−2だけ ${J(sameT.one)}・中心に直接 ${J(sameT.deg)}・残りのボタン ${J(sameT.btn)}個・画面「${(sameT.ui||'').slice(0,70)}」`);
+    // ⑵ 目安を別の糸（Web Worker）で：別の糸の答え＝本体で全部計算した答え（行の中の数まで）。作成表のマスの印も、別の糸・今までの少しずつ・本体の答えの3つが同じ
+    const wk=JSON.parse(await A.win.eval(`(async()=>{ const out={}; ${SNAP} const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      try{
+        ${FIXSEED} delete window._soNoWorker;
+        const cells=[]; [0,1,2,3,4,5,6].forEach(d=>['p1','p2'].forEach(id=>[6,10,14,17].forEach(h=>cells.push([id,d,h]))));
+        const viaW=await new Promise(res=>{ const o={}; let left=cells.length; cells.forEach(([id,d,h])=>soRpWhenReady(id,d,h,rp=>{ o[d+'_'+h+'_'+id]=JSON.stringify(rp); if(--left===0)res(o); })); });
+        out.w={ok:_soRpW.ok,n:_soRpW.list.length};
+        _soRpCache=new Map(); window._soNoWorker=true; const sync={}; cells.forEach(([id,d,h])=>{ sync[d+'_'+h+'_'+id]=JSON.stringify(soReorderPoint(id,d,h)); });
+        out.cells=cells.map(([id,d,h])=>{ const k=d+'_'+h+'_'+id; return [k,viaW[k]===sync[k],/"R":\\d/.test(sync[k]||'')]; });
+        const dR=+((out.cells.find(c=>c[2])||['3'])[0].split('_')[0]);
+        const html=()=>[...document.querySelectorAll('.so-ro[data-ro]')].map(e=>e.dataset.ro+'='+e.innerHTML);
+        const fill=async()=>{ for(let i=0;i<1500;i++){ const a=[...document.querySelectorAll('.so-ro[data-ro]')]; if(a.length&&a.every(e=>e.dataset.roDone))return true; await sleep(20); } return false; };
+        delete window._soNoWorker; _soRpCache=new Map(); _soRoLast=new Map(); showTab(3); selectProdDay(dR); out.doneW=await fill(); out.uiW=html();
+        window._soNoWorker=true; _soRpCache=new Map(); _soRoLast=new Map(); selectProdDay(dR); out.doneS=await fill(); out.uiS=html();
+        out.uiExp=[...document.querySelectorAll('.so-ro[data-ro]')].map(e=>{ const m=e.dataset.ro.match(/^(\\d+)_(\\d+)_(.+)$/); return e.dataset.ro+'='+_soRoHTML(soReorderPoint(m[3],+m[1],+m[2])); });
+        out.dR=dR;
+      }catch(err){ out.err=String(err&&err.stack||err); }
+      ${BACK} return JSON.stringify(out); })()`));
+    check('51','【⑵ 別の糸（Web Worker）】目安を別の糸で計算 → 2商品×4時間帯×7日の56マスで、本体で全部計算した答えと同じ（行の中の数まで）。作成表のマスの印も、別の糸・別の糸なし（今までの少しずつ）・本体の答えの3つが同じ',
+      !wk.err&&wk.w&&wk.w.ok===true&&wk.w.n>=1&&wk.cells.length===56&&wk.cells.every(c=>c[1])&&wk.cells.some(c=>c[2])&&wk.doneW&&wk.doneS&&J(wk.uiW)===J(wk.uiExp)&&J(wk.uiS)===J(wk.uiExp)&&wk.uiExp.some(s=>/残り/.test(s)),
+      wk.err||`別の糸 ${J(wk.w)}・同じ ${wk.cells.filter(c=>c[1]).length}/${wk.cells.length}マス（目安ありのマス ${wk.cells.filter(c=>c[2]).length}）・${wk.dR}の日の印：別の糸 ${J(wk.uiW)===J(wk.uiExp)}／なし ${J(wk.uiS)===J(wk.uiExp)}（${(wk.uiExp||[]).filter(s=>/残り/.test(s)).length}マスに印）`);
+    // ⑵ 目安の計算を軽く：目安の行は、y⁺ の損が「待つ」の上限 W 以上なら③の後ろからの計算を省く。全部計算した時と同じ答え。上限 W（式）＝③を「作らせない形」で全部計算した値
+    const sc=JSON.parse(A.ev(`(()=>{ const out={n:0,byW:0,same:0,wOk:0,wExact:0,wMax:0,kinds:{}}; ${SNAP} const orig=soCalcCore2;
+      try{
+        ${FIXSEED} window._soNoWorker=true;
+        soCalcCore2=function(o){ const a=orig(o); if(!o.decideOnly||a.error)return a;
+          const w=typeof o.wait==='function'?o.wait():o.wait, b=orig(Object.assign({},o,{decideOnly:false,wait:w}));
+          out.n++; out.kinds[a.kind]=(out.kinds[a.kind]||0)+1; if(a.kind===b.kind&&a.y===b.y)out.same++; else (out.bad=out.bad||[]).push([a.kind,b.kind,a.y,b.y]);
+          if(a.lossWait==null&&a.waitUp!=null){ out.byW++; const r=Math.max(0,Math.round(o.r||0)), B=Math.max(1,o.B||1), P=_soPost(o,_soTodayObs(o.Q,o.n1,r,o.chk));
+            const W=_soDP(P.lam,P.post,o,w,r,B,false,false).cont0, hi=a.waitUp-W; if(W-a.waitUp<=1e-9*Math.max(1,Math.abs(W)))out.wOk++; if(Math.abs(hi)<=1e-9*Math.max(1,Math.abs(W)))out.wExact++; if(hi/Math.max(1,Math.abs(W))>out.wMax)out.wMax=hi/Math.max(1,Math.abs(W)); if(!(b.lossWait<=W+1e-9*Math.max(1,W)))out.notLe=(out.notLe||0)+1; }
+          return a; };
+        [0,2,4,6].forEach(d=>['p1','p2'].forEach(id=>[6,10,14,17].forEach(h=>soReorderPoint(id,d,h))));
+      }catch(err){ out.err=String(err&&err.stack||err); }
+      soCalcCore2=orig; ${BACK} return JSON.stringify(out); })()`));
+    check('52','【⑵ 目安の計算を軽く】目安の行は「今作る」の損が「待つ」の上限 W 以上なら、③の後ろからの計算を省く → 全部計算した時と同じ答え（作る／待つ／作らない と数）。上限 W は「売り切れるまで待つ方針の損」（③を作らせない形で全部計算した値）以上（売り切れがあまり起きない時点を上限で押さえた分だけ大きい。押さえない時は同じ値）',
+      !sc.err&&sc.n>=50&&sc.same===sc.n&&sc.byW>0&&sc.wOk===sc.byW&&sc.wExact>0&&!sc.notLe,
+      sc.err||`${sc.n}行（${J(sc.kinds)}）・同じ答え ${sc.same}・省いた行 ${sc.byW}（上限 W ≥ 全部計算した W：${sc.wOk}行、そのうち同じ値 ${sc.wExact}行・差の最大 ${sc.wMax.toExponential(1)}）${sc.bad?'・違う '+J(sc.bad.slice(0,3)):''}${sc.notLe?'・待つ>W '+sc.notLe:''}`);
+    // ⑶ 作り方だけ（記録なし・2件）→ マスの目安を出さない。3件で出す。押した時は「何分後」を聞く（調理の時間の1行）。商品設定の「作る時間」の行も記録がそろってから
+    const c3=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP}
+      try{
+        S.weeks[S.activeWeek].invest={p2:{3:{10:6}}}; S.soldOuts={}; Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k])S.weeks[k].soldOuts={}; });
+        const p2=getP('p2'); ['prepMethod','fryerMin','microwaveMin','steamMin','warmMin','fryerCap','cookCap'].forEach(k=>delete p2[k]); p2.prepMethod='steam'; p2.steamMin=12; clearAllocCache();
+        const rec=(at,min)=>({readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:30,done:true,doneAt:at+min/60});
+        const st=()=>{ clearAllocCache(); _soRpCache=new Map(); return {I:!!_soRpInputs('p2',3,10),rp:soReorderPoint('p2',3,10)===null?'null':'obj',st:cookStatusHtml(p2).replace(/<[^>]+>/g,' ')}; };
+        out.s0=st();
+        S.soldOuts['4_14_p2']=[rec(15.2,20)]; S.soldOuts['5_17_p2']=[rec(18.1,22)]; out.s2=st();
+        window._soNowOverride=12.6; openSoldOutModal('p2',3,10,{remain:true}); pickSoldOutRemain(1);
+        const p1v=document.getElementById('soldOutPhase1'); out.ask=!!p1v&&p1v.style.display!=='none'&&!_soldOutCtx.auto&&!!document.getElementById('soldOutCookHint'); closeSoldOutModal(); delete window._soNowOverride;
+        S.weeks['2026.9.29'].soldOuts={'3_10_p2':[rec(12.0,25)]}; out.s3=st();
+      }catch(err){ out.err=String(err&&err.stack||err); }
+      ${BACK} return JSON.stringify(out); })()`));
+    check('53','【⑶ 作り方だけでは目安を出さない】蒸す12分（記録なし）→ マスの目安なし・押した時は「何分後」を聞く（調理12分の1行）。記録2件でも出さない。3件たまると出す（商品設定の「→ 作る時間 約◯分」の行も3件から）',
+      !c3.err&&!c3.s0.I&&c3.s0.rp==='null'&&!/作る時間 約/.test(c3.s0.st)&&!c3.s2.I&&c3.s2.rp==='null'&&!/作る時間 約/.test(c3.s2.st)&&c3.ask&&c3.s3.I&&c3.s3.rp==='obj'&&/作る時間 約22分/.test(c3.s3.st),
+      c3.err||`記録なし ${J(c3.s0)}／2件 ${J(c3.s2)}・押した時 聞く ${c3.ask}／3件 ${J(c3.s3)}`);
+    // ⑷ 作る時間が「自動」（記録がそろった）・1回に作れる数が無い商品の「完売した」：詳細に「完売している確率」の行が出る（同じ分を選んだ時と同じ答え）
+    const c4=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP}
+      try{
+        ${FIXSEED} const p2=getP('p2');
+        const LM=soLeadModel(p2); out.cap=LM&&LM.cap; out.meas=!!(LM&&LM.meas);
+        const a=calcSoldOutSuggestion('p2',3,10,12.6,'auto',null,0), b=calcSoldOutSuggestion('p2',3,10,12.6,soLeadMin(LM,3,12.6,1),null,0);
+        out.a=[a.error||'',a.suggest,typeof a.priorSO,a.priorSO,a.readyAt]; out.b=[b.error||'',b.suggest,typeof b.priorSO,b.priorSO,b.readyAt];
+        window._soNowOverride=12.6; openSoldOutModal('p2',3,10); const ph=document.getElementById('soldOutPhase2'); out.ui=ph?ph.textContent.replace(/\\s+/g,' '):''; out.auto=!!(_soldOutCtx&&_soldOutCtx.auto); closeSoldOutModal();
+      }catch(err){ out.err=String(err&&err.stack||err); }
+      ${BACK} return JSON.stringify(out); })()`));
+    check('54','【⑷ 自動・1回の数なし・完売】温める15分（1回の数なし）・記録3件で作る時間が「自動」→ 完売した時の計算が今までの完売の計算（soCalcCore）を通り、詳細に「完売している確率」の行が出る。同じ分を選んだ時と同じ答え',
+      !c4.err&&c4.cap===null&&c4.meas&&c4.auto&&!c4.a[0]&&c4.a[2]==='number'&&J(c4.a)===J(c4.b)&&/完売している確率/.test(c4.ui),
+      c4.err||`自動 ${J(c4.a)}／選んだ ${J(c4.b)}・画面に確率の行 ${/完売している確率/.test(c4.ui||'')}`);
+    // ⑥ ③の動的計画の各状態で「0個がいちばん小さくても、y⁺（y>0 のいちばん小さい損）が待つより小さければ作る」。押した時の決め方と同じ。
+    //   確かめ方：③を本体とは別に素直に書いた物（refDP：状態ごとに重みを作り直し、y は全部見る）で、新しい決め方（y⁺ と待つ）を出し、本体と比べる。
+    //   古い決め方（いちばん小さい数が 0 なら作らない）も同じ refDP で出し、値が変わる見本があることを見る。見本は2つの λ（売れない日・売れる日）の作った問題
+    const S6={"lam":[0.019900424459949134,0.4690224353888373],"post":[0.7781079462217166,0.22189205377828336],"J":9,"c":[0,6.47185019721898,12.94370039443796,19.415550591656938,25.88740078887592,32.3592509860949,38.831101183313876,45.30295138053286,51.77480157775184,52.00250423280221],"lead":[45.30295138053286,39.05880383836425,32.58695364114527,26.11510344392629,19.64325324670731,13.171403049488333,6.699552852269349,0.22770265505037202,0],"n2":[0.22770265505037202,0,0,0,0,0,0,0,0],"nA0":45.30295138053286,"nB0":6.699552852269349,"r":6,"B":1,"cu":157.82328977948055,"co":34.618109713774174,"phi":2.5809729530010372};
+    const r6=JSON.parse(A.ev(`(()=>{ const out={n:0,maxRel:0,makeSame:0,chg:0,rootNone2Make:0}; try{
+      const ref=(lam,post,wt,r,B,cu,co,phi,rule)=>{
+        const ix=[]; lam.forEach((l,i)=>{ if(post[i]>=1e-12)ix.push(i); }); const L=ix.map(i=>lam[i]), W0=ix.map(i=>post[i]), n=L.length, Jn=wt.lead.length;
+        const pmf=(mu,k)=>_soPmfAt(mu,phi,k), ge=(mu,k)=>_soProbGE(mu,phi,k), nv=(l,nn,y)=>_soNV(l,nn,phi,y,cu,co), YM=150;
+        const sc=[]; for(let j=1;j<=Jn;j++){ const p=W0.map((w,a)=>w*ge(L[a]*wt.c[j],r)); const s=p.reduce((x,y)=>x+y,0); let yb=0;
+          if(s>0&&wt.n2[j-1]>0){ const ws=p.map(v=>v/s); let best=Infinity; for(let y=0;y<=YM;y+=B){ let t=0; ws.forEach((v,a)=>{ if(v>=1e-9)t+=v*nv(L[a],wt.n2[j-1],y); }); if(t<best-1e-9){ best=t; yb=y; } else break; } }
+          sc[j]=L.map(l=>cu*l*wt.lead[j-1]+nv(l,wt.n2[j-1],yb)); }
+        let V=[0]; for(let k=1;k<=r;k++)V[k]=co*k; let res=null;
+        for(let j=Jn-1;j>=0;j--){ const Vn=[0], inc=wt.c[j+1]-wt.c[j], ab=wt.at(j,1);
+          for(let k=(j===0?r:1);k<=r;k++){
+            let w=W0.map((v,a)=>j===0?v:v*pmf(L[a]*wt.c[j],r-k)); const reach=j===0?1:w.reduce((x,y)=>x+y,0); if(!(reach>0)){ Vn[k]=co*k; continue; } if(j>0)w=w.map(v=>v/reach);
+            let cont=0; for(let a=0;a<n;a++){ const mu=L[a]*inc; let cdf=0,eo=0; for(let i=0;i<k;i++){ const p=pmf(mu,i); cdf+=p; eo+=(k-i)*p; cont+=w[a]*p*V[k-i]; } cont+=w[a]*(cu*(mu-k+eo)+Math.max(0,1-cdf)*sc[j+1][a]); }
+            const now=y=>{ let s=0; for(let a=0;a<n;a++){ const muA=L[a]*ab.nA; let cdf=0,eo=0,v=0; for(let d=0;d<k;d++){ const p=pmf(muA,d); cdf+=p; eo+=(k-d)*p; v+=p*nv(L[a],ab.nB,k-d+y); } v+=Math.max(0,1-cdf)*nv(L[a],ab.nB,y)+cu*(muA-k+eo); s+=w[a]*v; } return s; };
+            let val=cont, f0=null, py=0, pl=Infinity, ya=0, best=null;
+            if(ab.nB>0&&(j===0||reach>=1e-10)){ f0=now(0); best=f0; for(let y=B;y<=YM;y+=B){ const v=now(y); if(v<pl-1e-9){ pl=v; py=y; } if(v<best-1e-9){ best=v; ya=y; } }
+              if(rule==='new'){ if(py>0&&pl<cont-1e-9)val=pl; } else { if(ya>0&&best<cont-1e-9)val=best; } }
+            Vn[k]=val; if(j===0)res={V0:val,cont0:cont,make:val<cont,py,pl,ya,f0};
+          }
+          V=Vn; }
+        return res; };
+      const mkWt=(c,lead,n2,nA0,nB0)=>({c,lead,n2,cap:Infinity,at:(j,cy)=>j===0?{nA:nA0,nB:nB0}:{nA:lead[j-1],nB:n2[j-1]}});
+      let seed=20261009; const U=()=>{ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+      const one=(lam,post,wt,r,B,cu,co,phi)=>{ const a=_soDP(lam,post,{cu,co,phi},wt,r,B,true,false), rn=ref(lam,post,wt,r,B,cu,co,phi,'new'), ro=ref(lam,post,wt,r,B,cu,co,phi,'old');
+        out.n++; const e=Math.abs(a.V0-rn.V0)/Math.max(1,Math.abs(rn.V0)); if(e>out.maxRel)out.maxRel=e; if(a.make===rn.make)out.makeSame++;
+        if(Math.abs(rn.V0-ro.V0)>1e-7*Math.max(1,ro.V0))out.chg++; if(rn.make&&!(rn.ya>0))out.rootNone2Make++; return {a,rn,ro}; };
+      for(let it=0;it<80;it++){
+        const lo=0.002+U()*0.02, lam=[lo,lo*(3+U()*60)], p0=0.5+U()*0.49, post=[p0,1-p0];
+        const rate=20+U()*60, step=rate/12, leadC=step*(1+Math.floor(U()*6)), late=U()<0.6?1+U()*5:1, tot=leadC+step*(1+U()*14);
+        const Jn=Math.ceil(tot/step), c=[0]; for(let j=1;j<=Jn;j++)c.push(Math.min(tot,step*j));
+        const lead=[], n2=[]; for(let j=1;j<=Jn;j++){ const rest=tot-c[j], la=Math.min(rest,leadC*late); lead.push(la); n2.push(Math.max(0,rest-la)); }
+        const nA0=Math.min(tot,leadC), nB0=Math.max(0,tot-nA0); if(!(nB0>0))continue;
+        one(lam,post,mkWt(c,lead,n2,nA0,nB0),1+Math.floor(U()*4),1,50+U()*150,20+U()*150,U()<0.4?1+U()*2:1);
+      }
+      const s=${J(S6)}; const x=one(s.lam,s.post,mkWt(s.c,s.lead,s.n2,s.nA0,s.nB0),s.r,s.B,s.cu,s.co,s.phi);
+      out.s6={app:[x.a.make,x.a.yNow,x.a.lossNow,x.a.cont0],refNew:[x.rn.make,x.rn.V0],refOld:[x.ro.make,x.ro.V0,x.ro.ya]};
+    }catch(err){ out.err=String(err&&err.stack||err); } return JSON.stringify(out); })()`));
+    check('55','【⑥ 0個がいちばん小さくても y⁺ が待つより小さければ作る】③の各状態の決め方を押した時と同じにした（y⁺ と「待つ」を比べる）。別に素直に書いた動的計画（y を全部見る）と、作った見本（約80）で値（V0）も答えも一致。古い決め方では値が変わる見本がある（'+r6.chg+'）。見本：前は「今 1個作る」、今は途中の状態で y⁺ を作れるので「待つ」の方が小さい',
+      !r6.err&&r6.n>=60&&r6.maxRel<1e-9&&r6.makeSame===r6.n&&r6.chg>0&&r6.s6.refOld[0]===true&&r6.s6.refNew[0]===false&&r6.s6.app[0]===false&&r6.s6.app[3]<r6.s6.app[2],
+      r6.err||`${r6.n}の見本・本体＝別に書いた物 差の最大 ${r6.maxRel.toExponential(1)}・答え同じ ${r6.makeSame}・古い決め方と値が違う ${r6.chg}（そのうち今 0個がいちばん小さいのに作る ${r6.rootNone2Make}）／見本：本体 ${J(r6.s6.app)}・新しい決め方 ${J(r6.s6.refNew)}・古い決め方 ${J(r6.s6.refOld)}`);
+    check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
   $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;

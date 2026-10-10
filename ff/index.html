@@ -680,6 +680,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
           <span id="cross-store-import"></span>
         </div>
         <div id="prod-sort-hint" style="font-size:10px;color:#666;margin-bottom:6px"></div>
+        <div id="cook-empty-band"></div>
         <div id="product-cards"></div>
       </div>
       <div class="card">
@@ -1423,6 +1424,66 @@ const I18N = {
     'so2.d8':'ばらつきの大きさ：{0}',
     'so2.d8a':'（週のデータが足りないので 1）',
     'so2.d8b':'　まとめて作る数：{0}個',
+    // 「残り◯個」と「残り◯で追加」の目安（2026-10-09）
+    'so2.remTitle':'残り◯個（少なくなった）',
+    'so2.remDesc':'残っている数を選ぶと、完売を待たずに、今から追加を作り始めるかを出します',
+    'so2.remDescR':'目安：残り <b>{0}個</b> 以下になったら押す（作る時間{1}分・見込みどおりに売れた時の計算）',
+    'so2.remDescDone':'今日は「残り◯個」を{0}回 記録済み',
+    'so2.headRem':'{0}曜 {1} 作成　📉 残り◯個（{2}）',
+    'so2.remAsk':'今、売場に残っているのは何個？',
+    'so2.remAskHint':'1つ押すと、追加が何分後に並ぶかを聞きます。0個＝完売（「完売した」と同じ計算）',
+    'so2.remUnit':'個',
+    'so2.remZero':'完売',
+    'so2.remPicked':'残り：<b>{0}個</b>',
+    'so2.pendFirst':'追加 +{0}個 がまだ「作る予定」のままです。並べたら先に「✓ 作った」を押してください（並べる前の残りの数では計算できません）',
+    'so2.pendBtn':'✓ 作った +{0}（並べた）→ 続ける',
+    'so2.noneWait':'今はまだ作りません',
+    'so2.whyWait':'今は作らない理由',
+    'so2.rRemMake':'残り{0}個は、追加分が並ぶ {1} までに約{2}個 売れる見込みです（それまでに売り切れる確率 {3}%）。{1}〜{4} の客数は約{5}人で、売れそうな数は約{6}個（{7}人に1個）。今 {8}個 作り始めると損の見込みは平均 {9}、今は作らずに5分ごとに見直す（残りが減ったらもう一度押す・売り切れたら「完売した」で作る）と平均 {10} なので、今作り始めるほうが損が小さいためです。',
+    'so2.rRemWait':'今 {0}個 作り始めると損の見込みは平均 {1}、今は作らずに5分ごとに見直す（残りが減ったらもう一度押す・売り切れたら「完売した」で作る）と平均 {2} で、待つほうが損が小さいためです（残り{3}個が、追加分が並ぶ {4} までに売り切れる確率は {5}%）。残りがもっと減ったら、もう一度押してください。売り切れたら「完売した」を押してください。',
+    'so2.rRemNone':'残り{0}個と合わせると、{1}〜{2} に売れそうな数（約{3}個・{4}人に1個）に足りる見込みです。{5}作った時の損の見込みは平均 {6}、今は作らずに見直す（売り切れたら「完売した」で作る）時は平均 {7} なので、作らないほうが損が小さいためです。売り切れたら「完売した」を押してください。',
+    'so2.d1r':'残り{0}個：今日ここまでに売場に出した数 <b>{1}個</b>、売れた数 <b>{2}個</b>',
+    'so2.d4r':'見込みどおりなら、ここまでに売れる数は約{0}個（実際は {1}個）',
+    'so2.d5c':'と直近4週の記録（完売{0}週・残り◯個{1}週・余り{2}週）',
+    'so2.d5r':'今日の売れ方（残り◯個）{0}を入れた後：<b>{1}人に1個</b>',
+    'so2.d9r':'今〜追加分が並ぶ {0} の客数：約{1}人 → 残り{2}個のうち売れそうな数 約{3}個（その前に売り切れる確率 {4}%）',
+    'so2.d10r':'損の見込み（平均）：今 {0}個 作り始める {1}／このあと売り切れても作らない {2}',
+    'so2.d10w':'／今は作らずに5分ごとに見直す（売り切れたら「完売した」）{0}',
+    'so2.d11r':'└ 前に「残り◯個」を押した記録 {0}回も、区切りとして入れています',
+    'so2.toastRemAdd':'📉「残り{0}個」を記録しました（追加 +{1}個）。作り終わったら、マスの「✓ 作った」を押してください',
+    'so2.toastRemZero':'📉「残り{0}個」を記録しました（今は追加なし）',
+    'so2.badgeRem':'残{0}',
+    'so2.undoRem':'「残り{0}個」の記録を取り消す',
+    'so2.confirmRem':'最後の「残り{0}個」の記録を取消しますか？',
+    'so2.errRemainMax':'残りの数が多すぎます（前の記録からは、多くても {0}個）',
+    'mk.roHint':'残り{0}で追加',
+    'mk.roTip':'目安：残りが {0}個 以下になったら、数字をタップ →「残り◯個」を押す（作る時間{1}分・見込みどおりに売れた時の計算）',
+    'mk.roHintList':'残り{0}で追加',
+    'mk.roTipList':'目安：残りが {0}個 の時に、数字をタップ →「残り◯個」を押す（それ以外の残りの数では、待つほうが損が小さい。作る時間{1}分・見込みどおりに売れた時の計算）',
+    'so2.remDescList':'目安：残り <b>{0}個</b> の時に押す（作る時間{1}分・見込みどおりに売れた時の計算）',
+    'so2.errOrder':'記録の順番が合いません（あとの時刻の「残り◯個」のほうが、残りが多い記録があります）。まちがえた記録を「取り消す」で消してから、もう一度押してください。',
+    'so2.errNoLead':'作る時間が分かりません。「何分後」を選んでください。',
+    'so2.leadAuto':'作る時間：約{0}分（調理 {1}分 ＋ 並べるまで {2}分。並べるまでは記録{3}件の中央値{4}）',
+    'so2.leadAutoNoCook':'作る時間：約{0}分（記録{1}件の中央値{2}。②商品設定の「作り方」が空なので、調理の時間も記録に入っています）',
+    'so2.leadBusy':'・今の混み具合で調整',
+    'so2.leadCyc':'。1回に{0}個まで → {1}回に分けて作る',
+    'so2.repickAuto':'作る時間を自分で選ぶ（いまは約{0}分）',
+    'so2.cookHint':'調理の時間（②商品設定の「作り方」）は {0}分です。並べるまでの時間を足して選んでください',
+    'so2.toShelfAuto':'約{0}分後（{1}）に売場へ',
+    'product.cookTitle':'⏱ 作り方（追加作成の「何分後に並ぶか」に使う）',
+    'product.cookDesc':'作る時間＝調理の時間（ここ）＋並べるまでの時間（「✓ 作った」の記録から）。空の商品と、「✓ 作った」の記録が3件たまっていない商品には、作成表の「残り◯で追加」の目安を出しません。',
+    'product.cm_none':'未設定','product.cm_fryer':'揚げる','product.cm_steam':'蒸す','product.cm_microwave':'レンジ','product.cm_warm':'温める','product.cm_asis':'そのまま','product.cm_microwave_fryer':'レンジ→揚げる',
+    'product.ct_fryer':'揚げる時間','product.ct_steam':'蒸す時間','product.ct_microwave':'レンジ時間','product.ct_warm':'温める時間','product.ct_wash':'水洗い','product.ct_other':'その他','product.ct_fry':'フライ','product.ct_range':'レンジ',
+    'product.min':'分','product.sec':'秒',
+    'product.cookCap':'1回に作れる数','product.cookCapPh':'空＝分けない','product.cookStack':'2段調理可（他商品と同時OK）',
+    'product.cookNow':'調理の時間：{0}分','product.cookCycles':'（{0}個より多い時は、1回ごとに {1}分 足す）','product.cookEmpty':'調理の時間：空（目安は出ません）',
+    'product.cookMeas':'並べるまで（記録）：{0}分（直近{1}件の中央値）','product.cookMeasNone':'並べるまで（記録）：まだ {0}件（{1}件たまると使います）','product.cookLead':'→ 作る時間 約{0}分',
+    'product.cookCopy':'似た商品から写す…','product.cookCopyConfirm':'「{0}」の作り方を、この商品に写しますか？（今の作り方は置き換わります）',
+    'product.cookBulk':'このカテゴリの空の商品 {0}件 にも同じ作り方を入れる','product.cookBulkConfirm':'このカテゴリで作り方が空の {0}件 に「{1}」を入れますか？（もう入っている商品は変えません）','product.cookBulkDone':'{0}件 に入れました',
+    'product.mkCookDesc':'食材ごとの工程の時間です（同じ名前の食材には、ほかの商品にも同じ時間が入ります）。手の工程（水洗い・その他）は足し、フライは長い方、レンジは足して、フライとレンジは長い方。解凍・後付け・盛付は入れません（盛付・梱包は記録の「並べるまで」に入ります）。',
+    'product.mkNoIng':'食材がまだありません（下の「まちかど厨房 準備設定」で食材と工程を入れてください）','product.mkNoTimed':'時間を入れる工程（水洗い・フライ・レンジ・その他）がありません → 調理の時間 0分',
+    'product.mkCalc':'手 {0}分 ＋ 機械 {1}分（フライ {2}分・レンジ {3}分）',
+    'product.cookEmptyTitle':'⏱ 作り方が空の商品：{0}件','product.cookEmptyDesc':'作る時間が分からない商品は、作成表の「残り◯で追加」の目安が出ません。タップすると、その商品の欄を開きます。','product.cookEmptyMk':'時間が空の食材：{0}','product.cookEmptyMeas':'記録 {0}件',
     // Cloud sync
     'gist.token':'トークン',
     'gist.gistId':'Gist ID',
@@ -1864,6 +1925,65 @@ const I18N = {
     'so2.d8':'Variability: {0}',
     'so2.d8a':' (not enough weeks of data, so 1)',
     'so2.d8b':'  Batch size: {0}',
+    'so2.remTitle':'A few left',
+    'so2.remDesc':'Pick how many are left to see whether to start making more now, without waiting for a sell-out',
+    'so2.remDescR':'Guide: tap when <b>{0}</b> or fewer are left (making time {1} min, sales as expected)',
+    'so2.remDescDone':'"A few left" recorded {0} time(s) today',
+    'so2.headRem':'{0} · made {1} · 📉 A few left ({2})',
+    'so2.remAsk':'How many are left on the shelf now?',
+    'so2.remAskHint':'Tap one, then pick when the extra batch will be on the shelf. 0 = sold out (same as "Sold out")',
+    'so2.remUnit':'left',
+    'so2.remZero':'Sold out',
+    'so2.remPicked':'Left: <b>{0}</b>',
+    'so2.pendFirst':'The extra +{0} is still "to make". When it is on the shelf, tap "✓ Made" first (the count left before it is shelved cannot be used)',
+    'so2.pendBtn':'✓ Made +{0} (on the shelf) → continue',
+    'so2.noneWait':'Do not make more yet',
+    'so2.whyWait':'Why not yet',
+    'so2.rRemMake':'Of the {0} left, about {2} are expected to sell by {1}, when the extra batch is on the shelf (chance of selling out before then: {3}%). About {5} customers are expected from {1} to {4}, so about {6} more will sell (1 per {7} customers). Starting {8} now loses {9} on average; not making now and checking again every 5 minutes (tap again when fewer are left, use "Sold out" when gone) loses {10}, so starting now is the smaller loss.',
+    'so2.rRemWait':'Starting {0} now loses {1} on average; not making now and checking again every 5 minutes (tap again when fewer are left, use "Sold out" when gone) loses {2}, so waiting is the smaller loss (chance that the {3} left sell out before {4}: {5}%). When fewer are left, tap again. If they sell out, tap "Sold out".',
+    'so2.rRemNone':'With the {0} left, there should be enough for the sales expected from {1} to {2} (about {3}, 1 per {4} customers). Making {5} loses {6} on average; not making now and checking again (using "Sold out" if they sell out) loses {7}, so not making is the smaller loss. If they sell out, tap "Sold out".',
+    'so2.d1r':'{0} left: put on the shelf so far today <b>{1}</b>, sold <b>{2}</b>',
+    'so2.d4r':'If sales were as expected, about {0} would have sold by now (actual: {1})',
+    'so2.d5c':' and the last 4 weeks (sold out {0} wk, a few left {1} wk, leftover {2} wk)',
+    'so2.d5r':'After adding today\'s sales so far (a few left){0}: <b>1 per {1} customers</b>',
+    'so2.d9r':'Customers from now to {0} (extra on the shelf): about {1} → of the {2} left, about {3} will sell (chance of selling out before then {4}%)',
+    'so2.d10r':'Expected loss: start {0} now {1} / never make more even after a sell-out {2}',
+    'so2.d10w':' / not now, check again every 5 min (then "Sold out") {0}',
+    'so2.d11r':'└ Earlier "A few left" records ({0}) are also used as checkpoints',
+    'so2.toastRemAdd':'📉 "{0} left" recorded (extra +{1}). When it is made, tap "✓ Made" in the cell',
+    'so2.toastRemZero':'📉 "{0} left" recorded (no extra for now)',
+    'so2.badgeRem':'{0} left',
+    'so2.undoRem':'Undo the "{0} left" record',
+    'so2.confirmRem':'Undo the last "{0} left" record?',
+    'so2.errRemainMax':'Too many left (at most {0} since the last record)',
+    'mk.roHint':'Add at {0} left',
+    'mk.roTip':'Guide: when {0} or fewer are left, tap the number → "A few left" (making time {1} min, sales as expected)',
+    'mk.roHintList':'Add at {0} left',
+    'mk.roTipList':'Guide: when {0} are left, tap the number → "A few left" (at other counts waiting is the smaller loss; making time {1} min, sales as expected)',
+    'so2.remDescList':'Guide: tap when <b>{0}</b> are left (making time {1} min, sales as expected)',
+    'so2.errOrder':'The records are out of order (a later "A few left" record has more left). Undo the wrong record, then tap again.',
+    'so2.errNoLead':'The making time is unknown. Choose "in how many minutes".',
+    'so2.leadAuto':'Making time: about {0} min (cooking {1} min + to the shelf {2} min; the shelf part is the median of {3} records{4})',
+    'so2.leadAutoNoCook':'Making time: about {0} min (median of {1} records{2}; no cooking time is set in ② Products, so the records include cooking)',
+    'so2.leadBusy':', adjusted for how busy it is now',
+    'so2.leadCyc':'. Up to {0} per batch → {1} batches',
+    'so2.repickAuto':'Choose the making time myself (now about {0} min)',
+    'so2.cookHint':'Cooking time (② Products, "How to make") is {0} min. Add the time to put it on the shelf',
+    'so2.toShelfAuto':'On the shelf in about {0} min ({1})',
+    'product.cookTitle':'⏱ How to make (used for "in how many minutes" of extra batches)',
+    'product.cookDesc':'Making time = cooking time (here) + time to the shelf (from "✓ Made" records). Products left empty, or with fewer than 3 "✓ Made" records, get no "Add at N left" guide.',
+    'product.cm_none':'Not set','product.cm_fryer':'Fry','product.cm_steam':'Steam','product.cm_microwave':'Microwave','product.cm_warm':'Warm','product.cm_asis':'As is','product.cm_microwave_fryer':'Microwave → fry',
+    'product.ct_fryer':'Frying time','product.ct_steam':'Steaming time','product.ct_microwave':'Microwave time','product.ct_warm':'Warming time','product.ct_wash':'Wash','product.ct_other':'Other','product.ct_fry':'Fry','product.ct_range':'Microwave',
+    'product.min':'min','product.sec':'sec',
+    'product.cookCap':'Pieces per batch','product.cookCapPh':'empty = one batch','product.cookStack':'Two levels (with other items OK)',
+    'product.cookNow':'Cooking time: {0} min','product.cookCycles':' (over {0} pieces: add {1} min per extra batch)','product.cookEmpty':'Cooking time: empty (no guide)',
+    'product.cookMeas':'To the shelf (records): {0} min (median of the last {1})','product.cookMeasNone':'To the shelf (records): {0} so far (used from {1})','product.cookLead':'→ making time about {0} min',
+    'product.cookCopy':'Copy from a similar product…','product.cookCopyConfirm':'Copy how to make "{0}" to this product? (The current setting is replaced)',
+    'product.cookBulk':'Also set the {0} empty products in this category','product.cookBulkConfirm':'Set "{1}" for the {0} products in this category with no setting? (Products already set are not changed)','product.cookBulkDone':'Set {0} products',
+    'product.mkCookDesc':'Time per ingredient step (the same ingredient name gets the same time in other products). Hand steps (wash, other) add up; frying takes the longest one; microwave steps add up; frying and microwave run together (the longer). Thawing, toppings and plating are not included (plating and packing are in the "to the shelf" records).',
+    'product.mkNoIng':'No ingredients yet (add them in "Machikado kitchen prep" below)','product.mkNoTimed':'No timed steps (wash, fry, microwave, other) → cooking time 0 min',
+    'product.mkCalc':'hand {0} min + machines {1} min (fry {2} min, microwave {3} min)',
+    'product.cookEmptyTitle':'⏱ Products with no making time: {0}','product.cookEmptyDesc':'Products with unknown making time get no "Add at N left" guide. Tap to open the product.','product.cookEmptyMk':'ingredients with no time: {0}','product.cookEmptyMeas':'{0} records',
     'gist.token':'Token','gist.gistId':'Gist ID',
     'gist.uploadNow':'⬆️ Upload now','gist.downloadFromCloud':'⬇️ Pull from cloud',
     'gist.copyShareLink':'🔗 Copy share link','gist.disconnect':'Disconnect',
@@ -2273,6 +2393,65 @@ const I18N = {
     'so2.d8':'उतारचढाव: {0}',
     'so2.d8a':' (हप्ताको डाटा कम भएकाले 1)',
     'so2.d8b':'  एक ब्याचको संख्या: {0}',
+    'so2.remTitle':'केही मात्र बाँकी',
+    'so2.remDesc':'बाँकी संख्या छान्नुहोस् — बिक्री समाप्त हुन नपर्खी, अहिले थप बनाउन सुरु गर्ने कि देखिन्छ',
+    'so2.remDescR':'अनुमान: <b>{0} वटा</b> वा कम बाँकी हुँदा थिच्नुहोस् (बनाउने समय {1} मिनेट, अनुमान अनुसार बिक्री हुँदा)',
+    'so2.remDescDone':'आज "केही मात्र बाँकी" {0} पटक रेकर्ड भयो',
+    'so2.headRem':'{0} · {1} उत्पादन · 📉 केही मात्र बाँकी ({2})',
+    'so2.remAsk':'अहिले शेल्फमा कति वटा बाँकी छन्?',
+    'so2.remAskHint':'एउटा थिच्नुहोस्, त्यसपछि थप ब्याच कति मिनेटपछि राखिन्छ छान्नुहोस्। ० = बिक्री समाप्त ("बिक्री समाप्त भयो" जस्तै गणना)',
+    'so2.remUnit':'वटा',
+    'so2.remZero':'समाप्त',
+    'so2.remPicked':'बाँकी: <b>{0} वटा</b>',
+    'so2.pendFirst':'थप +{0} वटा अझै "बनाउने" मा छ। शेल्फमा राखेपछि पहिले "✓ बनाएँ" थिच्नुहोस् (राख्नुअघिको बाँकी संख्याले गणना हुँदैन)',
+    'so2.pendBtn':'✓ बनाएँ +{0} (राखेँ) → अगाडि',
+    'so2.noneWait':'अहिले थप नबनाउनुहोस्',
+    'so2.whyWait':'अहिले नबनाउनुको कारण',
+    'so2.rRemMake':'बाँकी {0} वटामध्ये थप ब्याच राखिने {1} सम्म करिब {2} वटा बिक्ने अनुमान छ (त्यसअघि सकिने सम्भावना {3}%)। {1} देखि {4} सम्म करिब {5} जना ग्राहक, करिब {6} वटा बिक्ने ({7} जनामा १ वटा)। अहिले {8} वटा बनाउन सुरु गर्दा औसत {9} घाटा, अहिले नबनाई हरेक ५ मिनेटमा फेरि हेर्दा (कम बाँकी हुँदा फेरि थिच्ने, सकिएपछि "बिक्री समाप्त भयो") औसत {10} घाटा, त्यसैले अहिले सुरु गर्दा घाटा कम।',
+    'so2.rRemWait':'अहिले {0} वटा बनाउन सुरु गर्दा औसत {1} घाटा, अहिले नबनाई हरेक ५ मिनेटमा फेरि हेर्दा (कम बाँकी हुँदा फेरि थिच्ने, सकिएपछि "बिक्री समाप्त भयो") औसत {2} घाटा, त्यसैले पर्खँदा घाटा कम (बाँकी {3} वटा {4} अघि सकिने सम्भावना {5}%)। अझ कम बाँकी हुँदा फेरि थिच्नुहोस्। सकिएमा "बिक्री समाप्त भयो" थिच्नुहोस्।',
+    'so2.rRemNone':'बाँकी {0} वटाले {1} देखि {2} सम्म बिक्ने अनुमान (करिब {3} वटा, {4} जनामा १ वटा) पुग्छ। {5} बनाउँदा औसत {6} घाटा, अहिले नबनाई फेरि हेर्दा (सकिएमा "बिक्री समाप्त भयो" बाट बनाउने) औसत {7} घाटा, त्यसैले नबनाउँदा घाटा कम। सकिएमा "बिक्री समाप्त भयो" थिच्नुहोस्।',
+    'so2.d1r':'बाँकी {0} वटा: आज अहिलेसम्म शेल्फमा राखेको <b>{1} वटा</b>, बिक्री <b>{2} वटा</b>',
+    'so2.d4r':'अनुमान अनुसार भए अहिलेसम्म करिब {0} वटा बिक्थ्यो (वास्तविक {1} वटा)',
+    'so2.d5c':' र पछिल्लो ४ हप्ताको रेकर्ड (समाप्त {0} हप्ता, केही बाँकी {1} हप्ता, बाँकी रहेको {2} हप्ता)',
+    'so2.d5r':'आजको बिक्री (केही मात्र बाँकी){0} राखेपछि: <b>{1} जनामा १ वटा</b>',
+    'so2.d9r':'अहिलेदेखि थप राखिने {0} सम्मका ग्राहक: करिब {1} जना → बाँकी {2} वटामध्ये करिब {3} वटा बिक्ने (त्यसअघि सकिने सम्भावना {4}%)',
+    'so2.d10r':'अनुमानित घाटा (औसत): अहिले {0} वटा सुरु {1} / सकिए पनि नबनाउँदा {2}',
+    'so2.d10w':' / अहिले नबनाई हरेक ५ मिनेटमा हेर्दा (सकिएपछि "बिक्री समाप्त भयो") {0}',
+    'so2.d11r':'└ पहिलेको "केही मात्र बाँकी" रेकर्ड {0} पटक पनि बिन्दुको रूपमा गणनामा छ',
+    'so2.toastRemAdd':'📉 "{0} वटा बाँकी" रेकर्ड भयो (थप +{1} वटा)। बनाइसकेपछि कोठामा "✓ बनाएँ" थिच्नुहोस्',
+    'so2.toastRemZero':'📉 "{0} वटा बाँकी" रेकर्ड भयो (अहिले थप छैन)',
+    'so2.badgeRem':'बाँकी{0}',
+    'so2.undoRem':'"{0} वटा बाँकी" रेकर्ड रद्द गर्नुहोस्',
+    'so2.confirmRem':'अन्तिम "{0} वटा बाँकी" रेकर्ड रद्द गर्ने?',
+    'so2.errRemainMax':'बाँकी संख्या धेरै भयो (अघिल्लो रेकर्डदेखि बढीमा {0} वटा)',
+    'mk.roHint':'{0} बाँकी हुँदा थप',
+    'mk.roTip':'अनुमान: {0} वटा वा कम बाँकी हुँदा संख्या थिच्नुहोस् → "केही मात्र बाँकी" (बनाउने समय {1} मिनेट, अनुमान अनुसार बिक्री हुँदा)',
+    'mk.roHintList':'{0} बाँकी हुँदा थप',
+    'mk.roTipList':'अनुमान: {0} वटा बाँकी हुँदा संख्या थिच्नुहोस् → "केही मात्र बाँकी" (अरू संख्यामा पर्खँदा घाटा कम; बनाउने समय {1} मिनेट, अनुमान अनुसार बिक्री हुँदा)',
+    'so2.remDescList':'अनुमान: <b>{0} वटा</b> बाँकी हुँदा थिच्नुहोस् (बनाउने समय {1} मिनेट, अनुमान अनुसार बिक्री हुँदा)',
+    'so2.errOrder':'रेकर्डको क्रम मिलेन (पछिको "केही मात्र बाँकी" मा बढी बाँकी छ)। गलत रेकर्ड रद्द गरेर फेरि थिच्नुहोस्।',
+    'so2.errNoLead':'बनाउने समय थाहा छैन। "कति मिनेटपछि" छान्नुहोस्।',
+    'so2.leadAuto':'बनाउने समय: करिब {0} मिनेट (पकाउने {1} मिनेट + शेल्फसम्म {2} मिनेट; शेल्फसम्मको भाग {3} रेकर्डको मध्यिका{4})',
+    'so2.leadAutoNoCook':'बनाउने समय: करिब {0} मिनेट ({1} रेकर्डको मध्यिका{2}; ② उत्पादनमा पकाउने समय छैन, त्यसैले रेकर्डमा पकाउने समय पनि छ)',
+    'so2.leadBusy':', अहिलेको भीड अनुसार मिलाइएको',
+    'so2.leadCyc':'। एक पटकमा {0} वटासम्म → {1} पटक बनाउने',
+    'so2.repickAuto':'बनाउने समय आफैं छान्ने (अहिले करिब {0} मिनेट)',
+    'so2.cookHint':'पकाउने समय (② उत्पादन, "बनाउने तरिका") {0} मिनेट हो। शेल्फसम्मको समय जोडेर छान्नुहोस्',
+    'so2.toShelfAuto':'करिब {0} मिनेटपछि ({1}) शेल्फमा',
+    'product.cookTitle':'⏱ बनाउने तरिका (थप ब्याच "कति मिनेटपछि" का लागि)',
+    'product.cookDesc':'बनाउने समय = पकाउने समय (यहाँ) + शेल्फसम्मको समय ("✓ बनाइयो" रेकर्डबाट)। खाली उत्पादन र "✓ बनाइयो" रेकर्ड ३ वटा नपुगेका उत्पादनमा "N बाँकी हुँदा थप" अनुमान देखिँदैन।',
+    'product.cm_none':'सेट छैन','product.cm_fryer':'तार्ने','product.cm_steam':'बाफमा पकाउने','product.cm_microwave':'माइक्रोवेभ','product.cm_warm':'तताउने','product.cm_asis':'जस्तो छ त्यस्तै','product.cm_microwave_fryer':'माइक्रोवेभ → तार्ने',
+    'product.ct_fryer':'तार्ने समय','product.ct_steam':'बाफ समय','product.ct_microwave':'माइक्रोवेभ समय','product.ct_warm':'तताउने समय','product.ct_wash':'धुने','product.ct_other':'अन्य','product.ct_fry':'तार्ने','product.ct_range':'माइक्रोवेभ',
+    'product.min':'मिनेट','product.sec':'सेकेन्ड',
+    'product.cookCap':'एक पटकमा बनाउन सकिने संख्या','product.cookCapPh':'खाली = एकै पटक','product.cookStack':'दुई तह (अरूसँगै ठीक)',
+    'product.cookNow':'पकाउने समय: {0} मिनेट','product.cookCycles':' ({0} भन्दा बढी हुँदा हरेक थप पटकमा {1} मिनेट)','product.cookEmpty':'पकाउने समय: खाली (अनुमान देखिँदैन)',
+    'product.cookMeas':'शेल्फसम्म (रेकर्ड): {0} मिनेट (पछिल्ला {1} को मध्यिका)','product.cookMeasNone':'शेल्फसम्म (रेकर्ड): अहिलेसम्म {0} ({1} भएपछि प्रयोग)','product.cookLead':'→ बनाउने समय करिब {0} मिनेट',
+    'product.cookCopy':'मिल्दो उत्पादनबाट सार्ने…','product.cookCopyConfirm':'"{0}" को बनाउने तरिका यो उत्पादनमा सार्ने? (अहिलेको सेटिङ बदलिन्छ)',
+    'product.cookBulk':'यो वर्गका खाली {0} उत्पादनमा पनि उही राख्ने','product.cookBulkConfirm':'यो वर्गका सेटिङ नभएका {0} उत्पादनमा "{1}" राख्ने? (सेटिङ भएका बदलिँदैनन्)','product.cookBulkDone':'{0} उत्पादनमा राखियो',
+    'product.mkCookDesc':'सामग्रीको हरेक चरणको समय (उही नामको सामग्रीमा अरू उत्पादनमा पनि उही समय)। हातको काम (धुने, अन्य) जोडिन्छ, तार्ने लामो एक, माइक्रोवेभ जोडिन्छ, तार्ने र माइक्रोवेभ सँगै (लामो)। पगाल्ने, पछि थप्ने, सजाउने समावेश छैन।',
+    'product.mkNoIng':'सामग्री छैन (तलको "माचिकादो तयारी" मा राख्नुहोस्)','product.mkNoTimed':'समय राख्ने चरण छैन → पकाउने समय ० मिनेट',
+    'product.mkCalc':'हात {0} मिनेट + मेसिन {1} मिनेट (तार्ने {2}, माइक्रोवेभ {3})',
+    'product.cookEmptyTitle':'⏱ बनाउने समय नभएका उत्पादन: {0}','product.cookEmptyDesc':'बनाउने समय थाहा नभएका उत्पादनमा "N बाँकी हुँदा थप" अनुमान देखिँदैन। थिच्दा उत्पादन खुल्छ।','product.cookEmptyMk':'समय नभएका सामग्री: {0}','product.cookEmptyMeas':'{0} रेकर्ड',
     'gist.token':'टोकन','gist.gistId':'Gist ID',
     'gist.uploadNow':'⬆️ अहिले अपलोड','gist.downloadFromCloud':'⬇️ क्लाउडबाट तान्नुहोस्',
     'gist.copyShareLink':'🔗 लिङ्क प्रतिलिपि','gist.disconnect':'विच्छेद',
@@ -2528,6 +2707,10 @@ function syncActiveWeek(){
     ...(_isPlainObj(_prevWeek.investDone)?{investDone:_prevWeek.investDone}:{}),
     // 今週のメニュー（休む商品だけ false。2026-10-09）も週のデータの中。作り直す時に落とさない
     ...(_isPlainObj(_prevWeek.menu)?{menu:_prevWeek.menu}:{}),
+    // ③天気・イベント調整の「読み込み済み」の印（applyResearch が書く）も週のデータの中。作り直す時に落とさない（2026-10-09）
+    ...('researchLoaded' in _prevWeek?{researchLoaded:_prevWeek.researchLoaded}:{}),
+    ...('researchLoadedAt' in _prevWeek?{researchLoadedAt:_prevWeek.researchLoadedAt}:{}),
+    ...('researchFileName' in _prevWeek?{researchFileName:_prevWeek.researchFileName}:{}),
     ji:JSON.parse(JSON.stringify(S.ji||{})),
     cust:(S.cust||[]).map(r=>[...r]),
     checks:{...(S.checks||{})},
@@ -3961,7 +4144,7 @@ function roundCnt(v){
 //   計算の結果は同じ処理の間だけ覚える（saveS と、処理が終わった直後に消す）。
 let _allocCache=new Map(), _allocClearQueued=false;
 let _skuCache=new Map(), _skuClearQueued=false;   // SKU の数の覚え書き（skuActual／skuLineup。同じ処理の間だけ）
-function clearAllocCache(){ _allocCache.clear(); _skuCache.clear(); }
+function clearAllocCache(){ _allocCache.clear(); _skuCache.clear(); _soMeasMemo=null; }
 function getProdWeekAlloc(pid){
   const hit=_allocCache.get(pid); if(hit)return hit;
   const a={};
@@ -4724,7 +4907,7 @@ function getLearnInfo(pid,dayIdx,slotH){
   const actT=parseLocalDate(weekKeyToDateStr(S.activeWeek)).getTime();
   const keys=Object.keys(S.weeks).filter(k=>k!==S.activeWeek&&parseLocalDate(weekKeyToDateStr(k)).getTime()<actT)
     .sort((a,b)=>parseLocalDate(weekKeyToDateStr(a))-parseLocalDate(weekKeyToDateStr(b))).slice(-4);
-  keys.forEach(k=>{ const w=S.weeks[k]||{}; const so=(w.soldOuts||{})[key]; if(so&&so.length)out.so++; if((w.leftovers||{})[key])out.lo++; });
+  keys.forEach(k=>{ const w=S.weeks[k]||{}; const so=(w.soldOuts||{})[key]; if(so&&so.some(e=>!(e&&e.remain>0)))out.so++; if((w.leftovers||{})[key])out.lo++; });   // 「残り◯個」だけの週（remain>0。2026-10-09）は完売に数えない
   const f=1+0.1*Math.max(0,out.so-1)-0.1*Math.max(0,out.lo-1);
   out.adj=Math.min(1.5,Math.max(0.5,Math.round(f*100)/100));
   return out;
@@ -4766,11 +4949,16 @@ function openCellMenu(pid,dayIdx,slotH){
       <span style="flex:1;min-width:0"><span style="display:block;font-size:16px;font-weight:800;color:#0f172a">${label}</span><span style="display:block;font-size:12px;color:#64748b;line-height:1.5;margin-top:2px">${desc}</span></span>
     </button>`;
   let rows='';
-  rows+=row('sold','🔔',t('so2.menuTitle'),so.length?_soT('so2.menuDescDone',so.length,soSum):t('so2.menuDesc'),so.length>0,'#16a34a');
+  const soCnt=so.filter(e=>!(e&&e.remain>0)).length, remCnt=so.length-soCnt;   // 完売の記録と「残り◯個」の記録（2026-10-09）
+  rows+=row('sold','🔔',t('so2.menuTitle'),soCnt?_soT('so2.menuDescDone',soCnt,soSum):t('so2.menuDesc'),soCnt>0,'#16a34a');
+  let rpLater=false;
+  { const rp=soReorderPoint(pid,dayIdx,slotH,20);   // 「残り◯個」：完売を待たずに追加を考える。目安（残り◯で追加）があれば説明に出す。計算が長い時は、出来しだい書き足す（画面を止めない）
+    rpLater=rp===undefined;
+    rows+=row('remain','📉',t('so2.remTitle'),(remCnt?_soT('so2.remDescDone',remCnt)+'<br>':'')+`<span id="cmRoDesc">${_soRemDesc(rpLater?null:rp)}</span>`,remCnt>0,'#0f766e'); }
   const soPend=getSoldOutPending(pid,dayIdx,slotH);
   if(soPend.length)rows+=row('done','✓',_soT('so2.menuDone',soPend[0].e.added),t('so2.menuDoneDesc'),false,'#d97706');
   else { const lastDone=so.slice().reverse().find(e=>(e.added||0)>0&&e.done===true); if(lastDone)rows+=row('undone','↶',_soT('so2.menuUndoDone',lastDone.added),t('so2.menuUndoDoneDesc'),false,'#64748b'); }
-  if(so.length)rows+=row('undo','↶',(so[so.length-1].added>0)?_soT('so2.undoAdd',so[so.length-1].added):t('so2.undoZero'),t('so2.undoDesc'),false,'#dc2626');
+  if(so.length){ const le=so[so.length-1]; rows+=row('undo','↶',(le.added>0)?_soT('so2.undoAdd',le.added):(le.remain>0?_soT('so2.undoRem',le.remain):t('so2.undoZero')),t('so2.undoDesc'),false,'#dc2626'); }
   rows+=row('left','📦',leftover?t('cell.leftDone'):t('cell.left'),leftover?t('cell.undoTap'):t('cell.leftDesc'),leftover,'#ea580c');
   if(!isSkip)rows+=row('skip','⊘',skipped?t('cell.skipDone'):t('cell.skip'),skipped?t('cell.undoTap'):t('cell.skipDesc'),skipped,'#475569');
   const adjTxt=li.adj!==1?tf('cell.adj',(li.adj>1?'+':'')+Math.round((li.adj-1)*100)):t('cell.adjNone');
@@ -4785,12 +4973,14 @@ function openCellMenu(pid,dayIdx,slotH){
     <button type="button" onclick="closeCellMenu()" style="width:100%;margin-top:12px;padding:13px;font-size:15px;font-weight:700;border:none;border-radius:10px;background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit">${t('common.close')}</button>
   </div>`;
   m.style.display='flex';
+  if(rpLater)soRpWhenReady(pid,dayIdx,slotH,rp=>{ const c=_cellMenuCtx, el=document.getElementById('cmRoDesc'); if(el&&c&&c.pid===pid&&c.dayIdx===dayIdx&&c.slotH===slotH)el.innerHTML=_soRemDesc(rp); });
 }
 function closeCellMenu(){ const m=document.getElementById('cellMenuModal'); if(m)m.style.display='none'; _cellMenuCtx=null; }
 function cellMenuAct(act){
   const c=_cellMenuCtx; if(!c)return;
   closeCellMenu();
   if(act==='sold')return openSoldOutModal(c.pid,c.dayIdx,c.slotH);
+  if(act==='remain')return openSoldOutModal(c.pid,c.dayIdx,c.slotH,{remain:true});   // 「残り◯個」（2026-10-09）
   if(act==='undo')return removeLastSoldOut(c.pid,c.dayIdx,c.slotH);
   if(act==='done')return markSoldOutDone(c.pid,c.dayIdx,c.slotH);
   if(act==='undone')return unmarkSoldOutDone(c.pid,c.dayIdx,c.slotH);
@@ -6115,6 +6305,7 @@ function renderProductCards(){
     html=sorted.map(p=>renderProductCard(p)).join('');
   }
   morphInto(el,html);         // 差分更新：入力中の欄はそのまま、他の欄・他のカードだけ最新に
+  renderCookEmptyBand();      // 作り方が空の商品の一覧（2026-10-09 D）
   renderCrossStoreImport();   // 他店舗からの取り込みドロップダウンを更新
   // ドラッグ＆ドロップ: カード全体にイベント設定（既に設定済みのカードは _wireCardDrag 内でスキップ）
   el.querySelectorAll('[data-pid]').forEach(card=>_wireCardDrag(card));
@@ -6127,6 +6318,7 @@ function renderProductCardInPlace(pid){
   if(!p||!old){ renderProductCards(); return; }
   const tpl=document.createElement('template'); tpl.innerHTML=renderProductCard(p);
   _morphNode(old,tpl.content.firstElementChild); _wireCardDrag(old);
+  if(typeof renderCookEmptyBand==='function')renderCookEmptyBand();   // 作り方が空の商品の一覧も新しく（2026-10-09 D）
 }
 function _wireCardDrag(card){
   const el=document.getElementById('product-cards');
@@ -6264,9 +6456,10 @@ function renderProductCard(p){
             title="${t('product.discCalcTip')}">${t('product.calcBtn')}</button>
         </div>
       </div>
+      ${cookSettingHtml(p)}
       <!-- ここから詳細設定（滅多に触らない項目は折りたたみ。開閉状態は _advOpen で保持） -->
       <details class="pc-adv" style="grid-column:span 2" ${_advOpen.has(p.id+':adv')?'open':''} ontoggle="_advToggle('${p.id}:adv',this.open)">
-        <summary>⚙️ 詳細設定 <span class="pc-sub">作成単位・作る時間帯・品切れ防止・タグ・種別・発注・作成方法</span></summary>
+        <summary>⚙️ 詳細設定 <span class="pc-sub">作成単位・作る時間帯・品切れ防止・タグ・種別・発注</span></summary>
         <div class="pc-grid">
       <div><label>最低作成単位 <span class="info" title="この単位ずつ作成します（2食ずつしか作れない商品は「2」）。通常商品は「1」のまま">ℹ️</span></label>
         <div style="display:flex;align-items:center;gap:6px">
@@ -6355,66 +6548,6 @@ function renderProductCard(p){
           </label>
         </div>
       </div>
-      <!-- 作成方法（オペレーション設定） -->
-      <div style="grid-column:span 2;background:#fff7ed;border-radius:6px;padding:8px 10px;border:1px solid #fed7aa">
-        <div style="font-size:11px;color:#9a3412;margin-bottom:6px;font-weight:600">作成方法（効率化用）</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;align-items:center;margin-bottom:6px">
-          ${[
-            ['none','設定なし','#9ca3af'],
-            ['microwave','レンジのみ','#7c3aed'],
-            ['fryer','フライヤーのみ','#ea580c'],
-            ['microwave_fryer','レンジ→フライヤー','#dc2626']
-          ].map(([v,label,col])=>`
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
-              <input type="radio" name="prep_${p.id}" value="${v}" ${(p.prepMethod||'none')===v?'checked':''}
-                onchange="setProdField('${p.id}','prepMethod','${v}')">
-              <span style="font-size:11px;color:${col};font-weight:${(p.prepMethod||'none')===v?700:400}">${label}</span>
-            </label>`).join('')}
-        </div>
-        ${(p.prepMethod&&p.prepMethod!=='none')?(()=>{
-          const mwTotal=p.microwaveMin??1;
-          const mwM=Math.floor(mwTotal),mwS=Math.round((mwTotal-mwM)*60);
-          const frTotal=p.fryerMin??5;
-          const frM=Math.floor(frTotal),frS=Math.round((frTotal-frM)*60);
-          const mw=(p.prepMethod==='microwave'||p.prepMethod==='microwave_fryer');
-          const fr=(p.prepMethod==='fryer'||p.prepMethod==='microwave_fryer');
-          return `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:11px;color:#555;margin-top:4px">
-          ${mw?`<div>
-            <label style="font-size:10px;color:#888">レンジ時間</label>
-            <div style="display:flex;align-items:center;gap:3px">
-              <input id="mwm_${p.id}" type="text" inputmode="numeric" value="${mwM}" style="width:48px;text-align:right"
-                onchange="setProdTimeMS('${p.id}','microwaveMin',this.value,document.getElementById('mws_${p.id}').value)">
-              <span style="font-size:10px;color:#666">分</span>
-              <input id="mws_${p.id}" type="text" inputmode="numeric" value="${mwS}" style="width:48px;text-align:right"
-                onchange="setProdTimeMS('${p.id}','microwaveMin',document.getElementById('mwm_${p.id}').value,this.value)">
-              <span style="font-size:10px;color:#666">秒</span>
-            </div>
-          </div>`:'<div></div>'}
-          ${fr?`<div>
-            <label style="font-size:10px;color:#888">フライヤー時間</label>
-            <div style="display:flex;align-items:center;gap:3px">
-              <input id="frm_${p.id}" type="text" inputmode="numeric" value="${frM}" style="width:48px;text-align:right"
-                onchange="setProdTimeMS('${p.id}','fryerMin',this.value,document.getElementById('frs_${p.id}').value)">
-              <span style="font-size:10px;color:#666">分</span>
-              <input id="frs_${p.id}" type="text" inputmode="numeric" value="${frS}" style="width:48px;text-align:right"
-                onchange="setProdTimeMS('${p.id}','fryerMin',document.getElementById('frm_${p.id}').value,this.value)">
-              <span style="font-size:10px;color:#666">秒</span>
-            </div>
-          </div>
-          <div><label style="font-size:10px;color:#888">フライヤー容量（個/回）</label>
-            <input type="text" inputmode="numeric" value="${p.fryerCap??6}" style="width:100%"
-              onchange="setProdField('${p.id}','fryerCap',parseInt(toHalf(this.value))||1)">
-          </div>
-          <div style="display:flex;align-items:flex-end">
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
-              <input type="checkbox" ${p.fryerStackable!==false?'checked':''}
-                onchange="setProdField('${p.id}','fryerStackable',this.checked)">
-              <span>2段調理可（他商品と同時OK）</span>
-            </label>
-          </div>`:''}
-        </div>`;
-        })():''}
-      </div>
         </div>
       </details>
       ${(p.category==='まちかど厨房'||p.category==='まちかど厨房新商品')?`
@@ -6491,12 +6624,107 @@ function renderProductCard(p){
     </div>`:''}
   </div>`;
 }
+// ===== ②商品設定の「作り方」（2026-10-09 店長の決定 D）=====
+//   追加作成の「何分後に並ぶか」の調理の時間。事前準備（作成手順の並べ方）と同じ欄 prepMethod・fryerMin・microwaveMin・fryerCap を使い、二重に入れさせない。
+//   新しい欄：蒸す steamMin・温める warmMin・揚げる以外の1回に作れる数 cookCap。まちかど厨房は食材ごとの工程の時間 mkIngredients[].t（名前ごと）。
+const COOK_UI=['none','fryer','steam','microwave','warm','microwave_fryer','asis'];
+const COOK_COLOR={none:'#9ca3af',fryer:'#ea580c',steam:'#0891b2',microwave:'#7c3aed',warm:'#b45309',microwave_fryer:'#dc2626',asis:'#16a34a'};
+function _cookMS(v){ const x=_soPosMin(v); if(x==null)return['','']; let m=Math.floor(x+1e-9), s=Math.round((x-m)*60); if(s===60){m++;s=0;} return[String(m),String(s)]; }
+function _cookParse(mStr,sStr){ const a=toHalf(String(mStr==null?'':mStr)).trim(), b=toHalf(String(sStr==null?'':sStr)).trim(); if(a===''&&b==='')return null; const m=parseFloat(a)||0, s=parseFloat(b)||0; return Math.max(0,m+s/60); }
+function _cookTimeRow(label,id,m,s,onchg){
+  return `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:12px;margin-top:4px"><span style="min-width:84px;color:#7c2d12;font-weight:700">${label}</span>
+    <input id="${id}_m" type="text" inputmode="decimal" value="${m}" placeholder="—" style="width:52px;text-align:right;padding:4px 6px" onchange="${onchg}"><span>${t('product.min')}</span>
+    <input id="${id}_s" type="text" inputmode="numeric" value="${s}" placeholder="0" style="width:44px;text-align:right;padding:4px 6px" onchange="${onchg}"><span>${t('product.sec')}</span></div>`;
+}
+function cookMethodLabel(p){ const ck=soCookInfo(p), m=p.prepMethod||'none'; if(!ck.set)return t('product.cm_'+(COOK_UI.includes(m)?m:'none'));
+  return t('product.cm_'+m)+(ck.first>0?' '+_soMinTxt(ck.first)+t('product.min'):'')+(ck.cap<Infinity?' ×'+ck.cap:''); }
+// 状態の行（調理の時間・並べるまでの記録・作る時間）
+function cookStatusHtml(p){
+  const ck=soCookInfo(p), mi=soMeasInfo(p.id);
+  const a=ck.set?`<b>${tf('product.cookNow',_soMinTxt(ck.first))}</b>${(ck.cap<Infinity&&ck.per>0)?tf('product.cookCycles',ck.cap,_soMinTxt(ck.per)):''}`:`<b style="color:#b91c1c">${t('product.cookEmpty')}</b>`;
+  const b=mi.n>=SO_MEAS_MIN?tf('product.cookMeas',_soMinTxt(mi.med),mi.n):tf('product.cookMeasNone',mi.n,SO_MEAS_MIN);
+  const LM=soLeadModel(p), tot=(LM&&LM.meas)?((LM.cook?LM.cook.first:0)+Math.max(0,LM.meas.med)):null;   // 作る時間は記録がそろってから（作り方だけでは目安も自動の計算も使わない。2026-10-09）
+  return `<div>${a}</div><div style="color:#64748b">${b}</div>${tot!=null?`<div style="color:#166534;font-weight:700">${tf('product.cookLead',_soMinTxt(tot))}</div>`:''}`;
+}
+function cookSettingHtml(p){
+  const esc=escapeHtmlP, ck=soCookInfo(p);
+  const head=`<div style="font-size:12px;color:#9a3412;font-weight:800">${t('product.cookTitle')}</div><div style="font-size:11px;color:#78350f;line-height:1.5;margin:2px 0 6px">${t('product.cookDesc')}</div>`;
+  const status=`<div id="cookst_${p.id}" style="font-size:12px;line-height:1.6;margin-top:6px;background:#fff;border:1px solid #fde68a;border-radius:6px;padding:5px 8px">${cookStatusHtml(p)}</div>`;
+  let body='';
+  if(isMkProd(p)){
+    const ings=getIngs(p).filter(g=>(g.n||'').trim());
+    const rows=[]; const seen=new Set();
+    ings.forEach(g=>{ const nm=g.n.trim(), tm=ingTimesOf(nm); (g.m||[]).forEach(m=>{ if(!MK_ING_TIMED.includes(m)||seen.has(nm+'|'+m))return; seen.add(nm+'|'+m);
+      const [mm,ss]=_cookMS(tm[m]), id=`ckm_${p.id}_${rows.length}`;
+      rows.push(_cookTimeRow(`${esc(nm)}（${t('product.ct_'+m)}）`,id,mm,ss,`setIngTime('${p.id}',${J_(nm)},'${m}',document.getElementById('${id}_m').value,document.getElementById('${id}_s').value)`)); }); });
+    body=`<div style="font-size:11px;color:#78350f;line-height:1.5">${t('product.mkCookDesc')}</div>`+
+      (!ings.length?`<div style="font-size:12px;color:#b91c1c;margin-top:4px">${t('product.mkNoIng')}</div>`:(rows.length?rows.join(''):`<div style="font-size:12px;color:#166534;margin-top:4px">${t('product.mkNoTimed')}</div>`))+
+      (ck.set&&ck.mk&&rows.length?`<div style="font-size:11px;color:#475569;margin-top:4px">${tf('product.mkCalc',_soMinTxt(ck.hand),_soMinTxt(Math.max(ck.fry,ck.range)),_soMinTxt(ck.fry),_soMinTxt(ck.range))}</div>`:'');
+  } else {
+    const m=COOK_UI.includes(p.prepMethod||'none')?(p.prepMethod||'none'):'none';
+    const btns=COOK_UI.map(v=>{ const on=v===m, col=COOK_COLOR[v]; return `<button type="button" data-cook="${v}" onclick="setCookMethod('${p.id}','${v}')" style="padding:6px 11px;font-size:12px;border-radius:14px;border:1.5px solid ${on?col:'#d1d5db'};background:${on?col:'#fff'};color:${on?'#fff':'#475569'};cursor:pointer;font-weight:700">${t('product.cm_'+v)}</button>`; }).join('');
+    let times='';
+    const tr=key=>{ const [mm,ss]=_cookMS(p[key]), id=`ck_${key}_${p.id}`; return _cookTimeRow(t('product.ct_'+{fryerMin:'fryer',steamMin:'steam',microwaveMin:'microwave',warmMin:'warm'}[key]),id,mm,ss,`setCookTime('${p.id}','${key}',document.getElementById('${id}_m').value,document.getElementById('${id}_s').value)`); };
+    if(m==='microwave_fryer')times=tr('microwaveMin')+tr('fryerMin');
+    else if(COOK_KEYS[m])times=tr(COOK_KEYS[m]);
+    const capKey=(m==='fryer'||m==='microwave_fryer')?'fryerCap':((m==='steam'||m==='microwave'||m==='warm')?'cookCap':null);
+    const cap=capKey?`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin-top:4px"><span style="min-width:84px;color:#7c2d12;font-weight:700">${t('product.cookCap')}</span>
+      <input type="text" inputmode="numeric" value="${p[capKey]!=null&&p[capKey]!==''?p[capKey]:''}" placeholder="${t('product.cookCapPh')}" style="width:110px;padding:4px 6px" onchange="setCookCap('${p.id}','${capKey}',this.value)"></div>`:'';
+    const stack=(m==='fryer'||m==='microwave_fryer')?`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;margin-top:4px"><input type="checkbox" ${p.fryerStackable!==false?'checked':''} onchange="setProdField('${p.id}','fryerStackable',this.checked)"><span>${t('product.cookStack')}</span></label>`:'';
+    const cands=(S.PM||[]).filter(q=>q&&q.id!==p.id&&!isMkProd(q)&&soCookInfo(q).set).sort((a,b)=>(mainCatOf(a.category)===mainCatOf(p.category)?0:1)-(mainCatOf(b.category)===mainCatOf(p.category)?0:1)||(a.order??0)-(b.order??0));
+    const copy=cands.length?`<select onchange="if(this.value)cookCopyFrom('${p.id}',this.value);this.value=''" style="font-size:12px;padding:5px 8px;border:1px solid #fdba74;border-radius:8px;color:#9a3412;background:#fff;max-width:100%"><option value="">${t('product.cookCopy')}</option>${cands.map(q=>`<option value="${q.id}">${esc(q.name||'')}（${esc(cookMethodLabel(q))}）</option>`).join('')}</select>`:'';
+    const empt=ck.set?cookEmptySameCat(p).length:0;
+    const bulk=empt?`<button type="button" onclick="cookFillCategory('${p.id}')" style="font-size:12px;padding:5px 10px;border:1px solid #fdba74;border-radius:8px;color:#9a3412;background:#fff7ed;cursor:pointer;font-weight:700">${tf('product.cookBulk',empt)}</button>`:'';
+    body=`<div style="display:flex;gap:5px;flex-wrap:wrap">${btns}</div>${times}${cap}${stack}${(copy||bulk)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${copy}${bulk}</div>`:''}`;
+  }
+  return `<div class="cook-set" style="grid-column:span 2;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px">${head}${body}${status}</div>`;
+}
+function J_(s){ return escapeHtmlP(JSON.stringify(String(s))); }
+function _cookRefresh(pid){ const p=getP(pid), el=document.getElementById('cookst_'+pid); if(p&&el)el.innerHTML=cookStatusHtml(p); renderCookEmptyBand(); }
+function setCookMethod(pid,v){ const p=getP(pid); if(!p||!COOK_UI.includes(v))return; p.prepMethod=v; saveS(); renderProductCardInPlace(pid); renderCookEmptyBand(); }
+function setCookTime(pid,key,mStr,sStr){ const p=getP(pid); if(!p)return; const v=_cookParse(mStr,sStr); if(v==null)delete p[key]; else p[key]=v; saveS(); _cookRefresh(pid); }
+function setCookCap(pid,key,val){ const p=getP(pid); if(!p)return; const s=toHalf(String(val||'')).trim(); const x=parseInt(s); if(s===''||!(x>=1))delete p[key]; else p[key]=x; saveS(); _cookRefresh(pid); }
+// まちかど厨房：食材の工程の時間（同じ名前の食材すべてに入れる。空にしたら全部から消す）
+function setIngTime(pid,name,m,mStr,sStr){
+  const n=(name||'').trim(); if(!n||!MK_ING_TIMED.includes(m))return; const v=_cookParse(mStr,sStr);
+  (S.PM||[]).forEach(q=>{ if(!getIngs(q).some(ing=>(ing.n||'').trim()===n))return; _ensureIngs(q); q.mkIngredients.forEach(ing=>{ if((ing.n||'').trim()!==n)return; if(v==null){ if(ing.t){ delete ing.t[m]; if(!Object.keys(ing.t).length)delete ing.t; } } else { if(!ing.t)ing.t={}; ing.t[m]=v; } }); });
+  saveS(); renderProductCardInPlace(pid); renderCookEmptyBand();
+}
+const COOK_FIELDS=['prepMethod','fryerMin','microwaveMin','steamMin','warmMin','fryerCap','cookCap','fryerStackable'];
+function _cookCopyFields(dst,src){ COOK_FIELDS.forEach(k=>{ if(src[k]===undefined)delete dst[k]; else dst[k]=JSON.parse(JSON.stringify(src[k])); }); }
+function cookCopyFrom(pid,srcId){
+  const p=getP(pid), q=getP(srcId); if(!p||!q||p.id===q.id)return;
+  if(soCookInfo(p).set&&!confirm(tf('product.cookCopyConfirm',q.name||'')))return;
+  _cookCopyFields(p,q); saveS(); renderProductCardInPlace(pid); renderCookEmptyBand();
+}
+// 同じカテゴリで作り方が空の商品（まちかど厨房は除く。食材ごとに入れるため）
+function cookEmptySameCat(p){ return (S.PM||[]).filter(q=>q&&q.id!==p.id&&q.category===p.category&&!isMkProd(q)&&!soCookInfo(q).set); }
+function cookFillCategory(pid){
+  const p=getP(pid); if(!p||!soCookInfo(p).set)return; const list=cookEmptySameCat(p); if(!list.length)return;
+  if(!confirm(tf('product.cookBulkConfirm',list.length,cookMethodLabel(p))))return;
+  list.forEach(q=>_cookCopyFields(q,p)); saveS(); renderProductCards(); showToast(tf('product.cookBulkDone',list.length),'success');
+}
+// まだ作る時間が分からない商品の一覧（②商品設定の上）。調理の時間も、そろった記録も無い商品
+function cookEmptyList(){ return (S.PM||[]).filter(p=>p&&p.enabled&&S.catOn[p.category]&&!isPackParent(p)&&!soLeadModel(p)); }
+let _cookEmptyOpen=false;
+function renderCookEmptyBand(){
+  const el=document.getElementById('cook-empty-band'); if(!el)return;
+  const list=cookEmptyList(); if(!list.length){ el.innerHTML=''; return; }
+  const cats=[]; list.forEach(p=>{ if(!cats.includes(p.category))cats.push(p.category); });
+  const body=cats.map(c=>`<div style="margin-top:6px"><div style="font-size:11px;font-weight:700;color:#9a3412">${tCat(c)}</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:3px">${list.filter(p=>p.category===c).map(p=>{ const ck=soCookInfo(p), mi=soMeasInfo(p.id);
+      const sub=[ck.mk&&ck.missing&&ck.missing.length?tf('product.cookEmptyMk',[...new Set(ck.missing.map(x=>x.n))].join(t('sku.sep'))):'', mi.n?tf('product.cookEmptyMeas',mi.n):''].filter(Boolean).join('・');
+      return `<button type="button" data-cook-empty="${p.id}" onclick="openCookCard('${p.id}')" style="font-size:12px;padding:5px 9px;border:1px solid #fed7aa;border-radius:8px;background:#fff;color:#0f172a;cursor:pointer;text-align:left">${escapeHtmlP(p.name||'(名称未設定)')}${sub?`<span style="display:block;font-size:10px;color:#64748b">${escapeHtmlP(sub)}</span>`:''}</button>`; }).join('')}</div></div>`).join('');
+  el.innerHTML=`<details ${_cookEmptyOpen?'open':''} ontoggle="_cookEmptyOpen=this.open" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:6px 10px;margin-bottom:8px">
+    <summary style="cursor:pointer;font-size:13px;font-weight:800;color:#9a3412">${tf('product.cookEmptyTitle',list.length)}</summary>
+    <div style="font-size:11px;color:#78350f;line-height:1.5;margin-top:4px">${t('product.cookEmptyDesc')}</div>${body}</details>`;
+}
+function openCookCard(pid){ _expandedCards.add(pid); _uiSave(); renderProductCards(); const c=document.querySelector(`#product-cards [data-pid="${pid}"]`); if(c){ c.scrollIntoView({block:'start',behavior:'smooth'}); const k=c.querySelector('.cook-set'); if(k)k.style.boxShadow='0 0 0 3px #fb923c'; } }
 // 展開フォーム内の「詳細設定」「まちかど厨房 準備設定」の開閉状態（再描画しても閉じないように保持）
 const _advOpen=new Set();
 function _advToggle(key,open){ if(open)_advOpen.add(key); else _advOpen.delete(key); _uiSave(); }
 
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
-const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','minDisplay','startDate','endDate','microwaveMin','fryerMin','fryerCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason','mkContainer']);
+const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','minDisplay','startDate','endDate','microwaveMin','fryerMin','fryerCap','steamMin','warmMin','cookCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason','mkContainer']);
 
 // ②商品設定：本数とパック（親子）の欄。子＝親を選ぶ・1パック＝◯本・取り分％。親＝子の一覧（絵つき）
 function packSettingHtml(p){
@@ -6697,7 +6925,7 @@ function toggleProdTag(pid,tag,checked){
 
 // ===== 店舗間で商品を取り込む（店舗で変わらない共通情報だけコピー） =====
 // 除外：作成時間(minSlots)/最低数/有効化/並び順/発注ステータス/投資 など店舗固有の運用設定
-const SHARED_FIELDS=['name','category','subType','mkType','mkBread','mkBreadUse','mkContainer','cost','stdPrice','shopPrice','disc','markupRate','mkIngredients','mkSeals','prepMethod','microwaveMin','fryerMin','fryerCap','batchUnit'];
+const SHARED_FIELDS=['name','category','subType','mkType','mkBread','mkBreadUse','mkContainer','cost','stdPrice','shopPrice','disc','markupRate','mkIngredients','mkSeals','prepMethod','microwaveMin','fryerMin','fryerCap','steamMin','warmMin','cookCap','batchUnit'];
 function getOtherStoreProducts(){
   const out=[], seen=new Set();
   const cur=new Set((S.PM||[]).map(p=>(p.name||'').trim()+'|||'+(p.category||'')));
@@ -8340,7 +8568,7 @@ function renderSlotGroupedView(dayIdx){
         return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
           <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
           <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">${tf('mk.invest',extra)}</span>`:''} ${gaibuCellBadge(cat,di,slotH)}${thermalBadge(p,true)}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">'+t('mk.skipBadge')+'</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">'+t('mk.leftBadge')+'</span>':''}${getSoldOutTotal(p.id,di,slotH)>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">${tf('mk.addBadge',getSoldOutTotal(p.id,di,slotH))}</span>`:''}${getSoldOutPending(p.id,di,slotH).map(x=>' '+soDoneBtn(p.id,di,slotH,x.i,x.e.added,false)).join('')}</span>
-          <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${di},${slotH})" aria-label="${escapeHtmlP(p.name)} の記録メニュー" style="flex-shrink:0"><span style="font-size:21px;font-weight:800;color:#1d4ed8;line-height:1">${grandTotal}</span></button>
+          ${skipped?'':soRoHint(p.id,di,slotH)}<button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${di},${slotH})" aria-label="${escapeHtmlP(p.name)} の記録メニュー" style="flex-shrink:0"><span style="font-size:21px;font-weight:800;color:#1d4ed8;line-height:1">${grandTotal}</span></button>
         </div>`;
       }).join('');
       cats+=`<div style="margin-bottom:10px">
@@ -8370,6 +8598,7 @@ function prepBadge(p){
   if(m==='microwave_fryer')return `<span style="${base};background:#fee2e2;color:#991b1b">レンジ→フライヤー</span>`;
   if(m==='fryer')return `<span style="${base};background:#ffedd5;color:#9a3412">フライヤー</span>`;
   if(m==='microwave')return `<span style="${base};background:#ede9fe;color:#5b21b6">レンジ</span>`;
+  if(m==='steam'||m==='warm'||m==='asis')return `<span style="${base};background:#f1f5f9;color:#334155">${t('product.cm_'+m)}</span>`;   // 2026-10-09 D：作り方の追加
   return '';
 }
 function setProdSortMode(mode){
@@ -8518,6 +8747,7 @@ function renderProdDayContent(dayIdx){
   if(_prodSortMode==='slot'){
     html+=renderSlotGroupedView(dayIdx);
     el.innerHTML=html;
+    soRoFill();   // マスの「残り◯で追加」を埋める（2026-10-09）
     return;
   }
 
@@ -8735,7 +8965,7 @@ function renderProdDayContent(dayIdx){
         const soBadges=soEvents.map((e,ei)=>{
           const at=e.readyAt!=null?e.readyAt:e.soldAt;
           if(soPending(e))return soDoneBtn(p.id,dayIdx,slotH,ei,e.added,false);   // 作る予定：「✓ 作った +N」のボタン（押すと印が付く）
-          return `<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${_soFmtHM(at)} ${t('sold.badgeReady').replace('{0}',e.added)}">${e.added>0?'+'+e.added:t('so2.badgeSold')}</span>`;
+          return `<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${_soFmtHM(at)} ${t('sold.badgeReady').replace('{0}',e.added)}">${e.added>0?'+'+e.added:(e.remain>0?_soT('so2.badgeRem',e.remain):t('so2.badgeSold'))}</span>`;
         }).join('');
         // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、0(作らない)は中身を出さず真っ白、それ以外はチェック状態次第
         const isZero=!isSkip&&!skipped&&extra<=0&&grandTotal===0;
@@ -8752,6 +8982,7 @@ function renderProdDayContent(dayIdx){
             </button>
             ${extra>0?`<span style="background:#fef3c7;color:#d97706;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700">${tf('mk.invest',extra)}</span>`:''}
             ${riceBadge(p.id,dayIdx,slotH)}
+            ${skipped?'':soRoHint(p.id,dayIdx,slotH)}
             ${skipped?`<span style="background:#475569;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">${t('mk.skipBadge')}</span>`:''}
             ${leftover?`<span style="background:#ffedd5;color:#9a3412;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">${t('mk.leftBadge')}</span>`:''}
             ${learnAdj!==1?`<span style="background:#ede9fe;color:#5b21b6;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700" title="完売/余りの記録から自動調整">${tf('mk.learn',(learnAdj>1?'+':'')+Math.round((learnAdj-1)*100))}</span>`:''}
@@ -8788,6 +9019,7 @@ function renderProdDayContent(dayIdx){
   }
 
   el.innerHTML=html;
+  soRoFill();   // マスの「残り◯で追加」を埋める（2026-10-09）
 }
 
 // 「在庫切れ等で作れなかった」マークの切替（checksとは別管理）
@@ -8933,13 +9165,21 @@ function newsvendorPoisson(lam,fract){
 // ============================================================
 // 個数の分布：平均 mu・分散 phi×mu（phi=1 はポアソン、phi>1 は負の二項）。0〜K 個の確率
 function _soPmfArr(mu,phi,K){
-  const out=new Array(K+1).fill(0);
+  const out=new Float64Array(Math.max(1,K+1));   // 数の入れ物（2026-10-09 速さ：Array から Float64Array に。中の数は同じ）
   if(!(mu>0)){out[0]=1;return out;}
   if(phi<=1.0001){ let lp=-mu; out[0]=Math.exp(lp); for(let k=1;k<=K;k++){lp+=Math.log(mu/k);out[k]=Math.exp(lp);} return out; }
   const r=mu/(phi-1), lq=Math.log(1-1/phi);
   let lv=-r*Math.log(phi); out[0]=Math.exp(lv);
   for(let k=1;k<=K;k++){ lv+=Math.log((k-1+r)/k)+lq; out[k]=Math.exp(lv); }
   return out;
+}
+// out[k] ＋＝ w × （_soPmfArr(mu,phi,K) の k 個の確率）。数は _soPmfArr と同じ計算（入れ物を作らずに足すだけ。2026-10-09 速さ）
+function _soPmfAdd(mu,phi,K,w,out){
+  if(!(mu>0)){ out[0]+=w*1; return; }
+  if(phi<=1.0001){ let lp=-mu; out[0]+=w*Math.exp(lp); for(let k=1;k<=K;k++){lp+=Math.log(mu/k);out[k]+=w*Math.exp(lp);} return; }
+  const r=mu/(phi-1), lq=Math.log(1-1/phi);
+  let lv=-r*Math.log(phi); out[0]+=w*Math.exp(lv);
+  for(let k=1;k<=K;k++){ lv+=Math.log((k-1+r)/k)+lq; out[k]+=w*Math.exp(lv); }
 }
 // 「Q個以上 売れる」確率
 function _soProbGE(mu,phi,Q){
@@ -8966,7 +9206,8 @@ function soCalcCore(o){
       const pg=_soProbGE(lam[i]*e.N,o.phi,e.Q);
       if(e.type==='so')L*=pg;
       else if(e.type==='lo')L*=(1-pg);
-      else if(e.type==='between')L*=Math.max(0,pg-_soProbGE(lam[i]*e.N,o.phi,e.Q+e.A));
+      else if(e.type==='between')L*=Math.max(0,(e.R0>0?_soProbGE(lam[i]*e.N,o.phi,e.Q-e.R0):pg)-_soProbGE(lam[i]*e.N,o.phi,e.Q+e.A));   // R0＝その週の最初の記録が「残り◯個」の時の残り（古い記録は無い＝今までと同じ式）
+      else if(e.type==='eq')L*=_soPmfAt(lam[i]*e.N,o.phi,e.Q-e.R0);                     // その週の最初の記録が「残り R0 個」＝N 人の間にちょうど Q−R0 個 売れた（2026-10-09）
     });
     post[i]=w[i]*L;
   }
@@ -8982,9 +9223,350 @@ function soCalcCore(o){
   for(let c=B;c<=K;c+=B){ const l=(c===B)?lossB:loss(c); if(l<best-1e-9){best=l;y=c;}else break; }
   return{y,postMean:pm,priorSO,predMean:pm*o.n2,pSell1:1-pred[0],loss0,lossB,lossY:best,pred};
 }
+// ============================================================
+// 追加作成：「残り◯個」で押す／マスの「残り◯で追加」の目安（2026-10-09 店長の依頼：「完売しないと追加作成が出ない。残り何個になったら追加提案に」）
+//   記号：λ＝客1人あたりの売れ方、D(n)＝n 人の客の間の需要（λ が同じなら、重ならない区間どうしは独立。平均 λn・分散 φλn）
+//   ① 今日の観測：並べた数 Q のうち、押すまでの n1 人の間に Q−r 個 売れた。
+//        r>0 … 売れた数が分かった観測：P(D(n1)＝Q−r)。r＝0（完売）… 今までどおり「Q 個以上の需要があった」：P(D(n1)≥Q)。
+//        同じマスで前に「残り◯個」を押した記録があれば、その時刻で区切り（時刻の順に並べる）、区間ごとの観測を掛ける（区間の客数・区間で売れた数）。
+//        事前（ガンマ）・直近4週の記録・目盛り（300点）は soCalcCore と同じ。事後の重みが 1e-12 より小さい λ の点は使わない（今までと同じ）。
+//   ② 今から作り始める（NOW）：追加分は L 分後（並ぶ時刻）に並ぶ。nA＝今〜並ぶ時刻の客数、nB＝並ぶ時刻〜販売の終わり E の客数。
+//        DA＝D(nA) は残り k 個で受け、超えた分 (DA−k)+ は売り逃し。並ぶ時に残っている数 s＝(k−DA)+。
+//        DB＝D(nB) を s＋y 個で受ける。損(y)＝cu·E[(DA−k)+] ＋ E[ F(s＋y) ]、F(q)＝E[cu(DB−q)+ ＋ co(q−DB)+]。
+//        y は 0 か まとめ単位 B の倍数で、損がいちばん小さい数（凸なので、損が下がらなくなった所で止める。差が 1e-9 以下なら小さい数）。
+//        作る時間が「1回に作れる数」で変わる時（2026-10-09 D）は、c＝⌈y÷1回の数⌉ 回の作る時間で nA・nB を出す（c ごとに損を出し、いちばん小さい物）。
+//   ③ 今は作らずに待つ（動的計画。2026-10-09 おたすけの検算を受けて、③を「売り切れるまで待つ」1つの方針から替えた）：
+//        5分ごとの時点 g_j（j＝0..J、g_0＝今、g_J＝E）と、その時の残り k（1..r）を「状態」とする。
+//        状態 (j,k) の λ の事後：今の事後 × P(D(今〜g_j)＝r−k)（φ＝1 なら厳密。φ＞1 は近似：途中の売れ方の並びは使わず、売れた数の合計だけで事後を作る）。
+//        各状態で「今 y 作る（②の損。k と g_j で）」と「5分待つ」の小さい方：
+//          V(J,k)＝co·k（最後まで売れ残る）
+//          待つ(j,k)＝Σλ w·[ cu·E[(I−k)+] ＋ P(I≥k)·売り切れた時の損(j＋1) ] ＋ Σ_{i<k} P(I＝i)·V(j＋1,k−i)　（I＝g_j〜g_{j+1} の需要）
+//          売り切れた時の損(j)＝ cu·λ·（g_j〜g_j＋L の客数）＋ F(y'_j)（g_j＋L〜E の客数）。y'_j＝その時刻に「完売した」を押した時の今の計算の数
+//                                 （事後＝今の事後 × P(D(今〜g_j)≥r)。気づくまでの売り逃しは上の cu·E[(I−k)+]）
+//          V(j,k)＝ y⁺ の損 ＜ 待つ(j,k) なら y⁺ の損、そうでなければ 待つ(j,k)（押した時と同じ決め方）。
+//                  y⁺＝ y＞0（B の倍数）のうち②の損がいちばん小さい数（②のいちばん小さい数が y＞0 ならそれ。0 なら、凸なので B）。
+//                  2026-10-09 ⑥：前は「②のいちばん小さい数が 0 なら作らない」だったので、0 がいちばん小さくても y⁺ が待つより小さい時に作らなかった
+//        「作るのを許さない」形（V＝待つ だけ）は、前の W（売り切れるまで待つ）と同じ値になる（試験で確かめる）。待つ(0,r) ≤ W。
+//        届く確率が 1e-10 より小さい状態は ② を調べない（V0 への影響は 1e-10×損 以下）。
+//   ④ y⁺ の損 < 待つ(0,r) の時だけ「今 y⁺ 個 作り始める」。そうでない時、②のいちばん小さい数が 0 なら「作らない」、y>0 なら「待つ（もう一度押す／売り切れたら完売した）」。
+//      目安の計算（答えだけ要る時）は、③の後ろからの計算の前に「待つ」の上限 W を出す（2026-10-09 速さ）：
+//        W ＝ ②の f(0)（作らない時の損）＋ Σ_j Σλ w·P(g_{j−1}〜g_j で売り切れる)·（売り切れた時の損(j) − cu·λ·（g_j〜E の客数））
+//        （「売り切れるまで待って、売り切れたら y'_j 作る」方針の損。売り切れるまでは作らない時と同じなので、違う所だけ足す）。
+//        待つ(0,r) ≤ W（③はこの方針も含む。試験で確かめる）なので、y⁺ の損 ≥ W（＋小さな余裕）なら「今作る」にならない＝③を全部計算した時と同じ答え。
+//      r＝0 は今までの計算（soCalcCore）そのまま（作る時間が1回で決まる時）。
+// ============================================================
+const SO_WAIT_STEP=5/60;   // ③ 5分ごとに見直す（売り切れに気づく・もう一度押す）間隔（時間）
+const SO_DP_REACH=1e-10;   // ③ この確率より届きにくい状態では「今作る」を調べない
+// k 個ちょうど の確率（k<0 は 0）
+function _soPmfAt(mu,phi,k){ if(!(k>=0))return 0; const a=_soPmfArr(mu,phi,k); return a[k]; }
+// 直近4週の記録の尤度（soCalcCore の中の式と同じ）
+function _soPastLik(l,phi,past){
+  let L=1;
+  (past||[]).forEach(e=>{
+    const pg=_soProbGE(l*e.N,phi,e.Q);
+    if(e.type==='so')L*=pg;
+    else if(e.type==='lo')L*=(1-pg);
+    else if(e.type==='between')L*=Math.max(0,(e.R0>0?_soProbGE(l*e.N,phi,e.Q-e.R0):pg)-_soProbGE(l*e.N,phi,e.Q+e.A));
+    else if(e.type==='eq')L*=_soPmfAt(l*e.N,phi,e.Q-e.R0);
+  });
+  return L;
+}
+// λ の事後（目盛り・事前は soCalcCore と同じ）。today＝今日の観測の掛け算 [{n,k,eq}]（eq＝ちょうど k 個／それ以外は k 個以上）
+//   事前と直近4週の記録の尤度（今日の観測によらない部分）は、同じ入力なら同じなので1つだけ覚える（目安は同じマスの r ごとに同じ物を使う。2026-10-09 速さ。数は同じ）
+var _soPostMemo=null;
+function _soPostBase(o){
+  const key=o.m0+'|'+o.b+'|'+o.phi+'|'+JSON.stringify(o.past||[]);
+  if(_soPostMemo&&_soPostMemo.key===key)return _soPostMemo;
+  const G=300, lo=o.m0/60, hi=o.m0*60, a=o.m0*o.b;
+  const lam=new Array(G), lw=new Array(G);
+  for(let i=0;i<G;i++){ const l=lo*Math.pow(hi/lo,i/(G-1)); lam[i]=l; lw[i]=a*Math.log(l)-o.b*l; }
+  let mx=-Infinity; for(let i=0;i<G;i++)if(lw[i]>mx)mx=lw[i];
+  const w=lw.map(v=>Math.exp(v-mx)); let ps=0; for(let i=0;i<G;i++)ps+=w[i];
+  const pastL=new Array(G); let pre=0;
+  for(let i=0;i<G;i++){ w[i]/=ps; pre+=w[i]*lam[i]; pastL[i]=_soPastLik(lam[i],o.phi,o.past); }
+  _soPostMemo={key,G,lam,w,pastL,pre}; return _soPostMemo;
+}
+function _soPost(o,today){
+  const pb=_soPostBase(o), G=pb.G, lam=pb.lam, w=pb.w, pre=pb.pre;
+  const post=new Array(G); let s2=0;
+  for(let i=0;i<G;i++){
+    let L=pb.pastL[i];
+    (today||[]).forEach(f=>{ L*=f.eq?_soPmfAt(lam[i]*f.n,o.phi,f.k):_soProbGE(lam[i]*f.n,o.phi,f.k); });
+    post[i]=w[i]*L; s2+=post[i];
+  }
+  if(!(s2>0))return{lam,w,post,pm:o.m0,priorMean:pre,degenerate:true};
+  let pm=0; for(let i=0;i<G;i++){post[i]/=s2;pm+=post[i]*lam[i];}
+  return{lam,w,post,pm,priorMean:pre};
+}
+// 売り切れた時の追加の数（soCalcCore の後半と同じ：予測の分布を K 個で打ち切り、0 か B の倍数で損が最小の数）
+function _soStockoutY(lam,post,n2,phi,cu,co,B){
+  let pm=0; for(let i=0;i<lam.length;i++)pm+=post[i]*lam[i];
+  if(!(n2>0))return{y:0,postMean:pm,predMean:0,pSell1:0,loss0:0,lossB:B*co,pred:[1]};
+  const K=Math.min(800,Math.ceil(pm*n2*8+40)); const pred=new Array(K+1).fill(0);
+  for(let i=0;i<lam.length;i++){ if(post[i]<1e-9)continue; _soPmfAdd(lam[i]*n2,phi,K,post[i],pred); }
+  const loss=y=>{let s=0;for(let k=0;k<=K;k++)s+=pred[k]*(k<y?co*(y-k):cu*(k-y));return s;};
+  const loss0=loss(0), lossB=loss(B);
+  let y=0,best=loss0;
+  for(let c=B;c<=K;c+=B){ const l=(c===B)?lossB:loss(c); if(l<best-1e-9){best=l;y=c;}else break; }
+  return{y,postMean:pm,predMean:pm*n2,pSell1:1-pred[0],loss0,lossB,lossY:best,pred};
+}
+// 1つの λ での「y 個 用意した時の損」E[cu(D−y)+ ＋ co(y−D)+]、D＝D(n)（打ち切らずに平均から出す）
+function _soNV(lam,n,phi,y,cu,co){
+  const mu=lam*n; if(!(y>0))return cu*mu;
+  const p=_soPmfArr(mu,phi,y-1); let u=0; for(let k=0;k<y;k++)u+=(y-k)*p[k];
+  return cu*(mu-y)+(cu+co)*u;
+}
+// 今日の観測を区間の掛け算にする。chk＝前の「残り◯個」の区切り [{n1:その時までの客数, sold:その時までに売れた数}]（時刻の順）
+function _soTodayObs(Q,n1,r,chk){
+  const out=[]; let pn=0, ps=0;
+  (chk||[]).forEach(c=>{ out.push({n:Math.max(0,c.n1-pn),k:c.sold-ps,eq:true}); pn=c.n1; ps=c.sold; });
+  out.push({n:Math.max(0,n1-pn),k:(Q-r)-ps,eq:r>0});
+  return out;
+}
+// 売り切れた時（または「完売した」を押した時）の追加の数（2026-10-09 D：作る時間が「1回に作れる数」で変わる時に広げた）
+//   at(c)＝c 回に分けて作る時の {nA:作り始めてから並ぶまでの客数, nB:並んでから販売の終わりまでの客数}、cap＝1回に作れる数（無ければ Infinity）
+//   cap が無い／1回の形の答えが cap 以下の時は、今までの _soStockoutY そのまま（c＝1）。
+//   それ以外は c ごとに「作るまでの売り逃し cu·λ̄·nA_c ＋ 並んでからの損 loss_c(y)」を比べる。同じ y を早く並べるほうが損は小さい（下限）ので、
+//   1回の形の損が増え始めて、いちばん小さい損を超えたら止める。
+function _soPredOf(lam,post,n2,phi){
+  let pm=0; for(let i=0;i<lam.length;i++)pm+=post[i]*lam[i];
+  const K=Math.min(800,Math.ceil(pm*n2*8+40)); const pred=new Array(K+1).fill(0);
+  for(let i=0;i<lam.length;i++){ if(post[i]<1e-9)continue; _soPmfAdd(lam[i]*n2,phi,K,post[i],pred); }
+  return{pm,K,pred};
+}
+function _soPredLoss(pr,y,cu,co){ let s=0; const pred=pr.pred; for(let k=0;k<=pr.K;k++)s+=pred[k]*(k<y?co*(y-k):cu*(k-y)); return s; }
+function _soStockoutDecide(lam,post,at,cap,phi,cu,co,B){
+  const a1=at(1);
+  const s1=_soStockoutY(lam,post,a1.nB,phi,cu,co,B);
+  if(!(cap<Infinity)||!(a1.nB>0)||s1.y<=cap)return Object.assign(s1,{cyc:1,nA:a1.nA,nB:a1.nB});
+  const pr1={pm:s1.postMean,K:s1.pred.length-1,pred:s1.pred}, pm=pr1.pm;   // 1回の形の予測は s1 と同じ物（同じ計算。2026-10-09 速さ：作り直さない）
+  const T1=y=>cu*pm*a1.nA+_soPredLoss(pr1,y,cu,co);
+  let best={y:0,c:1,T:T1(0),pr:pr1,a:a1};
+  for(let c=1;c<=99;c++){
+    const yLo=Math.floor((c-1)*cap/B)*B+B, yHi=Math.floor(c*cap/B)*B;
+    if(c>1&&yLo>=s1.y&&T1(yLo)>=best.T)break;            // ここから先は、1回の形でも best より大きい
+    if(yLo>yHi)continue;
+    const ac=c===1?a1:at(c); if(!(ac.nB>0))break;          // 並ぶのが販売の終わりより後
+    const pr=c===1?pr1:_soPredOf(lam,post,ac.nB,phi);
+    for(let y=yLo;y<=yHi;y+=B){ const T=cu*pm*ac.nA+_soPredLoss(pr,y,cu,co); if(T<best.T-1e-9)best={y,c,T,pr,a:ac}; }
+  }
+  const pr=best.pr;
+  return{y:best.y,cyc:best.c,nA:best.a.nA,nB:best.a.nB,postMean:pm,predMean:pm*best.a.nB,pSell1:1-pr.pred[0],
+    loss0:s1.loss0,lossB:_soPredLoss(B<=cap?pr1:_soPredOf(lam,post,at(Math.ceil(B/cap)).nB,phi),B,cu,co),lossY:_soPredLoss(pr,best.y,cu,co),pred:pr.pred};
+}
+// F(q)＝E[cu(D−q)+ ＋ co(q−D)+]（D の平均 mu・ばらつき phi）を、q の小さい方から要る所まで作る（_soNV と同じ式。個数の確率は _soPmfArr と同じ漸化式）
+function _soFNew(mu,phi,cu,co){ return{mu,phi,cu,co,F:[],c0:0,c1:0,lv:0}; }
+function _soFp(o,x){   // x＝0,1,2… の順に呼ぶ
+  const mu=o.mu, phi=o.phi;
+  if(!(mu>0))return x===0?1:0;
+  if(phi<=1.0001){ if(x===0)o.lv=-mu; else o.lv+=Math.log(mu/x); return Math.exp(o.lv); }
+  const rr=mu/(phi-1);
+  if(x===0)o.lv=-rr*Math.log(phi); else o.lv+=Math.log((x-1+rr)/x)+Math.log(1-1/phi);
+  return Math.exp(o.lv);
+}
+function _soF(o,q){
+  const F=o.F;
+  while(F.length<=q){ const d=F.length; if(d>0){ const p=_soFp(o,d-1); o.c0+=p; o.c1+=o.c0; } F.push(o.cu*(o.mu-d)+(o.cu+o.co)*o.c1); }
+  return F[q];
+}
+// ③ 動的計画（ヘッダの式）。lam・post＝今の事後、wt＝soWaitGrid、r＝今の残り
+//   allowNow＝false にすると「作らない」形（V＝待つ だけ）＝前の W と同じ値になる（確かめ用）
+//   decideOnly＝目安の計算用（答えだけ要る時）：y⁺ の損が「待つ」の上限 W 以上なら③の後ろからの計算を省く（ヘッダ④。答えは全部計算した時と同じ）
+//   返す make＝今 yNow 個 作り始める（④）
+function _soDP(lam,post,o,wt,r,B,allowNow,decideOnly){
+  const cu=o.cu, co=o.co, phi=o.phi, cap=(wt&&wt.cap>0)?wt.cap:Infinity;
+  const ix=[]; for(let i=0;i<lam.length;i++)if(post[i]>=1e-12)ix.push(i);
+  const n=ix.length, L=new Float64Array(n), W0=new Float64Array(n);
+  for(let a=0;a<n;a++){ L[a]=lam[ix[a]]; W0[a]=post[ix[a]]; }
+  const J=wt.lead.length;
+  // ② の下ごしらえ（時点 j・c 回）：λ ごとの F と、DA の確率（0..r−1。要る時に作る。2026-10-09 速さ：③を省く時は作らない）
+  const memo=new Map();
+  const ctx=(j,c)=>{ const key=j*100+c; let x=memo.get(key); if(x)return x;
+    const ab=wt.at(j,c), muA=new Float64Array(n), Fs=new Array(n);
+    for(let a=0;a<n;a++){ muA[a]=L[a]*ab.nA; Fs[a]=_soFNew(L[a]*ab.nB,phi,cu,co); }
+    x={nA:ab.nA,nB:ab.nB,pA:null,muA,Fs}; memo.set(key,x); return x; };
+  const pAof=x=>{ if(!x.pA){ const pA=new Array(n); for(let a=0;a<n;a++)pA[a]=_soPmfArr(x.muA[a],phi,r-1); x.pA=pA; } return x.pA; };
+  // 状態（下ごしらえ x・重み w・残り k）での ②の損を、y の関数にして返す（y によらない部分は1回だけ）
+  //   損(y)＝Σλ w·[ cu·(μA − k ＋ Σ_{d<k}(k−d)·P(DA＝d)) ＋ Σ_{d<k} P(DA＝d)·F(k−d＋y) ＋ P(DA≥k)·F(y) ]
+  const nowFn=(x,w,k)=>{
+    const pAs=pAof(x), idx=[], tail=[]; let base=0;
+    for(let a=0;a<n;a++){ const wa=w[a]; if(!(wa>0))continue; const pA=pAs[a]; let cdf=0,u=0; for(let d=0;d<k;d++){ cdf+=pA[d]; u+=(k-d)*pA[d]; } idx.push(a); tail.push(Math.max(0,1-cdf)); base+=wa*cu*(x.muA[a]-k+u); }
+    return y=>{ let s=base; for(let t=0;t<idx.length;t++){ const a=idx[t], pA=pAs[a], Fo=x.Fs[a]; _soF(Fo,k+y); const F=Fo.F; let v=tail[t]*F[y]; for(let d=0;d<k;d++)v+=pA[d]*F[k-d+y]; s+=w[a]*v; } return s; };
+  };
+  const nowLoss=(x,w,k,y)=>nowFn(x,w,k)(y);
+  // ②：いちばん損の小さい y（0 か B の倍数。差が 1e-9 以下なら小さい数）＝ y・loss。
+  //   あわせて y>0 のうちいちばん損の小さい数 y⁺＝ py・pl・pc（y>0 なら y と同じ。作っても売る時間が無い時は py＝0）。2026-10-09 ⑥
+  const bestNow=(j,k,w,y0)=>{
+    const x1=ctx(j,1), g1=nowFn(x1,w,k), f0=g1(0);
+    if(!(x1.nB>0))return{y:0,loss:f0,f0,c:1,py:0,pl:Infinity,pc:1};
+    if(!(cap<Infinity)){   // 凸：y0 から坂を下る（0 から順に見て、下がらなくなった所と同じ答え）。0 で止まった時の y⁺ は B（凸なので）
+      const f=y=>y===0?f0:g1(y);
+      let y=Math.max(0,Math.round((y0||0)/B)*B), fy=f(y), fu=f(y+B), fB=null;
+      if(fu<fy-1e-9){ do{ y+=B; fy=fu; fu=f(y+B); }while(fu<fy-1e-9&&y<100000); }
+      else { if(y===0)fB=fu; while(y>0){ const fd=f(y-B); if(fy<fd-1e-9)break; if(y===B)fB=fy; y-=B; fy=fd; } }
+      return y>0?{y,loss:fy,f0,c:1,py:y,pl:fy,pc:1}:{y:0,loss:fy,f0,c:1,py:B,pl:fB,pc:1};
+    }
+    // c 回に分けて作る：y を小さい方から。1回の形（同じ y を早く並べる＝下限）の損が増え始めて、いちばん小さい損（0 と y⁺ の大きい方）以上になったら止める
+    let best={y:0,loss:f0,f0,c:1}, pos=null, prev=f0; const gs={};
+    for(let y=B;y<=100000;y+=B){
+      const c=Math.ceil(y/cap); if(c>99)break;
+      const lb=g1(y);
+      if(c===1){ if(lb<best.loss-1e-9)best={y,loss:lb,f0,c:1}; if(!pos||lb<pos.loss-1e-9)pos={y,loss:lb,c:1}; }
+      else { const xc=ctx(j,c); if(xc.nB>0){ if(!gs[c])gs[c]=nowFn(xc,w,k); const v=gs[c](y); if(v<best.loss-1e-9)best={y,loss:v,f0,c}; if(!pos||v<pos.loss-1e-9)pos={y,loss:v,c}; } }
+      if(lb>=(pos&&pos.loss>best.loss?pos.loss:best.loss)&&lb>=prev)break; prev=lb;
+    }
+    if(best.y>0)return Object.assign(best,{py:best.y,pl:best.loss,pc:best.c});
+    return Object.assign(best,{py:pos?pos.y:0,pl:pos?pos.loss:Infinity,pc:pos?pos.c:1});
+  };
+  // 押した時（j＝0）：重みは正規化しない（今までの②と同じ）
+  const now0=bestNow(0,r,W0,0);
+  const cB=Math.ceil(B/(cap<Infinity?cap:Infinity))||1, xB=ctx(0,cB>1?cB:1);
+  const lossB=xB.nB>0?nowLoss(xB,W0,r,B):now0.f0;
+  // 作り始めた時の、並ぶまでの売れ方（画面の説明用。yy 個・cc 回）
+  const nowInfo=(yy,cc)=>{ const x0=ctx(0,yy>0?cc:1), pAs=pAof(x0); let lostA=0,pOutA=0,soldA=0,sMean=0;
+    for(let a=0;a<n;a++){ const pA=pAs[a]; let cdf=0,u=0,es=0; for(let d=0;d<r;d++){ cdf+=pA[d]; u+=(r-d)*pA[d]; es+=(r-d)*pA[d]; }
+      const p0=Math.max(0,1-cdf); lostA+=W0[a]*(x0.muA[a]-r+u); pOutA+=W0[a]*p0; soldA+=W0[a]*(r-es); sMean+=W0[a]*es; }
+    return{cyc:yy>0?cc:1,nA:x0.nA,nB:x0.nB,lostA:cu*lostA,pOutA,soldA,sMean}; };
+  const out=Object.assign({yNow:now0.y,lossNow:now0.loss,loss0:now0.f0,lossB},nowInfo(now0.y,now0.c),{cont0:null,yW:null,states:0,J,make:false,wUp:null});
+  if(decideOnly&&!(now0.py>0))return out;   // 作っても売る時間が無い
+  // 今〜g_j に売れた数の確率 PD（0..r−1）と、g_j までに売り切れている確率 GE（_soProbGE と同じ数。同じ分布なので PD から出す）
+  const PD=new Array(J+1), GE=new Array(J+1);
+  for(let j=0;j<=J;j++){ const arr=new Float64Array(n*r), ge=new Float64Array(n);
+    for(let a=0;a<n;a++){ const p=_soPmfArr(L[a]*wt.c[j],phi,r-1); let s=0; for(let x=0;x<r;x++){ arr[a*r+x]=p[x]; s+=p[x]; } ge[a]=Math.min(1,Math.max(0,1-s)); }
+    PD[j]=arr; GE[j]=ge; }
+  // 売り切れた時（時点 j＝1..J）の追加の数 y'_j と、λ ごとの損
+  //   （要る時に作る。目安の計算で、売り切れがほとんど起きない時点は上の W の上限で押さえて作らない。2026-10-09 速さ）
+  const soCost=new Array(J+1), yW=new Array(J);
+  const scAt=j=>{ if(soCost[j])return soCost[j];
+    const p2=new Array(lam.length).fill(0); let s=0;
+    for(let a=0;a<n;a++){ const v=W0[a]*GE[j][a]; p2[ix[a]]=v; s+=v; }
+    let y=0,c=1;
+    if(s>0&&wt.n2[j-1]>0){
+      if(cap<Infinity){ for(let a=0;a<n;a++)p2[ix[a]]/=s; const d=_soStockoutDecide(lam,p2,cc=>wt.at(j,cc),cap,phi,cu,co,B); y=d.y; c=d.cyc; }
+      else {   // _soStockoutY と同じ決め方（0 から B ずつ、下がらなくなったら止める。重みが 1e-9 より小さい λ は入れない）。F は②の下ごしらえと同じ物（同じ分布）を使う
+        const x1=ctx(j,1), ws=[]; for(let a=0;a<n;a++){ const v=p2[ix[a]]/s; if(v>=1e-9)ws.push(a,v); }
+        const lossY=yy=>{ let t=0; for(let q=0;q<ws.length;q+=2)t+=ws[q+1]*_soF(x1.Fs[ws[q]],yy); return t; };
+        let best=lossY(0); for(let cc=B;cc<=100000;cc+=B){ const l=lossY(cc); if(l<best-1e-9){ best=l; y=cc; } else break; }
+      }
+    }
+    yW[j-1]=y;
+    const ab=wt.at(j,c), arr=new Float64Array(n);
+    if(c===1){ const x1=ctx(j,1); for(let a=0;a<n;a++)arr[a]=cu*L[a]*ab.nA+_soF(x1.Fs[a],y); }
+    else for(let a=0;a<n;a++)arr[a]=cu*L[a]*ab.nA+_soNV(L[a],ab.nB,phi,y,cu,co);
+    soCost[j]=arr; return arr; };
+  if(decideOnly){
+    // 「待つ」の上限 W（売り切れるまで待ってから「完売した」で作る、1つの方針の損）を、③の後ろからの計算をせずに出す：
+    //   W ＝ f(0)（作らない時の損）＋ Σ_j Σλ w·P(g_{j−1}〜g_j で売り切れる)·（売り切れた時の損(j) − cu·λ·（g_j〜E の客数））
+    //   （売り切れるまでは「作らない」と同じ。売り切れた後だけ違う）。待つ(0,r) ≤ W なので、y⁺ の損 ≥ W なら「今作る」にはならない（2026-10-09 速さ）
+    //   売り切れがあまり起きない時点 j は、差を上限で足して y'_j を求めない（上限の合計が 1e-3×損 までの所。超えた行・W に近い行は③を全部計算する。上限なので W の上限のまま）：
+    //     差＝NV(λ,nB,y') − cu·λ·nB ≤ co·y'、y' ≤ ⌈(cu＋co)·E[D]／(co·0.99)⌉＋B（E[D]＝売り切れた時の需要の平均。損の増え方が 0 以上になる所。マルコフの不等式）
+    let Wu=now0.f0, Wb=0; const bnd=new Float64Array(J+1), ord=[];
+    for(let j=1;j<=J;j++){ const g=GE[j], gp=GE[j-1], cj=wt.lead[j-1]+wt.n2[j-1];
+      let Mp=0, Mn=0, s=0, ed=0; for(let a=0;a<n;a++){ const d=W0[a]*(g[a]-gp[a]); if(d>0)Mp+=d; else Mn-=d*L[a]; const v=W0[a]*g[a]; s+=v; ed+=v*L[a]; }
+      const yb=s>0?Math.ceil((cu+co)*(ed/s)*wt.n2[j-1]/(co*0.99))+B:0; bnd[j]=Mp*(co*yb+1e-6*cu*cj)+Mn*cu*cj; ord.push(j); }
+    ord.sort((u,v)=>bnd[u]-bnd[v]); const skip=new Uint8Array(J+1), budget=1e-3*Math.max(1,Math.abs(now0.f0));
+    for(const j of ord){ if(!(Wb+bnd[j]<=budget))break; Wb+=bnd[j]; skip[j]=1; }
+    for(let j=1;j<=J;j++){ if(skip[j])continue; const g=GE[j], gp=GE[j-1], cj=wt.lead[j-1]+wt.n2[j-1], sc=scAt(j); for(let a=0;a<n;a++)Wu+=W0[a]*(g[a]-gp[a])*(sc[a]-cu*L[a]*cj); }
+    Wu+=Wb; out.wUp=Wu;
+    if(now0.pl>=Wu+1e-7*Math.max(1,Math.abs(Wu)))return out;
+  }
+  for(let j=1;j<=J;j++)scAt(j);
+  // 後ろから
+  let V=new Float64Array(r+1); for(let k=1;k<=r;k++)V[k]=co*k;
+  let yNext=new Int32Array(r+2), cont0=null, states=0, make0=false;
+  const w=new Float64Array(n);
+  for(let j=J-1;j>=0;j--){
+    const Vn=new Float64Array(r+1), yCur=new Int32Array(r+2);
+    const inc=Math.max(0,wt.c[j+1]-wt.c[j]), PI=new Array(n), muI=new Float64Array(n);
+    for(let a=0;a<n;a++){ muI[a]=L[a]*inc; PI[a]=_soPmfArr(muI[a],phi,r-1); }
+    const sc=soCost[j+1];
+    for(let k=(j===0?r:1);k<=r;k++){
+      let reach=0;
+      if(j===0){ for(let a=0;a<n;a++)w[a]=W0[a]; reach=1; }
+      else { for(let a=0;a<n;a++){ const v=W0[a]*PD[j][a*r+(r-k)]; w[a]=v; reach+=v; } if(!(reach>0)){ Vn[k]=co*k; continue; } for(let a=0;a<n;a++)w[a]/=reach; }
+      // 5分待つ
+      let cont=0; const pk=new Float64Array(k);
+      for(let a=0;a<n;a++){ const wa=w[a]; if(!(wa>0))continue; const p=PI[a]; let cdf=0,u=0; for(let I=0;I<k;I++){ const q=p[I]; cdf+=q; u+=(k-I)*q; pk[I]+=wa*q; }
+        cont+=wa*(cu*(muI[a]-k+u)+Math.max(0,1-cdf)*sc[a]); }
+      for(let I=0;I<k;I++)if(pk[I]>0)cont+=pk[I]*V[k-I];
+      let val=cont;
+      if(j===0){ cont0=cont; if(allowNow&&now0.py>0&&now0.pl<cont-1e-9){ val=now0.pl; make0=true; } }
+      else if(allowNow&&reach>=SO_DP_REACH){
+        states++; const bn=bestNow(j,k,w,yNext[k]||yCur[k-1]||0); yCur[k]=bn.y;
+        if(bn.py>0&&bn.pl<cont-1e-9)val=bn.pl;
+      }
+      Vn[k]=val;
+    }
+    V=Vn; yNext=yCur;
+  }
+  out.cont0=cont0; out.V0=V[r]; out.yW=yW; out.states=states; out.make=make0;
+  if(make0&&now0.py!==now0.y)Object.assign(out,{yNow:now0.py,lossNow:now0.pl},nowInfo(now0.py,now0.pc));   // ⑥ 0個がいちばん小さいが、y⁺ が「待つ」より小さい
+  return out;
+}
+// 前の W（売り切れるまで待ってから「完売した」で作る、1つの方針の損）。③の動的計画を「作らせない形」にした値と同じになるかの確かめ用（2026-10-09 までの式をそのまま残す）
+function _soWaitOnlyW(lam,post,o,wt,r,B){
+  const cu=o.cu, co=o.co, phi=o.phi, G=lam.length, J=wt.lead.length;
+  const ge=[], yW=[];
+  for(let j=1;j<=J;j++){
+    const g=new Array(G); for(let i=0;i<G;i++)g[i]=post[i]<1e-12?0:_soProbGE(lam[i]*wt.c[j],phi,r);
+    ge[j]=g;
+    let s=0; const p2=new Array(G); for(let i=0;i<G;i++){ p2[i]=post[i]*g[i]; s+=p2[i]; }
+    if(!(s>0)||!(wt.n2[j-1]>0)){ yW[j]=0; continue; }
+    for(let i=0;i<G;i++)p2[i]/=s;
+    yW[j]=_soStockoutY(lam,p2,wt.n2[j-1],phi,cu,co,B).y;
+  }
+  let W=0;
+  for(let i=0;i<G;i++){
+    const wi=post[i]; if(wi<1e-12)continue;
+    let prev=new Array(r).fill(0); prev[0]=1; let prevGE=0, Wi=0, last=prev;
+    for(let j=1;j<=J;j++){
+      const pj=_soPmfArr(lam[i]*wt.c[j],phi,r-1), inc=Math.max(0,wt.c[j]-wt.c[j-1]), muI=lam[i]*inc, pI=_soPmfArr(muI,phi,r);
+      let over=0; for(let a=0;a<r;a++){ if(!(prev[a]>0))continue; const m=r-a; let u=0; for(let k=0;k<m;k++)u+=(m-k)*pI[k]; over+=prev[a]*(muI-m+u); }
+      const gj=ge[j][i], pt=Math.max(0,gj-prevGE);
+      Wi+=cu*over+pt*(cu*lam[i]*wt.lead[j-1]+_soNV(lam[i],wt.n2[j-1],phi,yW[j],cu,co));
+      prev=pj; prevGE=gj; last=pj;
+    }
+    let lf=0; for(let k=0;k<r;k++)lf+=(r-k)*last[k];
+    Wi+=co*lf;
+    W+=wi*Wi;
+  }
+  return{W,yW:yW.slice(1)};
+}
+// 計算の中心（「残り r 個」に広げた形）。o＝soCalcCore の入力 ＋ r・chk・nA（今〜並ぶ時刻の客数）・wait（③の目盛り soWaitGrid の形。関数でも渡せる）
+//   o.decideOnly＝目安の計算用（答えだけ要る時）。y⁺ の損が「待つ」の上限 W 以上なら③を省く（答えは同じ。lossWait は出さず、上限を waitUp に）
+//   r＝0 で前の「残り◯個」の記録も無い時は、今までの soCalcCore と同じ数になる（呼ぶ側は soCalcCore を使う）
+function soCalcCore2(o){
+  const B=Math.max(1,o.B||1), r=Math.max(0,Math.round(o.r||0)), cu=o.cu, co=o.co, phi=o.phi;
+  const obs=_soTodayObs(o.Q,o.n1,r,o.chk);
+  if(obs.some(f=>f.k<0))return{y:0,error:'order',degenerate:true};
+  const P=_soPost(o,obs);
+  const base={r,postMean:P.pm,priorMean:P.priorMean,obs};
+  //   事後が0（どの λ でも今日の記録が起こりえない）＝「残り◯個」の記録が合っていない。「作らない・0円」と出さず、記録の順番の知らせにする（2026-10-09）。
+  //   今日の記録に「ちょうど◯個」が無い時（残り0・区切りなし。1回に作れる数がある時にここを通る）は今までどおり（soCalcCore と同じ）
+  if(P.degenerate)return obs.some(f=>f.eq)?{y:0,error:'order',degenerate:true}:Object.assign(base,{y:0,degenerate:true,predMean:0,loss0:0,lossB:0});
+  const lam=P.lam, post=P.post;
+  if(!(o.n2>0))return Object.assign(base,{y:0,predMean:0,pSell1:0,loss0:0,lossB:B*co,timeOut:true});
+  const wt=(typeof o.wait==='function'?o.wait():o.wait)||null;
+  if(r===0){
+    const cap=(wt&&wt.cap>0)?wt.cap:Infinity;
+    const s=cap<Infinity?_soStockoutDecide(lam,post,c=>wt.at(0,c),cap,phi,cu,co,B):_soStockoutY(lam,post,o.n2,phi,cu,co,B);
+    return Object.assign(base,{y:s.y,predMean:s.predMean,pSell1:s.pSell1,loss0:s.loss0,lossB:s.lossB,lossY:s.lossY,cyc:s.cyc||1,nA:s.nA,nB:s.nB});
+  }
+  if(!wt)return Object.assign(base,{y:0,error:'wait',degenerate:true});
+  const dp=_soDP(lam,post,o,wt,r,B,true,!!o.decideOnly);
+  const res=Object.assign(base,{yNow:dp.yNow,lossNow:dp.lossNow,loss0:dp.loss0,lossB:dp.lossB,lostA:dp.lostA,pOutA:dp.pOutA,soldA:dp.soldA,sMean:dp.sMean,
+    predMean:P.pm*dp.nB,nA:dp.nA,nB:dp.nB,cyc:dp.cyc,dpStates:dp.states,dpJ:dp.J});
+  if(dp.cont0!=null){ res.lossWait=dp.cont0; res.yWait=dp.yW; }
+  else if(dp.wUp!=null)res.waitUp=dp.wUp;
+  //   ④ 作る（y⁺ の損 < 待つ）／待つ（②のいちばん小さい数が y>0）／作らない（②のいちばん小さい数が 0）。2026-10-09 ⑥：0個がいちばん小さくても、y⁺ が待つより小さければ作る
+  if(dp.make){ res.y=dp.yNow; res.kind='make'; } else { res.y=0; res.kind=dp.yNow>0?'wait':'none'; }
+  return res;
+}
 // 画面の言葉（日本語・英語・ネパール語）。{0}{1}… に値を差し込む
 function _soT(key){ let s=t(key); for(let i=1;i<arguments.length;i++)s=s.split('{'+(i-1)+'}').join(arguments[i]); return s; }
 function _soYen(v){ return _soT('so2.yen',fmt(Math.round(v))); }
+function _soMinTxt(v){ return String(Math.round((+v||0)*10)/10); }   // 分（小数1けた）
+function _soRemDesc(rp){ return (rp&&rp.R)?(rp.below===false?_soT('so2.remDescList',_soRList(rp.make),rp.L):_soT('so2.remDescR',rp.R,rp.L)):t('so2.remDesc'); }
 function _soFmtHM(h){ let m=Math.round(h*60); const d=m>=1440; m=((m%1440)+1440)%1440; return (d?t('mk.nextDay'):'')+Math.floor(m/60)+':'+String(m%60).padStart(2,'0'); }
 function _soNowH(){ if(typeof window._soNowOverride==='number')return window._soNowOverride; const n=new Date(); return n.getHours()+n.getMinutes()/60+n.getSeconds()/3600; }
 // 見込みのもとになった週の数（getRecentAvgTeika と同じ数え方）
@@ -9034,7 +9616,7 @@ function soShelfAsk(pid,dayIdx,slotH,nowH){
 }
 //   shelfAt（省略可）＝「いつ並べた？」の答え。この完売で売り切れた分（1回目は最初の分、2回目以降は前の追加分）が実際に並んだ時刻。
 //   記録にも shelfAt として残し、以後の計算では「並ぶ予定」の代わりに使う（1回目の記録の shelfAt＝最初の分、k回目の記録の shelfAt＝k−1回目の追加分）。
-function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
+function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt,remain){
   const p=getP(pid);if(!p)return{error:t('sold.errProd')};
   if(!prodOnDay(p,dayIdx))return{error:prodOffDayText(p,dayIdx)||t('so2.errNoQty')};   // 販売期間の外の日は追加作成を出さない（2026-10-09）
   const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲（この商品が次に作る時間帯まで。2026-10-06）
@@ -9045,6 +9627,7 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
   const displayPlan=slotH+PREP_HOURS;                                    // 最初の分が売場に並ぶ予定の時刻
   const slotEnd=Math.min(range[1]+PREP_HOURS,displayPlan+calcMax);       // 次の作成分が並ぶ時刻（＝この時間帯の終わり）
   const events=getSoldOutEvents(pid,dayIdx,slotH);
+  const rem=Math.max(0,Math.round(+remain||0));                          // 「残り◯個」で押した時の残り（0＝完売。2026-10-09）
   const shelfIn=(typeof shelfAt==='number'&&isFinite(shelfAt)&&shelfAt>=slotH&&shelfAt<nowH)?shelfAt:null;
   const shelfPlan=events.length?((events[events.length-1]||{}).readyAt):displayPlan;   // 答えた時刻の「予定」（画面の説明用）
   // 最初の分が実際に並んだ時刻：1つ目の記録に shelfAt があればそれ／今回が1回目で「いつ並べた？」に答えた時はその時刻／ほかは予定
@@ -9061,16 +9644,23 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
   const prevAdded=events.reduce((s,e)=>s+(e.added||0),0);
   const Q=base+prevAdded;                                                // 今日ここまでに売場に出した数（2回目以降は前の追加も足す）
   if(Q<=0)return{error:t('so2.errNoQty')};
-  const readyAt=nowH+leadMin/60;
-  const sellEnd=Math.min(slotEnd,readyAt+(cfg.ah||calcMax));              // 追加分の販売期限が先に来る時はそこまで
+  // 作る時間（2026-10-09 店長の決定 D）：leadMin＝数（クルーが選んだ分）／'auto'（②商品設定の「作り方」の調理の時間＋並べるまでの実測。soLeadModel）
+  //   'auto' の時は、1回に作れる数を超える数を作る時、作る時間が回数ぶん長くなる（c 回）。並ぶ時刻 readyAt は出した数の回数で出し直す
+  let LM=null, LT;
+  if(leadMin==='auto'){ LM=soLeadModel(p); if(!LM||!LM.meas)return{error:t('so2.errNoLead')}; LT={lt:(g,c)=>soLeadMin(LM,dayIdx,g,c),cap:LM.cap>0?LM.cap:Infinity}; }   // 1回に作れる数が無い時は Infinity（null のままだと残り0が今までの計算を通らず、詳細の「完売する確率」が出なかった。2026-10-09）
+  else { const L0=+leadMin; if(!(L0>=0))return{error:t('so2.errNoLead')}; LT={lt:()=>L0,cap:Infinity}; }
+  const lead1=LT.lt(nowH,1);
+  const readyAt1=nowH+lead1/60;
+  const sellEnd=Math.min(slotEnd,readyAt1+(cfg.ah||calcMax));              // 追加分の販売期限が先に来る時はそこまで（1回で作る時の並ぶ時刻から）              // 追加分の販売期限が先に来る時はそこまで
   // n1＝棚に商品があった間の客数（2026-10-08 店長の決定「理論上正確なほう」）：
   //   n1 ＝ N(並んだ時刻, 押した時刻) − Σ N(前の完売に気づいた時刻_i, その追加分が並んだ時刻_i)
   //   i＝同じマスの前の完売の記録（v2 の記録で noticedAt と readyAt があるもの。古い記録は引かない）。区間は [並んだ時刻, 押した時刻] に切り詰め、重なりは1つにまとめて二重に引かない。
   //   棚が空だった間の客は「買いたくても買えなかった」ので、売れ方（Q 個 ÷ n1 人）の分母に入れない。気づくまでの遅れ（売り切れ〜押した時刻）は記録が無いので扱わない
   //   前の完売で「作らない（0個）」にした時は、追加分が並んでいないので、押した時刻まで棚は空のまま（readyAt の代わりに押した時刻まで）
+  //   「残り◯個」の記録（remain>0）は棚が空ではなかったので引かない（2026-10-09）
   const gaps=[];
   //   2026-10-08：追加分が予定より早く並んだ時は、並んだ時刻（shelfOf：答えた時刻・「作った」の時刻）までを空とする（棚にあった時間を空として引かない）
-  events.forEach((e,i)=>{ if(!e||e.v!==2||typeof e.noticedAt!=='number'||typeof e.readyAt!=='number')return;
+  events.forEach((e,i)=>{ if(!e||e.v!==2||typeof e.noticedAt!=='number'||typeof e.readyAt!=='number')return; if(e.remain>0)return;
     const a=Math.max(displayStart,e.noticedAt), z=Math.min(nowH,(e.added||0)>0?shelfOf(i):nowH); if(z>a)gaps.push([a,z]); });
   gaps.sort((u,v)=>u[0]-v[0]);
   const merged=[]; gaps.forEach(g=>{ const l=merged[merged.length-1]; if(l&&g[0]<=l[1])l[1]=Math.max(l[1],g[1]); else merged.push(g.slice()); });
@@ -9078,9 +9668,42 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
   const emptyCust=merged.reduce((s,g)=>s+getCustHoursRange(dayIdx,g[0],g[1]),0);
   const emptyMin=Math.round(merged.reduce((s,g)=>s+(g[1]-g[0]),0)*60);
   const n1=Math.max(0,n1Raw-emptyCust);
-  const n2=readyAt<sellEnd?getCustHoursRange(dayIdx,readyAt,sellEnd):0;
+  const n2_1=readyAt1<sellEnd?getCustHoursRange(dayIdx,readyAt1,sellEnd):0;
   const Ncell=getCustHoursRange(dayIdx,displayStart,slotEnd);
   if(!(n1>0)||!(Ncell>0))return{error:t('so2.errNoCust')};
+  const M=_soModel(p,dayIdx,slotH,base,Ncell);
+  if(M.error)return{error:M.error};
+  const {m0,m0Src,weeks,phi,b,past,pastSo,pastLo,pastRem,cu,co,h,coNote,B}=M;
+  // 同じマスで前に「残り◯個」を押した記録＝今日の観測の区切り（その時までの客数・売れた数）。2026-10-09
+  const n1At=T=>Math.max(0,getCustHoursRange(dayIdx,displayStart,T)-merged.reduce((s,g)=>s+getCustHoursRange(dayIdx,g[0],Math.min(g[1],T)),0));
+  const chk0=events.filter(e=>e&&e.v===2&&e.remain>0&&typeof e.noticedAt==='number'&&e.noticedAt<nowH).map(e=>({n1:n1At(e.noticedAt),sold:(e.made||0)-e.remain,at:e.noticedAt,remain:e.remain})).sort((u,v)=>u.at-v.at);   // 時刻の順（2台で同時に記録すると、並びが時刻の順でないことがある。2026-10-09）
+  //   同じ時刻（noticedAt は 3.6秒単位）の記録が2つ以上ある時は、残りの少ない方（売れた数が多い＝新しい情報）を1つだけ使う。
+  //   残りの違う2つを両方入れると「0人の間に◯個売れた」になって事後が0になり、「作らない・0円」と出ていた（2026-10-09 おたすけの検算）
+  const chk=[]; chk0.forEach(c=>{ const l=chk[chk.length-1]; if(l&&Math.abs(c.at-l.at)<1e-9){ if(c.sold>l.sold)chk[chk.length-1]=c; } else chk.push(c); });
+  const soldBefore=chk.length?chk[chk.length-1].sold:0;
+  if(rem>Q-soldBefore)return{error:_soT('so2.errRemainMax',Q-soldBefore)};
+  const t0=(typeof performance!=='undefined')?performance.now():0;
+  let core, nA=0;
+  if(rem===0&&!chk.length&&!(LT.cap<Infinity)) core=soCalcCore({Q,n1,n2:n2_1,m0,b,phi,past,cu,co,B});   // 完売（残り0）＝今までの計算そのまま
+  else {
+    nA=readyAt1<sellEnd?getCustHoursRange(dayIdx,nowH,readyAt1):getCustHoursRange(dayIdx,nowH,sellEnd);
+    core=soCalcCore2({Q,n1,n2:n2_1,m0,b,phi,past,cu,co,B,r:rem,chk,nA,wait:()=>soWaitGrid(dayIdx,nowH,sellEnd,LT)});
+  }
+  if(core.error)return{error:t('so2.errOrder')};   // 記録の並びが合わない（後の記録の残りの方が多い）。2026-10-09
+  const cyc=core.cyc||1, leadUsed=cyc>1?LT.lt(nowH,cyc):lead1;   // 出した数を作る回数での作る時間
+  const readyAt=nowH+leadUsed/60, n2=cyc>1?(core.nB||0):n2_1;
+  const ms=(typeof performance!=='undefined')?performance.now()-t0:0;
+  const r={p,pid,dayIdx,slotH,nowH,leadMin:LM?Math.round(leadUsed):leadMin,leadSrc:LM?'auto':'pick',leadInfo:LM?soLeadParts(LM,dayIdx,nowH,cyc):null,cyc,readyAt,displayStart,displayPlan,shelfIn,shelfPlan,doneUsed,slotEnd,sellEnd,base,prevAdded,Q,n1,n1Raw,emptyCust,emptyMin,n2,Ncell,m0,m0Src,weeks,phi,phiDf:M.phiDf,b,
+    past,pastSo,pastLo,pastRem,cu,co,h,coNote,B,ms,eventCount:events.length+1,
+    remain:rem,chk,nA:core.nA!=null?core.nA:nA,kind:core.kind||(core.y>0?'make':'none'),yNow:core.yNow,lossNow:core.lossNow,lossWait:core.lossWait,yWait:core.yWait,lostA:core.lostA,pOutA:core.pOutA,soldA:core.soldA,sMean:core.sMean,
+    suggest:core.y,postMean:core.postMean,priorSO:core.priorSO,predMean:core.predMean,pSell1:core.pSell1,loss0:core.loss0,lossB:core.lossB,lossY:core.lossY};
+  r.reason=soReason(r);
+  return r;
+}
+// 追加作成の計算に入れる数のうち、その日の事実に関係しない物（これまでの見込み・ばらつき・直近4週の記録・損・まとめ単位）。
+//   「完売した」「残り◯個」の計算と、マスの「残り◯で追加」の目安が同じ物を使う（2026-10-09 に calcSoldOutSuggestion から切り出した。中身は同じ）
+function _soModel(p,dayIdx,slotH,base,Ncell){
+  const pid=p.id, main=mainCatOf(p.category);
   // これまでの見込み（客1人あたり個数）：計画と同じ出し方（ゆとり・学習は足さない）
   const teika=getRecentAvgTeika(pid,4), wtK=getCatWeekTotalWeighted(p.category);
   const kCoef=getSlotCoef(p.category,slotH), gF=gaibuFactor(main,dayIdx,slotH);
@@ -9092,8 +9715,10 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
   if(!(m0>0))return{error:t('so2.errNoRate')};
   const disp=soDispersion(p.category), phi=disp.phi;
   const b=weeks*Ncell/phi;
-  // 直近4週の同じマスの記録（完売・余り）
-  const key=`${dayIdx}_${slotH}_${pid}`, past=[]; let pastSo=0,pastLo=0;
+  // 直近4週の同じマスの記録（完売・余り・残り◯個）
+  //   その週の最初の記録が「残り R0 個」（remain>0。2026-10-09）なら：余りの記録なし → n1 人の間にちょうど Q−R0 個 売れた（eq）／余りあり → 需要は Q−R0 以上 Q＋追加 未満（between）
+  //   古い記録・完売の記録（remain なし）は今までと同じ
+  const key=`${dayIdx}_${slotH}_${pid}`, past=[]; let pastSo=0,pastLo=0,pastRem=0;
   if(S.weeks&&S.activeWeek){
     const curNum=weekKeyNum(S.activeWeek);
     sortWeekKeys(Object.keys(S.weeks).filter(k=>k!==S.activeWeek&&weekKeyNum(k)<curNum)).slice(-4).forEach(k=>{
@@ -9102,8 +9727,10 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
       if(!has&&!lf)return;
       const Qj=(has&&so[0].made>0)?so[0].made:base;                      // 古い記録には作った数が無い → 今週のこのマスの数で代える
       const Aj=has?so.reduce((s,e)=>s+(e.added||0),0):0;
-      if(has&&lf){ if(Aj>0){past.push({type:'between',Q:Qj,A:Aj,N:Ncell});pastSo++;pastLo++;} }
-      else if(has){ past.push({type:'so',Q:Qj,N:(so[0].n1>0?so[0].n1:Ncell)}); pastSo++; }
+      const R0=has?Math.max(0,Math.round(+so[0].remain||0)):0;
+      const isSo=has&&so.some(e=>!(e&&e.remain>0));                     // その週に完売（残り0）の記録があるか（画面の説明用）
+      if(has&&lf){ if(Aj>0||R0>0){past.push(R0>0?{type:'between',Q:Qj,A:Aj,N:Ncell,R0}:{type:'between',Q:Qj,A:Aj,N:Ncell}); if(isSo)pastSo++; else pastRem++; pastLo++;} }
+      else if(has){ if(R0>0)past.push({type:'eq',Q:Qj,R0,N:(so[0].n1>0?so[0].n1:Ncell)}); else past.push({type:'so',Q:Qj,N:(so[0].n1>0?so[0].n1:Ncell)}); if(isSo)pastSo++; else pastRem++; }
       else { past.push({type:'lo',Q:Qj,N:Ncell}); pastLo++; }
     });
   }
@@ -9119,20 +9746,311 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt){
   const co=h*(p.disc||0)+(1-h)*(p.cost||0), coNote='';
   if(!(co>0))return{error:t('so2.errNoCost')};
   const B=getBatchUnit(p);
-  const t0=(typeof performance!=='undefined')?performance.now():0;
-  const core=soCalcCore({Q,n1,n2,m0,b,phi,past,cu,co,B});
-  const ms=(typeof performance!=='undefined')?performance.now()-t0:0;
-  const r={p,pid,dayIdx,slotH,nowH,leadMin,readyAt,displayStart,displayPlan,shelfIn,shelfPlan,doneUsed,slotEnd,sellEnd,base,prevAdded,Q,n1,n1Raw,emptyCust,emptyMin,n2,Ncell,m0,m0Src,weeks,phi,phiDf:disp.df,b,
-    past,pastSo,pastLo,cu,co,h,coNote,B,ms,eventCount:events.length+1,
-    suggest:core.y,postMean:core.postMean,priorSO:core.priorSO,predMean:core.predMean,pSell1:core.pSell1,loss0:core.loss0,lossB:core.lossB,lossY:core.lossY};
-  r.reason=soReason(r);
-  return r;
+  return{m0,m0Src,weeks,phi,phiDf:disp.df,b,past,pastSo,pastLo,pastRem,cu,co,h,coNote,B};
+}
+// ③の目盛り：今 t0 から 5分ごとに、販売の終わり E まで。c＝今からの客数、g＝時刻、lead＝その時刻から作り始めて並ぶまでの客数（E まで）、n2＝追加分が並んでから E までの客数
+//   lead・n2 は 1回で作る時。at(j,c)＝時点 j（0＝今）に c 回に分けて作り始めた時の {nA:並ぶまでの客数, nB:並んでから E までの客数}
+//   leadMin＝分（クルーが選んだ数。回数で変わらない）か {lt:(時刻,回数)→分, cap:1回に作れる数}（2026-10-09 D）
+function soWaitGrid(dayIdx,t0,E,leadMin){
+  const LT=(typeof leadMin==='number')?{lt:()=>leadMin,cap:Infinity}:leadMin;
+  const c=[0], g=[t0], lead=[], n2=[];
+  for(let j=1;j<=2000;j++){
+    const gj=Math.min(t0+j*SO_WAIT_STEP,E), L=LT.lt(gj,1)/60;
+    g.push(gj); c.push(getCustHoursRange(dayIdx,t0,gj)); lead.push(getCustHoursRange(dayIdx,gj,Math.min(gj+L,E))); n2.push(gj+L<E?getCustHoursRange(dayIdx,gj+L,E):0);
+    if(gj>=E)break;
+  }
+  const memo=new Map();
+  const at=(j,cy)=>{ if(cy===1&&j>=1)return{nA:lead[j-1],nB:n2[j-1]};
+    const key=j*100+cy; let v=memo.get(key); if(v)return v;
+    const gj=g[j], L=LT.lt(gj,cy)/60;
+    v={nA:getCustHoursRange(dayIdx,gj,Math.min(gj+L,E)),nB:gj+L<E?getCustHoursRange(dayIdx,gj+L,E):0}; memo.set(key,v); return v; };
+  return{c,g,lead,n2,cap:(LT.cap>0)?LT.cap:Infinity,at};
+}
+// 客数が hs から数えて T 人になる時刻（tMax までに届かなければ null）。getCustHoursRange の逆
+function _soTimeAtCust(dayIdx,hs,T,tMax){
+  if(!(T>0))return hs;
+  let h=hs, acc=0;
+  for(let g=0;g<200&&h<tMax;g++){
+    const wholeH=Math.floor(h), segEnd=Math.min(tMax,wholeH+1);
+    const di=wholeH<24?dayIdx:(dayIdx+1)%7, hh=wholeH<24?wholeH:wholeH-24;
+    const rate=custEff(di)[hh]||0, seg=rate*(segEnd-h);
+    if(rate>0&&acc+seg>=T)return h+(T-acc)/rate;
+    acc+=seg; h=segEnd;
+  }
+  return null;
+}
+// ============================================================
+// 作る時間（何分後に並ぶか）＝ 調理の時間（②商品設定の「作り方」）＋ 並べるまでの時間（実測）（2026-10-09 店長の決定 D：
+//   「だいたいってのがクルーの能力や状況に依存してて嫌い」「商品、食材ごとに設定したい」）
+//   調理の時間（分）：
+//     ・ホットFF・中華まん・常温FF など：商品の「作り方」prepMethod ＝ fryer 揚げる（fryerMin）／steam 蒸す（steamMin）／microwave レンジ（microwaveMin）／
+//         warm 温める（warmMin）／asis そのまま（0分）／microwave_fryer レンジ→揚げる（microwaveMin＋fryerMin）。事前準備の並べ方（compareEfficient）と同じ欄。
+//       1回に作れる数 cap：揚げる時は fryerCap（事前準備の分け方と同じ欄）、それ以外は cookCap。空なら回数で分けない。
+//       c 回に分けて作る時：first ＋ (c−1)×per。first＝1回目の工程の合計、per＝いちばん長い工程（2回目からは前の回と重ねて進む）。1つの工程なら c×時間。
+//     ・まちかど厨房：食材ごとの工程の時間（食材の名前ごとに1つ。ほかの商品の同じ食材にも同じ時間が入る）から：
+//         手の工程（水洗い・その他）は足す ＋ 機械の工程（フライはいっしょに揚げられるので長い方、レンジは1台なので足す。フライとレンジは同時に動く＝長い方）。
+//         解凍（前日）・後付け・盛付は入れない（盛付・梱包は「並べるまで」の実測に入る）。工程に時間が1つでも空なら、調理の時間は「空」。回数では分けない。
+//   並べるまでの時間（実測、分）：記録（完売・残り◯個を押した時刻 noticedAt →「✓ 作った」の時刻 doneAt）の分 − その時の調理の時間（c＝⌈追加の数÷cap⌉ 回）。
+//       単品ごとに直近 SO_MEAS_N 件の中央値。SO_MEAS_MIN 件そろうまでは使わない（足さない・「何分後」は聞く）。
+//       混み具合：記録ごとに、その間の1時間あたりの客数 x（作っている間の客の多さ。客数そのものは時間が長いほど増えて意味がないので、1時間あたり）。
+//         全商品の記録で「実測 − その単品の中央値」を「x − その単品の x の平均」に、原点を通る直線で合わせた傾き β（分 ÷（人/時））。
+//         記録が SO_BUSY_MIN 件以上で、|β| が誤差（標準誤差）の2倍より大きい時だけ足す：M(x)＝中央値 ＋ β·(x − その単品の x の平均)。0 より小さくしない。
+//   作る時間 L(時刻 g, 回数 c)＝調理(c) ＋ M(g から並ぶまでの1時間あたりの客数)。
+//   調理の時間も実測も無い単品は soLeadModel が null。マスの「残り◯で追加」は、実測が SO_MEAS_MIN 件そろうまで出さない（作り方だけでは、並べるまでを0分と数えて
+//   遅めの合図になる。推測で出さない。2026-10-09）。押した時は今どおり「何分後」を選ぶ（作り方があれば調理の時間の1行を出す）。
+//   実測がそろった単品は、押した時に「何分後」を聞かずに L を使う（選び直しのボタンあり）。
+// ============================================================
+const SO_MEAS_N=5, SO_MEAS_MIN=3, SO_BUSY_MIN=10;
+const COOK_KEYS={fryer:'fryerMin',steam:'steamMin',microwave:'microwaveMin',warm:'warmMin'};
+const MK_ING_TIMED=['wash','other','fry','range'];   // まちかど厨房：時間を入れる工程（解凍・後付け・なし は入れない）
+function isMkProd(p){ return !!p&&/まちかど厨房/.test(p.category||''); }
+function _soPosMin(v){ const x=Number(v); return (v!==''&&v!=null&&isFinite(x)&&x>0)?x:null; }
+function cookCapOf(p){ const m=p&&p.prepMethod; const v=(m==='fryer'||m==='microwave_fryer')?p.fryerCap:p.cookCap; const x=Math.floor(Number(v)); return (v!=null&&v!==''&&isFinite(x)&&x>=1)?x:Infinity; }
+// 食材の工程の時間（名前ごと）：{fry:分, range:分, …}。同じ名前の食材のどれかに入っていれば使う
+function ingTimesOf(name){ const n=(name||'').trim(), out={}; if(!n)return out;
+  for(const p of (S.PM||[]))for(const ing of getIngs(p)){ if((ing.n||'').trim()!==n||!ing.t)continue; MK_ING_TIMED.forEach(m=>{ if(out[m]==null&&_soPosMin(ing.t[m])!=null)out[m]=+ing.t[m]; }); }
+  return out; }
+// 調理の時間：{set:true, first, per, cap, parts} ／ {set:false, missing}（空）
+function soCookInfo(p){
+  if(!p)return{set:false,missing:[]};
+  if(isMkProd(p)){
+    const ings=getIngs(p).filter(g=>(g.n||'').trim()); if(!ings.length)return{set:false,missing:[],mk:true};
+    let hand=0,fry=0,range=0; const missing=[], parts=[];
+    ings.forEach(g=>{ const tm=ingTimesOf(g.n); (g.m||[]).forEach(m=>{ if(!MK_ING_TIMED.includes(m))return; const v=tm[m]; if(v==null){ missing.push({n:g.n.trim(),m}); return; }
+      parts.push({n:g.n.trim(),m,min:v}); if(m==='fry')fry=Math.max(fry,v); else if(m==='range')range+=v; else hand+=v; }); });
+    if(missing.length)return{set:false,missing,mk:true};
+    const first=hand+Math.max(fry,range);
+    return{set:true,first,per:first,cap:Infinity,parts,mk:true,hand,fry,range};
+  }
+  const m=p.prepMethod||'none';
+  if(m==='asis')return{set:true,first:0,per:0,cap:Infinity,parts:[{m,min:0}]};
+  if(m==='microwave_fryer'){ const a=_soPosMin(p.microwaveMin), b=_soPosMin(p.fryerMin); if(a==null||b==null)return{set:false,missing:[]};
+    return{set:true,first:a+b,per:Math.max(a,b),cap:cookCapOf(p),parts:[{m:'microwave',min:a},{m:'fryer',min:b}]}; }
+  const key=COOK_KEYS[m]; if(!key)return{set:false,missing:[]};
+  const v=_soPosMin(p[key]); if(v==null)return{set:false,missing:[]};
+  return{set:true,first:v,per:v,cap:cookCapOf(p),parts:[{m,min:v}]};
+}
+function _soCookMin(ck,c){ return ck.first+(Math.max(1,c||1)-1)*ck.per; }
+// 記録の表（その週の客数）：今週は custEff、前の週はその週の客数
+function _soCustTbl(wk){ return d=>wk?(((wk.cust||[])[d])||[]):custEff(d); }
+function _soRateTbl(tbl,d,a,b){ const h=Math.max(1/60,b-a); let s=0, x=a; while(x<a+h-1e-12){ const wh=Math.floor(x), e=Math.min(a+h,wh+1); const dd=wh<24?d:(d+1)%7, hh=wh<24?wh:wh-24; s+=((tbl(dd)||[])[hh]||0)*(e-x); x=e; } return s/h; }
+// 単品の「並べるまで」の記録（新しい順）：[{M:分, x:1時間あたりの客数, raw:押してから作ったまでの分, cook:その時の調理の分}]
+var _soMeasMemo=null, _soMeasQueued=false;   // 記録の集計の覚え書き（同じ処理の間だけ。処理の終わりと saveS・clearAllocCache で捨てる）
+function _soMeasCache(){ if(!_soMeasMemo)_soMeasMemo={list:new Map(),fit:null}; if(!_soMeasQueued){ _soMeasQueued=true; Promise.resolve().then(()=>{ _soMeasQueued=false; _soMeasMemo=null; }); } return _soMeasMemo; }
+function soMeasList(pid){
+  const mc=_soMeasCache(); if(mc.list.has(pid))return mc.list.get(pid);
+  const p=getP(pid); if(!p)return [];
+  const ck=soCookInfo(p), out=[];
+  const lists=[{so:S.soldOuts||{},wk:null,num:S.activeWeek?weekKeyNum(S.activeWeek):99999999}];
+  Object.keys(S.weeks||{}).forEach(k=>{ if(k===S.activeWeek)return; lists.push({so:(S.weeks[k]||{}).soldOuts||{},wk:S.weeks[k]||{},num:weekKeyNum(k)}); });
+  lists.forEach(L=>{ const tbl=_soCustTbl(L.wk);
+    Object.keys(L.so).forEach(k=>{ const m=k.match(/^(\d+)_(\d+)_(.+)$/); if(!m||m[3]!==pid)return; const d=+m[1];
+      (L.so[k]||[]).forEach(e=>{ if(!e||e.v!==2||!((e.added||0)>0)||typeof e.noticedAt!=='number'||typeof e.doneAt!=='number'||!(e.doneAt>=e.noticedAt))return;
+        const raw=(e.doneAt-e.noticedAt)*60, cook=ck.set?_soCookMin(ck,ck.cap<Infinity?Math.ceil(e.added/ck.cap):1):0;
+        out.push({M:raw-cook,raw,cook,x:_soRateTbl(tbl,d,e.noticedAt,e.doneAt),at:L.num*100+d+e.noticedAt/100}); }); }); });
+  out.sort((a,b)=>b.at-a.at); mc.list.set(pid,out); return out;
+}
+function _soMedian(a){ const s=a.slice().sort((x,y)=>x-y), n=s.length; return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):null; }
+function soMeasInfo(pid){
+  const L=soMeasList(pid).slice(0,SO_MEAS_N); if(!L.length)return{n:0,all:0};
+  const med=_soMedian(L.map(z=>z.M)), xbar=L.reduce((s,z)=>s+z.x,0)/L.length;
+  return{n:L.length,med,xbar,list:L};
+}
+// 混み具合の傾き β（全商品の記録から）
+function soBusyFit(){
+  const mc=_soMeasCache(); if(mc.fit)return mc.fit; mc.fit=_soBusyFit0(); return mc.fit;
+}
+function _soBusyFit0(){
+  let sxy=0,sxx=0,n=0,g=0; const rows=[];
+  (S.PM||[]).forEach(p=>{ const mi=soMeasInfo(p.id); if(!(mi.n>=2))return; g++;
+    mi.list.forEach(z=>{ const dx=z.x-mi.xbar, dy=z.M-mi.med; rows.push([dx,dy]); sxy+=dx*dy; sxx+=dx*dx; n++; }); });
+  if(!(n>0)||!(sxx>0))return{beta:0,n,use:false};
+  const beta=sxy/sxx; let rss=0; rows.forEach(([dx,dy])=>{ const e=dy-beta*dx; rss+=e*e; });
+  const df=Math.max(1,n-g-1), se=Math.sqrt(rss/df/sxx);
+  return{beta,se,n,use:n>=SO_BUSY_MIN&&Math.abs(beta)>2*se};
+}
+// 作る時間のしくみ（計算に入れる形・覚え書きの鍵にもなる）。調理の時間も実測（SO_MEAS_MIN 件）も無ければ null
+function soLeadModel(p){
+  if(!p)return null;
+  const ck=soCookInfo(p), mi=soMeasInfo(p.id);
+  const cookOk=!!ck.set, measOk=mi.n>=SO_MEAS_MIN;
+  if(!cookOk&&!measOk)return null;
+  const fit=measOk?soBusyFit():null;
+  return{cook:cookOk?{first:ck.first,per:ck.per}:null,cap:(cookOk&&ck.cap<Infinity)?ck.cap:null,
+    meas:measOk?{med:mi.med,xbar:mi.xbar,n:mi.n}:null,beta:(fit&&fit.use)?fit.beta:0};
+}
+// 作り始める時刻 g・c 回の作る時間（分）
+function soLeadMin(LM,dayIdx,g,c){
+  const ck=LM.cook?_soCookMin(LM.cook,c):0;
+  let ms=0;
+  if(LM.meas){ ms=LM.meas.med; if(LM.beta){ const x=_soRateTbl(custEff,dayIdx,g,g+(ck+LM.meas.med)/60); ms=LM.meas.med+LM.beta*(x-LM.meas.xbar); } ms=Math.max(0,ms); }
+  return ck+ms;
+}
+// 画面の説明用：{cook:調理の分, meas:並べるまでの分, n:記録の数, busy:混み具合を足したか, c:回数}
+function soLeadParts(LM,dayIdx,g,c){ const ck=LM.cook?_soCookMin(LM.cook,c):0, all=soLeadMin(LM,dayIdx,g,c); return{cook:ck,meas:all-ck,n:LM.meas?LM.meas.n:0,busy:!!LM.beta,c:c||1,total:all}; }
+// マスの「残り◯で追加」の目安（2026-10-09）。まだ何も起きていない計画の数で計算する（クルーの入力は要らない）
+//   定義：見込みどおり（直近4週の記録まで入れた売れ方の平均 λ̄）に売れた時、残りが r 個になる時刻 t(r)（並んでから λ̄×客数＝Q−r になる時刻）に
+//         「残り r 個」を押したとして、②③④（③は動的計画）で「今作り始める」になる r。1〜Q−1 を全部見る（途中で止めない）。
+//   R＝その中でいちばん大きい r。R より小さい r（見込みどおりに届いて、作る時間の内に売れる r）が全部「作る」なら「残り R 個以下で押す」、
+//   そうでなければ「作る」になる r を並べて出す（below＝false）。
+//   作る時間が分からない単品（soLeadModel が null）と、並べるまでの実測が SO_MEAS_MIN 件たまっていない単品は出さない（2026-10-09 D・⑶）。
+function _soRpInputs(pid,dayIdx,slotH){
+  const p=getP(pid); if(!p||!p.enabled||!S.catOn[p.category]||!prodOnDay(p,dayIdx))return null;
+  const range=getProdSlotRange(p,slotH); if(!range)return null;
+  const LM=soLeadModel(p); if(!LM||!LM.meas)return null;   // 実測（並べるまでの記録）が SO_MEAS_MIN 件たまるまでは出さない。作り方だけだと並べるまでを0分と数えて、遅めの合図になる（推測で出さない。2026-10-09）
+  const cfg=S.catCfg[p.category]||{}, main=mainCatOf(p.category), calcMax=CALC_MAX_HOURS[main]||4;
+  const ds=slotH+PREP_HOURS, slotEnd=Math.min(range[1]+PREP_HOURS,ds+calcMax);
+  const Q=getProdCnt(pid,dayIdx,slotH)+getInvestExtra(pid,dayIdx,slotH);
+  if(!(Q>=2))return null;
+  const Ncell=getCustHoursRange(dayIdx,ds,slotEnd); if(!(Ncell>0))return null;
+  const M=_soModel(p,dayIdx,slotH,Q,Ncell); if(M.error)return null;
+  return{Q,ds,slotEnd,ah:cfg.ah||calcMax,LM,m0:M.m0,b:M.b,phi:M.phi,past:M.past,cu:M.cu,co:M.co,B:M.B,
+    cust:[custEff(dayIdx).slice(),custEff((dayIdx+1)%7).slice()]};
+}
+function _soRpLT(dayIdx,I){ return{lt:(g,c)=>soLeadMin(I.LM,dayIdx,g,c),cap:I.LM.cap>0?I.LM.cap:Infinity}; }
+function soReorderRow(dayIdx,I,LT,lb,r){
+  const t=_soTimeAtCust(dayIdx,I.ds,(I.Q-r)/lb,I.slotEnd);
+  if(t==null)return{r,kind:'unreached'};
+  const L1=LT.lt(t,1), readyAt=t+L1/60, sellEnd=Math.min(I.slotEnd,readyAt+I.ah);
+  if(!(readyAt<sellEnd))return{r,t,L:L1,kind:'late'};
+  const n1=getCustHoursRange(dayIdx,I.ds,t), nA=getCustHoursRange(dayIdx,t,readyAt), n2=getCustHoursRange(dayIdx,readyAt,sellEnd);
+  const res=soCalcCore2({Q:I.Q,n1,r,chk:[],nA,n2,m0:I.m0,b:I.b,phi:I.phi,past:I.past,cu:I.cu,co:I.co,B:I.B,decideOnly:true,wait:()=>soWaitGrid(dayIdx,t,sellEnd,LT)});
+  return{r,t,L:L1,kind:res.kind,y:res.y,yNow:res.yNow,lossNow:res.lossNow,lossWait:res.lossWait,states:res.dpStates};
+}
+function _soRpFinish(out){
+  const mk=out.rows.filter(x=>x.kind==='make').map(x=>x.r); out.make=mk;
+  if(!mk.length)return out;
+  out.R=mk[mk.length-1]; const row=out.rows.find(x=>x.r===out.R); out.tR=row.t; out.yR=row.y; out.L=Math.round(row.L);
+  out.below=out.rows.every(x=>x.r>out.R||x.kind==='make'||x.kind==='unreached'||x.kind==='late');
+  return out;
+}
+function soReorderCalc(dayIdx,I){
+  const LT=_soRpLT(dayIdx,I), P0=_soPost(I,[]), lb=P0.pm, out={R:null,tR:null,L:null,Q:I.Q,lamBar:lb,rows:[],make:[],below:true};
+  if(!(lb>0))return out;
+  for(let r=1;r<I.Q;r++)out.rows.push(soReorderRow(dayIdx,I,LT,lb,r));
+  return _soRpFinish(out);
+}
+// 覚え書き（同じ入力なら同じ答え）。budgetMs を渡すと、画面を止めない形で計算する：
+//   別の糸（Web Worker。下）が使える時は、そちらに頼んで undefined を返す（できたら soRoFill と soRpWhenReady の cb で知らせる）。
+//   使えない時は今までどおり、その時間を過ぎたら途中で返す（undefined。続きは次に呼んだ時）。budgetMs が無い時は、ここで全部計算する（試験・確かめ用）
+let _soRpCache=new Map(); const _soRpJobs=new Map();
+var _soRpLastKey=null;   // いちばん最後に soReorderPoint で調べたマスの覚え書きの鍵（別の糸に頼んだマスを、呼んだ側が見つけるため）
+function soReorderPoint(pid,dayIdx,slotH,budgetMs){
+  const I=_soRpInputs(pid,dayIdx,slotH); if(!I)return null;
+  const key=dayIdx+'|'+JSON.stringify(I); _soRpLastKey=key;
+  if(_soRpCache.has(key))return _soRpCache.get(key);
+  if(budgetMs!=null&&_soRpWPost(key,dayIdx,I))return undefined;
+  let job=_soRpJobs.get(key);
+  if(!job){ const LT=_soRpLT(dayIdx,I), lb=_soPost(I,[]).pm; job={I,LT,lb,r:1,out:{R:null,tR:null,L:null,Q:I.Q,lamBar:lb,rows:[],make:[],below:true}}; if(!(lb>0))job.r=I.Q; if(_soRpJobs.size>200)_soRpJobs.clear(); _soRpJobs.set(key,job); }
+  const t0=Date.now();
+  while(job.r<I.Q){ job.out.rows.push(soReorderRow(dayIdx,I,job.LT,job.lb,job.r)); job.r++; if(budgetMs!=null&&job.r<I.Q&&Date.now()-t0>budgetMs)return undefined; }
+  const res=_soRpFinish(job.out); _soRpJobs.delete(key);
+  if(_soRpCache.size>3000)_soRpCache.clear();
+  _soRpCache.set(key,res);
+  return res;
+}
+// ---- 目安の計算を別の糸（Web Worker）で（2026-10-09：タブレットで目安が埋まるまで 20〜56秒・途中で最大約1秒止まっていた）----
+//   Worker の中身は、このファイルの計算の関数そのもの（toString の文字）を Blob にして作る。別のファイルは要らない（ff/index.html 1つでも、v2 の差し替え後でも同じに動く）。
+//   同じ関数・同じ入力なので、答えは本体で計算した時と1けたも変わらない（試験で確かめる）。客数の表は入力 I.cust（その日と次の日）を custEff として渡す。
+//   Worker が作れない・動かない時（古い端末・file で開いて使えない時など）は、今までの「少しずつ埋める」に戻る。window._soNoWorker＝true で使わない（試験用）。
+const _SO_RP_FNS=[_soPmfArr,_soPmfAdd,_soProbGE,_soPmfAt,_soPastLik,_soPostBase,_soPost,_soStockoutY,_soNV,_soTodayObs,_soPredOf,_soPredLoss,_soStockoutDecide,_soFNew,_soFp,_soF,_soDP,soCalcCore2,
+  soWaitGrid,getCustHoursRange,_soTimeAtCust,_soRateTbl,_soCookMin,soLeadMin,_soRpLT,soReorderRow,_soRpFinish,soReorderCalc].map(f=>f.toString());   // 読み込んだ時の関数（あとで試験が差し替えても、Worker は元の計算）
+var _soRpW={list:[],ok:null,seq:0,wait:new Map(),queue:[],url:null};
+function _soRpWorkerSrc(){
+  return 'var _soPostMemo=null;\nconst SO_WAIT_STEP='+SO_WAIT_STEP+', SO_DP_REACH='+SO_DP_REACH+';\nvar __cust=[];\nfunction custEff(d){ return __cust[d]||[]; }\n'+_SO_RP_FNS.join('\n')+
+    '\nonmessage=function(e){ var m=e.data, res=null, err=null; try{ __cust=[]; __cust[m.d]=m.I.cust[0]; __cust[(m.d+1)%7]=m.I.cust[1]; res=soReorderCalc(m.d,m.I); }catch(x){ err=String(x&&x.message||x); } postMessage({id:m.id,res:res,err:err}); };\n';
+}
+function _soRpWorkers(){
+  if(_soRpW.ok===false||window._soNoWorker)return null;
+  if(_soRpW.list.length)return _soRpW.list;
+  try{
+    if(typeof Worker==='undefined'||typeof Blob==='undefined'||!window.URL||!URL.createObjectURL)throw new Error('no worker');
+    _soRpW.url=URL.createObjectURL(new Blob([_soRpWorkerSrc()],{type:'text/javascript'}));
+    const nW=Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));   // 画面の糸のぶんを1つ残す。多くても3つ
+    for(let i=0;i<nW;i++){ const w=new Worker(_soRpW.url); w.onmessage=_soRpWDone; w.onerror=e=>{ if(e&&e.preventDefault)e.preventDefault(); _soRpWFail(); }; w._job=null; _soRpW.list.push(w); }
+    _soRpW.ok=true; return _soRpW.list;
+  }catch(e){ _soRpWFail(); return null; }
+}
+// マスを別の糸に頼む（同じ鍵を頼んでいる時は頼まない）。頼めなかったら false
+function _soRpWPost(key,dayIdx,I){
+  if(_soRpW.wait.has(key))return true;
+  if(!_soRpWorkers())return false;
+  const job={id:++_soRpW.seq,key,d:dayIdx,I,cbs:[]};
+  _soRpW.wait.set(key,job); _soRpW.queue.push(job); _soRpWPump(); return true;
+}
+function _soRpWPump(){ for(const w of _soRpW.list){ if(w._job||!_soRpW.queue.length)continue; const job=_soRpW.queue.shift(); w._job=job; w.postMessage({id:job.id,d:job.d,I:job.I}); } }
+function _soRpWDone(e){
+  const m=e.data||{}, w=e.target, job=w&&w._job; if(w)w._job=null;
+  if(job&&job.id===m.id){
+    _soRpW.wait.delete(job.key);
+    const res=m.err?null:m.res;   // 計算で失敗したマスは、本体で計算した時（例外 → 目安なし）と同じく出さない
+    if(_soRpCache.size>3000)_soRpCache.clear();
+    _soRpCache.set(job.key,res);
+    job.cbs.forEach(c=>{ try{ c.cb(res); }catch(_){} });
+  }
+  _soRpWPump(); soRoFill();
+}
+// 別の糸が動かない：やめて、頼んでいたマスは今までどおり本体で少しずつ計算する
+function _soRpWFail(){
+  _soRpW.ok=false; const list=_soRpW.list; _soRpW.list=[]; list.forEach(w=>{ try{ w.terminate(); }catch(_){} });
+  const jobs=[..._soRpW.wait.values()]; _soRpW.wait.clear(); _soRpW.queue=[];
+  if(_soRpW.url){ try{ URL.revokeObjectURL(_soRpW.url); }catch(_){} _soRpW.url=null; }
+  _soRoKeys=new WeakMap();
+  jobs.forEach(j=>j.cbs.forEach(c=>soRpWhenReady(c.pid,c.dayIdx,c.slotH,c.cb)));
+  if(jobs.length)soRoFill();
+}
+// 「作る」になる r の並び（例：4、1〜2）
+function _soRList(a){ const s=a.slice().sort((x,y)=>y-x), out=[]; let i=0; while(i<s.length){ let j=i; while(j+1<s.length&&s[j+1]===s[j]-1)j++; out.push(j>i?`${s[j]}〜${s[i]}`:`${s[i]}`); i=j+1; } return out.join(t('sku.sep')); }
+// マスの小さな印「残り◯で追加」（作成表・時間帯別）。計算は少し重いので、描いた後に埋める（別の糸で。使えない時は少しずつ。同じ入力の答えは覚えているので、2回目からはすぐ出る）
+let _soRoLast=new Map(), _soRoQueued=false;
+var _soRoKeys=new WeakMap();   // 別の糸で計算中のマスの印 → 覚え書きの鍵（同じ描画の間。描き直すと印ごと新しくなる）
+function _soRoHTML(rp){ if(!(rp&&rp.R))return '';
+  const below=rp.below!==false, tip=below?tf('mk.roTip',rp.R,rp.L):tf('mk.roTipList',_soRList(rp.make),rp.L);
+  return `<span title="${escapeHtmlP(tip)}" style="display:inline-block;background:#ccfbf1;color:#115e59;border-radius:8px;padding:0 5px;font-size:10px;font-weight:800;white-space:nowrap;line-height:1.5">${below?tf('mk.roHint',rp.R):tf('mk.roHintList',_soRList(rp.make))}</span>`; }
+function soRoHint(pid,dayIdx,slotH){ const k=`${dayIdx}_${slotH}_${pid}`; return `<span class="so-ro" data-ro="${escapeHtmlP(k)}">${_soRoLast.get(LANG+'|'+k)||''}</span>`; }
+function soRoFill(){ if(_soRoQueued)return; _soRoQueued=true; setTimeout(_soRoRun,0); }
+function _soRoRun(){
+  _soRoQueued=false;
+  const t0=Date.now();
+  for(const el of document.querySelectorAll('.so-ro[data-ro]')){
+    if(el.dataset.roDone)continue;
+    const k=el.dataset.ro, m=k.match(/^(\d+)_(\d+)_(.+)$/);
+    let rp=null, got=false;
+    const wk=_soRoKeys.get(el);
+    if(wk!==undefined){
+      if(_soRpCache.has(wk)){ rp=_soRpCache.get(wk); got=true; }
+      else if(_soRpW.wait.has(wk))continue;   // 別の糸で計算中のマスは飛ばす（できたら、また呼ばれる）
+      else _soRoKeys.delete(el);              // 覚え書きが消えた時などは、もう一度頼む
+    }
+    if(!got&&m){
+      try{ rp=soReorderPoint(m[3],+m[1],+m[2],Math.max(4,30-(Date.now()-t0))); }catch(e){ rp=null; }
+      if(rp===undefined){
+        if(_soRpW.wait.has(_soRpLastKey)){ _soRoKeys.set(el,_soRpLastKey); if(Date.now()-t0>30){ setTimeout(soRoFill,16); return; } continue; }   // 別の糸に頼んだ。次のマスへ
+        setTimeout(soRoFill,16); return;   // 途中（次の回に続き。画面を止めない）
+      }
+    }
+    const html=_soRoHTML(rp);
+    _soRoLast.set(LANG+'|'+k,html); if(_soRoLast.size>5000)_soRoLast.clear();
+    if(el.innerHTML!==html)el.innerHTML=html;
+    el.dataset.roDone='1';
+    if(Date.now()-t0>30){ setTimeout(soRoFill,16); return; }   // 少しずつ（画面を止めない）
+  }
+}
+// 目安を、出来しだい cb に渡す（セルのメニュー用。覚えていればすぐ。別の糸に頼んだ時は、できた時に）
+function soRpWhenReady(pid,dayIdx,slotH,cb){
+  const step=()=>{ let rp; try{ rp=soReorderPoint(pid,dayIdx,slotH,25); }catch(e){ rp=null; }
+    if(rp===undefined){ const job=_soRpW.wait.get(_soRpLastKey); if(job){ job.cbs.push({pid,dayIdx,slotH,cb}); return; } setTimeout(step,16); return; }
+    cb(rp); };
+  step();
 }
 // 数の下に出す「理由」。実際に効いた要因を、計算の途中の数字つきで出す
 function soReason(r){
   const yen=_soYen;
   const per=r.postMean>0?Math.round(1/r.postMean):0;
   const streak=r.pastSo>0?_soT('so2.rStreak',r.pastSo):'';
+  if(r.suggest>0&&r.remain>0){   // 「残り◯個」：今作り始める（2026-10-09）
+    return{type:'make',text:_soT('so2.rRemMake',r.remain,_soFmtHM(r.readyAt),(r.soldA||0).toFixed(1),Math.round((r.pOutA||0)*100),_soFmtHM(r.sellEnd),Math.round(r.n2),r.predMean.toFixed(1),per,r.suggest,yen(r.lossNow),yen(r.lossWait))+streak};
+  }
   if(r.suggest>0){
     return{type:'make',text:_soT('so2.rMake',_soFmtHM(r.readyAt),_soFmtHM(r.sellEnd),Math.round(r.n2),per,r.predMean.toFixed(1),yen(r.co),yen(r.cu),r.suggest)+streak};
   }
@@ -9140,6 +10058,12 @@ function soReason(r){
     if(r.nowH>=r.sellEnd)return{type:'time',text:_soT('so2.rTimePast',_soFmtHM(r.slotEnd),_soFmtHM(r.nowH))};
     const mins=Math.max(0,Math.round((r.sellEnd-r.nowH)*60));
     return{type:'time',text:_soT('so2.rTimeSoon',mins,_soFmtHM(r.sellEnd),r.leadMin,_soFmtHM(r.readyAt))};
+  }
+  if(r.remain>0){   // 「残り◯個」で押した時（2026-10-09）
+    const unit=r.B>1?_soT('so2.unitB',r.B):t('so2.unit1'), pOut=Math.round((r.pOutA||0)*100);
+    if(r.kind==='wait')return{type:'wait',text:_soT('so2.rRemWait',r.yNow,yen(r.lossNow),yen(r.lossWait),r.remain,_soFmtHM(r.readyAt),pOut)+streak};
+    // 作らない時の損は、③の動的計画の値（今は作らずに見直す・売り切れたら「完売した」で作る）。2026-10-09 C：前は「完売しても作らない」時の loss0 を出していた
+    return{type:'loss',text:_soT('so2.rRemNone',r.remain,_soFmtHM(r.readyAt),_soFmtHM(r.sellEnd),r.predMean.toFixed(1),per,unit,yen(r.lossB),yen(typeof r.lossWait==='number'?r.lossWait:r.loss0))+streak};
   }
   const head=_soT('so2.rHead',_soFmtHM(r.readyAt),_soFmtHM(r.sellEnd),Math.round(r.n2),r.predMean.toFixed(1),per);
   const pct=Math.round(r.pSell1*100);
@@ -9158,11 +10082,25 @@ function _soLeadSet(p,min){
 }
 
 let _soldOutCtx=null;
-function openSoldOutModal(pid,dayIdx,slotH){
+//   opt.remain＝「残り◯個」から開いた（2026-10-09）：先に「今、売場に残っているのは何個？」を聞く（0＝完売。「完売した」と同じ計算）
+function openSoldOutModal(pid,dayIdx,slotH,opt){
   const p=getP(pid);if(!p)return;
+  opt=opt||{};
   const nowH=_soNowH();                         // 押した時刻＝完売に気づいた時刻
   const ask=soShelfAsk(pid,dayIdx,slotH,nowH);  // 予定より早く並べて売り切れた時だけ「いつ並べた？」を先に聞く
-  _soldOutCtx={pid,dayIdx,slotH,p,nowH,ask,shelfAt:null};
+  const remMode=!!opt.remain;
+  // 作る時間が記録からそろった単品は「何分後」を聞かずに、②商品設定の作り方＋記録の作る時間で計算する（選び直しもできる。2026-10-09 D）
+  const LMo=soLeadModel(p), auto=!!(LMo&&LMo.meas);
+  _soldOutCtx={pid,dayIdx,slotH,p,nowH,ask,shelfAt:null,remMode,remain:remMode?null:0,auto};
+  // 「残り◯個」の後の追加分がまだ「作る予定」の時は、先に「✓ 作った」を押してもらう（並べる前の残りの数では計算できない。2026-10-09）
+  const evs=getSoldOutEvents(pid,dayIdx,slotH), pend=getSoldOutPending(pid,dayIdx,slotH), lastE=evs[evs.length-1];
+  const block=pend.length&&(remMode||(lastE&&lastE.remain>0&&soPending(lastE)))?pend[pend.length-1]:null;
+  // 残りの数のボタン：0〜（今日ここまでに出した数 − 前の「残り◯個」までに売れた数）、多くても 9
+  const Qnow=getProdCnt(pid,dayIdx,slotH)+getInvestExtra(pid,dayIdx,slotH)+evs.reduce((s,e)=>s+(e.added||0),0);
+  //   前の「残り◯個」までに売れた数：いちばん新しい時刻の記録（同じ時刻に2つある時は、売れた数の多い方。計算の区切りと同じ。2026-10-09）
+  const remEv=evs.filter(e=>e&&e.remain>0&&typeof e.noticedAt==='number'), tLast=remEv.reduce((m,e)=>Math.max(m,e.noticedAt),-Infinity);
+  const soldB=remEv.filter(e=>Math.abs(e.noticedAt-tLast)<1e-9).reduce((m,e)=>Math.max(m,(e.made||0)-e.remain),0);
+  const maxR=Math.max(0,Math.min(9,Qnow-soldB));
   let m=document.getElementById('soldOutModal');
   if(!m){
     m=document.createElement('div');
@@ -9180,17 +10118,27 @@ function openSoldOutModal(pid,dayIdx,slotH){
   }).join('');
   m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:18px;width:100%;max-width:520px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box;margin:auto">
     <div style="font-weight:800;font-size:17px;color:#0f172a">${escapeHtmlP(p.name)}</div>
-    <div style="font-size:12px;color:#64748b;margin:2px 0 14px">${_soT('so2.head',LANG==='ja'?DAYS[dayIdx]:t('day.'+((dayIdx+2)%7)),fmtHour(slotH),_soFmtHM(nowH))}</div>
-    ${ask.need?`<div id="soldOutPhase0">
+    <div style="font-size:12px;color:#64748b;margin:2px 0 14px">${_soT(remMode?'so2.headRem':'so2.head',LANG==='ja'?DAYS[dayIdx]:t('day.'+((dayIdx+2)%7)),fmtHour(slotH),_soFmtHM(nowH))}</div>
+    ${block?`<div id="soldOutPhaseP" style="background:#fff7ed;border:2px solid #f59e0b;border-radius:10px;padding:12px;font-size:14px;color:#7c2d12;line-height:1.6">${_soT('so2.pendFirst',block.e.added)}
+      <button type="button" onclick="soPendDoneThen(${block.i})" style="display:block;width:100%;margin-top:10px;padding:12px;font-size:15px;font-weight:800;border-radius:10px;border:2px solid #f59e0b;background:#fff;color:#9a3412;cursor:pointer;font-family:inherit">${_soT('so2.pendBtn',block.e.added)}</button></div>`:''}
+    ${(remMode&&!block)?`<div id="soldOutPhaseR">
+      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${t('so2.remAsk')}</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:10px">${t('so2.remAskHint')}</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">${Array.from({length:maxR+1},(_,v)=>`<button type="button" data-remain="${v}" onclick="pickSoldOutRemain(${v})" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:64px;padding:6px 0;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid ${v===0?'#86efac':'#99f6e4'};background:${v===0?'#f0fdf4':'#f0fdfa'};color:#0f172a">
+        <span style="font-size:24px;font-weight:800;line-height:1.1">${v}</span><span style="font-size:11px;font-weight:700;color:#475569;white-space:nowrap">${v===0?t('so2.remZero'):t('so2.remUnit')}</span></button>`).join('')}</div>
+    </div>`:''}
+    <div id="soldOutRemLine" style="display:none;font-size:12px;color:#134e4a;background:#ccfbf1;border-radius:8px;padding:6px 10px;margin-bottom:8px"></div>
+    ${ask.need?`<div id="soldOutPhase0"${(remMode||block)?' style="display:none"':''}>
       <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${t('so2.shelfAsk')}</div>
       <div style="font-size:12px;color:#64748b;margin-bottom:10px">${_soT('so2.shelfHint',_soFmtHM(ask.plan))}</div>
       <div style="display:grid;grid-template-columns:repeat(${Math.max(1,_soShelfOpts(ask,nowH).length)},1fr);gap:5px">${_soShelfOpts(ask,nowH).map(o=>`<button type="button" data-shelf="${o.at}" onclick="pickSoldOutShelf(${o.at})" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68px;padding:6px 2px;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid #cbd5e1;background:#fff;color:#0f172a">
         <span style="font-size:14px;font-weight:800;line-height:1.2">${o.label}</span><span style="font-size:12px;font-weight:700;color:#475569">${_soFmtHM(o.at)}</span></button>`).join('')}</div>
     </div>`:''}
-    <div id="soldOutPhase1"${ask.need?' style="display:none"':''}>
+    <div id="soldOutPhase1"${(ask.need||remMode||block)?' style="display:none"':''}>
       <div id="soldOutShelfLine" style="display:none;font-size:12px;color:#334155;background:#eef2ff;border-radius:8px;padding:6px 10px;margin-bottom:8px"></div>
       <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${t('so2.ask')}</div>
       <div style="font-size:12px;color:#64748b;margin-bottom:10px">${t('so2.askHint')}</div>
+      ${(LMo&&LMo.cook)?`<div id="soldOutCookHint" style="font-size:12px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:6px 10px;margin-bottom:8px">${_soT('so2.cookHint',_soMinTxt(LMo.cook.first))}</div>`:''}
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px">${btns}</div>
     </div>
     <div id="soldOutPhase2" style="display:none"></div>
@@ -9199,6 +10147,28 @@ function openSoldOutModal(pid,dayIdx,slotH){
     </div>
   </div>`;
   m.style.display='flex';
+  if(auto&&!ask.need&&!remMode&&!block)pickSoldOutLead('auto');
+}
+// 「残り◯個」：残りの数を選ぶ → 「いつ並べた？」（要る時だけ）→「何分後に並ぶ？」（2026-10-09）
+function pickSoldOutRemain(v){
+  const c=_soldOutCtx; if(!c||!c.remMode)return;
+  c.remain=Math.max(0,Math.round(+v||0)); c.result=null; c.suggest=null;
+  const pr=document.getElementById('soldOutPhaseR'), p0=document.getElementById('soldOutPhase0'), p1=document.getElementById('soldOutPhase1'), ln=document.getElementById('soldOutRemLine');
+  if(pr)pr.style.display='none';
+  if(ln){ ln.style.display='block'; ln.innerHTML=`${_soT('so2.remPicked',c.remain)} <button type="button" onclick="repickSoldOutRemain()" style="background:none;border:none;color:#2563eb;font-size:12px;cursor:pointer;text-decoration:underline;padding:2px 4px;font-family:inherit">${t('so2.shelfRepick')}</button>`; }
+  if(c.ask&&c.ask.need&&c.shelfAt==null){ if(p0)p0.style.display='block'; if(p1)p1.style.display='none'; }
+  else { if(p0)p0.style.display='none'; if(p1)p1.style.display='block'; if(c.auto)pickSoldOutLead('auto'); }
+}
+function repickSoldOutRemain(){
+  const c=_soldOutCtx; if(!c||!c.remMode)return; c.remain=null; c.shelfAt=null; c.result=null; c.suggest=null;
+  ['soldOutPhase0','soldOutPhase1','soldOutPhase2','soldOutRemLine','soldOutShelfLine'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='none'; if(id==='soldOutPhase2')el.innerHTML=''; } });
+  const pr=document.getElementById('soldOutPhaseR'); if(pr)pr.style.display='block';
+}
+// 「✓ 作った」を押してから続ける（「残り◯個」の前に、作る予定の追加分を並べた印を付ける）
+function soPendDoneThen(idx){
+  const c=_soldOutCtx; if(!c)return; const {pid,dayIdx,slotH,remMode}=c;
+  markSoldOutDone(pid,dayIdx,slotH,idx);
+  openSoldOutModal(pid,dayIdx,slotH,{remain:remMode});
 }
 // 「いつ並べた？」の選択肢：作成時刻（2回目以降は追加分の作り始め）・30／20／10分前・今さっき（1分前）。作成時刻より前と、押した時刻より後は出さない
 function _soShelfOpts(ask,nowH){
@@ -9216,6 +10186,7 @@ function pickSoldOutShelf(at){
   const p0=document.getElementById('soldOutPhase0'), p1=document.getElementById('soldOutPhase1'), ln=document.getElementById('soldOutShelfLine');
   if(p0)p0.style.display='none'; if(p1)p1.style.display='block';
   if(ln){ ln.style.display='block'; ln.innerHTML=`${_soT('so2.shelfPicked',_soFmtHM(at))} <button type="button" onclick="repickSoldOutShelf()" style="background:none;border:none;color:#2563eb;font-size:12px;cursor:pointer;text-decoration:underline;padding:2px 4px;font-family:inherit">${t('so2.shelfRepick')}</button>`; }
+  if(c.auto)pickSoldOutLead('auto');
 }
 function repickSoldOutShelf(){
   const c=_soldOutCtx; if(!c)return; c.shelfAt=null; c.result=null; c.suggest=null;
@@ -9225,41 +10196,49 @@ function repickSoldOutShelf(){
 // 「◯分後」を選ぶ → 数と理由を出す
 function pickSoldOutLead(min){
   const c=_soldOutCtx; if(!c)return;
+  if(c.remMode&&c.remain==null){ repickSoldOutRemain(); return; }            // 先に「残りは何個？」
   if(c.ask&&c.ask.need&&c.shelfAt==null){ repickSoldOutShelf(); return; }   // 先に「いつ並べた？」
-  const r=calcSoldOutSuggestion(c.pid,c.dayIdx,c.slotH,c.nowH,min,c.shelfAt);
+  const r=calcSoldOutSuggestion(c.pid,c.dayIdx,c.slotH,c.nowH,min,c.shelfAt,c.remain||0);
   const ph1=document.getElementById('soldOutPhase1'), ph2=document.getElementById('soldOutPhase2');
   if(!ph1||!ph2)return;
   ph1.style.display='none'; ph2.style.display='block';
-  const back=`<button type="button" onclick="resetSoldOutPhase()" style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;text-decoration:underline;padding:6px 4px;font-family:inherit">${_soT('so2.repick',min)}</button>`;
+  const isAuto=min==='auto';
+  const back=`<button type="button" onclick="resetSoldOutPhase()" style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;text-decoration:underline;padding:6px 4px;font-family:inherit">${isAuto?_soT('so2.repickAuto',r.error?'—':r.leadMin):_soT('so2.repick',min)}</button>`;
   if(r.error){
     c.result=null;
-    ph2.innerHTML=`<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px;color:#991b1b;font-size:14px;line-height:1.6">⚠️ ${r.error}</div>`;
+    ph2.innerHTML=`<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px;color:#991b1b;font-size:14px;line-height:1.6">⚠️ ${r.error}</div>${isAuto?`<div style="text-align:center;margin-top:4px">${back}</div>`:''}`;
     return;
   }
-  c.result=r; c.suggest=r.suggest; c.leadMin=min;
-  _soLeadSet(c.p,min);
+  c.result=r; c.suggest=r.suggest; c.leadMin=r.leadMin;
+  if(!isAuto)_soLeadSet(c.p,min);
+  const li=r.leadInfo, leadLine=li?(li.cook>0?_soT('so2.leadAuto',_soMinTxt(li.total),_soMinTxt(li.cook),_soMinTxt(li.meas),li.n,li.busy?t('so2.leadBusy'):''):_soT('so2.leadAutoNoCook',_soMinTxt(li.total),li.n,li.busy?t('so2.leadBusy'):''))+(li.c>1&&r.p?_soT('so2.leadCyc',cookCapOf(r.p),li.c):''):'';
   window._soLastMs=r.ms;
-  const zero=!(r.suggest>0);
+  const zero=!(r.suggest>0), wait=zero&&r.kind==='wait';
   const per0=r.m0>0?Math.round(1/r.m0):0, per1=r.postMean>0?Math.round(1/r.postMean):0;
+  const rm=r.remain>0;   // 「残り◯個」の時の計算の中身（2026-10-09）
   const detail=`
-    <div>${_soT('so2.d1',r.eventCount,r.Q)}${r.prevAdded?_soT('so2.d1b',r.base,r.prevAdded):''}</div>
+    <div>${rm?_soT('so2.d1r',r.remain,r.Q,r.Q-r.remain):_soT('so2.d1',r.eventCount,r.Q)}${r.prevAdded?_soT('so2.d1b',r.base,r.prevAdded):''}</div>
     <div>${_soT('so2.d2',_soFmtHM(r.displayStart),_soFmtHM(r.nowH),r.n1.toFixed(0))}</div>
     ${r.shelfIn!=null?`<div>${_soT('so2.d2c',_soFmtHM(r.shelfIn),_soFmtHM(r.shelfPlan))}</div>`:''}
     ${r.doneUsed?`<div>${_soT('so2.d2d',_soFmtHM(r.doneUsed.at),_soFmtHM(r.doneUsed.plan))}</div>`:''}
     ${r.emptyMin>0?`<div>${_soT('so2.d2b',r.emptyMin,Math.round(r.emptyCust),Math.round(r.n1Raw))}</div>`:''}
     <div>${_soT('so2.d3',per0,r.m0Src==='jisseki'?_soT('so2.d3a',r.weeks):t('so2.d3b'),Math.round(r.b))}</div>
-    <div>${_soT('so2.d4',(r.priorSO*100).toFixed(1))}</div>
-    <div>${_soT('so2.d5',r.past.length?_soT('so2.d5a',r.pastSo,r.pastLo):'',per1)}</div>
+    ${rm?`<div>${_soT('so2.d4r',(r.m0*r.n1).toFixed(1),r.Q-r.remain)}</div>`:(typeof r.priorSO==='number'?`<div>${_soT('so2.d4',(r.priorSO*100).toFixed(1))}</div>`:'')}
+    ${r.chk&&r.chk.length?`<div>${_soT('so2.d11r',r.chk.length)}</div>`:''}
+    <div>${_soT(rm?'so2.d5r':'so2.d5',r.past.length?(r.pastRem>0?_soT('so2.d5c',r.pastSo,r.pastRem,r.pastLo):_soT('so2.d5a',r.pastSo,r.pastLo)):'',per1)}</div>
+    ${rm&&r.n2>0?`<div>${_soT('so2.d9r',_soFmtHM(r.readyAt),(r.nA||0).toFixed(0),r.remain,(r.soldA||0).toFixed(1),Math.round((r.pOutA||0)*100))}</div>`:''}
     <div>${_soT('so2.d6',_soFmtHM(r.readyAt),_soFmtHM(r.sellEnd),r.n2.toFixed(0),r.predMean.toFixed(1))}</div>
+    ${rm&&r.n2>0&&typeof r.lossNow==='number'?`<div>${_soT('so2.d10r',Math.max(r.yNow||0,r.B),_soYen(r.yNow>0?r.lossNow:r.lossB),_soYen(r.loss0))}${typeof r.lossWait==='number'?_soT('so2.d10w',_soYen(r.lossWait)):''}</div>`:''}
     <div>${_soT('so2.d7',_soYen(r.cu),_soYen(r.co))}${r.h>0?_soT('so2.d7a',Math.round(r.h*100)):''}</div>
     <div>${_soT('so2.d8',r.phi.toFixed(2))}${r.phiDf>0?'':t('so2.d8a')}${r.B>1?_soT('so2.d8b',r.B):''}</div>`;
   ph2.innerHTML=`
     <div style="text-align:center;padding:18px 8px;background:${zero?'#f1f5f9':'#f0fdf4'};border-radius:12px;margin-bottom:10px">
-      ${zero?`<div style="font-size:26px;font-weight:800;color:#334155;line-height:1.3">${t('so2.none')}</div>`
+      ${zero?`<div style="font-size:26px;font-weight:800;color:#334155;line-height:1.3">${wait?t('so2.noneWait'):t('so2.none')}</div>`
             :`<div style="font-size:18px;font-weight:800;color:#166534;line-height:1.2">${t('so2.makePre')} <span style="font-size:56px;line-height:1">${r.suggest}</span> ${t('so2.makePost')}</div>`}
-      <div style="font-size:12px;color:#64748b;margin-top:6px">${zero?'':_soT('so2.toShelf',min,_soFmtHM(r.readyAt))}</div>
+      <div style="font-size:12px;color:#64748b;margin-top:6px">${zero?'':(isAuto?_soT('so2.toShelfAuto',r.leadMin,_soFmtHM(r.readyAt)):_soT('so2.toShelf',min,_soFmtHM(r.readyAt)))}</div>
+      ${leadLine?`<div id="soldOutLeadLine" style="font-size:11px;color:#7c2d12;margin-top:4px;line-height:1.5">${leadLine}</div>`:''}
     </div>
-    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:13px;color:#334155;line-height:1.7;margin-bottom:12px"><b style="color:#0f172a">${zero?t('so2.whyNone'):t('so2.whyMake')}</b><br><span id="soldOutReason">${r.reason.text}</span></div>
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:13px;color:#334155;line-height:1.7;margin-bottom:12px"><b style="color:#0f172a">${zero?(wait?t('so2.whyWait'):t('so2.whyNone')):t('so2.whyMake')}</b><br><span id="soldOutReason">${r.reason.text}</span></div>
     <button type="button" onclick="acceptSoldOut()" class="btn-primary" style="width:100%;padding:15px;font-size:17px;font-weight:800;border-radius:12px">${zero?t('so2.ok'):_soT('so2.plan',r.suggest)}</button>
     ${zero?'':`<div style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6;text-align:center">${t('so2.planHint')}</div>`}
     <div style="text-align:center;margin-top:4px">${back}</div>
@@ -9290,14 +10269,16 @@ function acceptSoldOut(){
   const rd=(v,d)=>{const f=Math.pow(10,d);return Math.round(v*f)/f;};
   // readyAt・soldAt・added は今までと同じ意味（以前の版でも読める）。それより後ろは答え合わせ用に足した項目
   S.soldOuts[k].push({readyAt:rd(r.readyAt,3),soldAt:rd(r.readyAt,3),added:suggest,
-    v:2,noticedAt:rd(r.nowH,3),lead:r.leadMin,made:r.Q,base:r.base,n1:rd(r.n1,1),n2:rd(r.n2,1),ncell:rd(r.Ncell,1),
+    v:2,noticedAt:rd(r.nowH,3),lead:r.leadMin,...(r.leadSrc==='auto'?{leadSrc:'auto'}:{}),made:r.Q,base:r.base,n1:rd(r.n1,1),n2:rd(r.n2,1),ncell:rd(r.Ncell,1),
     m0:rd(r.m0,5),post:rd(r.postMean,5),pred:rd(r.predMean,2),phi:rd(r.phi,2),wk:r.weeks,cu:Math.round(r.cu),co:Math.round(r.co),why:r.reason.type,
     ...(r.shelfIn!=null?{shelfAt:rd(r.shelfIn,3)}:{}),   // 「いつ並べた？」の答え（予定より早く並べて売り切れた時だけ）＝この完売で売り切れた分が実際に並んだ時刻
+    ...(r.remain>0?{remain:r.remain}:{}),   // 「残り◯個」で押した時の残りの数（2026-10-09。完売の記録には付けない＝古い記録と同じ形）
     ...(suggest>0?{done:false}:{})});   // 追加分がある時だけ「作る予定」の印
   saveS();
   closeSoldOutModal();
   renderProdDayContent(currentProdDay);
-  showToast(suggest>0?_soT('so2.toastAdd',suggest):t('so2.toastZero'),'success');
+  if(r.remain>0)showToast(suggest>0?_soT('so2.toastRemAdd',r.remain,suggest):_soT('so2.toastRemZero',r.remain),'success');
+  else showToast(suggest>0?_soT('so2.toastAdd',suggest):t('so2.toastZero'),'success');
 }
 // 追加分が「作る予定」（まだ作っていない）か
 function soPending(e){ return !!e&&(e.added||0)>0&&e.done===false; }
@@ -9345,7 +10326,7 @@ function removeLastSoldOut(pid,dayIdx,slotH){
   const k=`${dayIdx}_${slotH}_${pid}`;
   const arr=(S.soldOuts||{})[k]||[];
   if(!arr.length)return;
-  if(!confirm(arr[arr.length-1].added>0?_soT('so2.confirmAdd',arr[arr.length-1].added):t('so2.confirmZero')))return;
+  { const le=arr[arr.length-1]; if(!confirm(le.added>0?_soT('so2.confirmAdd',le.added):(le.remain>0?_soT('so2.confirmRem',le.remain):t('so2.confirmZero'))))return; }
   arr.pop();
   if(!arr.length)delete S.soldOuts[k];
   saveS();
