@@ -1369,12 +1369,12 @@ const I18N = {
     'so2.whyNone':'作らない理由',
     'so2.done':'作った',
     'so2.plan':'あと {0}個 作る（記録して閉じる）',
-    'so2.planHint':'閉じたあと、ほかの商品の完売も続けて記録できます。作り終わったら、マスの「✓ 作った」を押します',
-    'so2.pendingBadge':'+{0} 作る予定',
+    'so2.planHint':'閉じたあと、ほかの商品の完売も続けて記録できます。追加分は {0} に売場に並んだものとして計算します',
+    'so2.pendingBadge':'+{0} 作る予定','so2.pendingTip':'{0} に売場へ（予定）',
     'so2.doneBtn':'✓ 作った +{0}',
     'so2.doneBadge':'✓+{0}',
     'so2.pendingTitle':'🔔 追加で作るもの（{0}件）',
-    'so2.pendingDesc':'完売の記録で決めた追加分です。作り終わったら「作った」を押します（ほかの商品の完売も、この一覧を気にせず記録できます）',
+    'so2.pendingDesc':'完売・残り◯個の記録で決めた追加分です。「売場へ」の時刻になると、この一覧から消えます（その時刻に並んだものとして計算します）。作らなかった時は、マスの数字 →「取り消す」',
     'so2.pendingRow':'{0} 作成のぶん　あと <b>{1}個</b>　{2} に売場へ',
     'so2.menuDone':'追加分（+{0}個）を作った',
     'so2.menuDoneDesc':'作り終わった印を付けます（数は変わりません）',
@@ -1386,18 +1386,24 @@ const I18N = {
     'so2.repick':'「{0}分後」を選び直す',
     'so2.details':'計算の中身を見る',
     'so2.yen':'{0}円',
-    'so2.toastAdd':'🔔 完売を記録しました（追加 +{0}個）。作り終わったら、マスの「✓ 作った」を押してください。まちがえた時は、マスの数字 →「取り消す」',
+    'so2.toastAdd':'🔔 完売を記録しました（追加 +{0}個・{1} に売場へ）。まちがえた時は、マスの数字 →「取り消す」',
     'so2.toastZero':'🔔 完売を記録しました（追加なし）。まちがえた時は、マスの数字 →「取り消す」',
     'so2.errBefore':'まだ売場に並ぶ前の時間です（{0} に並びます）。完売してから押してください',
     'so2.shelfAsk':'いつ売場に並べましたか？',
     'so2.shelfHint':'並ぶ予定（{0}）より前に完売しました。並べた時刻を1つ選ぶと、棚にあった時間で売れ方を計算します',
-    'so2.shelfMade':'作成時刻',
+    'so2.shelfMade':'作成時刻','so2.shelfMadeAdd':'作り始め',
     'so2.shelfAgo':'{0}分前',
     'so2.shelfNow':'今さっき',
     'so2.shelfPicked':'並べた時刻：<b>{0}</b>',
     'so2.shelfRepick':'選び直す',
     'so2.d2c':'└ 並べた時刻は、答えた {0}（予定は {1}）',
     'so2.d2d':'└ 前の追加分は「作った」を押した {0} までに並んだとして計算（予定は {1}）',
+    // 2026-10-10 店長の決定：追加分は「売場へ」の予定の時刻に並んだものとして計算する（「✓ 作った」のボタンは無くした）
+    'so2.shelfNotYet':'まだ並べていない',
+    'so2.shelfAskAdd':'追加 +{0}個（{1} に並ぶ予定）は、いつ売場に並べましたか？',
+    'so2.shelfHintAdd':'並べた時刻を1つ選びます。まだの時は「まだ並べていない」を押します',
+    'so2.shelfWait':'追加 +{0}個は {1} に並ぶ予定です。売場に並べてから、もう一度押してください（今回は記録しません）',
+    'so2.planNote':'前の追加 +{0}個は {1} に売場に並んだものとして計算します。まだの時は、並べてから押してください',
     'so2.errRange':'この時間帯の設定が見つかりません',
     'so2.errNoQty':'この時間帯の作成数が 0 のため計算できません',
     'so2.errNoCust':'この時間帯の客数が 0 です（①実績入力の「曜日別・時間帯別客数」を確認してください）',
@@ -1454,7 +1460,7 @@ const I18N = {
     'so2.d10r':'損の見込み（平均）：今 {0}個 作り始める {1}／このあと売り切れても作らない {2}',
     'so2.d10w':'／今は作らずに5分ごとに見直す（売り切れたら「完売した」）{0}',
     'so2.d11r':'└ 前に「残り◯個」を押した記録 {0}回も、区切りとして入れています',
-    'so2.toastRemAdd':'📉「残り{0}個」を記録しました（追加 +{1}個）。作り終わったら、マスの「✓ 作った」を押してください',
+    'so2.toastRemAdd':'📉「残り{0}個」を記録しました（追加 +{1}個・{2} に売場へ）',
     'so2.toastRemZero':'📉「残り{0}個」を記録しました（今は追加なし）',
     'so2.badgeRem':'残{0}',
     'so2.undoRem':'「残り{0}個」の記録を取り消す',
@@ -1475,16 +1481,16 @@ const I18N = {
     'so2.cookHint':'調理の時間（②商品設定の「作り方」）は {0}分です。並べるまでの時間を足して選んでください',
     'so2.toShelfAuto':'約{0}分後（{1}）に売場へ',
     'product.cookTitle':'⏱ 作り方（追加作成の「何分後に並ぶか」に使う）',
-    'product.cookDesc':'作る時間＝調理の時間（ここ）＋並べるまでの時間（「✓ 作った」の記録から）。空の商品と、「✓ 作った」の記録が3件たまっていない商品には、作成表の「残り◯で追加」の目安を出しません。',
+    'product.cookDesc':'作る時間＝調理の時間（ここ）＋並べるまでの時間（追加作成で選んだ「何分後」の記録から）。選んだ記録が3件たまっていない商品には、作成表の「残り◯で追加」の目安を出しません（ここが空でも、記録が3件あれば出ます）。',
     'product.cm_none':'未設定','product.cm_fryer':'揚げる','product.cm_steam':'蒸す','product.cm_microwave':'レンジ','product.cm_warm':'温める','product.cm_asis':'そのまま','product.cm_microwave_fryer':'レンジ→揚げる',
     'product.ct_fryer':'揚げる時間','product.ct_steam':'蒸す時間','product.ct_microwave':'レンジ時間','product.ct_warm':'温める時間','product.ct_wash':'水洗い','product.ct_other':'その他','product.ct_fry':'フライ','product.ct_range':'レンジ',
     'product.min':'分','product.sec':'秒',
     'product.cookCap':'1回に作れる数','product.cookCapPh':'空＝分けない','product.cookStack':'2段調理可（他商品と同時OK）',
-    'product.cookNow':'調理の時間：{0}分','product.cookCycles':'（{0}個より多い時は、1回ごとに {1}分 足す）','product.cookEmpty':'調理の時間：空（目安は出ません）',
-    'product.cookMeas':'並べるまで（記録）：{0}分（直近{1}件の中央値）','product.cookMeasNone':'並べるまで（記録）：まだ {0}件（{1}件たまると使います）','product.cookLead':'→ 作る時間 約{0}分',
+    'product.cookNow':'調理の時間：{0}分','product.cookCycles':'（{0}個より多い時は、1回ごとに {1}分 足す）','product.cookEmpty':'調理の時間：空（目安は出ません）','product.cookEmptyRec':'調理の時間：空（選んだ「何分後」の記録だけで計算します）',
+    'product.cookMeas':'選んだ「何分後」（記録）：{0}分（直近{1}件の中央値）','product.cookMeasNone':'選んだ「何分後」（記録）：まだ {0}件（{1}件たまると使います）','product.cookLead':'→ 作る時間 約{0}分',
     'product.cookCopy':'似た商品から写す…','product.cookCopyConfirm':'「{0}」の作り方を、この商品に写しますか？（今の作り方は置き換わります）',
     'product.cookBulk':'このカテゴリの空の商品 {0}件 にも同じ作り方を入れる','product.cookBulkConfirm':'このカテゴリで作り方が空の {0}件 に「{1}」を入れますか？（もう入っている商品は変えません）','product.cookBulkDone':'{0}件 に入れました',
-    'product.mkCookDesc':'食材ごとの工程の時間です（同じ名前の食材には、ほかの商品にも同じ時間が入ります）。手の工程（水洗い・その他）は足し、フライは長い方、レンジは足して、フライとレンジは長い方。解凍・後付け・盛付は入れません（盛付・梱包は記録の「並べるまで」に入ります）。',
+    'product.mkCookDesc':'食材ごとの工程の時間です（同じ名前の食材には、ほかの商品にも同じ時間が入ります）。手の工程（水洗い・その他）は足し、フライは長い方、レンジは足して、フライとレンジは長い方。解凍・後付け・盛付は入れません（盛付・梱包の時間は、追加作成で選ぶ「何分後」に入れます）。',
     'product.mkNoIng':'食材がまだありません（下の「まちかど厨房 準備設定」で食材と工程を入れてください）','product.mkNoTimed':'時間を入れる工程（水洗い・フライ・レンジ・その他）がありません → 調理の時間 0分',
     'product.mkCalc':'手 {0}分 ＋ 機械 {1}分（フライ {2}分・レンジ {3}分）',
     'product.cookEmptyTitle':'⏱ 作り方が空の商品：{0}件','product.cookEmptyDesc':'作る時間が分からない商品は、作成表の「残り◯で追加」の目安が出ません。タップすると、その商品の欄を開きます。','product.cookEmptyMk':'時間が空の食材：{0}','product.cookEmptyMeas':'記録 {0}件',
@@ -1887,18 +1893,23 @@ const I18N = {
     'so2.repick':'Change "{0} min"',
     'so2.details':'Show calculation',
     'so2.yen':'¥{0}',
-    'so2.toastAdd':'🔔 Sold out recorded (extra +{0}). When it is made, tap "✓ Made" in the cell. To undo: tap the number in the cell → "Undo"',
+    'so2.toastAdd':'🔔 Sold out recorded (extra +{0}, on the shelf at {1}). To undo: tap the number in the cell → "Undo"',
     'so2.toastZero':'🔔 Sold out recorded (no extra). To undo: tap the number in the cell → "Undo"',
     'so2.errBefore':'This batch is not on the shelf yet (it goes out at {0}). Tap after it has sold out',
     'so2.shelfAsk':'When did you put it on the shelf?',
     'so2.shelfHint':'It sold out before the planned shelf time ({0}). Pick when it went out so the sales rate uses the real shelf time',
-    'so2.shelfMade':'Start time',
+    'so2.shelfMade':'Start time','so2.shelfMadeAdd':'Start time',
     'so2.shelfAgo':'{0} min ago',
     'so2.shelfNow':'Just now',
     'so2.shelfPicked':'On the shelf at: <b>{0}</b>',
     'so2.shelfRepick':'Change',
     'so2.d2c':'└ Shelf time from your answer: {0} (planned {1})',
     'so2.d2d':'└ The previous extra batch counted as on the shelf by its "Made" time {0} (planned {1})',
+    'so2.shelfNotYet':'Not on the shelf yet',
+    'so2.shelfAskAdd':'When did you put the extra +{0} (planned for {1}) on the shelf?',
+    'so2.shelfHintAdd':'Pick the time it went on the shelf. If it is not there yet, tap "Not on the shelf yet"',
+    'so2.shelfWait':'The extra +{0} is planned to be on the shelf at {1}. Put it on the shelf, then tap again (nothing is recorded this time)',
+    'so2.planNote':'The previous extra +{0} is counted as on the shelf at {1}. If it is not there yet, put it on the shelf first, then tap',
     'so2.errRange':'Settings for this time slot were not found',
     'so2.errNoQty':'The planned quantity for this slot is 0, so it cannot be calculated',
     'so2.errNoCust':'Customer count for this slot is 0 (check the customer table in tab ①)',
@@ -1954,7 +1965,7 @@ const I18N = {
     'so2.d10r':'Expected loss: start {0} now {1} / never make more even after a sell-out {2}',
     'so2.d10w':' / not now, check again every 5 min (then "Sold out") {0}',
     'so2.d11r':'└ Earlier "A few left" records ({0}) are also used as checkpoints',
-    'so2.toastRemAdd':'📉 "{0} left" recorded (extra +{1}). When it is made, tap "✓ Made" in the cell',
+    'so2.toastRemAdd':'📉 "{0} left" recorded (extra +{1}, on the shelf at {2})',
     'so2.toastRemZero':'📉 "{0} left" recorded (no extra for now)',
     'so2.badgeRem':'{0} left',
     'so2.undoRem':'Undo the "{0} left" record',
@@ -1975,16 +1986,16 @@ const I18N = {
     'so2.cookHint':'Cooking time (② Products, "How to make") is {0} min. Add the time to put it on the shelf',
     'so2.toShelfAuto':'On the shelf in about {0} min ({1})',
     'product.cookTitle':'⏱ How to make (used for "in how many minutes" of extra batches)',
-    'product.cookDesc':'Making time = cooking time (here) + time to the shelf (from "✓ Made" records). Products left empty, or with fewer than 3 "✓ Made" records, get no "Add at N left" guide.',
+    'product.cookDesc':'Making time = cooking time (here) + time to the shelf (from the "in how many minutes" chosen when recording an extra batch). Products with fewer than 3 chosen records get no "Add at N left" guide (even if this is empty, the guide appears once there are 3 records).',
     'product.cm_none':'Not set','product.cm_fryer':'Fry','product.cm_steam':'Steam','product.cm_microwave':'Microwave','product.cm_warm':'Warm','product.cm_asis':'As is','product.cm_microwave_fryer':'Microwave → fry',
     'product.ct_fryer':'Frying time','product.ct_steam':'Steaming time','product.ct_microwave':'Microwave time','product.ct_warm':'Warming time','product.ct_wash':'Wash','product.ct_other':'Other','product.ct_fry':'Fry','product.ct_range':'Microwave',
     'product.min':'min','product.sec':'sec',
     'product.cookCap':'Pieces per batch','product.cookCapPh':'empty = one batch','product.cookStack':'Two levels (with other items OK)',
-    'product.cookNow':'Cooking time: {0} min','product.cookCycles':' (over {0} pieces: add {1} min per extra batch)','product.cookEmpty':'Cooking time: empty (no guide)',
-    'product.cookMeas':'To the shelf (records): {0} min (median of the last {1})','product.cookMeasNone':'To the shelf (records): {0} so far (used from {1})','product.cookLead':'→ making time about {0} min',
+    'product.cookNow':'Cooking time: {0} min','product.cookCycles':' (over {0} pieces: add {1} min per extra batch)','product.cookEmpty':'Cooking time: empty (no guide)','product.cookEmptyRec':'Cooking time: empty (calculated only from the chosen "in how many minutes" records)',
+    'product.cookMeas':'Chosen "in how many minutes" (records): {0} min (median of the last {1})','product.cookMeasNone':'Chosen "in how many minutes" (records): {0} so far (used from {1})','product.cookLead':'→ making time about {0} min',
     'product.cookCopy':'Copy from a similar product…','product.cookCopyConfirm':'Copy how to make "{0}" to this product? (The current setting is replaced)',
     'product.cookBulk':'Also set the {0} empty products in this category','product.cookBulkConfirm':'Set "{1}" for the {0} products in this category with no setting? (Products already set are not changed)','product.cookBulkDone':'Set {0} products',
-    'product.mkCookDesc':'Time per ingredient step (the same ingredient name gets the same time in other products). Hand steps (wash, other) add up; frying takes the longest one; microwave steps add up; frying and microwave run together (the longer). Thawing, toppings and plating are not included (plating and packing are in the "to the shelf" records).',
+    'product.mkCookDesc':'Time per ingredient step (the same ingredient name gets the same time in other products). Hand steps (wash, other) add up; frying takes the longest one; microwave steps add up; frying and microwave run together (the longer). Thawing, toppings and plating are not included (include plating and packing time in the "in how many minutes" you choose for an extra batch).',
     'product.mkNoIng':'No ingredients yet (add them in "Machikado kitchen prep" below)','product.mkNoTimed':'No timed steps (wash, fry, microwave, other) → cooking time 0 min',
     'product.mkCalc':'hand {0} min + machines {1} min (fry {2} min, microwave {3} min)',
     'product.cookEmptyTitle':'⏱ Products with no making time: {0}','product.cookEmptyDesc':'Products with unknown making time get no "Add at N left" guide. Tap to open the product.','product.cookEmptyMk':'ingredients with no time: {0}','product.cookEmptyMeas':'{0} records',
@@ -2001,12 +2012,12 @@ const I18N = {
     'yes':'Yes','no':'No',
     // ④ Production table and cell menu (2026-10-09: words match the crew poster — Made / Left over / Out of stock, couldn't make)
     'so2.plan':'Make {0} more (record and close)',
-    'so2.planHint':'After closing, you can keep recording other sold-out items. When the batch is done, tap "✓ Made" in the cell',
-    'so2.pendingBadge':'+{0} to make',
+    'so2.planHint':'After closing, you can keep recording other sold-out items. The extra batch is counted as on the shelf at {0}',
+    'so2.pendingBadge':'+{0} to make','so2.pendingTip':'Planned on the shelf at {0}',
     'so2.doneBtn':'✓ Made +{0}',
     'so2.doneBadge':'✓+{0}',
     'so2.pendingTitle':'🔔 Extra to make ({0})',
-    'so2.pendingDesc':'Extra batches from sold-out records. When done, tap "Made" (you can keep recording other sold-out items; no need to finish this list first)',
+    'so2.pendingDesc':'Extra batches from "Sold out" / "A few left" records. Each one leaves this list at its "on the shelf" time (it is counted as on the shelf at that time). If you did not make it: tap the number in the cell → "Undo"',
     'so2.pendingRow':'{0} batch: <b>{1}</b> more, on the shelf at {2}',
     'so2.menuDone':'Made the extra (+{0})',
     'so2.menuDoneDesc':'Marks the extra batch as made (the number does not change)',
@@ -2355,18 +2366,23 @@ const I18N = {
     'so2.repick':'"{0} मिनेटपछि" फेरि छान्नुहोस्',
     'so2.details':'गणना देखाउनुहोस्',
     'so2.yen':'¥{0}',
-    'so2.toastAdd':'🔔 बिक्री समाप्त रेकर्ड भयो (थप +{0} वटा)। बनाइसकेपछि कोठामा "✓ बनाएँ" थिच्नुहोस्। गल्ती भए: कोठाको संख्या थिच्नुहोस् → "रद्द"',
+    'so2.toastAdd':'🔔 बिक्री समाप्त रेकर्ड भयो (थप +{0} वटा, {1} मा शेल्फमा)। गल्ती भए: कोठाको संख्या थिच्नुहोस् → "रद्द"',
     'so2.toastZero':'🔔 बिक्री समाप्त रेकर्ड भयो (थप छैन)। गल्ती भए: कोठाको संख्या थिच्नुहोस् → "रद्द"',
     'so2.errBefore':'यो ब्याच अझै शेल्फमा राखिएको छैन ({0} मा राखिन्छ)। बिक्री समाप्त भएपछि थिच्नुहोस्',
     'so2.shelfAsk':'कहिले शेल्फमा राख्नुभयो?',
     'so2.shelfHint':'योजना गरिएको समय ({0}) भन्दा पहिले बिक्री समाप्त भयो। राखेको समय छान्नुहोस्',
-    'so2.shelfMade':'बनाउन सुरु',
+    'so2.shelfMade':'बनाउन सुरु','so2.shelfMadeAdd':'बनाउन सुरु',
     'so2.shelfAgo':'{0} मिनेट अघि',
     'so2.shelfNow':'भर्खरै',
     'so2.shelfPicked':'शेल्फमा राखेको: <b>{0}</b>',
     'so2.shelfRepick':'फेरि छान्नुहोस्',
     'so2.d2c':'└ राखेको समय (उत्तर): {0} (योजना {1})',
     'so2.d2d':'└ अघिल्लो थप ब्याच "बनायो" थिचेको {0} सम्म शेल्फमा थियो भनी गणना (योजना {1})',
+    'so2.shelfNotYet':'अझै शेल्फमा राखेको छैन',
+    'so2.shelfAskAdd':'थप +{0} वटा ({1} मा राख्ने योजना) कहिले शेल्फमा राख्नुभयो?',
+    'so2.shelfHintAdd':'शेल्फमा राखेको समय एउटा छान्नुहोस्। अझै राखेको छैन भने "अझै शेल्फमा राखेको छैन" थिच्नुहोस्',
+    'so2.shelfWait':'थप +{0} वटा {1} मा शेल्फमा राख्ने योजना छ। शेल्फमा राखेपछि फेरि थिच्नुहोस् (यस पटक रेकर्ड हुँदैन)',
+    'so2.planNote':'अघिल्लो थप +{0} वटा {1} मा शेल्फमा राखिएको मानेर गणना हुन्छ। अझै राखेको छैन भने, राखेपछि थिच्नुहोस्',
     'so2.errRange':'यो समय स्लटको सेटिङ फेला परेन',
     'so2.errNoQty':'यो स्लटको उत्पादन संख्या ० भएकाले गणना सम्भव छैन',
     'so2.errNoCust':'यो स्लटको ग्राहक संख्या ० छ (① को ग्राहक डाटा जाँच्नुहोस्)',
@@ -2422,7 +2438,7 @@ const I18N = {
     'so2.d10r':'अनुमानित घाटा (औसत): अहिले {0} वटा सुरु {1} / सकिए पनि नबनाउँदा {2}',
     'so2.d10w':' / अहिले नबनाई हरेक ५ मिनेटमा हेर्दा (सकिएपछि "बिक्री समाप्त भयो") {0}',
     'so2.d11r':'└ पहिलेको "केही मात्र बाँकी" रेकर्ड {0} पटक पनि बिन्दुको रूपमा गणनामा छ',
-    'so2.toastRemAdd':'📉 "{0} वटा बाँकी" रेकर्ड भयो (थप +{1} वटा)। बनाइसकेपछि कोठामा "✓ बनाएँ" थिच्नुहोस्',
+    'so2.toastRemAdd':'📉 "{0} वटा बाँकी" रेकर्ड भयो (थप +{1} वटा, {2} मा शेल्फमा)',
     'so2.toastRemZero':'📉 "{0} वटा बाँकी" रेकर्ड भयो (अहिले थप छैन)',
     'so2.badgeRem':'बाँकी{0}',
     'so2.undoRem':'"{0} वटा बाँकी" रेकर्ड रद्द गर्नुहोस्',
@@ -2443,16 +2459,16 @@ const I18N = {
     'so2.cookHint':'पकाउने समय (② उत्पादन, "बनाउने तरिका") {0} मिनेट हो। शेल्फसम्मको समय जोडेर छान्नुहोस्',
     'so2.toShelfAuto':'करिब {0} मिनेटपछि ({1}) शेल्फमा',
     'product.cookTitle':'⏱ बनाउने तरिका (थप ब्याच "कति मिनेटपछि" का लागि)',
-    'product.cookDesc':'बनाउने समय = पकाउने समय (यहाँ) + शेल्फसम्मको समय ("✓ बनाइयो" रेकर्डबाट)। खाली उत्पादन र "✓ बनाइयो" रेकर्ड ३ वटा नपुगेका उत्पादनमा "N बाँकी हुँदा थप" अनुमान देखिँदैन।',
+    'product.cookDesc':'बनाउने समय = पकाउने समय (यहाँ) + शेल्फसम्मको समय (थप बनाउँदा छानेको "कति मिनेटपछि" को रेकर्डबाट)। छानेको रेकर्ड ३ वटा नपुगेका उत्पादनमा "N बाँकी हुँदा थप" अनुमान देखिँदैन (यहाँ खाली भए पनि, रेकर्ड ३ वटा भएपछि देखिन्छ)।',
     'product.cm_none':'सेट छैन','product.cm_fryer':'तार्ने','product.cm_steam':'बाफमा पकाउने','product.cm_microwave':'माइक्रोवेभ','product.cm_warm':'तताउने','product.cm_asis':'जस्तो छ त्यस्तै','product.cm_microwave_fryer':'माइक्रोवेभ → तार्ने',
     'product.ct_fryer':'तार्ने समय','product.ct_steam':'बाफ समय','product.ct_microwave':'माइक्रोवेभ समय','product.ct_warm':'तताउने समय','product.ct_wash':'धुने','product.ct_other':'अन्य','product.ct_fry':'तार्ने','product.ct_range':'माइक्रोवेभ',
     'product.min':'मिनेट','product.sec':'सेकेन्ड',
     'product.cookCap':'एक पटकमा बनाउन सकिने संख्या','product.cookCapPh':'खाली = एकै पटक','product.cookStack':'दुई तह (अरूसँगै ठीक)',
-    'product.cookNow':'पकाउने समय: {0} मिनेट','product.cookCycles':' ({0} भन्दा बढी हुँदा हरेक थप पटकमा {1} मिनेट)','product.cookEmpty':'पकाउने समय: खाली (अनुमान देखिँदैन)',
-    'product.cookMeas':'शेल्फसम्म (रेकर्ड): {0} मिनेट (पछिल्ला {1} को मध्यिका)','product.cookMeasNone':'शेल्फसम्म (रेकर्ड): अहिलेसम्म {0} ({1} भएपछि प्रयोग)','product.cookLead':'→ बनाउने समय करिब {0} मिनेट',
+    'product.cookNow':'पकाउने समय: {0} मिनेट','product.cookCycles':' ({0} भन्दा बढी हुँदा हरेक थप पटकमा {1} मिनेट)','product.cookEmpty':'पकाउने समय: खाली (अनुमान देखिँदैन)','product.cookEmptyRec':'पकाउने समय: खाली (छानेको "कति मिनेटपछि" को रेकर्डबाट मात्र गणना हुन्छ)',
+    'product.cookMeas':'छानेको "कति मिनेटपछि" (रेकर्ड): {0} मिनेट (पछिल्ला {1} को मध्यिका)','product.cookMeasNone':'छानेको "कति मिनेटपछि" (रेकर्ड): अहिलेसम्म {0} ({1} भएपछि प्रयोग)','product.cookLead':'→ बनाउने समय करिब {0} मिनेट',
     'product.cookCopy':'मिल्दो उत्पादनबाट सार्ने…','product.cookCopyConfirm':'"{0}" को बनाउने तरिका यो उत्पादनमा सार्ने? (अहिलेको सेटिङ बदलिन्छ)',
     'product.cookBulk':'यो वर्गका खाली {0} उत्पादनमा पनि उही राख्ने','product.cookBulkConfirm':'यो वर्गका सेटिङ नभएका {0} उत्पादनमा "{1}" राख्ने? (सेटिङ भएका बदलिँदैनन्)','product.cookBulkDone':'{0} उत्पादनमा राखियो',
-    'product.mkCookDesc':'सामग्रीको हरेक चरणको समय (उही नामको सामग्रीमा अरू उत्पादनमा पनि उही समय)। हातको काम (धुने, अन्य) जोडिन्छ, तार्ने लामो एक, माइक्रोवेभ जोडिन्छ, तार्ने र माइक्रोवेभ सँगै (लामो)। पगाल्ने, पछि थप्ने, सजाउने समावेश छैन।',
+    'product.mkCookDesc':'सामग्रीको हरेक चरणको समय (उही नामको सामग्रीमा अरू उत्पादनमा पनि उही समय)। हातको काम (धुने, अन्य) जोडिन्छ, तार्ने लामो एक, माइक्रोवेभ जोडिन्छ, तार्ने र माइक्रोवेभ सँगै (लामो)। पगाल्ने, पछि थप्ने, सजाउने समावेश छैन (सजाउने र प्याकिङको समय, थप बनाउँदा छान्ने "कति मिनेटपछि" मा जोड्नुहोस्)।',
     'product.mkNoIng':'सामग्री छैन (तलको "माचिकादो तयारी" मा राख्नुहोस्)','product.mkNoTimed':'समय राख्ने चरण छैन → पकाउने समय ० मिनेट',
     'product.mkCalc':'हात {0} मिनेट + मेसिन {1} मिनेट (तार्ने {2}, माइक्रोवेभ {3})',
     'product.cookEmptyTitle':'⏱ बनाउने समय नभएका उत्पादन: {0}','product.cookEmptyDesc':'बनाउने समय थाहा नभएका उत्पादनमा "N बाँकी हुँदा थप" अनुमान देखिँदैन। थिच्दा उत्पादन खुल्छ।','product.cookEmptyMk':'समय नभएका सामग्री: {0}','product.cookEmptyMeas':'{0} रेकर्ड',
@@ -2469,12 +2485,12 @@ const I18N = {
     'yes':'हो','no':'होइन',
     // ④ उत्पादन तालिका र कोठाको मेनु（2026-10-09：クルー向け掲示の言葉にそろえた — बनाएँ／बाँकी रह्यो／स्टक नभएर बनाउन सकिएन）
     'so2.plan':'थप {0} वटा बनाउनुहोस् (रेकर्ड गरी बन्द)',
-    'so2.planHint':'बन्द गरेपछि अरू सामानको बिक्री समाप्त पनि रेकर्ड गर्न सकिन्छ। बनाइसकेपछि कोठामा "✓ बनाएँ" थिच्नुहोस्',
-    'so2.pendingBadge':'+{0} बनाउन बाँकी',
+    'so2.planHint':'बन्द गरेपछि अरू सामानको बिक्री समाप्त पनि रेकर्ड गर्न सकिन्छ। थप ब्याच {0} मा शेल्फमा राखिएको मानेर गणना हुन्छ',
+    'so2.pendingBadge':'+{0} बनाउन बाँकी','so2.pendingTip':'{0} मा शेल्फमा राख्ने योजना',
     'so2.doneBtn':'✓ बनाएँ +{0}',
     'so2.doneBadge':'✓+{0}',
     'so2.pendingTitle':'🔔 थप बनाउनुपर्ने ({0})',
-    'so2.pendingDesc':'बिक्री समाप्तको रेकर्डबाट तय भएको थप। बनाइसकेपछि "बनाएँ" थिच्नुहोस् (यो सूची बाँकी भए पनि अरू सामानको बिक्री समाप्त रेकर्ड गर्न सकिन्छ)',
+    'so2.pendingDesc':'"बिक्री समाप्त" / "केही मात्र बाँकी" रेकर्डबाट तय भएको थप। "शेल्फमा" को समय भएपछि यो सूचीबाट हट्छ (त्यही समयमा शेल्फमा राखिएको मानेर गणना हुन्छ)। नबनाएको भए: कोठाको संख्या थिच्नुहोस् → "रद्द"',
     'so2.pendingRow':'{0} को ब्याच: थप <b>{1} वटा</b>, {2} मा शेल्फमा',
     'so2.menuDone':'थप (+{0} वटा) बनाएँ',
     'so2.menuDoneDesc':'बनाइसकेको चिनो लगाउँछ (संख्या बदलिँदैन)',
@@ -4959,9 +4975,7 @@ function openCellMenu(pid,dayIdx,slotH){
   { const rp=soReorderPoint(pid,dayIdx,slotH,20);   // 「残り◯個」：完売を待たずに追加を考える。目安（残り◯で追加）があれば説明に出す。計算が長い時は、出来しだい書き足す（画面を止めない）
     rpLater=rp===undefined;
     rows+=row('remain','📉',t('so2.remTitle'),(remCnt?_soT('so2.remDescDone',remCnt)+'<br>':'')+`<span id="cmRoDesc">${_soRemDesc(rpLater?null:rp)}</span>`,remCnt>0,'#0f766e'); }
-  const soPend=getSoldOutPending(pid,dayIdx,slotH);
-  if(soPend.length)rows+=row('done','✓',_soT('so2.menuDone',soPend[0].e.added),t('so2.menuDoneDesc'),false,'#d97706');
-  else { const lastDone=so.slice().reverse().find(e=>(e.added||0)>0&&e.done===true); if(lastDone)rows+=row('undone','↶',_soT('so2.menuUndoDone',lastDone.added),t('so2.menuUndoDoneDesc'),false,'#64748b'); }
+  // 「追加分を作った」「作ったの印を外す」の行は無くした（2026-10-10 店長の決定：追加分は「売場へ」の予定の時刻に並んだものとして計算する）
   if(so.length){ const le=so[so.length-1]; rows+=row('undo','↶',(le.added>0)?_soT('so2.undoAdd',le.added):(le.remain>0?_soT('so2.undoRem',le.remain):t('so2.undoZero')),t('so2.undoDesc'),false,'#dc2626'); }
   rows+=row('left','📦',leftover?t('cell.leftDone'):t('cell.left'),leftover?t('cell.undoTap'):t('cell.leftDesc'),leftover,'#ea580c');
   if(!isSkip)rows+=row('skip','⊘',skipped?t('cell.skipDone'):t('cell.skip'),skipped?t('cell.undoTap'):t('cell.skipDesc'),skipped,'#475569');
@@ -4986,8 +5000,6 @@ function cellMenuAct(act){
   if(act==='sold')return openSoldOutModal(c.pid,c.dayIdx,c.slotH);
   if(act==='remain')return openSoldOutModal(c.pid,c.dayIdx,c.slotH,{remain:true});   // 「残り◯個」（2026-10-09）
   if(act==='undo')return removeLastSoldOut(c.pid,c.dayIdx,c.slotH);
-  if(act==='done')return markSoldOutDone(c.pid,c.dayIdx,c.slotH);
-  if(act==='undone')return unmarkSoldOutDone(c.pid,c.dayIdx,c.slotH);
   if(act==='left'){ const was=!!(S.leftovers&&S.leftovers[c.key]); toggleLeftover(c.key); showToast(was?t('cell.toastLeftUndo'):t('cell.toastLeft'),was?'info':'success'); return; }
   if(act==='skip'){ const was=!!(S.skipped&&S.skipped[c.key]); toggleSkipped(c.key); showToast(was?t('cell.toastSkipUndo'):t('cell.toastSkip'),was?'info':'success'); return; }
 }
@@ -6645,8 +6657,9 @@ function cookMethodLabel(p){ const ck=soCookInfo(p), m=p.prepMethod||'none'; if(
 // 状態の行（調理の時間・並べるまでの記録・作る時間）
 function cookStatusHtml(p){
   const ck=soCookInfo(p), mi=soMeasInfo(p.id);
-  const a=ck.set?`<b>${tf('product.cookNow',_soMinTxt(ck.first))}</b>${(ck.cap<Infinity&&ck.per>0)?tf('product.cookCycles',ck.cap,_soMinTxt(ck.per)):''}`:`<b style="color:#b91c1c">${t('product.cookEmpty')}</b>`;
-  const b=mi.n>=SO_MEAS_MIN?tf('product.cookMeas',_soMinTxt(mi.med),mi.n):tf('product.cookMeasNone',mi.n,SO_MEAS_MIN);
+  //   1行目：調理の時間が空の時、選んだ記録が SO_MEAS_MIN 件あれば目安は出る（_soRpInputs の条件は記録だけ）ので、「目安は出ません」とは書かない（2026-10-10 検算）
+  const a=ck.set?`<b>${tf('product.cookNow',_soMinTxt(ck.first))}</b>${(ck.cap<Infinity&&ck.per>0)?tf('product.cookCycles',ck.cap,_soMinTxt(ck.per)):''}`:(mi.n>=SO_MEAS_MIN?`<b style="color:#b45309">${t('product.cookEmptyRec')}</b>`:`<b style="color:#b91c1c">${t('product.cookEmpty')}</b>`);
+  const b=mi.n>=SO_MEAS_MIN?tf('product.cookMeas',_soMinTxt(mi.med+(ck.set?ck.first:0)),mi.n):tf('product.cookMeasNone',mi.n,SO_MEAS_MIN);   // 2行目＝クルーが選んだ「何分後」の中央値（記録の M は 選んだ分−調理1回ぶん なので、調理1回ぶんを足して戻す。マイナスは出ない。2026-10-10）
   const LM=soLeadModel(p), tot=(LM&&LM.meas)?((LM.cook?LM.cook.first:0)+Math.max(0,LM.meas.med)):null;   // 作る時間は記録がそろってから（作り方だけでは目安も自動の計算も使わない。2026-10-09）
   return `<div>${a}</div><div style="color:#64748b">${b}</div>${tot!=null?`<div style="color:#166534;font-weight:700">${tf('product.cookLead',_soMinTxt(tot))}</div>`:''}`;
 }
@@ -8543,7 +8556,7 @@ function mkSlotPrepRows(dayIdx,slotH){
 }
 // 時間帯別ビュー：作る時刻ごとに、カテゴリ→商品（作成数・チェック）をまとめて表示。チェックは通常の作成表と共有
 function renderSlotGroupedView(dayIdx){
-  const di=dayIdx;
+  const di=dayIdx, soNowOn=_soNowOn(dayIdx);   // soNowOn＝「+N 作る予定」の印に使う「今」（この描画で1回だけ出す。2026-10-10）
   const slotSet=new Set();
   CATS.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) cfg.slots.forEach(h=>slotSet.add(h)); });
   const slots=[...slotSet].sort((a,b)=>a-b);
@@ -8571,7 +8584,8 @@ function renderSlotGroupedView(dayIdx){
         if(_hasGrp){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
         return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
           <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
-          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">${tf('mk.invest',extra)}</span>`:''} ${gaibuCellBadge(cat,di,slotH)}${thermalBadge(p,true)}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">'+t('mk.skipBadge')+'</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">'+t('mk.leftBadge')+'</span>':''}${getSoldOutTotal(p.id,di,slotH)>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">${tf('mk.addBadge',getSoldOutTotal(p.id,di,slotH))}</span>`:''}${getSoldOutPending(p.id,di,slotH).map(x=>' '+soDoneBtn(p.id,di,slotH,x.i,x.e.added,false)).join('')}</span>
+          <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">${tf('mk.invest',extra)}</span>`:''} ${gaibuCellBadge(cat,di,slotH)}${thermalBadge(p,true)}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">'+t('mk.skipBadge')+'</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">'+t('mk.leftBadge')+'</span>':''}${(()=>{ let plan=0, pb=''; getSoldOutEvents(p.id,di,slotH).forEach((e,ei,arr)=>{ if(soPlanned(e,arr[ei+1],soNowOn)){ plan+=(e.added||0); pb+=' '+soPlanBadge(e,true); } }); const got=getSoldOutTotal(p.id,di,slotH)-plan;   /* 緑「追加+N」＝予定の時刻を過ぎた分だけ。予定の前の分は橙「+N 作る予定」だけ（同じ数を2回出さない。2026-10-10 検算） */
+            return (got>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">${tf('mk.addBadge',got)}</span>`:'')+pb; })()}</span>
           ${skipped?'':soRoHint(p.id,di,slotH)}<button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${di},${slotH})" aria-label="${escapeHtmlP(p.name)} の記録メニュー" style="flex-shrink:0"><span style="font-size:21px;font-weight:800;color:#1d4ed8;line-height:1">${grandTotal}</span></button>
         </div>`;
       }).join('');
@@ -8747,6 +8761,7 @@ function renderProdDayContent(dayIdx){
 
   // 追加で作るもの（完売の記録で「作る予定」になっている追加分）の一覧。どの並び順でも上に出す
   html+=renderSoldOutPending(dayIdx);
+  const soNowOn=_soNowOn(dayIdx);   // マスの「+N 作る予定」の印に使う「今」（この描画で1回だけ出す。2026-10-10）
   // 時間帯別モード：時刻ごとにカテゴリ→商品をまとめて表示（チェックは通常の作成表と共有）
   if(_prodSortMode==='slot'){
     html+=renderSlotGroupedView(dayIdx);
@@ -8968,7 +8983,7 @@ function renderProdDayContent(dayIdx){
         const grandTotal=totalCnt+soSum;
         const soBadges=soEvents.map((e,ei)=>{
           const at=e.readyAt!=null?e.readyAt:e.soldAt;
-          if(soPending(e))return soDoneBtn(p.id,dayIdx,slotH,ei,e.added,false);   // 作る予定：「✓ 作った +N」のボタン（押すと印が付く）
+          if(soPlanned(e,soEvents[ei+1],soNowOn))return soPlanBadge(e,false);   // 作る予定（予定の時刻より前）：橙の印「+N 作る予定」。押す物ではない。予定の時刻を過ぎると、下の緑の印になる（2026-10-10）
           return `<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:0 4px;font-size:10px;font-weight:700;margin-left:1px" title="${_soFmtHM(at)} ${t('sold.badgeReady').replace('{0}',e.added)}">${e.added>0?'+'+e.added:(e.remain>0?_soT('so2.badgeRem',e.remain):t('so2.badgeSold'))}</span>`;
         }).join('');
         // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、0(作らない)は中身を出さず真っ白、それ以外はチェック状態次第
@@ -9608,8 +9623,11 @@ function soDispersion(cat){
 //   完売を押した時刻が、売り切れた分の「並ぶ予定」より前（＝予定より早く並べて、もう売り切れた）の時だけ聞く。予定どおりの時は聞かない（タップを増やさない）。
 //     1回目：予定＝作成時刻＋PREP_HOURS（displayStart）。選べる時刻＝作成時刻〜押した時刻の前
 //     2回目以降：予定＝前の追加分の readyAt。選べる時刻＝前の完売を押した時刻（追加分の作り始め）〜押した時刻の前
-//   前の追加分に「✓ 作った」の時刻 doneAt があり、それが予定より前なら聞かない：「作った」は作り終えてから押すので、並んだのは doneAt 以前と分かる
-//   （押し忘れて後で押すことはあっても、作る前に押すことは無い＝doneAt は並んだ時刻の上限）。その時は doneAt を並んだ時刻として使う。
+//   2026-10-10 店長の決定（「追加予定の時間で計算していいと思う」）：追加分は「売場へ」の予定の時刻 readyAt に並んだものとして計算する。
+//     「✓ 作った」のボタンは無くした（押すことを前提にしない）。予定の後に押した時は聞かずに readyAt を使う（今までの式のまま）。
+//     予定の前に押した時は「いつ並べましたか？」を聞く。まだ並べていない時は、画面の「まだ並べていない」で止める（計算も記録もしない。openSoldOutModal）。
+//   古い記録（2026-10-08〜10 の版）に「✓ 作った」の時刻 doneAt があり、それが予定より前なら聞かない：「作った」は作り終えてから押したので、並んだのは doneAt 以前と分かる
+//   （押し忘れて後で押すことはあっても、作る前に押すことは無い＝doneAt は並んだ時刻の上限）。その時は doneAt を並んだ時刻として使う。新しい記録に doneAt は付かない。
 function soShelfAsk(pid,dayIdx,slotH,nowH){
   const events=getSoldOutEvents(pid,dayIdx,slotH);
   if(!events.length){ const plan=slotH+PREP_HOURS; return nowH<=plan?{need:true,plan,min:slotH,first:true}:{need:false}; }
@@ -9637,7 +9655,8 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt,remain){
   // 最初の分が実際に並んだ時刻：1つ目の記録に shelfAt があればそれ／今回が1回目で「いつ並べた？」に答えた時はその時刻／ほかは予定
   const displayStart=events.length?((events[0]&&typeof events[0].shelfAt==='number')?events[0].shelfAt:displayPlan):(shelfIn!=null?shelfIn:displayPlan);
   if(nowH<=displayStart)return{error:_soT('so2.errBefore',_soFmtHM(displayStart))};
-  // 追加分 i が実際に並んだ時刻：次の記録の shelfAt（答えた時刻）→ 今回の答え（i が最後の時）→「作った」の時刻（予定より前の時だけ）→ 予定 readyAt
+  // 追加分 i が実際に並んだ時刻：次の記録の shelfAt（答えた時刻）→ 今回の答え（i が最後の時）→ 古い記録の「作った」の時刻 doneAt（予定より前の時だけ）→ 予定 readyAt
+  //   （2026-10-10 店長の決定：追加分は予定の時刻 readyAt に並んだものとして計算する。「✓ 作った」は無くしたので、新しい記録は 答えた時刻 か readyAt）
   let doneUsed=null;
   const shelfOf=i=>{ const e=events[i];
     if(i+1<events.length&&events[i+1]&&typeof events[i+1].shelfAt==='number')return events[i+1].shelfAt;
@@ -9648,7 +9667,8 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt,remain){
   const prevAdded=events.reduce((s,e)=>s+(e.added||0),0);
   const Q=base+prevAdded;                                                // 今日ここまでに売場に出した数（2回目以降は前の追加も足す）
   if(Q<=0)return{error:t('so2.errNoQty')};
-  // 作る時間（2026-10-09 店長の決定 D）：leadMin＝数（クルーが選んだ分）／'auto'（②商品設定の「作り方」の調理の時間＋並べるまでの実測。soLeadModel）
+  // 作る時間（2026-10-09 店長の決定 D）：leadMin＝数（クルーが選んだ分）／'auto'（②商品設定の「作り方」の調理の時間＋並べるまでの記録＝選んだ「何分後」から。soLeadModel。
+  //   2026-10-10 から画面は毎回「何分後」を聞くので、'auto' は画面からは呼ばない）
   //   'auto' の時は、1回に作れる数を超える数を作る時、作る時間が回数ぶん長くなる（c 回）。並ぶ時刻 readyAt は出した数の回数で出し直す
   let LM=null, LT;
   if(leadMin==='auto'){ LM=soLeadModel(p); if(!LM||!LM.meas)return{error:t('so2.errNoLead')}; LT={lt:(g,c)=>soLeadMin(LM,dayIdx,g,c),cap:LM.cap>0?LM.cap:Infinity}; }   // 1回に作れる数が無い時は Infinity（null のままだと残り0が今までの計算を通らず、詳細の「完売する確率」が出なかった。2026-10-09）
@@ -9663,9 +9683,15 @@ function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt,remain){
   //   前の完売で「作らない（0個）」にした時は、追加分が並んでいないので、押した時刻まで棚は空のまま（readyAt の代わりに押した時刻まで）
   //   「残り◯個」の記録（remain>0）は棚が空ではなかったので引かない（2026-10-09）
   const gaps=[];
-  //   2026-10-08：追加分が予定より早く並んだ時は、並んだ時刻（shelfOf：答えた時刻・「作った」の時刻）までを空とする（棚にあった時間を空として引かない）
+  //   2026-10-08：追加分が予定より早く並んだ時は、並んだ時刻（shelfOf：答えた時刻・古い記録の「作った」の時刻）までを空とする（棚にあった時間を空として引かない）
+  //   2026-10-10：「作らない（0個）」の完売の記録 i の空の時間の終わり＝その後（押した時刻が同じか後）に同じマスで記録した追加分 j のうち、いちばん早く並んだ時刻 shelfOf(j)。
+  //     後ろに追加ありの記録が無ければ、今までどおり押した時刻（nowH）まで。前は nowH まで全部を空として、後の追加分が並んで売れていた間の客を数えていなかった
+  //     （売れ方が多めに出る）。追加ありの記録の式（shelfOf(i) まで）は変えていない
+  const zeroEnd=i=>{ let z=nowH; const ei=events[i];
+    events.forEach((e,j)=>{ if(j===i||!e||e.v!==2||!((e.added||0)>0)||typeof e.noticedAt!=='number'||typeof e.readyAt!=='number'||!(e.noticedAt>=ei.noticedAt))return; z=Math.min(z,shelfOf(j)); });
+    return z; };
   events.forEach((e,i)=>{ if(!e||e.v!==2||typeof e.noticedAt!=='number'||typeof e.readyAt!=='number')return; if(e.remain>0)return;
-    const a=Math.max(displayStart,e.noticedAt), z=Math.min(nowH,(e.added||0)>0?shelfOf(i):nowH); if(z>a)gaps.push([a,z]); });
+    const a=Math.max(displayStart,e.noticedAt), z=Math.min(nowH,(e.added||0)>0?shelfOf(i):zeroEnd(i)); if(z>a)gaps.push([a,z]); });
   gaps.sort((u,v)=>u[0]-v[0]);
   const merged=[]; gaps.forEach(g=>{ const l=merged[merged.length-1]; if(l&&g[0]<=l[1])l[1]=Math.max(l[1],g[1]); else merged.push(g.slice()); });
   const n1Raw=getCustHoursRange(dayIdx,displayStart,nowH);
@@ -9784,8 +9810,10 @@ function _soTimeAtCust(dayIdx,hs,T,tMax){
   return null;
 }
 // ============================================================
-// 作る時間（何分後に並ぶか）＝ 調理の時間（②商品設定の「作り方」）＋ 並べるまでの時間（実測）（2026-10-09 店長の決定 D：
+// 作る時間（何分後に並ぶか）＝ 調理の時間（②商品設定の「作り方」）＋ 並べるまでの時間（記録から）（2026-10-09 店長の決定 D：
 //   「だいたいってのがクルーの能力や状況に依存してて嫌い」「商品、食材ごとに設定したい」）
+//   2026-10-10 店長の決定（「追加予定の時間で計算していいと思う」）：記録の元を、「✓ 作った」の実測（doneAt−noticedAt）から、
+//     クルーがその場で選んだ「何分後に並ぶか」（記録の lead。予定）に替えた。「✓ 作った」は押されていなかった（ボタンは無くした）。下の「並べるまでの時間」を参照
 //   調理の時間（分）：
 //     ・ホットFF・中華まん・常温FF など：商品の「作り方」prepMethod ＝ fryer 揚げる（fryerMin）／steam 蒸す（steamMin）／microwave レンジ（microwaveMin）／
 //         warm 温める（warmMin）／asis そのまま（0分）／microwave_fryer レンジ→揚げる（microwaveMin＋fryerMin）。事前準備の並べ方（compareEfficient）と同じ欄。
@@ -9793,16 +9821,22 @@ function _soTimeAtCust(dayIdx,hs,T,tMax){
 //       c 回に分けて作る時：first ＋ (c−1)×per。first＝1回目の工程の合計、per＝いちばん長い工程（2回目からは前の回と重ねて進む）。1つの工程なら c×時間。
 //     ・まちかど厨房：食材ごとの工程の時間（食材の名前ごとに1つ。ほかの商品の同じ食材にも同じ時間が入る）から：
 //         手の工程（水洗い・その他）は足す ＋ 機械の工程（フライはいっしょに揚げられるので長い方、レンジは1台なので足す。フライとレンジは同時に動く＝長い方）。
-//         解凍（前日）・後付け・盛付は入れない（盛付・梱包は「並べるまで」の実測に入る）。工程に時間が1つでも空なら、調理の時間は「空」。回数では分けない。
-//   並べるまでの時間（実測、分）：記録（完売・残り◯個を押した時刻 noticedAt →「✓ 作った」の時刻 doneAt）の分 − その時の調理の時間（c＝⌈追加の数÷cap⌉ 回）。
-//       単品ごとに直近 SO_MEAS_N 件の中央値。SO_MEAS_MIN 件そろうまでは使わない（足さない・「何分後」は聞く）。
-//       混み具合：記録ごとに、その間の1時間あたりの客数 x（作っている間の客の多さ。客数そのものは時間が長いほど増えて意味がないので、1時間あたり）。
-//         全商品の記録で「実測 − その単品の中央値」を「x − その単品の x の平均」に、原点を通る直線で合わせた傾き β（分 ÷（人/時））。
+//         解凍（前日）・後付け・盛付は入れない（盛付・梱包は「並べるまで」の記録に入る）。工程に時間が1つでも空なら、調理の時間は「空」。回数では分けない。
+//   並べるまでの時間（分）：記録（完売・残り◯個を押した時に、クルーが選んだ「何分後」＝ lead）の分 − 調理の時間（1回ぶん）。
+//       使う記録：v:2・押した時刻 noticedAt が数・lead が 0 より大きい数・leadSrc が 'auto' でない（しくみが出した数は数えない＝自分の答えを自分で学ばない）。
+//         追加0個（作らない・待つ）の記録も数える：「何分後」は数が出る前に選ぶので同じ質の記録。追加ありだけにすると、長い分を選ぶほど「作らない」に
+//         なりやすいぶん、短い方へかたよる。doneAt・shelfAt は見ない（古い記録の doneAt は、遅れて押した時刻が混じるので使わない。記録は消さない）。
+//       調理は1回ぶんだけ引く：選んだ「何分後」は数が出る前に選び、計算も1回で作る形で並ぶ時刻を出しているため（数が多かった記録で引きすぎない）。
+//       単品ごとに直近 SO_MEAS_N 件の中央値。SO_MEAS_MIN 件そろうまでは使わない（足さない）。
+//       混み具合：記録ごとに、その間（押した時刻〜選んだ分の後）の1時間あたりの客数 x（作っている間の客の多さ。客数そのものは時間が長いほど増えて意味がないので、1時間あたり）。
+//         全商品の記録で「記録 − その単品の中央値」を「x − その単品の x の平均」に、原点を通る直線で合わせた傾き β（分 ÷（人/時））。
 //         記録が SO_BUSY_MIN 件以上で、|β| が誤差（標準誤差）の2倍より大きい時だけ足す：M(x)＝中央値 ＋ β·(x − その単品の x の平均)。0 より小さくしない。
 //   作る時間 L(時刻 g, 回数 c)＝調理(c) ＋ M(g から並ぶまでの1時間あたりの客数)。
-//   調理の時間も実測も無い単品は soLeadModel が null。マスの「残り◯で追加」は、実測が SO_MEAS_MIN 件そろうまで出さない（作り方だけでは、並べるまでを0分と数えて
-//   遅めの合図になる。推測で出さない。2026-10-09）。押した時は今どおり「何分後」を選ぶ（作り方があれば調理の時間の1行を出す）。
-//   実測がそろった単品は、押した時に「何分後」を聞かずに L を使う（選び直しのボタンあり）。
+//   調理の時間も記録も無い単品は soLeadModel が null。マスの「残り◯で追加」は、選んだ記録が SO_MEAS_MIN 件そろうまで出さない（作り方だけでは、並べるまでを0分と数えて
+//   遅めの合図になる。推測で出さない。2026-10-09）。押した時は「何分後」を選ぶ（作り方があれば調理の時間の1行を出す）。
+//   「何分後」は毎回聞く（openSoldOutModal の auto は false に固定。2026-10-10）：予定の時刻を「並んだ時刻」に使うので、予定はクルーがその場で選んだ分にする。
+//     聞かない形だと、最初の SO_MEAS_MIN 件の値で固まる（新しい「選んだ記録」が増えない）。聞かない形に戻す時は、固まらない決まり（古い記録の期限など）を先に決めること。
+//     'auto' の計算（calcSoldOutSuggestion の leadMin==='auto'・画面の選び直し）は残してある（画面からは呼ばない）。記録が選んだ分だけなので、作る時間はマスの目安（残り◯で追加）に使う。
 // ============================================================
 const SO_MEAS_N=5, SO_MEAS_MIN=3, SO_BUSY_MIN=10;
 const COOK_KEYS={fryer:'fryerMin',steam:'steamMin',microwave:'microwaveMin',warm:'warmMin'};
@@ -9838,7 +9872,8 @@ function _soCookMin(ck,c){ return ck.first+(Math.max(1,c||1)-1)*ck.per; }
 // 記録の表（その週の客数）：今週は custEff、前の週はその週の客数
 function _soCustTbl(wk){ return d=>wk?(((wk.cust||[])[d])||[]):custEff(d); }
 function _soRateTbl(tbl,d,a,b){ const h=Math.max(1/60,b-a); let s=0, x=a; while(x<a+h-1e-12){ const wh=Math.floor(x), e=Math.min(a+h,wh+1); const dd=wh<24?d:(d+1)%7, hh=wh<24?wh:wh-24; s+=((tbl(dd)||[])[hh]||0)*(e-x); x=e; } return s/h; }
-// 単品の「並べるまで」の記録（新しい順）：[{M:分, x:1時間あたりの客数, raw:押してから作ったまでの分, cook:その時の調理の分}]
+// 単品の「並べるまで」の記録（新しい順）：[{M:分, x:1時間あたりの客数, raw:クルーが選んだ「何分後」の分（記録の lead）, cook:調理1回ぶんの分}]
+//   2026-10-10：元を「✓ 作った」の実測（doneAt−noticedAt）から、選んだ「何分後」（lead。leadSrc が 'auto' の記録は数えない）に替えた。上の覚え書きを参照
 var _soMeasMemo=null, _soMeasQueued=false;   // 記録の集計の覚え書き（同じ処理の間だけ。処理の終わりと saveS・clearAllocCache で捨てる）
 function _soMeasCache(){ if(!_soMeasMemo)_soMeasMemo={list:new Map(),fit:null}; if(!_soMeasQueued){ _soMeasQueued=true; Promise.resolve().then(()=>{ _soMeasQueued=false; _soMeasMemo=null; }); } return _soMeasMemo; }
 function soMeasList(pid){
@@ -9849,9 +9884,9 @@ function soMeasList(pid){
   Object.keys(S.weeks||{}).forEach(k=>{ if(k===S.activeWeek)return; lists.push({so:(S.weeks[k]||{}).soldOuts||{},wk:S.weeks[k]||{},num:weekKeyNum(k)}); });
   lists.forEach(L=>{ const tbl=_soCustTbl(L.wk);
     Object.keys(L.so).forEach(k=>{ const m=k.match(/^(\d+)_(\d+)_(.+)$/); if(!m||m[3]!==pid)return; const d=+m[1];
-      (L.so[k]||[]).forEach(e=>{ if(!e||e.v!==2||!((e.added||0)>0)||typeof e.noticedAt!=='number'||typeof e.doneAt!=='number'||!(e.doneAt>=e.noticedAt))return;
-        const raw=(e.doneAt-e.noticedAt)*60, cook=ck.set?_soCookMin(ck,ck.cap<Infinity?Math.ceil(e.added/ck.cap):1):0;
-        out.push({M:raw-cook,raw,cook,x:_soRateTbl(tbl,d,e.noticedAt,e.doneAt),at:L.num*100+d+e.noticedAt/100}); }); }); });
+      (L.so[k]||[]).forEach(e=>{ if(!e||e.v!==2||e.leadSrc==='auto'||typeof e.noticedAt!=='number'||typeof e.lead!=='number'||!(e.lead>0))return;
+        const raw=e.lead, cook=ck.set?_soCookMin(ck,1):0;
+        out.push({M:raw-cook,raw,cook,x:_soRateTbl(tbl,d,e.noticedAt,e.noticedAt+raw/60),at:L.num*100+d+e.noticedAt/100}); }); }); });
   out.sort((a,b)=>b.at-a.at); mc.list.set(pid,out); return out;
 }
 function _soMedian(a){ const s=a.slice().sort((x,y)=>x-y), n=s.length; return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):null; }
@@ -9873,7 +9908,7 @@ function _soBusyFit0(){
   const df=Math.max(1,n-g-1), se=Math.sqrt(rss/df/sxx);
   return{beta,se,n,use:n>=SO_BUSY_MIN&&Math.abs(beta)>2*se};
 }
-// 作る時間のしくみ（計算に入れる形・覚え書きの鍵にもなる）。調理の時間も実測（SO_MEAS_MIN 件）も無ければ null
+// 作る時間のしくみ（計算に入れる形・覚え書きの鍵にもなる）。調理の時間も、選んだ「何分後」の記録（SO_MEAS_MIN 件）も無ければ null
 function soLeadModel(p){
   if(!p)return null;
   const ck=soCookInfo(p), mi=soMeasInfo(p.id);
@@ -9897,7 +9932,9 @@ function soLeadParts(LM,dayIdx,g,c){ const ck=LM.cook?_soCookMin(LM.cook,c):0, a
 //         「残り r 個」を押したとして、②③④（③は動的計画）で「今作り始める」になる r。1〜Q−1 を全部見る（途中で止めない）。
 //   R＝その中でいちばん大きい r。R より小さい r（見込みどおりに届いて、作る時間の内に売れる r）が全部「作る」なら「残り R 個以下で押す」、
 //   そうでなければ「作る」になる r を並べて出す（below＝false）。
-//   作る時間が分からない単品（soLeadModel が null）と、並べるまでの実測が SO_MEAS_MIN 件たまっていない単品は出さない（2026-10-09 D・⑶）。
+//   作る時間が分からない単品（soLeadModel が null）と、並べるまでの記録が SO_MEAS_MIN 件たまっていない単品は出さない（2026-10-09 D・⑶）。
+//   2026-10-10：「並べるまでの記録」＝クルーが選んだ「何分後」の記録（soMeasList。前は「✓ 作った」の実測）。下の関数の中の覚え書きの「実測」は、この記録のこと
+//   （関数の文字を前の版と同じに保つため、中の覚え書きは直していない）。
 function _soRpInputs(pid,dayIdx,slotH){
   const p=getP(pid); if(!p||!p.enabled||!S.catOn[p.category]||!prodOnDay(p,dayIdx))return null;
   const range=getProdSlotRange(p,slotH); if(!range)return null;
@@ -10093,12 +10130,27 @@ function openSoldOutModal(pid,dayIdx,slotH,opt){
   const nowH=_soNowH();                         // 押した時刻＝完売に気づいた時刻
   const ask=soShelfAsk(pid,dayIdx,slotH,nowH);  // 予定より早く並べて売り切れた時だけ「いつ並べた？」を先に聞く
   const remMode=!!opt.remain;
-  // 作る時間が記録からそろった単品は「何分後」を聞かずに、②商品設定の作り方＋記録の作る時間で計算する（選び直しもできる。2026-10-09 D）
-  const LMo=soLeadModel(p), auto=!!(LMo&&LMo.meas);
+  // 「何分後」は毎回聞く（auto は false に固定。2026-10-10）：追加分は「売場へ」の予定の時刻に並んだものとして計算するので、予定はクルーがその場で選んだ分にする。
+  //   2026-10-09 D の形（選んだ記録がそろった単品は聞かずに、②商品設定の作り方＋記録の作る時間で計算する）に戻す時は auto=!!(LMo&&LMo.meas)。
+  //   ただし聞かない形だと、最初の SO_MEAS_MIN 件の値で固まる（新しい「選んだ記録」が増えない）ので、固まらない決まりを先に決めること。
+  //   'auto' の枝（pickSoldOutLead('auto')・calcSoldOutSuggestion の leadMin==='auto'）は残してある（画面からは呼ばない）。LMo は調理の時間の1行（so2.cookHint）に使う
+  const LMo=soLeadModel(p), auto=false;
   _soldOutCtx={pid,dayIdx,slotH,p,nowH,ask,shelfAt:null,remMode,remain:remMode?null:0,auto};
-  // 「残り◯個」の後の追加分がまだ「作る予定」の時は、先に「✓ 作った」を押してもらう（並べる前の残りの数では計算できない。2026-10-09）
-  const evs=getSoldOutEvents(pid,dayIdx,slotH), pend=getSoldOutPending(pid,dayIdx,slotH), lastE=evs[evs.length-1];
-  const block=pend.length&&(remMode||(lastE&&lastE.remain>0&&soPending(lastE)))?pend[pend.length-1]:null;
+  // 前の追加分は「売場へ」の予定の時刻 readyAt に並んだものとして計算する（2026-10-10 店長の決定。「✓ 作った」を先に押してもらう止めは無くした）
+  //   予定の後に押した時：聞かずに今までの式で計算する。見出しの下に1行（planNote）＝まだ並べていない時は、並べてから押してもらう
+  //     （古い記録で「作った」の時刻が予定より前の時は、計算がその時刻を使うので出さない。詳細に so2.d2d の行が出る）
+  //   予定の前に押した時：「いつ並べましたか？」（soShelfAsk）。前の追加分のこと（2回目以降＝!ask.first）なら、題と説明を追加分の文に替え、
+  //     「まだ並べていない」を足す（notYet）＝押すと、計算も記録もしないで待ってもらう（pickSoldOutNotYet）。1回目（ask.first）は今までのまま
+  const evs=getSoldOutEvents(pid,dayIdx,slotH), lastE=evs[evs.length-1];
+  const planNote=!!(lastE&&lastE.v===2&&(lastE.added||0)>0&&typeof lastE.readyAt==='number'&&nowH>lastE.readyAt&&!(typeof lastE.doneAt==='number'&&lastE.doneAt<lastE.readyAt));
+  const notYet=!!(ask.need&&!ask.first&&lastE);
+  // 最後の記録より前の追加分が、まだ「作る予定」（予定の時刻の前）のまま残っている時は、計算も記録もしないで待ってもらう（2026-10-10 検算）。
+  //   2台で同じマスに続けて記録し、先の記録のほうが予定が遅い時だけ起きる（1台だけなら、予定の前に押すと「いつ並べた？」に答えるか記録しないので、この形にならない）。
+  //   その追加分は「今日ここまでに売場に出した数」に入るのに、まだ並んでいない（売れた数が多めに出る）。「いつ並べた？」の答えを残せるのは最後の記録の分だけ
+  //   （shelfAt＝1つ前の記録の分）なので、聞かずに、予定の時刻（いちばん遅い物）を見せて止める。文は「まだ並べていない」と同じ so2.shelfWait。
+  //   前の版は「残り◯個」だけ「先に ✓ 作った を押して」で止めていた。今日でない曜日のタブでは「作る予定」が無いので止めない（今までどおり）
+  const waitE=getSoldOutPending(pid,dayIdx,slotH).filter(x=>x.i<evs.length-1).reduce((m,x)=>(!m||x.e.readyAt>m.readyAt)?x.e:m,null);
+  _soldOutCtx.wait=!!waitE;
   // 残りの数のボタン：0〜（今日ここまでに出した数 − 前の「残り◯個」までに売れた数）、多くても 9
   const Qnow=getProdCnt(pid,dayIdx,slotH)+getInvestExtra(pid,dayIdx,slotH)+evs.reduce((s,e)=>s+(e.added||0),0);
   //   前の「残り◯個」までに売れた数：いちばん新しい時刻の記録（同じ時刻に2つある時は、売れた数の多い方。計算の区切りと同じ。2026-10-09）
@@ -10123,22 +10175,22 @@ function openSoldOutModal(pid,dayIdx,slotH,opt){
   m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:18px;width:100%;max-width:520px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box;margin:auto">
     <div style="font-weight:800;font-size:17px;color:#0f172a">${escapeHtmlP(p.name)}</div>
     <div style="font-size:12px;color:#64748b;margin:2px 0 14px">${_soT(remMode?'so2.headRem':'so2.head',LANG==='ja'?DAYS[dayIdx]:t('day.'+((dayIdx+2)%7)),fmtHour(slotH),_soFmtHM(nowH))}</div>
-    ${block?`<div id="soldOutPhaseP" style="background:#fff7ed;border:2px solid #f59e0b;border-radius:10px;padding:12px;font-size:14px;color:#7c2d12;line-height:1.6">${_soT('so2.pendFirst',block.e.added)}
-      <button type="button" onclick="soPendDoneThen(${block.i})" style="display:block;width:100%;margin-top:10px;padding:12px;font-size:15px;font-weight:800;border-radius:10px;border:2px solid #f59e0b;background:#fff;color:#9a3412;cursor:pointer;font-family:inherit">${_soT('so2.pendBtn',block.e.added)}</button></div>`:''}
-    ${(remMode&&!block)?`<div id="soldOutPhaseR">
+    ${planNote?`<div id="soldOutPlanNote" style="font-size:12px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:6px 10px;margin:-6px 0 12px;line-height:1.6">${_soT('so2.planNote',lastE.added,_soFmtHM(lastE.readyAt))}</div>`:''}
+    ${remMode?`<div id="soldOutPhaseR">
       <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${t('so2.remAsk')}</div>
       <div style="font-size:12px;color:#64748b;margin-bottom:10px">${t('so2.remAskHint')}</div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">${Array.from({length:maxR+1},(_,v)=>`<button type="button" data-remain="${v}" onclick="pickSoldOutRemain(${v})" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:64px;padding:6px 0;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid ${v===0?'#86efac':'#99f6e4'};background:${v===0?'#f0fdf4':'#f0fdfa'};color:#0f172a">
         <span style="font-size:24px;font-weight:800;line-height:1.1">${v}</span><span style="font-size:11px;font-weight:700;color:#475569;white-space:nowrap">${v===0?t('so2.remZero'):t('so2.remUnit')}</span></button>`).join('')}</div>
     </div>`:''}
     <div id="soldOutRemLine" style="display:none;font-size:12px;color:#134e4a;background:#ccfbf1;border-radius:8px;padding:6px 10px;margin-bottom:8px"></div>
-    ${ask.need?`<div id="soldOutPhase0"${(remMode||block)?' style="display:none"':''}>
-      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${t('so2.shelfAsk')}</div>
-      <div style="font-size:12px;color:#64748b;margin-bottom:10px">${_soT('so2.shelfHint',_soFmtHM(ask.plan))}</div>
+    ${ask.need?`<div id="soldOutPhase0"${remMode?' style="display:none"':''}>
+      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${notYet?_soT('so2.shelfAskAdd',lastE.added,_soFmtHM(ask.plan)):t('so2.shelfAsk')}</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:10px">${notYet?t('so2.shelfHintAdd'):_soT('so2.shelfHint',_soFmtHM(ask.plan))}</div>
       <div style="display:grid;grid-template-columns:repeat(${Math.max(1,_soShelfOpts(ask,nowH).length)},1fr);gap:5px">${_soShelfOpts(ask,nowH).map(o=>`<button type="button" data-shelf="${o.at}" onclick="pickSoldOutShelf(${o.at})" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68px;padding:6px 2px;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid #cbd5e1;background:#fff;color:#0f172a">
         <span style="font-size:14px;font-weight:800;line-height:1.2">${o.label}</span><span style="font-size:12px;font-weight:700;color:#475569">${_soFmtHM(o.at)}</span></button>`).join('')}</div>
+      ${notYet?`<button type="button" data-notyet="1" onclick="pickSoldOutNotYet()" style="display:block;width:100%;margin-top:8px;min-height:52px;padding:10px;font-size:15px;font-weight:800;border-radius:12px;border:2px solid #f59e0b;background:#fff7ed;color:#9a3412;cursor:pointer;font-family:inherit">${t('so2.shelfNotYet')}</button>`:''}
     </div>`:''}
-    <div id="soldOutPhase1"${(ask.need||remMode||block)?' style="display:none"':''}>
+    <div id="soldOutPhase1"${(ask.need||remMode)?' style="display:none"':''}>
       <div id="soldOutShelfLine" style="display:none;font-size:12px;color:#334155;background:#eef2ff;border-radius:8px;padding:6px 10px;margin-bottom:8px"></div>
       <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px">${t('so2.ask')}</div>
       <div style="font-size:12px;color:#64748b;margin-bottom:10px">${t('so2.askHint')}</div>
@@ -10151,11 +10203,17 @@ function openSoldOutModal(pid,dayIdx,slotH,opt){
     </div>
   </div>`;
   m.style.display='flex';
-  if(auto&&!ask.need&&!remMode&&!block)pickSoldOutLead('auto');
+  if(waitE){   // 並ぶ前の追加分が残っている：質問も「何分後」も出さず、待ってもらう文だけ（押せるのは「記録しないで閉じる」だけ）
+    ['soldOutPlanNote','soldOutPhaseR','soldOutPhase0','soldOutPhase1'].forEach(id=>{ const el=document.getElementById(id); if(!el)return; if(id==='soldOutPlanNote')el.remove(); else el.style.display='none'; });   // 「並んだものとして計算します」の行は、計算しないので出さない
+    const p2=document.getElementById('soldOutPhase2');
+    if(p2){ p2.style.display='block'; p2.innerHTML=`<div id="soldOutShelfWait" data-wait-other="1" style="background:#fff7ed;border:2px solid #f59e0b;border-radius:10px;padding:12px;font-size:14px;color:#7c2d12;line-height:1.6">${_soT('so2.shelfWait',waitE.added,_soFmtHM(waitE.readyAt))}</div>`; }
+    return;
+  }
+  if(auto&&!ask.need&&!remMode)pickSoldOutLead('auto');
 }
 // 「残り◯個」：残りの数を選ぶ → 「いつ並べた？」（要る時だけ）→「何分後に並ぶ？」（2026-10-09）
 function pickSoldOutRemain(v){
-  const c=_soldOutCtx; if(!c||!c.remMode)return;
+  const c=_soldOutCtx; if(!c||!c.remMode||c.wait)return;
   c.remain=Math.max(0,Math.round(+v||0)); c.result=null; c.suggest=null;
   const pr=document.getElementById('soldOutPhaseR'), p0=document.getElementById('soldOutPhase0'), p1=document.getElementById('soldOutPhase1'), ln=document.getElementById('soldOutRemLine');
   if(pr)pr.style.display='none';
@@ -10168,23 +10226,31 @@ function repickSoldOutRemain(){
   ['soldOutPhase0','soldOutPhase1','soldOutPhase2','soldOutRemLine','soldOutShelfLine'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='none'; if(id==='soldOutPhase2')el.innerHTML=''; } });
   const pr=document.getElementById('soldOutPhaseR'); if(pr)pr.style.display='block';
 }
-// 「✓ 作った」を押してから続ける（「残り◯個」の前に、作る予定の追加分を並べた印を付ける）
-function soPendDoneThen(idx){
-  const c=_soldOutCtx; if(!c)return; const {pid,dayIdx,slotH,remMode}=c;
-  markSoldOutDone(pid,dayIdx,slotH,idx);
-  openSoldOutModal(pid,dayIdx,slotH,{remain:remMode});
+// 「いつ並べましたか？」→「まだ並べていない」（2026-10-10）：前の追加分がまだ売場に並んでいない時。計算も記録もしない（S を変えない）。
+//   並ぶ前の追加分は「今日ここまでに売場に出した数」に入っているので、そのまま計算すると売れた数が追加の数ぶん多く出る。並べてから、もう一度押してもらう。
+//   出すのは前の追加分のこと（2回目以降＝!ask.first。予定の時刻より前に押した時）だけ。結果の場所（soldOutPhase2）に文と「選び直す」（repickSoldOutShelf＝時刻の選択肢に戻る）を出す。
+//   結果（c.result）は空のままなので、acceptSoldOut を呼んでも何も記録しない
+function pickSoldOutNotYet(){
+  const c=_soldOutCtx; if(!c||!c.ask||!c.ask.need||c.ask.first)return;
+  c.shelfAt=null; c.result=null; c.suggest=null;
+  const p0=document.getElementById('soldOutPhase0'), p1=document.getElementById('soldOutPhase1'), p2=document.getElementById('soldOutPhase2');
+  if(p0)p0.style.display='none'; if(p1)p1.style.display='none'; if(!p2)return;
+  const evs=getSoldOutEvents(c.pid,c.dayIdx,c.slotH), le=evs[evs.length-1];
+  p2.style.display='block';
+  p2.innerHTML=`<div id="soldOutShelfWait" style="background:#fff7ed;border:2px solid #f59e0b;border-radius:10px;padding:12px;font-size:14px;color:#7c2d12;line-height:1.6">${_soT('so2.shelfWait',le?(le.added||0):0,_soFmtHM(c.ask.plan))}</div>
+    <div style="text-align:center;margin-top:6px"><button type="button" onclick="repickSoldOutShelf()" style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;text-decoration:underline;padding:6px 4px;font-family:inherit">${t('so2.shelfRepick')}</button></div>`;
 }
 // 「いつ並べた？」の選択肢：作成時刻（2回目以降は追加分の作り始め）・30／20／10分前・今さっき（1分前）。作成時刻より前と、押した時刻より後は出さない
 function _soShelfOpts(ask,nowH){
   const out=[]; const add=(at,label)=>{ if(at<ask.min-1e-9||at>=nowH)return; if(out.some(o=>Math.abs(o.at-at)<1/120))return; out.push({at,label}); };
-  add(ask.min,t('so2.shelfMade'));
+  add(ask.min,t(ask.first===false?'so2.shelfMadeAdd':'so2.shelfMade'));   // 2回目以降（前の追加分のこと）は「作り始め」＝前に押した時刻。1回目は今までの「作成時刻」（2026-10-10 検算：見出しの「◯:◯◯ 作成」と時刻が食い違って見えた）
   [30,20,10].forEach(m=>add(nowH-m/60,_soT('so2.shelfAgo',m)));
   add(nowH-1/60,t('so2.shelfNow'));
   return out.sort((a,b)=>a.at-b.at);
 }
 // 「いつ並べた？」を選ぶ → 「何分後に並ぶ？」へ
 function pickSoldOutShelf(at){
-  const c=_soldOutCtx; if(!c||!c.ask||!c.ask.need)return;
+  const c=_soldOutCtx; if(!c||!c.ask||!c.ask.need||c.wait)return;
   if(!(at>=c.ask.min-1e-9&&at<c.nowH))return;
   c.shelfAt=at;
   const p0=document.getElementById('soldOutPhase0'), p1=document.getElementById('soldOutPhase1'), ln=document.getElementById('soldOutShelfLine');
@@ -10199,7 +10265,7 @@ function repickSoldOutShelf(){
 }
 // 「◯分後」を選ぶ → 数と理由を出す
 function pickSoldOutLead(min){
-  const c=_soldOutCtx; if(!c)return;
+  const c=_soldOutCtx; if(!c||c.wait)return;                                // wait＝並ぶ前の追加分が残っている（計算も記録もしない。openSoldOutModal）
   if(c.remMode&&c.remain==null){ repickSoldOutRemain(); return; }            // 先に「残りは何個？」
   if(c.ask&&c.ask.need&&c.shelfAt==null){ repickSoldOutShelf(); return; }   // 先に「いつ並べた？」
   const r=calcSoldOutSuggestion(c.pid,c.dayIdx,c.slotH,c.nowH,min,c.shelfAt,c.remain||0);
@@ -10244,7 +10310,7 @@ function pickSoldOutLead(min){
     </div>
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:13px;color:#334155;line-height:1.7;margin-bottom:12px"><b style="color:#0f172a">${zero?(wait?t('so2.whyWait'):t('so2.whyNone')):t('so2.whyMake')}</b><br><span id="soldOutReason">${r.reason.text}</span></div>
     <button type="button" onclick="acceptSoldOut()" class="btn-primary" style="width:100%;padding:15px;font-size:17px;font-weight:800;border-radius:12px">${zero?t('so2.ok'):_soT('so2.plan',r.suggest)}</button>
-    ${zero?'':`<div style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6;text-align:center">${t('so2.planHint')}</div>`}
+    ${zero?'':`<div style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6;text-align:center">${_soT('so2.planHint',_soFmtHM(r.readyAt))}</div>`}
     <div style="text-align:center;margin-top:4px">${back}</div>
     <details style="margin-top:4px">
       <summary style="cursor:pointer;font-size:12px;color:#6b7280;padding:6px 8px">${t('so2.details')}</summary>
@@ -10261,9 +10327,13 @@ function closeSoldOutModal(){
   _soldOutCtx=null;
 }
 // 「あと◯個 作る（記録して閉じる）」／「わかった」：完売の記録を残す（0個でも残す＝完売した週として学習に使う）
-//   2026-10-08（店長：「追加作成は『作った』を押すまで他のが作れない」）：ここで記録して画面を閉じる。追加分は「作る予定」（done:false）として
-//   マスと一覧に残り、作り終わったら別に「✓ 作った」を押す（markSoldOutDone）。商品ごとに独立なので、何品でも続けて記録できる。
-//   古い記録（done が無い）は「作った済み」として扱う。追加の数（added）の意味は変えない（作成表の合計・ケース容量・学習は今までどおり）。
+//   2026-10-08（店長：「追加作成は『作った』を押すまで他のが作れない」）：ここで記録して画面を閉じる。商品ごとに独立なので、何品でも続けて記録できる。
+//   追加の数（added）の意味は変えない（作成表の合計・ケース容量・学習は今までどおり）。
+//   2026-10-10 店長の決定（「ここのボタンは不必要では？」「追加予定の時間で計算していいと思う」）：追加分は「売場へ」の予定の時刻 readyAt に
+//   並んだものとして扱う。前の版（10/8〜10/10）の「作る予定」の印 done:false と「✓ 作った」（done:true＋doneAt を書くボタン）は無くした。
+//   新しい記録に done は書かない（10/5〜10/8 の v:2 の記録と同じ形。まだ古い版のままの端末は「作った済み」と読むので、ボタンも止めも出ない）。
+//   ほかの欄と意味は同じ（新しい欄は足していない）。作る予定かどうかは、読む時に時刻で決める（soPlanned）。
+//   古い記録（done:false・done:true＋doneAt・shelfAt 付き・v の無い物）は書き換えずに、今までどおり読む。
 function acceptSoldOut(){
   if(!_soldOutCtx||!_soldOutCtx.result||_soldOutCtx.suggest==null)return;
   const{pid,dayIdx,slotH,suggest,result:r}=_soldOutCtx;
@@ -10276,51 +10346,98 @@ function acceptSoldOut(){
     v:2,noticedAt:rd(r.nowH,3),lead:r.leadMin,...(r.leadSrc==='auto'?{leadSrc:'auto'}:{}),made:r.Q,base:r.base,n1:rd(r.n1,1),n2:rd(r.n2,1),ncell:rd(r.Ncell,1),
     m0:rd(r.m0,5),post:rd(r.postMean,5),pred:rd(r.predMean,2),phi:rd(r.phi,2),wk:r.weeks,cu:Math.round(r.cu),co:Math.round(r.co),why:r.reason.type,
     ...(r.shelfIn!=null?{shelfAt:rd(r.shelfIn,3)}:{}),   // 「いつ並べた？」の答え（予定より早く並べて売り切れた時だけ）＝この完売で売り切れた分が実際に並んだ時刻
-    ...(r.remain>0?{remain:r.remain}:{}),   // 「残り◯個」で押した時の残りの数（2026-10-09。完売の記録には付けない＝古い記録と同じ形）
-    ...(suggest>0?{done:false}:{})});   // 追加分がある時だけ「作る予定」の印
+    ...(r.remain>0?{remain:r.remain}:{})});   // 「残り◯個」で押した時の残りの数（2026-10-09。完売の記録には付けない＝古い記録と同じ形）。done は書かない（2026-10-10）
+  const toShelf=_soFmtHM(rd(r.readyAt,3));   // お知らせの「◯:◯◯ に売場へ」＝記録した readyAt（上の一覧・マスの印と同じ時刻）
   saveS();
   closeSoldOutModal();
   renderProdDayContent(currentProdDay);
-  if(r.remain>0)showToast(suggest>0?_soT('so2.toastRemAdd',r.remain,suggest):_soT('so2.toastRemZero',r.remain),'success');
-  else showToast(suggest>0?_soT('so2.toastAdd',suggest):t('so2.toastZero'),'success');
+  if(r.remain>0)showToast(suggest>0?_soT('so2.toastRemAdd',r.remain,suggest,toShelf):_soT('so2.toastRemZero',r.remain),'success');
+  else showToast(suggest>0?_soT('so2.toastAdd',suggest,toShelf):t('so2.toastZero'),'success');
 }
-// 追加分が「作る予定」（まだ作っていない）か
-function soPending(e){ return !!e&&(e.added||0)>0&&e.done===false; }
+// 追加分が「作る予定」（まだ売場に並んでいない）か（2026-10-10 店長の決定：追加分は「売場へ」の予定の時刻 readyAt に並んだものとして計算する）。
+//   記録は書き換えない。読む時に、今の時刻で決める（描くだけ・時刻がたつだけでは S.soldOuts は1字も変わらない・saveS も呼ばない）。
+//   2026-10-08〜10 の版は done:false の印で決め、「✓ 作った」で done:true＋doneAt を書いていた。その印はもう書かず、ボタンと関数
+//   （soPending・markSoldOutDone・unmarkSoldOutDone・soDoneBtn・soPendDoneThen）は無くした。古い記録の印は下のとおり読む。
+//   _soNowOn(dayIdx)＝その曜日の 0時から数えた「今」（時）：開いている週のその曜日が今日なら 今の時刻（0〜24）、
+//     きのうなら 今の時刻＋24（readyAt が 24時を超える分＝日をまたいで並ぶ追加分のため）、ほかの日（先の曜日・2日以上前・別の週）は null＝「作る予定」は無い。
+//     「今日」は _todayYmdP()（店のローカル日付）、曜日の日付は S.weekStart＋曜日番号。
+//   soPlanned(e,next,nowOn)：v:2・追加あり・readyAt が数・古い「作った」の印（done:true・doneAt）が無い・次の記録に「いつ並べた？」の答え（shelfAt）が無い・
+//     今（nowOn）が readyAt を過ぎていない。古い記録の done:false は見ない（予定の時刻を過ぎていれば、押していなくても「並んだ」＝一覧にも印にも出ない）。
+//     v の無い古い記録は今までどおり「作った済み」。next＝同じマスの次の記録（その shelfAt は、この追加分が実際に並んだ時刻＝もう並んでいる。
+//     計算の「並んだ時刻」＝次の記録の shelfAt → 古い doneAt → readyAt と同じ決め方）。
+function _soNowOn(dayIdx){
+  if(!S.weekStart)return null;
+  try{ const ws=String(S.weekStart), td=_todayYmdP();
+    if(_addDaysYmd(ws,dayIdx)===td)return _soNowH();
+    if(_addDaysYmd(ws,dayIdx+1)===td)return _soNowH()+24;
+  }catch(_){ }
+  return null;
+}
+//   ちょうど予定の時刻の時は「作る予定」に入れる（<=）：押した時の「いつ並べた？」（soShelfAsk は nowH<=readyAt で聞く）と同じ境目にそろえる（2026-10-10 検算）。
+function soPlanned(e,next,nowOn){ return !!e&&e.v===2&&(e.added||0)>0&&typeof e.readyAt==='number'&&e.done!==true&&typeof e.doneAt!=='number'&&!(next&&typeof next.shelfAt==='number')&&nowOn!=null&&nowOn<=e.readyAt; }
 // そのマスの「作る予定」の追加分（配列の番号つき）
-function getSoldOutPending(pid,dayIdx,slotH){ const out=[]; getSoldOutEvents(pid,dayIdx,slotH).forEach((e,i)=>{ if(soPending(e))out.push({e,i}); }); return out; }
+function getSoldOutPending(pid,dayIdx,slotH){ const out=[], arr=getSoldOutEvents(pid,dayIdx,slotH), nowOn=_soNowOn(dayIdx); arr.forEach((e,i)=>{ if(soPlanned(e,arr[i+1],nowOn))out.push({e,i}); }); return out; }
 // その曜日の「作る予定」の追加分を全部（上の一覧に出す）。時間帯 → 商品の並び
 function getSoldOutPendingDay(dayIdx){
-  const out=[]; const pre=`${dayIdx}_`;
+  const out=[]; const pre=`${dayIdx}_`, nowOn=_soNowOn(dayIdx);
   Object.keys(S.soldOuts||{}).forEach(k=>{ if(!k.startsWith(pre))return; const m=k.match(/^(\d+)_(\d+)_(.+)$/); if(!m)return;
-    const p=getP(m[3]); if(!p)return; (S.soldOuts[k]||[]).forEach((e,i)=>{ if(soPending(e))out.push({p,dayIdx,slotH:parseInt(m[2]),e,i}); }); });
+    const p=getP(m[3]); if(!p)return; const arr=S.soldOuts[k]||[]; arr.forEach((e,i)=>{ if(soPlanned(e,arr[i+1],nowOn))out.push({p,dayIdx,slotH:parseInt(m[2]),e,i}); }); });
   return out.sort((a,b)=>(a.slotH-b.slotH)||((a.e.readyAt||0)-(b.e.readyAt||0))||(a.p.order??0)-(b.p.order??0));
 }
-// 「✓ 作った」：追加分を作り終わった印（数は変えない）。idx を省くと、いちばん古い「作る予定」
-function markSoldOutDone(pid,dayIdx,slotH,idx){
-  const arr=getSoldOutEvents(pid,dayIdx,slotH); let e=null;
-  if(idx!=null){ e=arr[idx]; if(!soPending(e))e=null; } else { const pd=getSoldOutPending(pid,dayIdx,slotH); e=pd.length?pd[0].e:null; }
-  if(!e)return;
-  const rd=(v,d)=>{const f=Math.pow(10,d);return Math.round(v*f)/f;};
-  e.done=true; e.doneAt=rd(_soNowH(),3);
-  saveS(); renderProdDayContent(currentProdDay); showToast(_soT('so2.toastDone',e.added),'success');
+// 「+N 作る予定」の橙の印（押す物ではない。マスの中・時間帯別で同じ物を使う）。title に「売場へ」の予定の時刻。予定の時刻を過ぎると出ない（緑の「+N」になる）。2026-10-10
+function soPlanBadge(e,wide){
+  const at=e.readyAt!=null?e.readyAt:e.soldAt;
+  return `<span data-so-plan="1" title="${_soT('so2.pendingTip',_soFmtHM(at))}" style="background:#fff7ed;color:#9a3412;border:1px solid #f59e0b;border-radius:${wide?6:8}px;padding:0 ${wide?6:4}px;font-size:10px;font-weight:700;margin-left:${wide?6:1}px">${_soT('so2.pendingBadge',e.added)}</span>`;
 }
-// 「作った」の印を外す（まちがえて押した時）：いちばん新しい「作った済み（この仕組みで付けた印）」を「作る予定」に戻す
-function unmarkSoldOutDone(pid,dayIdx,slotH){
-  const arr=getSoldOutEvents(pid,dayIdx,slotH);
-  for(let i=arr.length-1;i>=0;i--){ const e=arr[i]; if((e.added||0)>0&&e.done===true){ e.done=false; delete e.doneAt; saveS(); renderProdDayContent(currentProdDay); showToast(_soT('so2.toastUndoDone',e.added),'info'); return; } }
+// 予定の時刻を過ぎたら、作成表を自分で描き直す（一覧から消え、マスの印が緑になる）。保存はしない（saveS を呼ばない）。2026-10-10
+//   一覧（renderSoldOutPending）を描くたびに置き直す：行があれば、いちばん早い予定の時刻の1秒後に1本だけ（行が無ければ置かない）。
+//   soPlanTick：④作成表を開いていない時は何もしない（開いた時に描く）。完売の画面・マスのメニューが開いている間は描き直さない（20秒後にもう一度見る）。
+//     ほかは、2台の同期の描き直しと同じ呼び方（renderProdDayContent）で描く。
+//   タブレットが眠っていた時のために、画面が戻った時（visibilitychange）にも呼ぶ（一覧に行を出している間＝タイマーを置いている間だけ）。
+var _soPlanTimer=null;
+function soPlanTick(){
+  if(_soPlanTimer){ clearTimeout(_soPlanTimer); _soPlanTimer=null; }
+  if(typeof currentTab==='undefined'||currentTab!==3)return;
+  const open=id=>{ const m=document.getElementById(id); return !!m&&m.style.display!=='none'; };
+  if(open('soldOutModal')||open('cellMenuModal')){ _soPlanTimer=setTimeout(soPlanTick,20000); return; }
+  // 一覧の箱が縮む（消える）と、その下の作成表が箱の高さぶん上にずれる（だれも触っていないのに動く＝押そうとした指が別の行に当たる。2026-10-10 検算）。
+  //   目印＝箱より後ろにある「押せる物」（onclick・onchange の付いたボタンやチェック）のうち、画面に見えていて、画面のまん中にいちばん近い1つ。
+  //   描き直しの後に同じ物（同じ中身の何番目か）を探し、動いた分だけ画面の送り位置を戻す＝見ている作成表を動かさない。
+  //   マスの印が橙「+N 作る予定」→ 緑「+N」に変わると行の高さが少し変わるので、画面の全部の行を止めることはできない。まん中を止めて、上下の動きをいちばん小さくする。
+  //   箱より後ろの物が画面に1つも見えていない時（まだ箱より上を見ている時）は何もしない。ページのいちばん上にいて戻す余地が無い時は、
+  //   ブラウザが 0 で止める（その時だけ表が動く）。箱のすぐ下の物を目印にしない理由：「忘れ／いま作る」の帯は画面の上に貼り付く（sticky）ので位置が変わらない
+  const host=document.getElementById('prod-day-content'), box0=document.getElementById('soPendingBox');
+  const keyOf=el=>{ const a=el.hasAttribute('onclick')?'onclick':'onchange'; return a+'|'+el.getAttribute(a); };
+  let mark=null;
+  if(host&&box0){ try{
+    const els=host.querySelectorAll('[onclick],[onchange]'), seen={}, vh=window.innerHeight; let best=Infinity;
+    for(let i=0;i<els.length;i++){ const el=els[i], key=keyOf(el), nth=seen[key]=(seen[key]||0)+1;
+      if(!(box0.compareDocumentPosition(el)&4))continue;                 // 箱より後ろの物だけ（4＝後ろにある）
+      const r=el.getBoundingClientRect(); if(!(r.height>0)||r.bottom<=0||r.top>=vh)continue;   // 見えない物（たたんだカテゴリ）と、画面の外の物は飛ばす
+      const d=Math.abs((r.top+r.bottom)/2-vh/2); if(d<best){ best=d; mark={key,nth,top:r.top}; } }
+  }catch(_){ mark=null; } }
+  renderProdDayContent(currentProdDay);
+  if(mark){ try{
+    const els=host.querySelectorAll('[onclick],[onchange]'), seen={};
+    for(let i=0;i<els.length;i++){ const el=els[i], key=keyOf(el), nth=seen[key]=(seen[key]||0)+1;
+      if(key!==mark.key||nth!==mark.nth)continue;
+      const dy=el.getBoundingClientRect().top-mark.top; if(isFinite(dy)&&Math.abs(dy)>=1)window.scrollBy(0,dy);
+      break; }
+  }catch(_){ } }
 }
-// 「✓ 作った」の小さなボタン（マスの中・時間帯別・一覧で同じ物を使う）
-function soDoneBtn(pid,dayIdx,slotH,idx,added,big){
-  return `<button type="button" onclick="event.stopPropagation();markSoldOutDone('${pid}',${dayIdx},${slotH},${idx})" aria-label="${escapeHtmlP(getP(pid)?.name||'')} の追加分 +${added} を作った" style="padding:${big?'8px 14px':'3px 7px'};min-height:${big?'40px':'26px'};font-size:${big?'14px':'11px'};font-weight:800;border-radius:8px;border:2px solid #f59e0b;background:#fff7ed;color:#9a3412;cursor:pointer;font-family:inherit;line-height:1.2">${_soT('so2.doneBtn',added)}</button>`;
-}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&_soPlanTimer)soPlanTick(); });
 // 作成表の上に出す「追加で作るもの」の一覧（その曜日の「作る予定」が1つも無ければ何も出さない）
+//   2026-10-10：押す物（「✓ 作った」）は無くした。今日の曜日のタブで、今が「売場へ」の予定の時刻より前の追加分だけを出し、予定の時刻を過ぎると次の描き直しで消える
 function renderSoldOutPending(dayIdx){
-  const list=getSoldOutPendingDay(dayIdx); if(!list.length)return '';
+  const list=getSoldOutPendingDay(dayIdx);
+  if(_soPlanTimer){ clearTimeout(_soPlanTimer); _soPlanTimer=null; }
+  if(!list.length)return '';
+  { const nowOn=_soNowOn(dayIdx), first=list.reduce((m,x)=>Math.min(m,x.e.readyAt),Infinity);
+    if(nowOn!=null&&isFinite(first))_soPlanTimer=setTimeout(soPlanTick,Math.min(2147483000,Math.max(1000,(first-nowOn)*3600000+1000))); }
   const rows=list.map(x=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px dashed #fde68a;flex-wrap:wrap">
       <span style="flex:1;min-width:160px;font-size:14px;color:#0f172a"><b>${escapeHtmlP(x.p.name)}</b><span style="font-size:12px;color:#64748b;margin-left:6px">${_soT('so2.pendingRow',fmtHour(x.slotH),x.e.added,_soFmtHM(x.e.readyAt!=null?x.e.readyAt:x.e.soldAt))}</span></span>
-      ${soDoneBtn(x.p.id,x.dayIdx,x.slotH,x.i,x.e.added,true)}
     </div>`).join('');
-  return `<div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:10px 14px;margin-bottom:10px">
+  return `<div id="soPendingBox" style="background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:10px 14px;margin-bottom:10px">
     <div style="font-size:15px;font-weight:800;color:#9a3412">${_soT('so2.pendingTitle',list.length)}</div>
     <div style="font-size:12px;color:#92400e;line-height:1.5;margin:2px 0 4px">${t('so2.pendingDesc')}</div>
     ${rows}
@@ -12850,13 +12967,14 @@ function showToast(msg,type='info'){
   if(!el){
     el=document.createElement('div');
     el.id='ff-toast';
-    el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);text-align:center';
+    // 2026-10-10 検算：長い文は折り返す（前は1行固定で、スマホの幅では右が切れて読めなかった）。幅は中身に合わせ、画面の幅−32px まで
+    el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none;white-space:normal;width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;line-height:1.5;text-align:center';
     document.body.appendChild(el);
   }
   const colors={success:'#1b5e20;background:#e8f5e9',error:'#b71c1c;background:#ffebee',warn:'#e65100;background:#fff3e0',info:'#0d47a1;background:#e3f2fd'};
   const [color,bg]=(colors[type]||colors.info).split(';background:');
   el.style.color='#'+color.replace('#','');
-  el.style.background='#'+bg;
+  el.style.background=bg;   // 前は '#'+bg（'##e8f5e9'）で色が付かず、背景が透明のまま下の表の文字と重なっていた（2026-10-10 検算）
   el.style.border=`1px solid currentColor`;
   el.style.opacity='1';
   el.textContent=msg;

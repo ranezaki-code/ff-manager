@@ -120,14 +120,29 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       sumBefore===8&&fx6===before6&&fx10===before10&&rest===12-before6-before10&&sumAfter===12&&sumB===12&&freeAfterUncheck&&back10>=0,
       `変更前 6時${before6}・10時${before10}（日計${sumBefore}）→ 1日12個にした後 6時${fx6}・10時${fx10}・残り${rest}（日計A${sumAfter}／B${sumB}）・10時のチェックを外すと${back10}`);
     A.ev(`(()=>{ S.checks={}; delete S.weeks[S.activeWeek].investDone; const p=S.PM.find(p=>p.id==='p1'); p.isInvest=false; S.budget.investCounts={}; saveS(); })()`); await sync();
-    // 追加作成：完売の記録は「作る予定」で閉じ、何品でも続けて記録できる。「作った」は商品ごとに別に押す（2026-10-08 店長の指摘）
-    A.ev(`(()=>{ S.soldOuts['3_6_p2']=[{readyAt:7.5,soldAt:7.5,added:2,v:2,done:false}]; S.soldOuts['3_10_p1']=[{readyAt:11,soldAt:11,added:3,v:2,done:false}]; S.soldOuts['3_14_p1']=[{readyAt:15,soldAt:15,added:1}]; saveS(); })()`);
-    const pend0=A.win.getSoldOutPendingDay(3).length;
-    A.win.markSoldOutDone('p2',3,6); await sync();
-    const pendA=A.win.getSoldOutPendingDay(3).map(x=>x.p.id), pendB=B.win.getSoldOutPendingDay(3).map(x=>x.p.id), tot=A.win.getSoldOutTotal('p2',3,6);
-    check('19','追加作成を2品続けて記録 → 両方「作る予定」に残る。片方だけ「作った」を押せる（もう片方はそのまま）。古い記録は作った済み扱い。追加の数は変わらない',
-      pend0===2&&J(pendA)===J(['p1'])&&J(pendB)===J(['p1'])&&tot===2,`作る予定 ${pend0}件 → 作った後 A:${J(pendA)} B:${J(pendB)}・追加の数 ${tot}`);
-    A.ev(`(()=>{ S.soldOuts={}; saveS(); })()`); await sync();
+    // 追加作成：完売の記録は「作る予定」で閉じ、何品でも続けて記録できる（2026-10-08 店長の指摘）。
+    //   2026-10-10 店長の決定：「✓ 作った」のボタンは無くした。「作る予定」は、今日の曜日で、今が「売場へ」の予定の時刻 readyAt より前の追加分だけ（記録は書き換えない。読む時に時刻で決める）。
+    //   今日を金曜（曜日番号3）にして、時計を 7:00 → 10:54 → 11:00過ぎ と進める。古い版の記録（done:false）も、予定を過ぎていれば出ない。v の無い古い記録は作った済み扱い
+    A.win._dateTodayOverride=B.win._dateTodayOverride='2026-10-09';
+    A.ev(`(()=>{ S.soldOuts['3_6_p2']=[{readyAt:7.5,soldAt:7.5,added:2,v:2,done:false}]; S.soldOuts['3_10_p1']=[{readyAt:11,soldAt:11,added:3,v:2}]; S.soldOuts['3_14_p1']=[{readyAt:15,soldAt:15,added:1}]; S.soldOuts['2_10_p1']=[{readyAt:11,soldAt:11,added:1,v:2,done:false}]; saveS(); })()`); await sync();
+    const plan19=d=>JSON.parse(d.ev(`(()=>{ const out={}; const so0=JSON.stringify(S.soldOuts);
+      const at=h=>{ window._soNowOverride=h; return [getSoldOutPendingDay(3).map(x=>x.p.id),getSoldOutPendingDay(2).length,getSoldOutPending('p1',3,10).length]; };
+      out.t7=at(7.0); out.t109=at(10.9); out.t1101=at(11.01);
+      const el=document.getElementById('prod-day-content'), box=()=>{ const b=document.getElementById('soPendingBox'); return b?b.textContent.replace(/\\s+/g,' ').trim():''; };
+      const ui=h=>{ window._soNowOverride=h; renderProdDayContent(3); return {box:box(),plan:el.querySelectorAll('[data-so-plan]').length,planTxt:[...el.querySelectorAll('[data-so-plan]')].map(s=>s.textContent+'／'+s.title).join(','),green:el.innerHTML.includes('>+3</span>'),mark:/markSoldOutDone|soDoneBtn/.test(el.innerHTML),btn:el.querySelectorAll('#soPendingBox button').length,slot:(renderSlotGroupedView(3).match(/data-so-plan/g)||[]).length}; };
+      out.u109=ui(10.9); out.u1101=ui(11.01);
+      out.same=JSON.stringify(S.soldOuts)===so0; out.tot=getSoldOutTotal('p2',3,6);
+      delete window._soNowOverride; return JSON.stringify(out); })()`));
+    const p19=plan19(A), p19b=plan19(B);
+    check('19','【作る予定＝予定の時刻より前】追加作成を2品続けて記録（片方は古い版の done:false）→ 今日の曜日で、今が「売場へ」の時刻より前の分だけ「作る予定」（7:00 は2件・10:54 は1件・11:00過ぎは0件）。別の曜日（きのう）は0件。v の無い古い記録は作った済み扱い。記録は1字も変わらない・追加の数も同じ。画面に「✓ 作った」のボタンは無く、マスは 10:54 に橙の印「+3 作る予定」→ 11:00過ぎに緑の「+3」。B でも同じ',
+      J(p19.t7)===J([['p2','p1'],0,1])&&J(p19.t109)===J([['p1'],0,1])&&J(p19.t1101)===J([[],0,0])&&J(p19b.t7)===J(p19.t7)&&J(p19b.t109)===J(p19.t109)&&J(p19b.t1101)===J(p19.t1101)
+        &&p19.same&&p19b.same&&p19.tot===2
+        &&/11:00/.test(p19.u109.box)&&p19.u109.plan===1&&/\+3/.test(p19.u109.planTxt)&&/11:00/.test(p19.u109.planTxt)&&!p19.u109.mark&&p19.u109.btn===0&&p19.u109.slot===1
+        &&p19.u1101.box===''&&p19.u1101.plan===0&&p19.u1101.green&&!p19.u1101.mark&&p19.u1101.slot===0
+        &&p19b.u109.plan===1&&p19b.u1101.plan===0&&p19b.u1101.box==='',
+      `作る予定（金曜の商品／きのうの件数／マス）7:00 ${J(p19.t7)}・10:54 ${J(p19.t109)}・11:00過ぎ ${J(p19.t1101)}（B も同じ ${J(p19b.t7)===J(p19.t7)&&J(p19b.t1101)===J(p19.t1101)}）・記録そのまま ${p19.same}・追加の数 ${p19.tot}／画面 10:54「${p19.u109.box.slice(0,80)}」橙 ${p19.u109.plan}（${p19.u109.planTxt}）・時間帯別 ${p19.u109.slot}・ボタン ${p19.u109.btn}／11:00過ぎ 一覧「${p19.u1101.box}」橙 ${p19.u1101.plan}・緑の+3 ${p19.u1101.green}`);
+    A.win._dateTodayOverride=B.win._dateTodayOverride='2026-10-06';
+    A.ev(`(()=>{ delete window._soNowOverride; S.soldOuts={}; saveS(); renderProdDayContent(currentProdDay); })()`); await sync(); B.ev(`(()=>{ delete window._soNowOverride; renderProdDayContent(currentProdDay); })()`);
     // 店長の依頼（2026-10-08）：週を通して作成0の商品を知らせる（getZeroMakeList／④の帯）。仮の商品を2つ足して確かめる（おたすけ作）
     const addZ=(d,id,name,x)=>d.ev(`(()=>{ S.PM.push(${J(P(id,name,x))}); saveS(); })()`);
     addZ(A,'z1','実績なしの商品');                                   // 実績が1つも無い → 計算上0。品切れ防止OFF → 一覧に赤で出る
@@ -406,9 +421,10 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         back();
         // ⑤ 目安（残り◯で追加）：本体の入力の形に、売れ方・数・作る時間・まとめ単位を決めた見本を入れ、おたすけの mine.js の動的計画（_v2tmp/ftref_probe.html）の答えと比べる（2026-10-09 動的計画に替えた）
         //    作る時間が分からない単品は目安を出さないので、この試験の間だけ「揚げる 30分」にする（back() で戻す）。見本の作る時間は I.LM に入れる
-        //    （2026-10-09 ⑶ 実測が3件たまるまでは目安を出さないので、前の週の時間帯の無い時刻（8・12・20時）に「✓ 作った」の記録を3件足す。マスの直近4週の記録には入らない）
+        //    （2026-10-09 ⑶ 記録が3件たまるまでは目安を出さないので、前の週の時間帯の無い時刻（8・12・20時）に、選んだ「何分後」（34分）の記録を3件足す。マスの直近4週の記録には入らない。
+        //      2026-10-10：記録の元を「✓ 作った」の時刻から、選んだ「何分後」（lead）に替えたので、見本も lead:34・readyAt＝押した時刻＋34分 にした）
         S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; getP('p1').prepMethod='fryer'; getP('p1').fryerMin=30;
-        { const so=S.weeks['2026.9.29'].soldOuts=Object.assign({},S.weeks['2026.9.29'].soldOuts); [[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at])=>{ so[d+'_'+h+'_p1']=[{readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:50,done:true,doneAt:at+34/60}]; }); }
+        { const so=S.weeks['2026.9.29'].soldOuts=Object.assign({},S.weeks['2026.9.29'].soldOuts); [[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at])=>{ so[d+'_'+h+'_p1']=[{readyAt:at+34/60,soldAt:at+34/60,added:2,v:2,noticedAt:at,lead:34,made:5,n1:50}]; }); }
         clearAllocCache();
         const base=_soRpInputs('p1',2,10), Nc=getCustHoursRange(2,base.ds,base.slotEnd);
         const V=[[9,1.2,20,1],[9,1.5,60,1],[12,1.3,30,3],[8,1.0,30,1],[6,1.4,40,2]].map(([Q,f,L,B])=>Object.assign({},base,{Q,LM:{cook:{first:L,per:L},cap:null,meas:null,beta:0},B,past:[],phi:1.3,m0:f*Q/Nc,b:Nc/1.3,cu:100,co:60}));
@@ -462,15 +478,45 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       }catch(e){ out.err=String(e&&e.stack||e); S.weeks=JSON.parse(bk); return JSON.stringify(out); } })()`));
     await sleep(300);
     const hint=A.ev(`(()=>{ const el=document.querySelector('.so-ro[data-ro="2_10_p1"]'); return el?el.textContent:'(なし)'; })()`);
-    const pd=JSON.parse(A.ev(`(()=>{ const out={}; const k='2_14_p1'; delete S.soldOuts[k];
-        S.soldOuts[k]=[{readyAt:16,soldAt:16,added:2,v:2,noticedAt:15.5,lead:30,made:4,remain:1,done:false}];
-        window._soNowOverride=15.8; openSoldOutModal('p1',2,14,{remain:true}); out.block=!!document.getElementById('soldOutPhaseP')&&!document.getElementById('soldOutPhaseR');
-        const btn=document.querySelector('#soldOutPhaseP button'); btn.click(); out.done=S.soldOuts[k][0].done===true&&typeof S.soldOuts[k][0].doneAt==='number'; out.after=!!document.getElementById('soldOutPhaseR')&&!document.getElementById('soldOutPhaseP');
-        closeSoldOutModal(); delete window._soNowOverride; delete S.soldOuts[k]; return JSON.stringify(out); })()`));
-    A.ev(`(()=>{ soReorderPoint=window.__rpOrig; delete window.__rpOrig; S.soldOuts={}; saveS(); })()`); await sync();
-    check('41','【残り◯個・画面】セルのメニューに「残り◯個」と目安「残り R 個以下になったら押す」、作成表のマスに「残りRで追加」。「残り◯個」の追加分が「作る予定」のままの時は、先に「✓ 作った」を押す（押すと残りの数のボタンへ）',
-      !ui.err&&ui.R>0&&ui.menu&&ui.menu.includes('残り◯個')&&ui.menu.includes('残り '+ui.R+'個')&&hint===('残り'+ui.R+'で追加')&&pd.block&&pd.done&&pd.after,
-      ui.err||`R=${ui.R}・メニュー「${ui.menu}」・マス「${hint}」／作る予定の時 先に作った ${pd.block}→押した ${pd.done}→残りのボタン ${pd.after}`);
+    // 2026-10-10 店長の決定：「先に ✓ 作った を押して」の止めは無くした。今日を木曜（曜日番号2）にして、「残り1個＋追加2個（売場へ 16:00）」の古い版の記録（done:false）のマスで押す。
+    //   (a) 予定の後（16:12）：止めも「いつ並べた？」も出ない。見出しの下に「16:00 に並んだものとして計算します」の1行。残りを選ぶと「何分後」へ
+    //   (b) 予定の前（15:48）：残りを選ぶ →「いつ並べた？」に「まだ並べていない」が1つ増える → 押すと計算も記録もしない →「選び直す」→ 時刻を選ぶ →「何分後」→ 記録（shelfAt を残す。done は書かない）
+    A.win._dateTodayOverride='2026-10-08';
+    const pd=JSON.parse(A.ev(`(()=>{ const out={}; const k='2_14_p1'; try{ delete S.soldOuts[k];
+        const Q0=getProdCnt('p1',2,14)+getInvestExtra('p1',2,14); out.Q0=Q0;
+        S.soldOuts[k]=[{readyAt:16,soldAt:16,added:2,v:2,noticedAt:15.5,lead:30,made:Math.max(Q0,1),remain:1,done:false}];   // 15:30 に「残り1個」→ 追加2個（16:00 に売場へ）。古い版の形（done:false）
+        const rec0=JSON.stringify(S.soldOuts[k][0]), vis=id=>{ const e=document.getElementById(id); return !!e&&e.style.display!=='none'; };
+        // (a) 予定の後
+        window._soNowOverride=16.2; out.pendA=getSoldOutPending('p1',2,14).length; openSoldOutModal('p1',2,14,{remain:true});
+        const note=document.getElementById('soldOutPlanNote');
+        out.a={P:!!document.getElementById('soldOutPhaseP'),R:vis('soldOutPhaseR'),note:note?note.textContent:''};
+        pickSoldOutRemain(1); out.a.p0=!!document.getElementById('soldOutPhase0'); out.a.lead=vis('soldOutPhase1')&&document.querySelectorAll('#soldOutPhase1 button[data-lead]').length;
+        closeSoldOutModal();
+        // (b) 予定の前
+        window._soNowOverride=15.8; out.pendB=getSoldOutPending('p1',2,14).map(x=>x.i); openSoldOutModal('p1',2,14,{remain:true});
+        out.b={P:!!document.getElementById('soldOutPhaseP'),R:vis('soldOutPhaseR'),note:!!document.getElementById('soldOutPlanNote')};
+        pickSoldOutRemain(1);
+        const p0=document.getElementById('soldOutPhase0'), p2=document.getElementById('soldOutPhase2');
+        out.b.q=vis('soldOutPhase0')?p0.textContent.replace(/\\s+/g,' ').trim():''; out.b.shelf=document.querySelectorAll('#soldOutPhase0 button[data-shelf]').length; out.b.ny=document.querySelectorAll('#soldOutPhase0 button[data-notyet]').length;
+        const so0=JSON.stringify(S.soldOuts);
+        pickSoldOutNotYet(); out.b.wait=vis('soldOutPhase2')?p2.textContent.replace(/\\s+/g,' ').trim():''; out.b.hid=!vis('soldOutPhase0')&&!vis('soldOutPhase1');
+        acceptSoldOut(); out.b.noRec=JSON.stringify(S.soldOuts)===so0&&S.soldOuts[k].length===1&&!!_soldOutCtx;
+        p2.querySelector('button').click(); out.b.back=vis('soldOutPhase0')&&!vis('soldOutPhase2');
+        pickSoldOutShelf(15.7); out.b.lead=vis('soldOutPhase1'); pickSoldOutLead(20); const c=_soldOutCtx, r=c&&c.result; out.b.err=r?'':((p2.textContent||'').replace(/\\s+/g,' ').trim().slice(0,80)||'結果なし');
+        if(r){ out.b.shelfIn=r.shelfIn; acceptSoldOut(); const e2=S.soldOuts[k][1]||{};
+          out.b.rec={shelfAt:e2.shelfAt,noticedAt:e2.noticedAt,lead:e2.lead,added:e2.added,done:('done' in e2),leadSrc:('leadSrc' in e2),remain:e2.remain};
+          out.b.keep=JSON.stringify(S.soldOuts[k][0])===rec0; out.b.pend=getSoldOutPending('p1',2,14).map(x=>x.i); }
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      closeSoldOutModal(); delete window._soNowOverride; delete S.soldOuts[k]; return JSON.stringify(out); })()`));
+    A.win._dateTodayOverride='2026-10-06';
+    A.ev(`(()=>{ soReorderPoint=window.__rpOrig; delete window.__rpOrig; S.soldOuts={}; saveS(); renderProdDayContent(currentProdDay); })()`); await sync();
+    { const a=pd.a||{}, b=pd.b||{}, rc=b.rec||{};
+      const okA=pd.pendA===0&&!a.P&&a.R&&/16:00/.test(a.note)&&/\+2/.test(a.note)&&!a.p0&&a.lead===6;
+      const okB=J(pd.pendB)===J([0])&&!b.P&&b.R&&!b.note&&/\+2/.test(b.q)&&/16:00/.test(b.q)&&b.shelf>=2&&b.ny===1&&/16:00/.test(b.wait)&&/記録しません/.test(b.wait)&&b.hid&&b.noRec&&b.back&&b.lead&&!b.err
+        &&b.shelfIn===15.7&&rc.shelfAt===15.7&&rc.noticedAt===15.8&&rc.lead===20&&rc.done===false&&rc.leadSrc===false&&rc.remain===1&&b.keep&&J(b.pend)===J(rc.added>0?[1]:[]);
+      check('41','【残り◯個・画面】セルのメニューに「残り◯個」と目安「残り R 個以下になったら押す」、作成表のマスに「残りRで追加」。「残り◯個＋追加」の記録のマスで押す：(a) 予定の後は止めも「いつ並べた？」も出ず、1行「16:00 に売場に並んだものとして計算します」が出て「何分後」へ (b) 予定の前は「いつ並べた？」に「まだ並べていない」→ 押すと計算も記録もしない →「選び直す」→ 時刻 →「何分後」→ 記録に shelfAt が残り done は書かない。前の記録は変わらず、前の追加分は「作る予定」から外れる',
+        !ui.err&&ui.R>0&&ui.menu&&ui.menu.includes('残り◯個')&&ui.menu.includes('残り '+ui.R+'個')&&hint===('残り'+ui.R+'で追加')&&!pd.err&&okA&&okB,
+        ui.err||pd.err||`R=${ui.R}・メニュー「${ui.menu}」・マス「${hint}」／(a) 予定の後 ${okA}：止め ${a.P}・残りのボタン ${a.R}・「${a.note}」・いつ並べた？ ${a.p0}・何分後のボタン ${a.lead}／(b) 予定の前 ${okB}：作る予定 ${J(pd.pendB)}・「${(b.q||'').slice(0,60)}」時刻 ${b.shelf}・まだ ${b.ny} →「${(b.wait||'').slice(0,50)}」記録なし ${b.noRec}・選び直す ${b.back} → ${b.err||'記録 '+J(rc)}・前の記録そのまま ${b.keep}・作る予定 ${J(b.pend)}`); }
     // あわせて直した不具合：③天気・イベント調整の「読み込み済み」の印が、保存（週のデータの作り直し）で消えない
     A.ev(`(()=>{ const w=S.weeks[S.activeWeek]; w.researchLoaded=true; w.researchLoadedAt='2026-10-09T01:23:00.000Z'; w.researchFileName='外部要因_2026-10-06週.json'; saveS(); })()`);
     A.win.setJi('p1','nebiki',5); await sync();
@@ -536,14 +582,15 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         // (b) 設定のみ：蒸す 12分
         p2.prepMethod='steam'; p2.steamMin=12; clearAllocCache();
         const Ib=_soRpInputs('p2',3,10); out.b={LM:soLeadModel(p2),hasI:!!Ib,L:Ib?soLeadMin(Ib.LM,3,12,1):null,rp:soReorderPoint('p2',3,10),ui:modal('p2',3,10,12.6)};
-        // (c) 記録のみ：p1（作り方なし）の「押してから作った」まで 12・14・20分（ほかのマス・前の週）→ 中央値 14分。記録が3件そろうので「何分後」を聞かない
-        const rec=(at,min,added)=>({readyAt:at+0.5,soldAt:at+0.5,added,v:2,noticedAt:at,lead:30,made:5,n1:30,done:true,doneAt:at+min/60});
+        // (c) 記録のみ：p1（作り方なし）の、選んだ「何分後」が 12・14・20分（ほかのマス・前の週）→ 中央値 14分。記録が3件そろっても「何分後」は毎回聞く（2026-10-10）
+        //     2026-10-10：記録の元を「✓ 作った」の時刻（doneAt）から、選んだ「何分後」（lead）に替えたので、見本は lead＝分・readyAt＝押した時刻＋分（done・doneAt なし）
+        const rec=(at,min,added)=>({readyAt:at+min/60,soldAt:at+min/60,added,v:2,noticedAt:at,lead:min,made:5,n1:30});
         S.soldOuts['4_14_p1']=[rec(15.2,12,2)]; S.soldOuts['5_17_p1']=[rec(18.1,14,2)]; S.weeks['2026.9.29'].soldOuts={'3_10_p1':[rec(12.0,20,5)]}; clearAllocCache();
         const Ic=_soRpInputs('p1',2,10); out.c={LM:soLeadModel(p1),L:Ic?soLeadMin(Ic.LM,2,12,1):null,ui:modal('p1',2,10,12.6)};
-        // (d) 両方：揚げる 8分・1回に3個まで → 記録は「作った − 調理」（追加5個は2回＝16分）：12−8, 14−8, 20−16 → 中央値 4分
+        // (d) 両方：揚げる 8分・1回に3個まで → 記録は「選んだ分 − 調理1回ぶん」（追加5個の記録でも引くのは1回ぶん）：14−8, 12−8, 20−8（新しい順）→ 中央値 6分
         p1.prepMethod='fryer'; p1.fryerMin=8; p1.fryerCap=3; clearAllocCache();
         const LMd=soLeadModel(p1); out.d={LM:LMd,L1:soLeadMin(LMd,2,12,1),L2:soLeadMin(LMd,2,12,2),list:soMeasList('p1').map(z=>Math.round(z.M*1000)/1000),ui:modal('p1',2,10,12.6)};
-        // 回数で並ぶ時刻が変わる：完売（残り0）を記録の作る時間で。y が3以下なら 12分（1回）、4以上なら 20分（2回）
+        // 回数で並ぶ時刻が変わる：完売（残り0）を記録の作る時間で（'auto'。画面からは呼ばないが計算は残してある）。y が3以下なら 14分（1回）、4以上なら 22分（2回）
         const pr=[12.1,12.6,13.2].map(now=>{ const r=calcSoldOutSuggestion('p1',2,10,now,'auto',null,0); return r.error?{e:r.error}:{y:r.suggest,cyc:r.cyc,lead:r.leadMin,ready:Math.round((r.readyAt-now)*600)/10}; });
         out.d.press=pr;
         // 1回に作れる数が無い時は、今までの「完売した」と同じ答え（同じ分を選んだ時）
@@ -563,19 +610,19 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     { const a=ld.a||{}, b=ld.b||{}, c=ld.c||{}, d=ld.d||{}, e=ld.e||{};
       const okA=a.LM===null&&a.I===null&&a.rp===null&&a.ui&&a.ui.asked&&!a.ui.auto&&!a.ui.result&&!a.ui.hint;
       const okB=!!b.LM&&b.LM.cook&&b.LM.cook.first===12&&!b.LM.meas&&!b.hasI&&b.rp===null&&b.ui.asked&&!b.ui.auto&&b.ui.hint;   // 2026-10-09 ⑶：作り方だけでは目安を出さない
-      const okC=!!c.LM&&!c.LM.cook&&c.LM.meas&&Math.abs(c.LM.meas.med-14)<1e-9&&Math.abs(c.L-14)<1e-9&&c.ui.auto&&!c.ui.asked&&c.ui.result&&c.ui.leadMin===14&&c.ui.src==='auto';
-      const okD=!!d.LM&&d.LM.cook&&d.LM.cook.first===8&&d.LM.cap===3&&J(d.list)===J([6,4,4])&&Math.abs(d.L1-12)<1e-9&&Math.abs(d.L2-20)<1e-9&&d.ui.auto&&(d.press||[]).every(x=>!x.e&&((x.y<=3&&x.cyc===1&&Math.abs(x.ready-12)<0.05)||(x.y>3&&x.cyc===2&&Math.abs(x.ready-20)<0.05)));
+      const okC=!!c.LM&&!c.LM.cook&&c.LM.meas&&Math.abs(c.LM.meas.med-14)<1e-9&&c.LM.meas.n===3&&Math.abs(c.L-14)<1e-9&&c.ui.asked&&!c.ui.auto&&!c.ui.result;   // 2026-10-10：記録がそろっても「何分後」は聞く
+      const okD=!!d.LM&&d.LM.cook&&d.LM.cook.first===8&&d.LM.cap===3&&J(d.list)===J([6,4,12])&&Math.abs(d.L1-14)<1e-9&&Math.abs(d.L2-22)<1e-9&&d.ui.asked&&!d.ui.auto&&!d.ui.result&&(d.press||[]).length===3&&(d.press||[]).every(x=>!x.e&&((x.y<=3&&x.cyc===1&&Math.abs(x.ready-14)<0.05)||(x.y>3&&x.cyc===2&&Math.abs(x.ready-22)<0.05)));
       const okE=e.a&&J(e.a)===J(e.b)&&e.pso&&typeof e.pso[0]==='number'&&e.pso[0]===e.pso[1], g=ld.g||{}, okG=!!g.dec&&g.dec[0]===g.brute&&g.dec[1]===Math.max(1,Math.ceil(g.brute/2))&&g.brute>2&&g.now[0]===g.nowBrute[0]&&Math.abs(g.now[2]-g.nowBrute[1])<1e-6&&g.now[1]===Math.max(1,Math.ceil(g.now[0]/2));
-      check('46','【作る時間（D）】どちらも無し：目安なし・「何分後」を聞く／設定のみ（蒸す12分）：目安は出さない（2026-10-09 ⑶ 実測が3件たまるまで）・押した時は「何分後」を聞く（調理12分の1行）／記録のみ（12・14・20分）：中央値14分・聞かずに計算／両方（揚げる8分・1回3個）：記録は「作った−調理（回数ぶん）」＝6・4・4（新しい順）→ 1回 12分・2回 20分。出した数の回数で並ぶ時刻が決まり、数は回数ごとの損を全部見た答えと同じ／1回の数が無ければ、同じ分を選んだ「完売した」と同じ答え',
+      check('46','【作る時間（D）】どちらも無し：目安なし・「何分後」を聞く／設定のみ（蒸す12分）：目安は出さない（2026-10-09 ⑶ 記録が3件たまるまで）・押した時は「何分後」を聞く（調理12分の1行）／記録のみ（選んだ 12・14・20分）：中央値14分。記録がそろっても「何分後」は毎回聞く（2026-10-10）／両方（揚げる8分・1回3個）：記録は「選んだ分−調理1回ぶん」＝6・4・12（新しい順）→ 1回 14分・2回 22分。自動の計算（画面からは呼ばない）は、出した数の回数で並ぶ時刻が決まり、数は回数ごとの損を全部見た答えと同じ／1回の数が無ければ、同じ分を選んだ「完売した」と同じ答え',
         !ld.err&&okA&&okB&&okC&&okD&&okE&&okG,
-        ld.err||`無し ${okA}・設定のみ ${okB}（L=${b.L}）・記録のみ ${okC}（中央値 ${c.LM&&c.LM.meas&&c.LM.meas.med}・聞かない ${c.ui&&!c.ui.asked}）・両方 ${okD}（記録 ${J(d.list)}・1回 ${d.L1}分・2回 ${d.L2}分・押した時 ${J(d.press)}）・回数なし＝選んだ時 ${okE}（完売する確率 ${J(e.pso)}）・回数の選び方＝全部見た答え ${okG}（完売 ${J(g.dec)}／全部 ${g.brute}・今作る ${J(g.now)}／全部 ${J(g.nowBrute)}）`); }
+        ld.err||`無し ${okA}・設定のみ ${okB}（L=${b.L}）・記録のみ ${okC}（中央値 ${c.LM&&c.LM.meas&&c.LM.meas.med}・聞く ${c.ui&&c.ui.asked}・自動 ${c.ui&&c.ui.auto}）・両方 ${okD}（記録 ${J(d.list)}・1回 ${d.L1}分・2回 ${d.L2}分・聞く ${d.ui&&d.ui.asked}・自動の計算 ${J(d.press)}）・回数なし＝選んだ時 ${okE}（完売する確率 ${J(e.pso)}）・回数の選び方＝全部見た答え ${okG}（完売 ${J(g.dec)}／全部 ${g.brute}・今作る ${J(g.now)}／全部 ${J(g.nowBrute)}）`); }
     // 混み具合：全商品の記録で、1時間あたりの客数が多いほど「並べるまで」が長い → 記録が10件以上で傾きが誤差の2倍を超えた時だけ足す
     const bz=JSON.parse(A.ev(`(()=>{ const out={}; const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,soldOuts:S.soldOuts});
       try{
         S.soldOuts={}; Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k])S.weeks[k].soldOuts={}; });
         const p1=getP('p1'), p2=getP('p2'); p1.prepMethod='fryer'; p1.fryerMin=5; p2.prepMethod='asis'; delete p1.fryerCap; clearAllocCache();
-        // 客数（1時間あたり）は 6〜21時で 30＋曜日＋時。並べるまで＝ 3 ＋ 0.2×(客数−40) 分（作った−押した ＝ 調理＋それ）
-        const rec=(d,at,pid)=>{ const x=custEff(d)[Math.floor(at)]; const M=3+0.2*(x-40), ck=pid==='p1'?5:0; return {readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:30,done:true,doneAt:at+(M+ck)/60}; };
+        // 客数（1時間あたり）は 6〜21時で 30＋曜日＋時。並べるまで＝ 3 ＋ 0.2×(客数−40) 分（選んだ「何分後」＝ 調理＋それ。2026-10-10：見本を lead＝調理＋並べるまで・readyAt＝押した時刻＋lead に。doneAt なし）
+        const rec=(d,at,pid)=>{ const x=custEff(d)[Math.floor(at)]; const M=3+0.2*(x-40), ck=pid==='p1'?5:0; return {readyAt:at+(M+ck)/60,soldAt:at+(M+ck)/60,added:2,v:2,noticedAt:at,lead:M+ck,made:5,n1:30}; };
         const put=(pid,list)=>list.forEach(([d,h,at])=>{ const k=d+'_'+h+'_'+pid; (S.soldOuts[k]=S.soldOuts[k]||[]).push(rec(d,at,pid)); });
         put('p1',[[0,6,7.1],[1,10,12.0],[2,14,15.2],[3,17,19.5],[4,6,8.0],[5,10,13.0]]); put('p2',[[0,10,10.2],[1,14,16.0],[2,17,20.2],[3,6,9.0],[6,10,11.4],[6,14,17.3]]);
         clearAllocCache(); const f=soBusyFit(); out.fit={beta:f.beta,se:f.se,n:f.n,use:f.use}; const LM=soLeadModel(p1); out.beta=LM.beta;
@@ -588,21 +635,22 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     check('47','【作る時間・混み具合】全商品の記録（2商品×6件、各商品の直近5件＝10件）から「1時間あたりの客数」と「並べるまで」の傾きを出す（見本は 0.2分／人）→ 足す。混んでいる時刻ほど作る時間が長い。記録が少ない時（6件）は足さない',
       !bz.err&&bz.fit.use&&Math.abs(bz.fit.beta-0.2)<0.02&&Math.abs(bz.beta-bz.fit.beta)<1e-12&&bz.L[1]>bz.L[0]&&bz.few===false,
       bz.err||`傾き ${bz.fit.beta.toFixed(3)}（誤差 ${(bz.fit.se||0).toExponential(1)}・${bz.fit.n}件・使う ${bz.fit.use}）・9時 ${bz.L[0].toFixed(1)}分（客 ${bz.x[0]}人/時）・18時 ${bz.L[1].toFixed(1)}分（客 ${bz.x[1]}人/時）・6件の時 使う ${bz.few}`);
-    // ⑤ 2台：A が作り方（揚げる 9分・1回4個）を、B が別の商品の作り方（蒸す 10分）を同時に入れる → 両方残る。B が「✓ 作った」を押した記録が A の実測に入る。目安は2台で同じ
+    // ⑤ 2台：A が作り方（揚げる 9分・1回4個）を、B が別の商品の作り方（蒸す 10分）を同時に入れる → 両方残る。B が記録した「18分後」（選んだ分）が A の記録に入る。目安は2台で同じ
+    //   2026-10-10：記録の元を「✓ 作った」の時刻から、選んだ「何分後」（lead）に替えた。B は「✓ 作った」を押さず、選んだ 18分の記録を保存する
     const inv0=A.ev(`JSON.stringify(S.weeks[S.activeWeek].invest||null)`);
-    //   2026-10-09 ⑶：目安は「並べるまで」の実測が3件たまってから出るので、先に A が商品1の「✓ 作った」の記録を3件（前の週・時間帯の無い時刻 8・12・20時）入れておく
-    A.ev(`(()=>{ const w=S.weeks['2026.9.29']; w.soldOuts=Object.assign({},w.soldOuts); [[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at])=>{ w.soldOuts[d+'_'+h+'_p1']=[{readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:50,done:true,doneAt:at+14/60}]; }); saveS(); })()`); await sync();
+    //   2026-10-09 ⑶：目安は「並べるまで」の記録が3件たまってから出るので、先に A が商品1の「14分後」の記録を3件（前の週・時間帯の無い時刻 8・12・20時）入れておく
+    A.ev(`(()=>{ const w=S.weeks['2026.9.29']; w.soldOuts=Object.assign({},w.soldOuts); [[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at])=>{ w.soldOuts[d+'_'+h+'_p1']=[{readyAt:at+14/60,soldAt:at+14/60,added:2,v:2,noticedAt:at,lead:14,made:5,n1:50}]; }); saveS(); })()`); await sync();
     off();
     setP(A,'p1','prepMethod','fryer'); setP(A,'p1','fryerMin',9); setP(A,'p1','fryerCap',4);
     setP(B,'p2','prepMethod','steam'); setP(B,'p2','steamMin',10);
-    B.ev(`(()=>{ S.soldOuts['6_17_p2']=[{readyAt:18.5,soldAt:18.5,added:2,v:2,noticedAt:18.0,lead:30,made:4,n1:30,done:false}]; saveS(); window._soNowOverride=18.3; markSoldOutDone('p2',6,17,0); delete window._soNowOverride; })()`);
+    B.ev(`(()=>{ S.soldOuts['6_17_p2']=[{readyAt:18.3,soldAt:18.3,added:2,v:2,noticedAt:18.0,lead:18,made:4,n1:30}]; saveS(); })()`);
     on(); await sync();
     const lm=d=>d.ev(`JSON.stringify([soLeadModel(getP('p1')),soLeadModel(getP('p2')),soMeasList('p2').map(z=>Math.round(z.raw*1000)/1000)])`);
     A.ev(`S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; clearAllocCache()`); B.ev(`S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; clearAllocCache()`);
     const rpA2=A.ev(`JSON.stringify(soReorderPoint('p1',2,10))`), rpB2=B.ev(`JSON.stringify(soReorderPoint('p1',2,10))`);
     const lA=JSON.parse(lm(A)), lB=JSON.parse(lm(B));
     for(const d of [A,B])d.ev(`(()=>{ const v=${inv0}; if(v)S.weeks[S.activeWeek].invest=v; else delete S.weeks[S.activeWeek].invest; clearAllocCache(); })()`);
-    check('48','【作る時間・2台】A が商品1の作り方（揚げる9分・1回4個）、B が同時に商品2の作り方（蒸す10分）を入れる → 両方残る。B の「✓ 作った」（押してから18分）が A の記録にも入る。目安は2台で同じ',
+    check('48','【作る時間・2台】A が商品1の作り方（揚げる9分・1回4個）、B が同時に商品2の作り方（蒸す10分）を入れる → 両方残る。B が記録した「18分後」（選んだ分）が A の記録にも入る。目安は2台で同じ',
       J(lA)===J(lB)&&lA[0]&&lA[0].cook.first===9&&lA[0].cap===4&&lA[1]&&lA[1].cook.first===10&&lA[2].includes(18)&&rpA2===rpB2&&rpA2!=='null'&&same(),
       `A ${J(lA)}／B ${J(lB)}・目安 A=B ${rpA2===rpB2}（${rpA2.slice(0,60)}）`);
     // 画面：②商品設定の「作り方」（日本語・英語）・空の商品の一覧・似た商品から写す・まとめて入れる
@@ -632,12 +680,13 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     // ===== 2026-10-09 公開前の直し（おたすけの2回目の検算を受けて）=====
     // 試験の間だけ画面の中で見本を作り、終わったら元に戻す（保存しない）。A の中身は最後の試験で B と比べる
     const SNAP=`window.__bkFix=JSON.stringify({PM:S.PM,weeks:S.weeks,soldOuts:S.soldOuts,ji:S.ji});`, BACK=`{ const o=JSON.parse(window.__bkFix); S.PM=o.PM; S.weeks=o.weeks; S.soldOuts=o.soldOuts; S.ji=o.ji; clearAllocCache(); _soRpCache=new Map(); _soRoLast=new Map(); delete window._soNoWorker; delete window._soNowOverride; }`;
-    //   見本：商品1（揚げる8分・1回3個）・商品2（温める15分）。週の定価販売を 300個・180個に（目安が出る大きさ）。前の週の時間帯の無い時刻に「✓ 作った」の記録を3件ずつ（並べるまで 12〜19分）。投資で作る数を増やしたマス
+    //   見本：商品1（揚げる8分・1回3個）・商品2（温める15分）。週の定価販売を 300個・180個に（目安が出る大きさ）。前の週の時間帯の無い時刻に、選んだ「何分後」（12〜19分）の記録を3件ずつ。投資で作る数を増やしたマス
+    //   （2026-10-10：記録の元を「✓ 作った」の時刻から、選んだ「何分後」に替えたので、見本は lead＝12+3k+i 分・readyAt＝押した時刻＋lead。追加2個は1回の数以下なので、作る時間のしくみ LM は前の見本と同じ数）
     const FIXSEED=`S.ji=Object.assign({},S.ji,{p1:{teika:300,nebiki:10,haiki:6},p2:{teika:180,nebiki:6,haiki:4}}); Object.keys(S.weeks).forEach(k=>{ const w=S.weeks[k]; if(w)w.ji=Object.assign({},w.ji,{p1:{teika:290,nebiki:9,haiki:5},p2:{teika:170,nebiki:6,haiki:4}}); });
       S.weeks[S.activeWeek].invest={p1:{2:{10:5},4:{14:4}},p2:{3:{10:6},5:{17:5}}}; S.soldOuts={};
       ['p1','p2'].forEach(id=>{ const p=getP(id); ['prepMethod','fryerMin','microwaveMin','steamMin','warmMin','fryerCap','cookCap'].forEach(k=>delete p[k]); if(id==='p1'){ p.prepMethod='fryer'; p.fryerMin=8; p.fryerCap=3; } else { p.prepMethod='warm'; p.warmMin=15; } });
       Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k])S.weeks[k].soldOuts={}; });
-      { const w=S.weeks['2026.9.29']; ['p1','p2'].forEach((id,i)=>[[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at],k)=>{ w.soldOuts[d+'_'+h+'_'+id]=[{readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:50,done:true,doneAt:at+(12+3*k+i)/60}]; })); }
+      { const w=S.weeks['2026.9.29']; ['p1','p2'].forEach((id,i)=>[[0,8,9.0],[1,12,13.5],[3,20,20.2]].forEach(([d,h,at],k)=>{ const mn=12+3*k+i; w.soldOuts[d+'_'+h+'_'+id]=[{readyAt:at+mn/60,soldAt:at+mn/60,added:2,v:2,noticedAt:at,lead:mn,made:5,n1:50}]; })); }
       clearAllocCache(); _soRpCache=new Map(); _soRoLast=new Map();`;
     // ⑴ 同じ時刻（3.6秒単位）に残りの違う「残り◯個」の記録が2つ → 残りの少ない方を使う（前は事後が0になり「作らない・約0.0個・0円」）。それでも事後が0なら「順番が合いません」
     const sameT=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP}
@@ -703,18 +752,24 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       try{
         S.weeks[S.activeWeek].invest={p2:{3:{10:6}}}; S.soldOuts={}; Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k])S.weeks[k].soldOuts={}; });
         const p2=getP('p2'); ['prepMethod','fryerMin','microwaveMin','steamMin','warmMin','fryerCap','cookCap'].forEach(k=>delete p2[k]); p2.prepMethod='steam'; p2.steamMin=12; clearAllocCache();
-        const rec=(at,min)=>({readyAt:at+0.5,soldAt:at+0.5,added:2,v:2,noticedAt:at,lead:30,made:5,n1:30,done:true,doneAt:at+min/60});
+        // 2026-10-10：記録＝選んだ「何分後」（lead）。見本は lead＝分・readyAt＝押した時刻＋分（done・doneAt なし）
+        const rec=(at,min,x)=>Object.assign({readyAt:at+min/60,soldAt:at+min/60,added:2,v:2,noticedAt:at,lead:min,made:5,n1:30},x);
         const st=()=>{ clearAllocCache(); _soRpCache=new Map(); return {I:!!_soRpInputs('p2',3,10),rp:soReorderPoint('p2',3,10)===null?'null':'obj',st:cookStatusHtml(p2).replace(/<[^>]+>/g,' ')}; };
         out.s0=st();
         S.soldOuts['4_14_p2']=[rec(15.2,20)]; S.soldOuts['5_17_p2']=[rec(18.1,22)]; out.s2=st();
         window._soNowOverride=12.6; openSoldOutModal('p2',3,10,{remain:true}); pickSoldOutRemain(1);
         const p1v=document.getElementById('soldOutPhase1'); out.ask=!!p1v&&p1v.style.display!=='none'&&!_soldOutCtx.auto&&!!document.getElementById('soldOutCookHint'); closeSoldOutModal(); delete window._soNowOverride;
         S.weeks['2026.9.29'].soldOuts={'3_10_p2':[rec(12.0,25)]}; out.s3=st();
+        // しくみが出した数（leadSrc:'auto'）の記録は数えない：新しい側（曜日6）に5件足しても、目安の入力（作る時間のしくみ LM も入っている）が1字も変わらない
+        clearAllocCache(); const I3=JSON.stringify(_soRpInputs('p2',3,10)), n3=soMeasInfo('p2').n;
+        S.soldOuts['6_17_p2']=[1,2,3,4,5].map(i=>rec(17.5+i*0.2,40,{leadSrc:'auto'}));
+        clearAllocCache(); out.auto={same:JSON.stringify(_soRpInputs('p2',3,10))===I3,n:[n3,soMeasInfo('p2').n],has:I3.length>10};
       }catch(err){ out.err=String(err&&err.stack||err); }
       ${BACK} return JSON.stringify(out); })()`));
-    check('53','【⑶ 作り方だけでは目安を出さない】蒸す12分（記録なし）→ マスの目安なし・押した時は「何分後」を聞く（調理12分の1行）。記録2件でも出さない。3件たまると出す（商品設定の「→ 作る時間 約◯分」の行も3件から）',
-      !c3.err&&!c3.s0.I&&c3.s0.rp==='null'&&!/作る時間 約/.test(c3.s0.st)&&!c3.s2.I&&c3.s2.rp==='null'&&!/作る時間 約/.test(c3.s2.st)&&c3.ask&&c3.s3.I&&c3.s3.rp==='obj'&&/作る時間 約22分/.test(c3.s3.st),
-      c3.err||`記録なし ${J(c3.s0)}／2件 ${J(c3.s2)}・押した時 聞く ${c3.ask}／3件 ${J(c3.s3)}`);
+    check('53','【⑶ 作り方だけでは目安を出さない】蒸す12分（記録なし）→ マスの目安なし・押した時は「何分後」を聞く（調理12分の1行）。選んだ記録2件でも出さない。3件たまると出す（商品設定の「→ 作る時間 約◯分」の行も3件から。2行目は選んだ「何分後」の中央値 22分）。しくみが出した数（leadSrc:auto）の記録を5件足しても、目安の入力は変わらない',
+      !c3.err&&!c3.s0.I&&c3.s0.rp==='null'&&!/作る時間 約/.test(c3.s0.st)&&!c3.s2.I&&c3.s2.rp==='null'&&!/作る時間 約/.test(c3.s2.st)&&c3.ask&&c3.s3.I&&c3.s3.rp==='obj'&&/作る時間 約22分/.test(c3.s3.st)&&/：22分（直近3件の中央値）/.test(c3.s3.st)
+        &&c3.auto&&c3.auto.same&&c3.auto.has&&J(c3.auto.n)===J([3,3]),
+      c3.err||`記録なし ${J(c3.s0)}／2件 ${J(c3.s2)}・押した時 聞く ${c3.ask}／3件 ${J(c3.s3)}／auto の記録を5件足す → 入力同じ ${c3.auto&&c3.auto.same}・件数 ${J(c3.auto&&c3.auto.n)}`);
     // ⑷ 作る時間が「自動」（記録がそろった）・1回に作れる数が無い商品の「完売した」：詳細に「完売している確率」の行が出る（同じ分を選んだ時と同じ答え）
     const c4=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP}
       try{
@@ -722,12 +777,15 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const LM=soLeadModel(p2); out.cap=LM&&LM.cap; out.meas=!!(LM&&LM.meas);
         const a=calcSoldOutSuggestion('p2',3,10,12.6,'auto',null,0), b=calcSoldOutSuggestion('p2',3,10,12.6,soLeadMin(LM,3,12.6,1),null,0);
         out.a=[a.error||'',a.suggest,typeof a.priorSO,a.priorSO,a.readyAt]; out.b=[b.error||'',b.suggest,typeof b.priorSO,b.priorSO,b.readyAt];
-        window._soNowOverride=12.6; openSoldOutModal('p2',3,10); const ph=document.getElementById('soldOutPhase2'); out.ui=ph?ph.textContent.replace(/\\s+/g,' '):''; out.auto=!!(_soldOutCtx&&_soldOutCtx.auto); closeSoldOutModal();
+        // 2026-10-10：画面は記録がそろっても「何分後」を聞く（auto は false）。自動の枝の画面（確率の行）は、試験から pickSoldOutLead('auto') を呼んで見る
+        window._soNowOverride=12.6; openSoldOutModal('p2',3,10); const ph=document.getElementById('soldOutPhase2'), p1v=document.getElementById('soldOutPhase1');
+        out.auto=!!(_soldOutCtx&&_soldOutCtx.auto); out.asked=!!p1v&&p1v.style.display!=='none'&&!(_soldOutCtx&&_soldOutCtx.result)&&document.querySelectorAll('#soldOutPhase1 button[data-lead]').length===6;
+        pickSoldOutLead('auto'); out.ui=ph?ph.textContent.replace(/\\s+/g,' '):''; out.src=_soldOutCtx&&_soldOutCtx.result?_soldOutCtx.result.leadSrc:null; closeSoldOutModal();
       }catch(err){ out.err=String(err&&err.stack||err); }
       ${BACK} return JSON.stringify(out); })()`));
-    check('54','【⑷ 自動・1回の数なし・完売】温める15分（1回の数なし）・記録3件で作る時間が「自動」→ 完売した時の計算が今までの完売の計算（soCalcCore）を通り、詳細に「完売している確率」の行が出る。同じ分を選んだ時と同じ答え',
-      !c4.err&&c4.cap===null&&c4.meas&&c4.auto&&!c4.a[0]&&c4.a[2]==='number'&&J(c4.a)===J(c4.b)&&/完売している確率/.test(c4.ui),
-      c4.err||`自動 ${J(c4.a)}／選んだ ${J(c4.b)}・画面に確率の行 ${/完売している確率/.test(c4.ui||'')}`);
+    check('54','【⑷ 自動・1回の数なし・完売】温める15分（1回の数なし）・選んだ記録3件：画面は「何分後」を聞く（自動にしない。2026-10-10）。自動の計算（試験から呼ぶ）は今までの完売の計算（soCalcCore）を通り、詳細に「完売している確率」の行が出る。同じ分を選んだ時と同じ答え',
+      !c4.err&&c4.cap===null&&c4.meas&&c4.auto===false&&c4.asked&&c4.src==='auto'&&!c4.a[0]&&c4.a[2]==='number'&&J(c4.a)===J(c4.b)&&/完売している確率/.test(c4.ui),
+      c4.err||`自動 ${J(c4.a)}／選んだ ${J(c4.b)}・画面：聞く ${c4.asked}・auto ${c4.auto}・自動の枝に確率の行 ${/完売している確率/.test(c4.ui||'')}`);
     // ⑥ ③の動的計画の各状態で「0個がいちばん小さくても、y⁺（y>0 のいちばん小さい損）が待つより小さければ作る」。押した時の決め方と同じ。
     //   確かめ方：③を本体とは別に素直に書いた物（refDP：状態ごとに重みを作り直し、y は全部見る）で、新しい決め方（y⁺ と待つ）を出し、本体と比べる。
     //   古い決め方（いちばん小さい数が 0 なら作らない）も同じ refDP で出し、値が変わる見本があることを見る。見本は2つの λ（売れない日・売れる日）の作った問題
@@ -771,6 +829,290 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     check('55','【⑥ 0個がいちばん小さくても y⁺ が待つより小さければ作る】③の各状態の決め方を押した時と同じにした（y⁺ と「待つ」を比べる）。別に素直に書いた動的計画（y を全部見る）と、作った見本（約80）で値（V0）も答えも一致。古い決め方では値が変わる見本がある（'+r6.chg+'）。見本：前は「今 1個作る」、今は途中の状態で y⁺ を作れるので「待つ」の方が小さい',
       !r6.err&&r6.n>=60&&r6.maxRel<1e-9&&r6.makeSame===r6.n&&r6.chg>0&&r6.s6.refOld[0]===true&&r6.s6.refNew[0]===false&&r6.s6.app[0]===false&&r6.s6.app[3]<r6.s6.app[2],
       r6.err||`${r6.n}の見本・本体＝別に書いた物 差の最大 ${r6.maxRel.toExponential(1)}・答え同じ ${r6.makeSame}・古い決め方と値が違う ${r6.chg}（そのうち今 0個がいちばん小さいのに作る ${r6.rootNone2Make}）／見本：本体 ${J(r6.s6.app)}・新しい決め方 ${J(r6.s6.refNew)}・古い決め方 ${J(r6.s6.refOld)}`);
+    // ===== 2026-10-10 店長の決定：「✓ 作った」のボタンを無くす。追加分は「売場へ」の予定の時刻 readyAt に並んだものとして計算する。作る時間の元は、クルーが選んだ「何分後」 =====
+    // 57：予定の後は止めない。答えは、記録の done が「無い／false（古い版で押さなかった）／true＋doneAt≥readyAt（古い版で予定の後に ✓ を押した）」のどれでも同じ
+    const t57=JSON.parse(A.ev(`(()=>{ const out={ui:[],eq:[]}; ${SNAP}
+      try{
+        S.weeks[S.activeWeek].invest={p1:{2:{10:5}}}; S.soldOuts={}; clearAllocCache();
+        const Q0=getProdCnt('p1',2,10)+getInvestExtra('p1',2,10), k='2_10_p1'; out.Q0=Q0;
+        const recSold=x=>Object.assign({readyAt:12.5,soldAt:12.5,added:3,v:2,noticedAt:12.0,lead:30,made:Q0,n1:40},x);             // 12:00 完売 → 追加3個（12:30 に売場へ）
+        const recRem=x=>Object.assign({readyAt:12.5,soldAt:12.5,added:2,v:2,noticedAt:12.0,lead:30,made:Q0,remain:2,n1:40},x);       // 12:00 残り2個 → 追加2個（12:30 に売場へ）
+        const strip=r=>{ if(r.error)return 'E:'+r.error; const o=Object.assign({},r); delete o.ms; delete o.p; return JSON.stringify(o); };
+        const forms=[{},{done:false},{done:true,doneAt:12.6}];
+        const vis=id=>{ const e=document.getElementById(id); return !!e&&e.style.display!=='none'; };
+        [['完売＋追加',recSold],['残り＋追加',recRem]].forEach(([nm,mk])=>{
+          S.soldOuts[k]=[mk({done:false})];
+          [false,true].forEach(remMode=>{ window._soNowOverride=13.2; openSoldOutModal('p1',2,10,remMode?{remain:true}:undefined);
+            const note=document.getElementById('soldOutPlanNote');
+            const u={nm,remMode,P:!!document.getElementById('soldOutPhaseP'),p0:!!document.getElementById('soldOutPhase0'),note:note?note.textContent:'',R:vis('soldOutPhaseR')};
+            if(remMode)pickSoldOutRemain(1); u.lead=vis('soldOutPhase1'); pickSoldOutLead(30); u.res=!!(_soldOutCtx&&_soldOutCtx.result); closeSoldOutModal(); out.ui.push(u); });
+          [[13.2,30,0],[13.2,30,1],[13.6,20,0],[13.6,20,2],[14.3,60,0],[14.3,10,1]].forEach(([now,L,rem])=>{
+            const rs=forms.map(f=>{ S.soldOuts[k]=[mk(f)]; return strip(calcSoldOutSuggestion('p1',2,10,now,L,null,rem)); });
+            out.eq.push([nm,now,L,rem,rs[0]===rs[1]&&rs[1]===rs[2],rs[0].slice(0,2)==='E:'?rs[0]:'',rs[0].length]); });
+        });
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      closeSoldOutModal(); ${BACK} return JSON.stringify(out); })()`));
+    check('57','【予定の後は止めない】「完売＋追加」「残り◯個＋追加」の記録（古い版の done:false）のマスで、予定の時刻（12:30）の後に「完売した」「残り◯個」を押す → 「先に ✓ 作った」の止めも「いつ並べた？」も出ず、1行「12:30 に売場に並んだものとして計算します」が出て、そのまま計算できる。計算の全部の欄（かかった時間以外）が、記録の done が 無い／false／true＋予定の後の doneAt の3通りで同じ（12場面）',
+      !t57.err&&t57.ui.length===4&&t57.ui.every(u=>!u.P&&!u.p0&&/12:30/.test(u.note)&&(!u.remMode||u.R)&&u.lead&&u.res)&&t57.eq.length===12&&t57.eq.every(e=>e[4]&&!e[5]&&e[6]>200),
+      t57.err||`Q=${t57.Q0}＋追加・画面 ${t57.ui.map(u=>u.nm+(u.remMode?'／残り◯個':'／完売した')+'：止め '+u.P+'・いつ並べた？ '+u.p0+'・計算 '+u.res).join('　')}・「${(t57.ui[0]||{}).note||''}」／3通りで同じ ${t57.eq.filter(e=>e[4]).length}/${t57.eq.length}${t57.eq.some(e=>e[5])?'・エラー '+J(t57.eq.filter(e=>e[5]).slice(0,2)):''}`);
+    // 58：予定の前に「完売した」（最後の記録に追加あり）→「いつ並べた？」の題が追加分の文になり、「まだ並べていない」が1つ増える。記録の無いマス（1回目）は今までのまま
+    const t58=JSON.parse(A.ev(`(()=>{ const out={}; const k='2_10_p1'; const N=(a,b)=>getCustHoursRange(2,a,b);
+      try{
+        delete S.soldOuts[k]; const vis=id=>{ const e=document.getElementById(id); return !!e&&e.style.display!=='none'; };
+        // 1回目（記録なし・並ぶ予定 11:00 より前の 10:45）：今までの「いつ並べた？」。「まだ並べていない」は出ない
+        window._soNowOverride=10.75; openSoldOutModal('p1',2,10); const f0=document.getElementById('soldOutPhase0');
+        out.first={p0:vis('soldOutPhase0'),shelf:document.querySelectorAll('#soldOutPhase0 button[data-shelf]').length,ny:document.querySelectorAll('#soldOutPhase0 button[data-notyet]').length,title:!!f0&&f0.textContent.includes(t('so2.shelfAsk'))&&f0.textContent.includes('11:00')};
+        closeSoldOutModal();
+        // 2回目：10:45 に完売 → 追加3個（11:15 に売場へ）。11:00 にまた「完売した」
+        S.soldOuts[k]=[{readyAt:11.25,soldAt:11.25,added:3,v:2,noticedAt:10.75,lead:30,shelfAt:10.5}];
+        const so0=JSON.stringify(S.soldOuts), rec0=JSON.stringify(S.soldOuts[k][0]);
+        window._soNowOverride=11.0; openSoldOutModal('p1',2,10);
+        const p0=document.getElementById('soldOutPhase0'), p2=document.getElementById('soldOutPhase2');
+        out.q=vis('soldOutPhase0')?p0.textContent.replace(/\\s+/g,' ').trim():''; out.shelf=document.querySelectorAll('#soldOutPhase0 button[data-shelf]').length; out.ny=document.querySelectorAll('#soldOutPhase0 button[data-notyet]').length; out.note=!!document.getElementById('soldOutPlanNote');
+        document.querySelector('#soldOutPhase0 button[data-notyet]').click();
+        out.wait=vis('soldOutPhase2')?p2.textContent.replace(/\\s+/g,' ').trim():''; out.hid=!vis('soldOutPhase0')&&!vis('soldOutPhase1');
+        acceptSoldOut(); out.noRec=JSON.stringify(S.soldOuts)===so0&&!!_soldOutCtx&&_soldOutCtx.result==null;
+        p2.querySelector('button').click(); out.back=vis('soldOutPhase0')&&!vis('soldOutPhase2')&&!vis('soldOutPhase1');
+        pickSoldOutShelf(10.9); pickSoldOutLead(30); const c=_soldOutCtx, r=c&&c.result; out.e=r?'':((p2.textContent||'').replace(/\\s+/g,' ').trim().slice(0,80)||'結果なし');
+        if(r){ const ref=calcSoldOutSuggestion('p1',2,10,11.0,30,10.9);
+          out.n1=[r.n1,ref.n1,N(10.5,10.75)+N(10.9,11.0)]; out.gap=r.emptyMin; out.ds=r.displayStart; out.y=[r.suggest,ref.suggest];
+          acceptSoldOut(); const e2=S.soldOuts[k][1]||{};
+          out.rec={shelfAt:e2.shelfAt,noticedAt:e2.noticedAt,readyAt:e2.readyAt,lead:e2.lead,done:('done' in e2),leadSrc:('leadSrc' in e2)}; out.keep=JSON.stringify(S.soldOuts[k][0])===rec0; out.len=S.soldOuts[k].length; }
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      closeSoldOutModal(); delete window._soNowOverride; delete S.soldOuts[k]; return JSON.stringify(out); })()`));
+    A.ev(`(()=>{ delete S.soldOuts['2_10_p1']; closeSoldOutModal(); delete window._soNowOverride; saveS(); renderProdDayContent(currentProdDay); })()`); await sync();
+    { const f=t58.first||{}, rc=t58.rec||{}, n1=t58.n1||[];
+      check('58','【予定の前・完売】最後の記録が「完売＋追加3個（11:15 に売場へ）」のマスで、予定の前（11:00）に「完売した」→「追加 +3個（11:15 に並ぶ予定）は、いつ売場に並べましたか？」と聞き、選択肢に「まだ並べていない」が1つ増える。押すと計算も記録もしない（「並べてから、もう一度押してください」）。「選び直す」→ 10:54 を選んで 30分後 → 棚にあった間の客数は答えた時刻で計算（空は 10:45〜10:54 の9分）、記録に shelfAt が残り done は書かない。記録の無いマス（1回目）には「まだ並べていない」が出ない',
+        !t58.err&&f.p0&&f.shelf>=3&&f.ny===0&&f.title&&/\+3/.test(t58.q)&&/11:15/.test(t58.q)&&t58.shelf>=2&&t58.ny===1&&!t58.note&&/\+3/.test(t58.wait)&&/11:15/.test(t58.wait)&&/記録しません/.test(t58.wait)&&t58.hid&&t58.noRec&&t58.back&&!t58.e
+          &&ex(n1[0],n1[1])&&ex(n1[0],n1[2])&&t58.gap===9&&t58.ds===10.5&&t58.y[0]===t58.y[1]&&rc.shelfAt===10.9&&rc.noticedAt===11&&rc.readyAt===11.5&&rc.lead===30&&rc.done===false&&rc.leadSrc===false&&t58.keep&&t58.len===2,
+        t58.err||`1回目：時刻 ${f.shelf}・まだ ${f.ny}・今までの題 ${f.title}／2回目「${(t58.q||'').slice(0,70)}」時刻 ${t58.shelf}・まだ ${t58.ny} →「${(t58.wait||'').slice(0,60)}」記録なし ${t58.noRec}・選び直す ${t58.back} → ${t58.e||('n1='+(+n1[0]).toFixed(2)+'（式 '+(+n1[2]).toFixed(2)+'・空 '+t58.gap+'分）・記録 '+J(rc))}・前の記録そのまま ${t58.keep}`); }
+    // 59：空の時間の直し（計算で変わるのはここだけ）。「作らない（0個）」の完売の後に、同じマスで追加ありの記録がある時、空の時間は追加分が並んだ時刻まで
+    const t59=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP} const k='2_10_p1'; const N=(a,b)=>getCustHoursRange(2,a,b);
+      try{
+        S.soldOuts={}; clearAllocCache();
+        const pick=r=>r.error?{err:r.error}:{n1:r.n1,raw:r.n1Raw,gap:r.emptyMin,cust:r.emptyCust,y:r.suggest};
+        const z={v:2,noticedAt:12.0,readyAt:12.5,soldAt:12.5,added:0,lead:30}, a={v:2,noticedAt:12.5,readyAt:13.0,soldAt:13.0,added:3,lead:30};
+        // 12:00 完売・作らない → 12:30 完売・+3個（13:00 に売場へ）→ 13:30 に押す：空は 12:00〜13:00 の60分
+        S.soldOuts[k]=[z,a]; out.both=pick(calcSoldOutSuggestion('p1',2,10,13.5,30)); out.expBoth=N(11,12.0)+N(13.0,13.5);
+        // 1件目だけ（後ろに追加ありの記録が無い）：前と同じで、押した時刻まで空（12:00〜13:30 の90分）
+        S.soldOuts[k]=[z]; out.one=pick(calcSoldOutSuggestion('p1',2,10,13.5,30)); out.expOne=N(11,12.0);
+        // 追加ありの記録が前（押した時刻が小さい）にしか無い：変わらない。11:30 完売・+3個（12:00 に売場へ）→ 12:30 完売・作らない → 13:30：空は 11:30〜12:00 と 12:30〜13:30
+        const a0={v:2,noticedAt:11.5,readyAt:12.0,soldAt:12.0,added:3,lead:30}, z2={v:2,noticedAt:12.5,readyAt:13.0,soldAt:13.0,added:0,lead:30};
+        S.soldOuts[k]=[a0,z2]; out.prev=pick(calcSoldOutSuggestion('p1',2,10,13.5,30)); out.expPrev=N(11,11.5)+N(12.0,12.5);
+        // 3件目に shelfAt:12.8（2件目の追加分は 12:48 に並んだ、と答えた）→ 1件目の空は 12:00〜12:48。3件目（13:12 完売・+2個・13:42 に売場へ）の空は 13:12〜13:42
+        const c={v:2,noticedAt:13.2,readyAt:13.7,soldAt:13.7,added:2,lead:30,shelfAt:12.8};
+        S.soldOuts[k]=[z,a,c]; out.three=pick(calcSoldOutSuggestion('p1',2,10,14.0,30)); out.expThree=N(11,12.0)+N(12.8,13.2)+N(13.7,14.0);
+        // 追加ありの記録の式は変えていない：重なり（試験22と同じ形）は 45分のまま
+        S.soldOuts[k]=[{readyAt:13,soldAt:13,added:3,v:2,noticedAt:12.5},{readyAt:13.25,soldAt:13.25,added:2,v:2,noticedAt:12.75}]; out.ov=pick(calcSoldOutSuggestion('p1',2,10,14,30));
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      ${BACK} return JSON.stringify(out); })()`));
+    check('59','【空の時間の直し】「作らない（0個）」の完売の後に、同じマスで追加ありの記録がある時：空の時間は、その追加分が並んだ時刻まで（12:00 完売・0個 → 12:30 完売・+3個（13:00 に売場へ）→ 13:30 に押す：空 60分。前は 90分）。後ろに追加ありの記録が無い時は前と同じ（押した時刻まで・90分）。追加ありの記録が前にしか無い時も変わらない（90分）。次の記録に「いつ並べた？」の答え（12:48）があれば、そこまで（48分＋3件目の30分）。追加ありどうしの重なりは 45分のまま',
+      !t59.err&&!t59.both.err&&t59.both.gap===60&&ex(t59.both.n1,t59.expBoth)&&!t59.one.err&&t59.one.gap===90&&ex(t59.one.n1,t59.expOne)&&!t59.prev.err&&t59.prev.gap===90&&ex(t59.prev.n1,t59.expPrev)&&!t59.three.err&&t59.three.gap===78&&ex(t59.three.n1,t59.expThree)&&!t59.ov.err&&t59.ov.gap===45&&t59.both.n1>t59.one.n1,
+      t59.err||`0個→+3個：空 ${t59.both.gap}分・n1=${(+t59.both.n1).toFixed(2)}（式 ${(+t59.expBoth).toFixed(2)}）／0個だけ：空 ${t59.one.gap}分・n1=${(+t59.one.n1).toFixed(2)}（式 ${(+t59.expOne).toFixed(2)}）／+3個→0個：空 ${t59.prev.gap}分・n1=${(+t59.prev.n1).toFixed(2)}（式 ${(+t59.expPrev).toFixed(2)}）／3件目に答え 12:48：空 ${t59.three.gap}分・n1=${(+t59.three.n1).toFixed(2)}（式 ${(+t59.expThree).toFixed(2)}）／重なり ${t59.ov.gap}分${[t59.both,t59.one,t59.prev,t59.three,t59.ov].some(x=>x.err)?'・エラー '+J([t59.both,t59.one,t59.prev,t59.three,t59.ov].map(x=>x.err||'')):''}`);
+    // 60：作る時間の元＝クルーが選んだ「何分後」（記録の lead）。doneAt・shelfAt は使わない。しくみが出した数（leadSrc:auto）は数えない。引くのは調理1回ぶん
+    const t60=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP}
+      try{
+        S.soldOuts={}; Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k])S.weeks[k].soldOuts={}; });
+        const p1=getP('p1'), p2=getP('p2'); ['prepMethod','fryerMin','microwaveMin','steamMin','warmMin','fryerCap','cookCap'].forEach(k=>{ delete p1[k]; delete p2[k]; });
+        const rec=(at,lead,x)=>Object.assign({readyAt:at+lead/60,soldAt:at+lead/60,added:2,v:2,noticedAt:at,lead,made:5,n1:30},x);
+        const raws=pid=>{ clearAllocCache(); return soMeasList(pid).map(z=>z.raw); }, Ms=pid=>{ clearAllocCache(); return soMeasList(pid).map(z=>Math.round(z.M*1000)/1000); };
+        // (1) 選んだ30分。古い「✓ 作った」の時刻（5分後）は見ない
+        S.soldOuts['4_14_p1']=[rec(15.2,30,{done:true,doneAt:15.2+5/60})]; out.t1=raws('p1');
+        // (3) 追加0個の記録（20分）も数える (4) lead の無い v:2 の記録・v の無い記録・lead が 0 の記録は数えない
+        S.soldOuts['5_17_p1']=[rec(18.1,20,{added:0})]; S.soldOuts['5_14_p1']=[{readyAt:15,soldAt:15,added:2,v:2,noticedAt:14.5,made:5}]; S.soldOuts['5_10_p1']=[{readyAt:12,soldAt:12,added:3}]; S.soldOuts['5_6_p1']=[rec(7.5,0)];
+        out.t34=raws('p1');
+        // (2) しくみが出した数（leadSrc:'auto'）の記録を新しい側（曜日6）に5件足しても、件数も中央値も変わらない
+        S.soldOuts['3_10_p1']=[rec(12.0,40)]; clearAllocCache(); const mi0=soMeasInfo('p1'); out.mi0=[mi0.n,mi0.med];
+        S.soldOuts['6_10_p1']=[1,2,3,4,5].map(i=>rec(11+i*0.3,17,{leadSrc:'auto'})); clearAllocCache(); const mi1=soMeasInfo('p1'); out.mi1=[mi1.n,mi1.med]; out.t2=raws('p1');
+        delete S.soldOuts['6_10_p1'];
+        // (5) 揚げる8分・1回3個：追加5個（2回ぶん）の記録でも、引くのは調理1回ぶん（8分）
+        p1.prepMethod='fryer'; p1.fryerMin=8; p1.fryerCap=3; S.soldOuts['4_14_p1']=[rec(15.2,30,{added:5})]; out.t5=Ms('p1');
+        // (7) 手計算：新しい5件 → 選んだ分−調理1回ぶん → 中央値 → 作る時間（1回＝調理＋max(0,中央値)、2回＝調理2回ぶん＋max(0,中央値)）
+        S.soldOuts['6_6_p1']=[rec(7.2,10)]; S.soldOuts['6_14_p1']=[rec(15.5,60)]; S.soldOuts['0_6_p1']=[rec(7.1,50)];
+        const all=raws('p1'), top5=all.slice(0,5), srt=top5.map(v=>v-8).sort((a,b)=>a-b), med=srt[2];
+        clearAllocCache(); const LM=soLeadModel(p1); out.t7={all,top5,med,LMmed:LM.meas.med,n:LM.meas.n,beta:LM.beta,cap:LM.cap,L1:[soLeadMin(LM,2,12,1),8+Math.max(0,med)],L2:[soLeadMin(LM,2,12,2),16+Math.max(0,med)]};
+        // (6) 蒸す12分・「10分後」が3件 → 並べるまでの中央値 −2・作る時間 12分・②商品設定の文にマイナスが出ない（2行目は選んだ分の中央値 10分）
+        S.soldOuts={}; p2.prepMethod='steam'; p2.steamMin=12; S.soldOuts['4_14_p2']=[rec(15.2,10)]; S.soldOuts['5_17_p2']=[rec(18.1,10)]; S.soldOuts['3_10_p2']=[rec(12.0,10)]; clearAllocCache();
+        const LM2=soLeadModel(p2); out.t6={med:LM2.meas.med,L:soLeadMin(LM2,3,12,1),st:cookStatusHtml(p2).replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ').trim()};
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      ${BACK} return JSON.stringify(out); })()`));
+    { const s=t60, t7=s.t7||{}, t6=s.t6||{};
+      const ok1=J(s.t1)===J([30]), ok34=J(s.t34)===J([20,30]), ok2=J(s.mi0)===J([3,30])&&J(s.mi1)===J([3,30])&&J(s.t2)===J([20,30,40]), ok5=J(s.t5)===J([12,22,32]);
+      const ok7=J(t7.all)===J([60,10,20,30,40,50])&&t7.med===22&&ex(t7.LMmed,22)&&t7.n===5&&t7.beta===0&&t7.cap===3&&ex(t7.L1[0],t7.L1[1])&&ex(t7.L1[0],30)&&ex(t7.L2[0],t7.L2[1])&&ex(t7.L2[0],38);
+      const ok6=ex(t6.med,-2)&&ex(t6.L,12)&&!/[-−]\s*\d/.test(t6.st||'-1')&&/：10分（直近3件の中央値）/.test(t6.st)&&/作る時間 約12分/.test(t6.st);
+      check('60','【作る時間の元＝選んだ「何分後」】(1) 選んだ30分・古い「✓ 作った」が5分後の記録 → 30分を使う (2) しくみが出した数（leadSrc:auto）の記録を新しい側に5件足しても、件数・中央値が変わらない (3) 追加0個の記録も数える (4) lead の無い記録・v の無い記録・0分は数えない (5) 1回3個で追加5個の記録でも、引くのは調理1回ぶん (6) 蒸す12分で「10分後」が3件 → 中央値 −2・作る時間 12分・画面にマイナスが出ず「10分」と「作る時間 約12分」 (7) 手計算（新しい5件 → 中央値 → 1回・2回の作る時間）と本体が同じ',
+        !s.err&&ok1&&ok34&&ok2&&ok5&&ok6&&ok7,
+        s.err||`(1) ${ok1} ${J(s.t1)}／(3)(4) ${ok34} ${J(s.t34)}／(2) ${ok2} 前 ${J(s.mi0)}・後 ${J(s.mi1)}／(5) ${ok5} ${J(s.t5)}／(6) ${ok6} 中央値 ${t6.med}・作る時間 ${t6.L}分「${t6.st}」／(7) ${ok7} 記録 ${J(t7.all)}・新しい5件の中央値 ${t7.med}（本体 ${t7.LMmed}・${t7.n}件）・1回 ${J(t7.L1)}・2回 ${J(t7.L2)}`); }
+    // 61：「何分後」は毎回聞く。選んだ記録が3件ある単品でも聞き、記録に leadSrc も done も付かない。選んだ分が次からの元になる（4件目・5件目で中央値が動く）
+    const inv61=A.ev(`JSON.stringify(S.weeks[S.activeWeek].invest||null)`);
+    const t61=JSON.parse(A.ev(`(()=>{ const out={}; const k='3_10_p2';
+      try{
+        out.had=JSON.stringify(S.soldOuts['6_17_p2']||null);
+        Object.keys(S.soldOuts).forEach(x=>{ if(/_p2$/.test(x))delete S.soldOuts[x]; });
+        const rec=(at,lead)=>({readyAt:at+lead/60,soldAt:at+lead/60,added:2,v:2,noticedAt:at,lead,made:4,n1:30});
+        S.soldOuts['6_17_p2']=[rec(18.0,18)]; S.soldOuts['5_17_p2']=[rec(18.1,30)]; S.soldOuts['4_14_p2']=[rec(15.2,10)];
+        const w=S.weeks[S.activeWeek]; w.invest=Object.assign({},w.invest,{p2:{3:{10:6}}}); clearAllocCache();
+        const ck=soCookInfo(getP('p2')), cook=ck.set?ck.first:0, med5=a=>{ const s=a.slice(0,5).map(v=>v-cook).sort((x,y)=>x-y), n=s.length; return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2; };
+        const info=()=>{ clearAllocCache(); const raw=soMeasList('p2').map(z=>z.raw), mi=soMeasInfo('p2'); return {raw,n:mi.n,med:mi.med,hand:med5(raw)}; };
+        out.cook=cook; out.m3=info(); out.I=!!_soRpInputs('p2',3,10); const LM=soLeadModel(getP('p2')); out.meas=!!(LM&&LM.meas);
+        // 1回目：選んだ記録が3件ある単品でも「何分後」を聞く（自動で計算しない）
+        window._soNowOverride=12.6; openSoldOutModal('p2',3,10); const p1v=document.getElementById('soldOutPhase1');
+        out.ask={vis:!!p1v&&p1v.style.display!=='none',btn:document.querySelectorAll('#soldOutPhase1 button[data-lead]').length,auto:_soldOutCtx.auto,res:!!_soldOutCtx.result};
+        pickSoldOutLead(40); let c=_soldOutCtx; out.e1=c&&c.result?'':'結果なし'; out.src1=c&&c.result?c.result.leadSrc:null; acceptSoldOut();
+        const e1=(S.soldOuts[k]||[])[0]||{}; out.rec1={lead:e1.lead,leadSrc:('leadSrc' in e1),done:('done' in e1),v:e1.v,noticedAt:e1.noticedAt,readyAt:e1.readyAt};
+        out.m4=info();
+        // 2回目（1回目の予定の後）：また聞く
+        window._soNowOverride=13.6; openSoldOutModal('p2',3,10); out.ask2={auto:_soldOutCtx.auto,res:!!_soldOutCtx.result,btn:document.querySelectorAll('#soldOutPhase1 button[data-lead]').length};
+        pickSoldOutLead(40); c=_soldOutCtx; out.e2=c&&c.result?'':'結果なし'; acceptSoldOut();
+        out.len=(S.soldOuts[k]||[]).length; out.m5=info(); out.I5=!!_soRpInputs('p2',3,10);
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      closeSoldOutModal(); delete window._soNowOverride; return JSON.stringify(out); })()`));
+    A.ev(`(()=>{ ['3_10_p2','5_17_p2','4_14_p2'].forEach(x=>delete S.soldOuts[x]); const h=JSON.parse(${J(t61.had||'null')}); if(h)S.soldOuts['6_17_p2']=h; else delete S.soldOuts['6_17_p2'];
+      const v=${inv61}, w=S.weeks[S.activeWeek]; if(v)w.invest=v; else delete w.invest; closeSoldOutModal(); delete window._soNowOverride; saveS(); renderProdDayContent(currentProdDay); })()`); await sync();
+    { const s=t61, a=s.ask||{}, a2=s.ask2||{}, r1=s.rec1||{}, m3=s.m3||{}, m4=s.m4||{}, m5=s.m5||{};
+      check('61','【「何分後」は毎回聞く】選んだ記録が3件ある単品（目安の入力も出る）で「完売した」→「何分後」のボタン6つが出る（自動で計算しない・結果はまだ無い）。40分を選んで記録 → 記録に lead:40 があり、leadSrc も done も付かない。その記録が次からの元になる：4件目・5件目で中央値が動く（手計算と同じ）。2回目も聞く',
+        !s.err&&s.I&&s.meas&&J(m3.raw)===J([18,30,10])&&m3.n===3&&ex(m3.med,m3.hand)&&a.vis&&a.btn===6&&a.auto===false&&!a.res&&!s.e1&&s.src1==='pick'&&r1.lead===40&&r1.leadSrc===false&&r1.done===false&&r1.v===2&&r1.noticedAt===12.6
+          &&m4.n===4&&ex(m4.med,m4.hand)&&!ex(m4.med,m3.med)&&a2.auto===false&&!a2.res&&a2.btn===6&&!s.e2&&s.len===2&&m5.n===5&&ex(m5.med,m5.hand)&&!ex(m5.med,m4.med)&&s.I5,
+        s.err||`調理 ${s.cook}分・3件 ${J(m3.raw)} 中央値（並べるまで）${m3.med}／聞く：ボタン ${a.btn}・auto ${a.auto}・結果 ${a.res} → 記録 ${J(r1)}${s.e1?'（'+s.e1+'）':''}／4件 ${J(m4.raw)} 中央値 ${m4.med}（手計算 ${m4.hand}）／2回目も聞く ${a2.auto===false&&!a2.res}${s.e2?'（'+s.e2+'）':''}・5件 ${J(m5.raw)} 中央値 ${m5.med}（手計算 ${m5.hand}）・目安の入力 ${s.I}/${s.I5}`); }
+    // 62：日付と描き直し。「作る予定」は今日の曜日のタブだけ（日をまたぐ予定は、きのうのタブに 24時過ぎまで）。予定の時刻を過ぎたら自分で描き直す（保存しない）
+    const pend62=A.store.status().pending;
+    const t62=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP} const tab0=currentTab, day0=currentProdDay, today0=window._dateTodayOverride, ws0=S.weekStart;
+      try{
+        S.soldOuts={}; clearAllocCache();
+        const rec=(n,r,a)=>({readyAt:r,soldAt:r,added:a,v:2,noticedAt:n,lead:Math.round((r-n)*60),made:5,n1:30});
+        const cnt=()=>[0,1,2,3,4,5,6].map(d=>getSoldOutPendingDay(d).length);
+        // (1) 今日＝木曜（曜日番号2）の 10:54。火〜土の同じ時間帯に同じ記録（11:00 に売場へ）
+        window._dateTodayOverride='2026-10-08'; window._soNowOverride=10.9;
+        [0,1,2,3,4].forEach(d=>{ S.soldOuts[d+'_10_p1']=[rec(10.5,11,3)]; });
+        out.days=cnt(); out.cell=[1,2,3].map(d=>getSoldOutPending('p1',d,10).length); out.nowOn=[1,2,3].map(d=>_soNowOn(d));
+        S.weekStart='2026-09-29'; out.wkPrev=cnt(); S.weekStart='2026-10-13'; out.wkNext=cnt(); S.weekStart=ws0; out.wkBack=cnt();
+        // (2) 日をまたぐ予定：木曜の 23:54 に押して、24:18（金曜の 0:18）に売場へ
+        S.soldOuts={'2_17_p1':[rec(23.9,24.3,2)]};
+        window._dateTodayOverride='2026-10-08'; window._soNowOverride=23.95; out.y0=getSoldOutPendingDay(2).length;
+        window._dateTodayOverride='2026-10-09'; window._soNowOverride=10/60; out.y1=[getSoldOutPendingDay(2).length,getSoldOutPendingDay(3).length]; window._soNowOverride=20/60; out.y2=getSoldOutPendingDay(2).length;
+        window._dateTodayOverride='2026-10-10'; window._soNowOverride=10/60; out.y3=getSoldOutPendingDay(2).length;
+        // (3) 予定1件で描く → 時計を進めて soPlanTick() → 一覧の箱が消え、マスの印が緑
+        window._dateTodayOverride='2026-10-08'; window._soNowOverride=10.9; S.soldOuts={'2_10_p1':[rec(10.5,11,3)]};
+        showTab(3); selectProdDay(2);
+        const el=document.getElementById('prod-day-content'), snap=()=>({box:!!document.getElementById('soPendingBox'),plan:el.querySelectorAll('[data-so-plan]').length,green:el.innerHTML.includes('>+3</span>'),timer:!!_soPlanTimer});
+        const s0=JSON.stringify(S); out.r0=snap();
+        window._soNowOverride=11.01; openSoldOutModal('p1',2,10); soPlanTick(); out.r1=snap();   // 完売の画面が開いている間は描き直さない（20秒後にもう一度見る）
+        closeSoldOutModal(); soPlanTick(); out.r2=snap();
+        out.sSame=JSON.stringify(S)===s0;
+        // ④作成表を開いていない時は描き直さない
+        window._soNowOverride=10.9; renderProdDayContent(2); const r3a=snap(); currentTab=1; window._soNowOverride=11.01; soPlanTick(); out.r3=[r3a,snap()]; currentTab=3;
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      closeSoldOutModal(); S.weekStart=ws0; window._dateTodayOverride=today0; ${BACK}
+      try{ currentTab=tab0; selectProdDay(day0); showTab(tab0); }catch(_){ }
+      out.timerEnd=!!_soPlanTimer; return JSON.stringify(out); })()`));
+    { const s=t62, r0=s.r0||{}, r1=s.r1||{}, r2=s.r2||{}, r3=s.r3||[{},{}], pendAfter=A.store.status().pending;
+      const ok1=J(s.days)===J([0,0,1,0,0,0,0])&&J(s.cell)===J([0,1,0])&&(s.nowOn||[]).length===3&&ex(s.nowOn[0],34.9)&&ex(s.nowOn[1],10.9)&&s.nowOn[2]===null&&J(s.wkPrev)===J([0,0,0,0,0,0,0])&&J(s.wkNext)===J([0,0,0,0,0,0,0])&&J(s.wkBack)===J(s.days);
+      const ok2=s.y0===1&&J(s.y1)===J([1,0])&&s.y2===0&&s.y3===0;
+      const ok3=r0.box&&r0.plan===1&&!r0.green&&r0.timer&&r1.box&&r1.plan===1&&r1.timer&&!r2.box&&r2.plan===0&&r2.green&&!r2.timer&&s.sSame&&r3[0].box&&r3[0].timer&&r3[1].box&&r3[1].plan===1&&!r3[1].timer&&pendAfter===pend62&&!s.timerEnd;
+      check('62','【日付と描き直し】(1) 今日（木曜）の 10:54：予定 11:00 の追加分は、今日の曜日のタブだけ「作る予定」（きのう・あした・ほかの曜日は同じ記録でも0件。前の週・次の週も0件） (2) 日をまたぐ予定（24:18）は、きのうの曜日のタブに 0:10 まで出て、0:20 に消える（2日後は出ない） (3) 予定1件で描く → 時計を 11:00過ぎに進めて描き直しを呼ぶ → 完売の画面が開いている間は描き直さない／閉じると一覧の箱が消え、マスの印が緑の「+3」。④作成表を開いていない時は描き直さない。その間データは1字も変わらず、送る物も増えない',
+        !s.err&&ok1&&ok2&&ok3,
+        s.err||`(1) ${ok1} 曜日ごと ${J(s.days)}・マス（水木金）${J(s.cell)}・その曜日の今 ${J(s.nowOn)}・前の週 ${J(s.wkPrev)}・次の週 ${J(s.wkNext)}／(2) ${ok2} 木 23:57 ${s.y0}・金 0:10 ${J(s.y1)}・0:20 ${s.y2}・土 ${s.y3}／(3) ${ok3} 描いた時 ${J(r0)}・画面が開いている間 ${J(r1)}・閉じた後 ${J(r2)}・別のタブ ${J(r3[1])}・データ同じ ${s.sSame}・未送信 ${pend62}→${pendAfter}・後始末のタイマー ${s.timerEnd}`); }
+    // 63：3言語。足した鍵8つ（検算の直しで3つ足した：作り始め・印の説明・調理の時間が空で記録あり）・直した鍵8つ・使い始めた鍵1つが、日本語・英語・ネパール語にあり、差し込み（{0}{1}{2}）がそろう。「✓ 作った を押す」の案内とボタンが出ない
+    let src63=null;
+    try{ const tx=await (await fetch('ff/index.html?src='+Date.now())).text(); const iJa=tx.search(/^  ja: \{/m), iEn=tx.search(/^  en: \{/m), iNe=tx.search(/^  ne: \{/m), iEnd=tx.indexOf('\n};',iNe);
+      if(iJa>0&&iEn>iJa&&iNe>iEn&&iEnd>iNe)src63={ja:tx.slice(iJa,iEn),en:tx.slice(iEn,iNe),ne:tx.slice(iNe,iEnd),fn:/function markSoldOutDone|function unmarkSoldOutDone|function soDoneBtn|function soPendDoneThen|function soPending\(/.test(tx)}; }catch(_){ src63=null; }
+    const K63={NEW:['so2.planNote','so2.shelfAskAdd','so2.shelfHintAdd','so2.shelfNotYet','so2.shelfWait','so2.shelfMadeAdd','so2.pendingTip','product.cookEmptyRec'],FIX:['so2.planHint','so2.pendingDesc','so2.toastAdd','so2.toastRemAdd','product.cookDesc','product.cookMeas','product.cookMeasNone','product.mkCookDesc'],USE:['so2.pendingBadge']};
+    const once63=src63?K63.NEW.concat(K63.FIX,K63.USE).map(k=>['ja','en','ne'].map(l=>src63[l].split("'"+k+"':").length-1)):null;
+    const t63=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP} const lang0=LANG, today0=window._dateTodayOverride; const K=${J(K63)};
+      try{
+        const ph=s=>[...new Set(String(s).match(/\\{\\d\\}/g)||[])].sort().join('');
+        out.keys=K.NEW.concat(K.FIX,K.USE).map(k=>{ const v=['ja','en','ne'].map(l=>Object.prototype.hasOwnProperty.call(I18N[l],k)?I18N[l][k]:null);
+          return {k,has:v.every(x=>typeof x==='string'&&x.length>0),diff:v[0]!==v[1]&&v[1]!==v[2]&&v[0]!==v[2],ph:ph(v[0])===ph(v[1])&&ph(v[1])===ph(v[2]),phs:ph(v[0]),made:v.some(x=>/✓/.test(x||''))}; });
+        // 画面：予定の前の追加分（11:00 に売場へ）があるマスと、古い版で「✓ 作った」を押した記録（done:true）があるマス
+        S.soldOuts={'2_10_p1':[{readyAt:11,soldAt:11,added:3,v:2,noticedAt:10.5,lead:30,made:5,n1:30}],'2_14_p1':[{readyAt:15.5,soldAt:15.5,added:2,v:2,noticedAt:15,lead:30,made:5,n1:30,done:true,doneAt:15.4}]}; clearAllocCache();
+        window._dateTodayOverride='2026-10-08'; window._soNowOverride=10.9;
+        out.ui=['ja','en','ne'].map(l=>{ LANG=l; renderProdDayContent(2); const el=document.getElementById('prod-day-content'), box=document.getElementById('soPendingBox'), bd=[...el.querySelectorAll('[data-so-plan]')];
+          openCellMenu('p1',2,10); const acts=[...document.getElementById('cellMenuModal').querySelectorAll('button[data-act]')].map(b=>b.dataset.act); closeCellMenu();
+          openCellMenu('p1',2,14); const acts2=[...document.getElementById('cellMenuModal').querySelectorAll('button[data-act]')].map(b=>b.dataset.act); closeCellMenu();
+          const toast=[_soT('so2.toastAdd',3,'11:00'),_soT('so2.toastRemAdd',1,2,'11:00'),_soT('so2.planHint','11:00')];
+          return {l,box:box?box.textContent.replace(/\\s+/g,' ').trim():'',btn:box?box.querySelectorAll('button').length:-1,badge:bd.map(s=>s.textContent).join('|'),made:/markSoldOutDone|✓/.test((box?box.innerHTML:'')+bd.map(s=>s.outerHTML).join('')),acts,acts2,toastOk:toast.every(s=>s.includes('11:00')&&!/✓/.test(s)&&!/\\{\\d\\}/.test(s))}; });
+        out.fn=['markSoldOutDone','unmarkSoldOutDone','soDoneBtn','soPendDoneThen','soPending'].map(n=>eval('typeof '+n));
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      LANG=lang0; window._dateTodayOverride=today0; closeCellMenu(); ${BACK} renderProdDayContent(currentProdDay); return JSON.stringify(out); })()`));
+    { const s=t63, ks=s.keys||[], ui=s.ui||[];
+      const okK=ks.length===17&&ks.every(x=>x.has&&x.diff&&x.ph&&!x.made), okOnce=once63===null||(once63.length===17&&once63.every(a=>a.every(n=>n===1))&&!src63.fn);
+      const okUi=ui.length===3&&ui.every(u=>u.box&&u.box.includes('11:00')&&u.btn===0&&u.badge.includes('+3')&&!u.made&&!u.acts.includes('done')&&!u.acts.includes('undone')&&u.acts.includes('undo')&&!u.acts2.includes('done')&&!u.acts2.includes('undone')&&u.acts2.includes('undo')&&u.toastOk)&&new Set(ui.map(u=>u.badge)).size===3&&new Set(ui.map(u=>u.box)).size===3;
+      check('63','【3言語】日本語・英語・ネパール語のそれぞれに、足した鍵8つ（並んだものとして計算・追加分はいつ並べた？・その説明・まだ並べていない・並べてからもう一度・作り始め・印の説明・調理の時間が空で記録あり）、直した鍵8つ（予定の説明・一覧の説明・お知らせ2つ・②商品設定の作り方4つ）、使い始めた鍵（+N 作る予定）があり、差し込み（{0}{1}{2}）の数が3言語でそろう。どの文にも「✓ 作った を押す」の案内が無い。一覧にボタンが無く、マスのメニューに「追加分を作った」「作ったの印を外す」が無い（「取り消す」は残る）。markSoldOutDone などの関数は無い',
+        !s.err&&okK&&okOnce&&okUi&&(s.fn||[]).length===5&&s.fn.every(x=>x==='undefined'),
+        s.err||`鍵 ${okK}（${ks.filter(x=>x.has&&x.diff&&x.ph&&!x.made).length}/${ks.length}${ks.filter(x=>!(x.has&&x.diff&&x.ph&&!x.made)).length?'・だめ '+J(ks.filter(x=>!(x.has&&x.diff&&x.ph&&!x.made)).map(x=>x.k)):''}）・各言語に1回ずつ ${once63===null?'（ソースを読めない開き方のため数えていない）':okOnce}／画面 ${okUi}：${ui.map(u=>u.l+'「'+u.badge+'」ボタン '+u.btn+'・メニュー '+J(u.acts)).join('　')}／一覧（日本語）「${((ui[0]||{}).box||'').slice(0,90)}」／関数 ${J(s.fn)}`); }
+    // 64：検算（3人）の指摘を受けた直し（2026-10-10）。境目・2台の形の止め・「作り始め」・時間帯別の印・描き直しで表を動かさない・②商品設定の文・お知らせ
+    const pend64=A.store.status().pending;
+    const t64=JSON.parse(A.ev(`(()=>{ const out={}; ${SNAP} const tab0=currentTab, day0=currentProdDay, today0=window._dateTodayOverride, mode0=_prodSortMode;
+      try{
+        const vis=id=>{ const e=document.getElementById(id); return !!e&&e.style.display!=='none'; };
+        const rec=(n,r,a,x)=>Object.assign({readyAt:r,soldAt:r,added:a,v:2,noticedAt:n,lead:Math.round((r-n)*60),made:5,n1:30},x);
+        const k='2_10_p1'; out.lang=LANG;
+        window._dateTodayOverride='2026-10-08';   // 木曜（曜日番号2）が今日
+        S.soldOuts={}; clearAllocCache(); const s0=JSON.stringify(S);
+        // (1) ちょうど予定の時刻（11:00）：一覧・マスの印と、押した時の「いつ並べた？」の境目が同じ（ちょうどは「作る予定」）
+        S.soldOuts[k]=[rec(10.5,11,3)];
+        out.edge=[10.999,11,11.001].map(h=>{ window._soNowOverride=h; return [getSoldOutPending('p1',2,10).length,getSoldOutPendingDay(2).length,soShelfAsk('p1',2,10,h).need?1:0]; });
+        // (2) 2台の形：端末A＝10:36 完売 +2（11:30 に売場へ）、端末B＝10:48 完売 +1（11:00 に売場へ）。記録の並びは A → B。11:12 に押す（B の予定の後・A の予定の前）
+        S.soldOuts[k]=[rec(10.6,11.5,2),rec(10.8,11.0,1,{made:7})]; clearAllocCache(); const so0=JSON.stringify(S.soldOuts);
+        window._soNowOverride=11.2; out.pend=getSoldOutPending('p1',2,10).map(x=>x.i);
+        const look=()=>{ const w=document.querySelector('#soldOutModal [data-wait-other]'); return {wait:w?w.textContent.replace(/\\s+/g,' ').trim():'',R:vis('soldOutPhaseR'),p0:vis('soldOutPhase0'),p1:vis('soldOutPhase1'),note:vis('soldOutPlanNote'),ctx:!!(_soldOutCtx&&_soldOutCtx.wait)}; };
+        openSoldOutModal('p1',2,10,{remain:true}); out.wR=look(); pickSoldOutRemain(1); pickSoldOutLead(20); out.wRres=!!(_soldOutCtx&&_soldOutCtx.result); acceptSoldOut(); closeSoldOutModal();
+        openSoldOutModal('p1',2,10); out.wS=look(); pickSoldOutLead(20); out.wSres=!!(_soldOutCtx&&_soldOutCtx.result); acceptSoldOut(); closeSoldOutModal();
+        out.noRec=JSON.stringify(S.soldOuts)===so0;
+        //   A の予定（11:30）を過ぎたら止めない（残りの数を聞く。見出しの下に「並んだものとして計算します」）
+        window._soNowOverride=11.51; openSoldOutModal('p1',2,10,{remain:true}); out.after=look(); closeSoldOutModal();
+        //   今日でない曜日のタブ（金曜に、きのうの木曜を開く）では「作る予定」が無いので止めない（今までどおり）
+        window._dateTodayOverride='2026-10-09'; window._soNowOverride=11.2; openSoldOutModal('p1',2,10); out.other=look(); closeSoldOutModal(); window._dateTodayOverride='2026-10-08';
+        //   1台の形（最後の記録が予定の前）：今までどおり「いつ並べた？」＋「まだ並べていない」。1つ目の選択肢の名前は「作り始め」。記録の無いマス（1回目）は「作成時刻」
+        S.soldOuts[k]=[rec(10.75,11.25,3)]; window._soNowOverride=11.0; openSoldOutModal('p1',2,10);
+        out.one=Object.assign(look(),{ny:document.querySelectorAll('#soldOutPhase0 button[data-notyet]').length,lab:(document.querySelector('#soldOutPhase0 button[data-shelf]')||{}).textContent||''}); closeSoldOutModal();
+        delete S.soldOuts[k]; window._soNowOverride=10.75; openSoldOutModal('p1',2,10); out.first={lab:(document.querySelector('#soldOutPhase0 button[data-shelf]')||{}).textContent||''}; closeSoldOutModal();
+        out.labs=[t('so2.shelfMadeAdd'),t('so2.shelfMade')];
+        // (3) 時間帯別：予定の前の分は橙の印だけ。緑の「追加+N」は予定を過ぎた分の合計だけ（同じ数を2回出さない）。10:24 に並んだ +2 と、11:00 に並ぶ予定の +3
+        S.soldOuts[k]=[rec(10.2,10.4,2),rec(10.5,11,3)]; clearAllocCache(); _prodSortMode='slot'; window._soNowOverride=10.9; showTab(3); selectProdDay(2); renderProdDayContent(2);
+        const el=document.getElementById('prod-day-content'), g=n=>el.innerHTML.split('>'+tf('mk.addBadge',n)+'</span>').length-1;
+        out.slotB={g2:g(2),g3:g(3),g5:g(5),plan:[...el.querySelectorAll('[data-so-plan]')].map(s=>s.textContent+'／'+s.title)};
+        window._soNowOverride=11.01; renderProdDayContent(2); out.slotA={g2:g(2),g5:g(5),plan:el.querySelectorAll('[data-so-plan]').length};
+        // (4) 予定の時刻を過ぎて自分で描き直す時、一覧の箱が消えても、見ている作成表は動かない（下のマスの数字のボタンの位置が同じ。送り位置を箱の高さぶん戻す）
+        _prodSortMode=mode0; S.soldOuts={}; S.soldOuts[k]=[rec(10.5,11,3)]; clearAllocCache(); window._soNowOverride=10.9; renderProdDayContent(2);
+        { const box=document.getElementById('soPendingBox'), cellSel='button.pc-num[onclick="openCellMenu(\\'p1\\',2,14)"]', cell=()=>el.querySelector(cellSel);
+          const need=Math.round(box.getBoundingClientRect().bottom+window.scrollY+40); window.scrollTo(0,need);
+          const c0=cell(), y0=c0?c0.getBoundingClientRect().top:null, sc0=window.scrollY, bh=box.offsetHeight;
+          window._soNowOverride=11.01; soPlanTick();
+          const c1=cell(), y1=c1?c1.getBoundingClientRect().top:null, sc1=window.scrollY;
+          out.scroll={can:Math.abs(sc0-need)<=1&&c0!=null,y0,y1,sc0,sc1,bh,box:!!document.getElementById('soPendingBox')};
+          //   ページのいちばん上にいる時（戻す余地が無い）：送り位置は 0 のまま・箱は消える
+          window.scrollTo(0,0); window._soNowOverride=10.9; renderProdDayContent(2); const hadBox=!!document.getElementById('soPendingBox'); window._soNowOverride=11.01; soPlanTick();
+          out.scrollTop={sc:window.scrollY,hadBox,box:!!document.getElementById('soPendingBox')}; }
+        out.sSame=(()=>{ const a=JSON.parse(JSON.stringify(S)); a.soldOuts={}; return JSON.stringify(a)===s0; })();
+        // (5) ②商品設定の「作り方」：調理の時間が空でも、選んだ記録が3件あれば目安の入力は出る → 欄に「目安は出ません」と書かない（2件までは今までどおり）
+        S.weeks[S.activeWeek].invest={p2:{3:{10:6}}}; S.soldOuts={}; Object.keys(S.weeks).forEach(w=>{ if(S.weeks[w])S.weeks[w].soldOuts={}; });
+        const p2=getP('p2'); ['prepMethod','fryerMin','microwaveMin','steamMin','warmMin','fryerCap','cookCap'].forEach(x=>delete p2[x]); clearAllocCache();
+        const r2=(at,min)=>({readyAt:at+min/60,soldAt:at+min/60,added:2,v:2,noticedAt:at,lead:min,made:5,n1:30});
+        const st=()=>{ clearAllocCache(); _soRpCache=new Map(); return {set:soCookInfo(p2).set,I:!!_soRpInputs('p2',3,10),st:cookStatusHtml(p2).replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ').trim()}; };
+        S.soldOuts['4_14_p2']=[r2(15.2,20)]; S.soldOuts['5_17_p2']=[r2(18.1,20)]; out.c2=st();
+        S.weeks['2026.9.29'].soldOuts={'3_10_p2':[r2(12.0,30)]}; out.c3=st();
+        out.cookKeys=[t('product.cookEmpty'),t('product.cookEmptyRec'),t('product.cookDesc')];
+        // (6) お知らせ（トースト）：背景に色が付く・長い文は折り返す（画面の幅を超えない）
+        showToast(_soT('so2.toastAdd',3,'11:00'),'success'); const te=document.getElementById('ff-toast'), cs=getComputedStyle(te);
+        out.toast={bg:cs.backgroundColor,ws:cs.whiteSpace,w:te.getBoundingClientRect().width,vw:window.innerWidth}; te.style.opacity='0';
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      closeSoldOutModal(); window.scrollTo(0,0); _prodSortMode=mode0; window._dateTodayOverride=today0; ${BACK}
+      try{ currentTab=tab0; selectProdDay(day0); showTab(tab0); }catch(_){ }
+      out.timerEnd=!!_soPlanTimer; return JSON.stringify(out); })()`));
+    { const s=t64, wR=s.wR||{}, wS=s.wS||{}, af=s.after||{}, ot=s.other||{}, on=s.one||{}, fi=s.first||{}, sc=s.scroll||{}, st=s.scrollTop||{}, c2=s.c2||{}, c3=s.c3||{}, ck=s.cookKeys||[], to=s.toast||{}, lb=s.labs||[], sb=s.slotB||{}, sa=s.slotA||{};
+      const ok1=J(s.edge)===J([[1,1,1],[1,1,1],[0,0,0]]);
+      const okW=w=>/\+2/.test(w.wait||'')&&/11:30/.test(w.wait||'')&&!w.R&&!w.p0&&!w.p1&&!w.note&&w.ctx;
+      const ok2=J(s.pend)===J([0])&&okW(wR)&&okW(wS)&&!s.wRres&&!s.wSres&&s.noRec&&!af.wait&&af.R&&af.note&&!af.ctx&&!ot.wait&&ot.p1&&!ot.ctx
+        &&!on.wait&&on.p0&&on.ny===1&&!on.ctx&&lb.length===2&&(on.lab||'').includes(lb[0])&&(fi.lab||'').includes(lb[1])&&(s.lang!=='ja'||(lb[0]==='作り始め'&&lb[1]==='作成時刻'&&!(fi.lab||'').includes(lb[0])));
+      const ok3=sb.g2===1&&sb.g3===0&&sb.g5===0&&(sb.plan||[]).length===1&&/\+3/.test(sb.plan[0])&&/11:00/.test(sb.plan[0])&&!/陳列/.test(sb.plan[0])&&sa.g5===1&&sa.g2===0&&sa.plan===0;
+      //   マスの位置は 4px まで許す（印が橙→緑に変わると、その行の高さが 2px ほど変わる）。送り位置は箱の高さ（＋下のすき間 10px）ぶん戻る
+      const ok4=sc.can&&typeof sc.y1==='number'&&Math.abs(sc.y1-sc.y0)<=4&&(sc.sc0-sc.sc1)>=sc.bh-4&&(sc.sc0-sc.sc1)<=sc.bh+24&&!sc.box&&st.hadBox&&st.sc===0&&!st.box&&s.sSame&&A.store.status().pending===pend64&&!s.timerEnd;
+      const ok5=c2.set===false&&!c2.I&&(c2.st||'').includes(ck[0])&&!(c2.st||'').includes(ck[1])&&c3.set===false&&c3.I&&(c3.st||'').includes(ck[1])&&!(c3.st||'').includes(ck[0])&&/作る時間 約20分/.test(c3.st||'')&&(s.lang!=='ja'||(!/空の商品と/.test(ck[2]||'')&&/ここが空でも/.test(ck[2]||'')));
+      const ok6=to.bg==='rgb(232, 245, 233)'&&to.ws==='normal'&&to.w>0&&to.w<=to.vw-32+0.5;
+      check('64','【検算の直し】(1) ちょうど予定の時刻は「作る予定」（一覧・印と「いつ並べた？」の境目が同じ） (2) 2台で続けて記録して、先の記録の追加分がまだ予定の前（+2個・11:30）の時：「残り◯個」も「完売した」も計算せず「並べてから、もう一度」の文だけ（記録は増えない）。その予定を過ぎれば止めない。今日でない曜日のタブでは止めない。1台の形は今までどおりで、1つ目の選択肢は「作り始め」（1回目は「作成時刻」） (3) 時間帯別：予定の前の分は橙の印だけ・緑の「追加+N」は予定を過ぎた分だけ (4) 自分で描き直して一覧の箱が消えても、見ている作成表は動かない（データは変わらず、送る物も増えない） (5) 調理の時間が空でも選んだ記録が3件あれば目安が出る → ②商品設定に「目安は出ません」と書かない（2件までは今までどおり） (6) お知らせに背景の色が付き、長い文は折り返す',
+        !s.err&&ok1&&ok2&&ok3&&ok4&&ok5&&ok6,
+        s.err||`(1) ${ok1} ${J(s.edge)}／(2) ${ok2} 予定の番号 ${J(s.pend)}・残り◯個「${(wR.wait||'').slice(0,40)}」・完売した「${(wS.wait||'').slice(0,24)}」・記録なし ${s.noRec}・予定の後 ${J(af)}・きのうのタブ ${J(ot)}・1台の形 まだ ${on.ny}「${(on.lab||'').slice(0,12)}」・1回目「${(fi.lab||'').slice(0,12)}」／(3) ${ok3} 前 ${J(sb)}・後 ${J(sa)}／(4) ${ok4} 14時のマスの位置 ${sc.y0}→${sc.y1}・送り位置 ${sc.sc0}→${sc.sc1}（箱 ${sc.bh}px）・いちばん上 ${J(st)}・データ同じ ${s.sSame}／(5) ${ok5} 2件「${(c2.st||'').slice(0,40)}」目安 ${c2.I}・3件「${(c3.st||'').slice(0,60)}」目安 ${c3.I}／(6) ${ok6} ${J(to)}`); }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
