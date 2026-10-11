@@ -9,6 +9,8 @@
    ・絵の大きさは、入れ物の幅と「高さの上限」（index.html の OFFICE_H）から決める（下の layout）。
    ・描き直し：歩いている人・飛んでいる紙がある間だけ細かく（1秒に約30回）。だれも動いていない時は 0.5秒に1回（ひとこと・トレーニング中は 0.25秒）で、
      前と同じ絵なら描かない。ブラウザを裏にした時・ほかのタブを開いている時は止める。
+   ・2階「システムの部屋」（2026-10-12）：1階の奥の壁の上にのる小さな部屋（下の F2）。絵の右上の空いていた所に描くので、
+     1階の物の位置・絵の大きさ・枠の高さは変えていない。1階とは「はしご」でつなぐ。だれの席が2階かは index.html の seatOf が決める（up: 1）。
 */
 (function(){
 'use strict';
@@ -52,6 +54,10 @@ function paintBot(g, color, sprite, crown, ps, eyesOpen){
 // 位置はすべて％（平面のオフィスと同じ。横 0〜100・縦 0〜100、足元が基準）。描く時だけ斜めに置きかえる
 var OFFICE = { sig: '', chars: {}, prev: {}, lastPrompt: 0, fx: [], desk: {}, trn: false };
 var Y_BACK = 28, Y_FRONT = 70, AISLES = [24, 62];
+// 2階「システムの部屋」。1階と同じ方眼で、奥の壁（縦14）の向こう側に置く：横 x0〜x1・縦 y0〜y1。床の高さ z（1階の壁の高さ 22 ＋ 床の厚み 4）、壁の高さ wh。
+// aisle＝机の後ろの通り道（縦）。はしご：横 lx（％。冷蔵ケースと商品棚の間）、足元 ly0 → 上 ly1。top＝はしごを上がって立つ所（縦）。climb＝上り下りの秒数。
+// 2階の席（index.html の seatOf）は 横 57・68.5・80％、縦 -3。机を増やす時は x1 を右へは広げられない（絵の右はし）。左（x0）へ広げる。
+var F2 = { x0: 96, x1: 172, y0: -14, y1: 14, z: 26, wh: 18, aisle: -9.5, lx: 51, ly0: 24.5, ly1: 14.5, top: 9, climb: 1.6 };
 // 休み場所の位置（12か所。並びは index.html の SPOTS と同じ。ことば＝acts・emo などは index.html の物を使う）。
 // 斜めにすると「奥の人の名札」が「手前の人の顔」にちょうど重なる5か所だけ、平面のオフィスから少しずらしてある
 // （冷蔵ケース前の2つ目 x41→46.5／コーヒーマシン前 y25→22／ランニングマシン y69→65／ダンベル前 x14→20／マット x16,y73→x15,y68）
@@ -79,7 +85,10 @@ var WH = 22, WT = 2.4;   // 壁の高さ・厚み
 var boxEl = null, worldEl = null, floorCv = null, stageCv = null, floorG = null, stageG = null, statusEl = null, cardEl = null;
 var PERF = { n: 0, sum: 0, max: 0, last: 0, objs: 0, faces: 0 }, FACES = 0;
 
-function P(x, y, z){ var u = x / 10, v = (y - 14) / 10; return [V.ox + (u - v) * V.tw / 2, V.oy + (u + v) * V.th / 2 - (z || 0) * V.zs]; }
+var ZB = 0;   // 2階の物を描いている間だけ F2.z（床の高さ）。それ以外は 0。lift() と drawFloor2 が出し入れする
+function P(x, y, z){ var u = x / 10, v = (y - 14) / 10; return [V.ox + (u - v) * V.tw / 2, V.oy + (u + v) * V.th / 2 - ((z || 0) + ZB) * V.zs]; }
+function lift(fn){ return function(g, now){ ZB = F2.z; try { fn(g, now); } finally { ZB = 0; } }; }   // 2階の物の描き方を包む
+function same(fn){ return fn; }
 function R(v){ return Math.round(v); }
 var MIX = {};
 function mix(hex, to, t){   // to：0＝黒へ、255＝白へ
@@ -290,7 +299,51 @@ function drawStatic(g){
     if (j) seg(g, P(190, 26.5, j*3.67), P(198, 26.5, j*3.67), INK);
     faceY(g, 26.5, 193, 195, 1.6 + j*3.67, 2.2 + j*3.67, '#6f757d');
   }
+  drawFloor2(g);
   g.restore();
+}
+// 2階「システムの部屋」の動かない物：床・壁・壁ぎわの物。1階の奥の壁の上（絵の右上）に描く。色と帯は1階と同じ
+function drawFloor2(g){
+  var x0 = F2.x0, x1 = F2.x1, y0 = F2.y0, y1 = F2.y1, wh = F2.wh, i, k, z, fine = V.fine;
+  ZB = F2.z;
+  try {
+    // 床の厚み（1階の壁の上にのる）と、床（作業スペースと同じカーペット）
+    faceY(g, y1, x0 - WT, x1, -4, 0, '#b9bdc3', true); faceX(g, x1, y0 - WT, y1, -4, 0, '#a2a7ad', true);
+    faceTop(g, x0, y0, x1, y1, 0, '#e3e4e7');
+    for (i = Math.ceil((x0 + 1) / 10) * 10; i < x1; i += 10) seg(g, P(i, y0), P(i, y1), '#d6d8dc');
+    quad(g, [P(x0,y0,0), P(x1,y0,0), P(x1,y1,0), P(x0,y1,0)], null, true);
+    // 壁（左と奥）
+    faceX(g, x0, y0, y1, 0, wh, '#e9eaec'); faceX(g, x0, y0, y1, wh - 2.6, wh, '#33383d'); faceX(g, x0, y0, y1, 0, 1.6, '#c4c7cc');
+    faceX(g, x0, y0, y1, 0, wh, null, true);
+    faceY(g, y0, x0, x1, 0, wh, '#fbfbfa'); faceY(g, y0, x0, x1, wh - 2.6, wh, '#3a3f45'); faceY(g, y0, x0, x1, wh - 3.2, wh - 2.6, '#c9ccd1'); faceY(g, y0, x0, x1, 0, 1.6, '#d4d6da');
+    faceY(g, y0, x0, x1, 0, wh, null, true);
+    faceY(g, y1, x0 - WT, x0, 0, wh, '#d4d6da', true); faceX(g, x1, y0 - WT, y0, -4, wh, '#b4b8be', true);
+    quad(g, [P(x0-WT,y0-WT,wh), P(x1,y0-WT,wh), P(x1,y0,wh), P(x0,y0,wh), P(x0,y1,wh), P(x0-WT,y1,wh)], '#c9ccd1', true);
+    // 奥の壁：点検ボード（チェックの行）
+    faceY(g, y0, 110, 127, 5, 13.4, '#fbfbfa', true);
+    for (k = 0; k < 3; k++){
+      z = 11.6 - k * 2.2;
+      faceY(g, y0, 111.4, 112.8, z - 0.6, z + 0.6, k < 2 ? '#8d9299' : '#fbfbfa', fine);
+      seg(g, P(114.2, y0, z), P(k === 1 ? 121 : 124.6, y0, z), k ? '#a7abb1' : '#6f757d');
+    }
+    faceY(g, y0, 110, 127, 4.1, 5, '#b9bdc3', true);
+    // 部屋の名前（広い画面だけ）
+    if (!V.small){
+      g.font = V.F + 'px ' + FONT; g.textAlign = 'left'; g.textBaseline = 'middle';
+      var u = V.tw / 20, t = '2階 システム', wU = g.measureText(t).width / u + 1.6, at = 131, p;
+      faceY(g, y0, at, at + wU, 7.2, 12, '#fbfbfa', true);
+      p = P(at + 0.8, y0, 9.6); g.save(); g.setTransform(1, 0.5, 0, 1, R(p[0]), R(p[1]));
+      g.fillStyle = '#6f757d'; g.fillText(t, 0, V.dpr); g.restore();
+    }
+    // 奥の左すみ：サーバーの棚（小さな明かり）
+    shadow(g, 97.5, y0 + 0.4, 106, y0 + 3);
+    box(g, 97.5, y0 + 0.4, 106, y0 + 3, 0, 12.5, ['#4b5057','#3a3f45','#2f3338'], true);
+    for (k = 0; k < 3; k++){
+      faceY(g, y0 + 3, 98.6, 104.9, 9.3 - k * 3.4, 10.9 - k * 3.4, '#5a6068');
+      faceY(g, y0 + 3, 99.4, 100.4, 9.8 - k * 3.4, 10.4 - k * 3.4, k === 1 ? '#9af0c0' : '#c9ccd1');
+      if (fine) seg(g, P(101.4, y0 + 3, 10.1 - k * 3.4), P(104.2, y0 + 3, 10.1 - k * 3.4), '#8d9299');
+    }
+  } finally { ZB = 0; }
 }
 
 // ---- 動く物と重なる家具（毎回、奥から手前の順に並べて描く） ----
@@ -312,7 +365,7 @@ function buildScene(){
     box(g, 19.4, 36, 21, 37.4, 6, 7.6, ['#fbfbfa','#eeeeec','#dcdee1'], thin);
   });
   [[8,43],[32,43]].forEach(function(s){ stool(s[0], s[1]); });
-  function stool(x, y){ add(x - 2.4, y - 2.4, x + 2.4, y + 2.4, function(g){ box(g, x - 2.2, y - 2.2, x + 2.2, y + 2.2, 0, 3.2, ['#8d9299','#6f757d','#5a6068'], true); }); }
+  function stool(x, y, wrap){ add(x - 2.4, y - 2.4, x + 2.4, y + 2.4, (wrap || same)(function(g){ box(g, x - 2.2, y - 2.2, x + 2.2, y + 2.2, 0, 3.2, ['#8d9299','#6f757d','#5a6068'], true); })); }
   // レジ（社長席）：ホットケース・レジ・コーヒーマシン。チロルの作業中はレジの画面が光る
   add(61, 47.5, 115, 53.5, function(g, now){
     shadow(g, 61, 47.5, 115, 53.5);
@@ -339,14 +392,14 @@ function buildScene(){
     faceX(g, 162, 53, 55.4, 5, 7.4, '#fbfbfa'); faceX(g, 162, 57, 59.4, 5, 7.4, '#a7abb1');
   });
   // 植木
-  [[56, 62], [164.5, 41]].forEach(function(p){
+  [[56, 62], [164.5, 41], [167.6, -10.6, 1]].forEach(function(p){   // 3つ目は2階（奥の右すみ）
     var cx = p[0], cy = p[1];
-    add(cx - 2.4, cy - 2.4, cx + 2.4, cy + 2.4, function(g){
+    add(cx - 2.4, cy - 2.4, cx + 2.4, cy + 2.4, (p[2] ? lift : same)(function(g){
       var u = V.tw / 20, c = P(cx, cy, 8.4);
       isoEllipse(g, cx + 0.8, cy + 0.8, 0, 3.4, 'rgba(30,34,40,.13)');
       box(g, cx - 2, cy - 2, cx + 2, cy + 2, 0, 4.6, ['#a7abb1','#8d9299','#7d848c'], true);
       disc(g, R(c[0]), R(c[1]), 4.4 * u, '#7f9686', true); disc(g, R(c[0] - 2.2 * u), R(c[1] + 1.9 * u), 2.6 * u, '#6c8373'); disc(g, R(c[0] + 1.4 * u), R(c[1] - 1.6 * u), 1.6 * u, '#9db3a4');
-    });
+    }));
   });
   // トレーニング：ダンベル棚・ランニングマシン
   add(18, 51, 39, 57.6, function(g){
@@ -390,9 +443,9 @@ function buildScene(){
   // 席：店長席と、メンバーの席（人は机の向こう側に座る。モニターは作業中に本人の色で点滅）
   function desk(id, color, depth){
     var s = seatOf(id); if (!s) return;
-    var X = s.x * 2, Y = s.y, x0 = X - 7, x1 = X + 9, y0 = Y + 3.5, y1 = y0 + depth, h = 6;
-    stool(X, Y);
-    add(x0, y0, x1, y1, function(g, now){
+    var X = s.x * 2, Y = s.y, x0 = X - 7, x1 = X + 9, y0 = Y + 3.5, y1 = y0 + depth, h = 6, wrap = s.up ? lift : same;
+    stool(X, Y, wrap);
+    add(x0, y0, x1, y1, wrap(function(g, now){
       var on = OFFICE.desk[id], mc = id === 'owner' ? glow('#aeb6bf', now, 1000) : (on ? glow(color, now, 500) : '#3a3f45');
       shadow(g, x0, y0, x1, y1);
       box(g, x0, y0, x1, y1, 0, h, ['#eceded','#c9ccd1','#b4b8be'], true);
@@ -401,8 +454,21 @@ function buildScene(){
       box(g, X + 6.2, y1 - 2.2, X + 7.8, y1 - 0.8, h, h + 1.8, color, thin);
       box(g, x0 + 1.5, y0 + 2.2, x0 + 2.3, y0 + 3.2, h, h + 1.4, '#22262a');
       box(g, x0 + 1.2, y0 + 0.6, x0 + 2.5, y0 + 4.6, h + 1.2, h + 7, ['#4b5057','#3a3f45', mc], true);
-    });
+    }));
   }
+  // はしご（1階の奥の通路 → 2階。冷蔵ケースと商品棚の間に立てかける）
+  add(100, 14, 104, F2.ly0 - 0.5, function(g){
+    var xa = 100.5, xb = 103.5, yf = F2.ly0 - 0.5, yt = 14.2, n = 8, k, t, w = Math.max(2, Math.round(V.lw * 1.5));
+    isoEllipse(g, 102.6, yf + 0.6, 0, 2.6, 'rgba(30,34,40,.13)');
+    for (k = 1; k < n; k++){ t = k / n; seg(g, P(xa, yf + (yt - yf) * t, F2.z * t), P(xb, yf + (yt - yf) * t, F2.z * t), '#8d9299', w); }
+    seg(g, P(xa, yf, 0), P(xa, yt, F2.z), '#5a6068', w); seg(g, P(xb, yf, 0), P(xb, yt, F2.z), '#5a6068', w);
+  });
+  // 2階の手すり（手前のへり。はしごの上がり口は空けておく）
+  add(108, F2.y1 - 0.8, F2.x1, F2.y1, lift(function(g){
+    var a, st = (F2.x1 - 0.8 - 108) / 5;
+    for (a = 0; a < 6; a++) box(g, 108 + a * st, F2.y1 - 0.8, 108.8 + a * st, F2.y1, 0, 3, '#b0b4ba', thin);
+    box(g, 108, F2.y1 - 0.8, F2.x1, F2.y1, 3, 3.7, ['#dcdee1','#c4c7cc','#b0b4ba'], true);
+  }));
   if (TEAM){
     desk('owner', TEAM.owner.color || '#9ca3af', 4.6);
     TEAM.members.forEach(function(m){ desk(m.id, m.color || '#9ca3af', 6); });
@@ -453,17 +519,18 @@ function spriteSet(color, sprite, crown){
 }
 
 // ================= メンバーの動き（index.html の updateOffice まわりと同じ決め方） =================
-function place(c, x, y){ c.x = x; c.y = y; }
+function place(c, x, y, z){ c.x = x; c.y = y; c.z = z || 0; }   // z＝床からの高さ（1階は 0、2階は F2.z、はしごの途中は その間）
 function visPos(c, now){   // いま画面に見えている位置（歩いている途中は、区間の中を一定の速さで進む）
   var t = c.tw;
-  if (!t) return { x: c.x, y: c.y };
+  if (!t) return { x: c.x, y: c.y, z: c.z || 0 };
   var k = (now - t.t0) / t.dur;
-  if (k >= 1) return { x: t.x1, y: t.y1 };
+  if (k >= 1) return { x: t.x1, y: t.y1, z: t.z1 };
   if (k < 0) k = 0;
-  return { x: t.x0 + (t.x1 - t.x0) * k, y: t.y0 + (t.y1 - t.y0) * k };
+  return { x: t.x0 + (t.x1 - t.x0) * k, y: t.y0 + (t.y1 - t.y0) * k, z: t.z0 + (t.z1 - t.z0) * k };
 }
 // 通路を通って歩く（奥の通路・手前の通路・縦の通り道2本）。床のマスに沿って、縦か横にだけ動く
-function routeTo(c, t){
+// 1階の中の道（今までと同じ決め方）
+function route1(c, t){
   var cp = c.y < 52 ? Y_BACK : Y_FRONT, cq = t.y < 52 ? Y_BACK : Y_FRONT, pts = [];
   if (cp === cq){ pts.push({ x: c.x, y: cp }, { x: t.x, y: cp }); }
   else {
@@ -471,22 +538,40 @@ function routeTo(c, t){
     pts.push({ x: c.x, y: cp }, { x: ax, y: cp }, { x: ax, y: cq }, { x: t.x, y: cq });
   }
   pts.push({ x: t.x, y: t.y });
-  return pts.filter(function(p, i){ var q = i ? pts[i-1] : c; return Math.abs(p.x - q.x) > 0.3 || Math.abs(p.y - q.y) > 0.3; });
+  return pts;
+}
+// 2階の中の道：机の後ろの通り道（縦 F2.aisle）を通る
+function route2(c, t){ return [{ x: c.x, y: F2.aisle }, { x: t.x, y: F2.aisle }, { x: t.x, y: t.y }]; }
+// 行き先までの道。階がちがう時は、はしご（足元 L ⇔ 上 U）を通る。climb: 1 の点は「はしごを上り下りする区間」。
+// 高さ z を書いていない点は、その前の点の高さのまま歩く
+function routeTo(c, t){
+  var L = { x: F2.lx, y: F2.ly0 }, U = { x: F2.lx, y: F2.ly1 }, T = { x: F2.lx, y: F2.top }, pts;
+  var onLad = c.z > 0 && c.y >= F2.y1, cf = c.z > 0 && !onLad ? 2 : 1, tf = t.up ? 2 : 1;
+  if (onLad){         // はしごの途中で行き先が変わった時は、今いる段から 行き先の階へ
+    if (tf === 2) pts = [{ x: U.x, y: U.y, z: F2.z, climb: 1 }, { x: T.x, y: T.y, z: F2.z }].concat(route2(T, t));
+    else pts = [{ x: L.x, y: L.y, z: 0, climb: 1 }].concat(route1(L, t));
+  }
+  else if (cf === tf) pts = cf === 2 ? route2(c, t) : route1(c, t);
+  else if (tf === 2) pts = route1(c, L).concat([{ x: U.x, y: U.y, z: F2.z, climb: 1 }, { x: T.x, y: T.y, z: F2.z }], route2(T, t));
+  else pts = route2(c, T).concat([{ x: U.x, y: U.y, z: F2.z }, { x: L.x, y: L.y, z: 0, climb: 1 }], route1(L, t));
+  return pts.filter(function(p, i){ var q = i ? pts[i-1] : c; return p.climb || Math.abs(p.x - q.x) > 0.3 || Math.abs(p.y - q.y) > 0.3; });
 }
 function walkTo(c, target, done){
   var id = ++c.moveId, v = visPos(c, Date.now());
-  c.tw = null; place(c, v.x, v.y);   // 歩いている途中で行き先が変わった時は、今いる所から歩き直す
+  c.tw = null; place(c, v.x, v.y, v.z);   // 歩いている途中で行き先が変わった時は、今いる所から歩き直す
   var pts = routeTo(c, target);
   c.say.t = ''; c.say.cls = 'say'; c.k.train = false;
   (function next(){
     if (id !== c.moveId) return;
     var p = pts.shift();
     if (!p){ c.k.walk = false; c.tw = null; if (done) done(); return; }
+    var pz = p.z == null ? c.z : p.z;
     var dx = (p.x - c.x) * 2, dy = p.y - c.y, sec = Math.max(0.15, Math.sqrt(dx*dx + dy*dy) / 13);   // 速さ一定
-    if (Math.abs(dx - dy) > 0.6) c.k.flip = (dx - dy) < 0;   // 画面の上で左へ進む時は左向き
+    if (p.climb) sec = Math.max(0.3, F2.climb * Math.abs(pz - c.z) / F2.z);   // はしごは、上り下りした高さで時間が決まる（向きは変えない）
+    else if (Math.abs(dx - dy) > 0.6) c.k.flip = (dx - dy) < 0;   // 画面の上で左へ進む時は左向き
     c.k.walk = true;
-    c.tw = { x0: c.x, y0: c.y, x1: p.x, y1: p.y, t0: Date.now(), dur: sec * 1000 };
-    place(c, p.x, p.y);
+    c.tw = { x0: c.x, y0: c.y, z0: c.z, x1: p.x, y1: p.y, z1: pz, t0: Date.now(), dur: sec * 1000 };
+    place(c, p.x, p.y, pz);
     setTimeout(next, sec * 1000 + 30);
   })();
 }
@@ -532,12 +617,13 @@ function ensureChar(id, m, crown){
     if (open.length){ var i = open[Math.floor(Math.random() * open.length)]; SPOTS[i].by = id; c.spot = i; p = SPOTS[i]; }
   }
   if (!p) p = { x: 95, y: 74 };
-  place(c, p.x, p.y);
+  place(c, p.x, p.y, p.up ? F2.z : 0);
   return c;
 }
 function removeChar(id){ var c = OFFICE.chars[id]; if (!c) return; c.moveId++; freeSpot(c); delete OFFICE.chars[id]; delete OFFICE.desk[id]; }
 function fx(cls, text, from, to){
-  OFFICE.fx.push({ cls: cls, text: text, x0: from.x, y0: from.y, x1: to ? to.x : from.x, y1: to ? to.y : from.y, move: !!to, t0: Date.now(), life: to ? 1400 : 2700 });
+  var z0 = from.z || 0;
+  OFFICE.fx.push({ cls: cls, text: text, x0: from.x, y0: from.y, z0: z0, x1: to ? to.x : from.x, y1: to ? to.y : from.y, z1: to ? (to.up ? F2.z : 0) : z0, move: !!to, t0: Date.now(), life: to ? 1400 : 2700 });
 }
 function buildOffice(){
   buildScene();
@@ -576,10 +662,10 @@ function updateOffice(){
         if (was === false && o.id !== 'boss' && OFFICE.chars.boss) fx('paper', '📄', OFFICE.chars.boss, seat);
         c.seat = seat; c.k.busy = false;
         var sit = function(){ c.k.flip = false; c.k.walk = false; c.k[c.train ? 'train' : 'work'] = true; c.say.cls = 'say'; c.say.t = c.train ? '' : (c.text || ''); };
-        c.sit = sit; c.due = Date.now() + 20000;   // 20秒たっても席に着いていなければ、席へ直接戻す
+        c.sit = sit; c.due = Date.now() + (seat.up || c.z > 0 ? 34000 : 20000);   // 20秒（はしごを通る時は 34秒）たっても席に着いていなければ、席へ直接戻す
         walkTo(c, seat, sit);
       } else if (c.k.work) { c.say.cls = 'say'; c.say.t = text; }
-      else if (!c.k.train && c.due && Date.now() > c.due){ c.moveId++; c.tw = null; place(c, c.seat.x, c.seat.y); c.sit(); c.due = 0; }
+      else if (!c.k.train && c.due && Date.now() > c.due){ c.moveId++; c.tw = null; place(c, c.seat.x, c.seat.y, c.seat.up ? F2.z : 0); c.sit(); c.due = 0; }
     } else if (c.seated){
       c.seated = false; c.k.work = false; c.k.train = false; c.say.t = ''; c.say.cls = 'say'; c.due = 0;
       if (was === true && o.id !== 'boss') fx('pop', '✔ +' + XP_PER_TASK + 'XP', c);
@@ -688,7 +774,7 @@ function render(now){
   // どの絵を出すか（位置・足ぶみ・まばたき）を先に決め、前のコマと同じなら描かない
   for (i = 0; i < ids.length; i++){
     c = OFFICE.chars[ids[i]]; v = visPos(c, now);
-    c.vx = v.x; c.vy = v.y;
+    c.vx = v.x; c.vy = v.y; c.vz = v.z || 0;
     c.bob = c.k.walk ? Math.floor(tq / 180) % 2 * 2 : c.k.train ? Math.floor(tq / 250) % 2 * 2 : c.k.busy ? Math.floor(tq / 250) % 2 : c.k.work ? Math.floor(tq / 500) % 2 : 0;
     c.shut = ((tq + c.blink) % 5000) < wink ? 1 : 0;
     key += c.id + ':' + Math.round(v.x * 8) + ',' + Math.round(v.y * 8) + ',' + c.bob + c.shut + (c.k.flip ? 'f' : '') + (c.seated ? 's' : '') + c.say.cls + c.say.t + ';';
@@ -725,7 +811,7 @@ function render(now){
 }
 function drawChar(g, c){
   var set = spriteSet(c.m.color || '#9ca3af', c.m.sprite || 'ghost', c.crown), ps = V.ps;
-  var p = P(c.vx * 2, c.vy, 0), cx = Math.round(p[0]), cy = Math.round(p[1]);
+  var p = P(c.vx * 2, c.vy, c.vz || 0), cx = Math.round(p[0]), cy = Math.round(p[1]);
   var bob = Math.round(c.bob * Math.max(1, ps / 2) / 2);
   var x = cx - set.w / 2, y0 = cy - set.h + Math.round(ps / 2), y = y0 - bob;   // 札や吹き出しは、足ぶみでは揺らさない（y0 を基準にする）
   // 足元の丸い影
@@ -900,7 +986,7 @@ function drawLabels(g, list){
   SEATR = null;
   if (ss){
     var st = SEL === 'boss' ? 'レジ（社長席）' : SEL === 'owner' ? '店長席' : (sm.nick || sm.name) + 'の席';
-    var sp = SEL === 'boss' ? P(ss.x * 2, 53.5, 0) : P(ss.x * 2 + 1, ss.y + 3.5 + (SEL === 'owner' ? 4.6 : 6), 0);
+    var sp = SEL === 'boss' ? P(ss.x * 2, 53.5, 0) : P(ss.x * 2 + 1, ss.y + 3.5 + (SEL === 'owner' ? 4.6 : 6), ss.up ? F2.z : 0);
     col = sm.color || '#9ca3af'; w = Math.ceil(textW(g, st)) + 14 * d; h = (V.fs + 6) * d;
     x = Math.max(3, Math.min(V.W - w - 3, Math.round(sp[0] - w / 2))); y = Math.min(V.H - h - 3, Math.round(sp[1] + 7 * d));
     g.beginPath(); g.moveTo(x + w / 2 - 6 * d, y + d); g.lineTo(x + w / 2, y - 6 * d); g.lineTo(x + w / 2 + 6 * d, y + d); g.closePath(); g.fillStyle = col; g.fill();
@@ -917,12 +1003,12 @@ function drawFx(g, now){
     if (now - f.t0 > f.life){ OFFICE.fx.splice(i, 1); continue; }
     if (f.move){   // 📄 がチロルから席へ飛ぶ（1.2秒）
       k = Math.min(1, (now - f.t0) / 1200); e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-      p = P((f.x0 + (f.x1 - f.x0) * e) * 2, f.y0 + (f.y1 - f.y0) * e, 15 + 9 * Math.sin(Math.PI * e));
+      p = P((f.x0 + (f.x1 - f.x0) * e) * 2, f.y0 + (f.y1 - f.y0) * e, 15 + 9 * Math.sin(Math.PI * e) + f.z0 + (f.z1 - f.z0) * e);
       g.font = Math.round(Math.max(16, Math.min(22, V.tw / d * 0.28)) * d) + 'px "Segoe UI Emoji","Apple Color Emoji",' + FONT;
       g.fillStyle = '#4a3a2a'; g.fillText(f.text, Math.round(p[0]), Math.round(p[1]));
     } else {      // 「✔ +20XP」が浮かんで消える（2.6秒）
       k = Math.min(1, (now - f.t0) / 2600); a = k < 0.15 ? k / 0.15 : k > 0.8 ? (1 - k) / 0.2 : 1;
-      p = P(f.x0 * 2, f.y0, 0);
+      p = P(f.x0 * 2, f.y0, f.z0);
       g.font = V.F + 'px ' + FONT;
       w = Math.ceil(textW(g, f.text)) + 16 * d; h = (V.fs + 6) * d; y = p[1] - 16 * V.ps - 6 * d - h - 28 * d * (1 - Math.pow(1 - k, 2));
       g.globalAlpha = Math.max(0, a);
@@ -977,7 +1063,7 @@ function onVisible(){
   if (!RUN) return;
   if (document.hidden){ if (RAF){ cancelAnimationFrame(RAF); RAF = 0; } if (TMR){ clearTimeout(TMR); TMR = 0; } return; }
   // 画面を裏にしている間に歩きが止まっていた人は、席へ直接置く
-  Object.keys(OFFICE.chars).forEach(function(id){ var c = OFFICE.chars[id]; if (c.seated && c.seat && c.sit && !c.k.work && !c.k.train){ c.moveId++; c.tw = null; place(c, c.seat.x, c.seat.y); c.sit(); c.due = 0; } });
+  Object.keys(OFFICE.chars).forEach(function(id){ var c = OFFICE.chars[id]; if (c.seated && c.seat && c.sit && !c.k.work && !c.k.train){ c.moveId++; c.tw = null; place(c, c.seat.x, c.seat.y, c.seat.up ? F2.z : 0); c.sit(); c.due = 0; } });
   lastKey = ''; kick();
 }
 function onFonts(){   // Web の字（DotGothic16）が届いたら、字の幅の覚えを捨てて描き直す（先に別の字で描いた壁の札・名札を直す）
@@ -1031,7 +1117,7 @@ function onMove(e){ stageCv.style.cursor = hitAt(e) ? 'pointer' : 'default'; }
 // ================= 確かめ用の仮の状態（index.html が URL の ?demo= を見て呼ぶ。その時 index.html は state.js を読まない） =================
 // mode：'1'＝3人が作業中（22秒後から30秒ごとに1人が仕事を始め、8秒後に別の1人が終わる＝📄 と ✔ の確かめ）
 // 　　　'0'＝全員待ち／'2'＝全員が作業中（吹き出しの重なりの確かめ。1人は自主点検、応援も1人）／'3'＝全員が自主点検（並びの確かめ）
-var DEMO_TASK = { research: '2店舗 外部要因のリサーチ', planner: '新村 清算書の数字まとめ', strategy: '新村 今週の作戦づくり', pop: '2店舗 売場マップとPOPを作成', 'crew-info': 'クルー向けお知らせの図解', 'crew-care': '面談の準備', 'system-dev': 'アプリの動作確認' };
+var DEMO_TASK = { research: '2店舗 外部要因のリサーチ', planner: '新村 清算書の数字まとめ', strategy: '新村 今週の作戦づくり', pop: '2店舗 売場マップとPOPを作成', 'crew-info': 'クルー向けお知らせの図解', 'crew-care': '面談の準備', 'system-dev': 'アプリの動作確認', qa: '公開の前の点検', 'tools-dev': 'ダッシュボードの手入れ' };
 var DEMO_ST = null, DEMO_T0 = 0, DEMO_CYC = -1, DEMO_END = 0, DEMO_NEXT = 0;
 function demoState(team, mode){
   var now = Date.now(), ids = team.members.map(function(m){ return m.id; }), D = DEMO_ST;
@@ -1149,7 +1235,7 @@ function info(){
     chars: Object.keys(OFFICE.chars).map(function(id){
       var c = OFFICE.chars[id];
       return { id: id, name: c.m.nick || c.m.name, x: c.sx == null ? null : Math.round(c.sx / d), y: c.sy == null ? null : Math.round((c.sy - c.sw / 2) / d),
-        seated: !!c.seated, walk: !!c.k.walk, work: !!c.k.work, train: !!c.k.train, say: c.say.t || '', tag: c.tag ? !c.tagHide : null, click: !!c.click };
+        up: (c.vz || 0) > 0, seated: !!c.seated, walk: !!c.k.walk, work: !!c.k.work, train: !!c.k.train, say: c.say.t || '', tag: c.tag ? !c.tagHide : null, click: !!c.click };
     }),
     bubbles: BUBS.length, fx: OFFICE.fx.length, moving: anyMoving(), raf: !!RAF, timer: !!TMR,
     draws: PERF.n, msAvg: PERF.n ? Math.round(PERF.sum / PERF.n * 100) / 100 : 0, msMax: Math.round(PERF.max * 100) / 100, objs: PERF.objs, faces: PERF.faces };

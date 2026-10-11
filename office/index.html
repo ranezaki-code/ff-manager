@@ -329,7 +329,9 @@ var SPRITES = {
   rabbit:  ['..aa....aa..','..aa....aa..','..aa....aa..','..aaaaaaaa..','.aaaaaaaaaa.','.aKaaaaaaKa.','.aaaappaaaa.','.aawwwwwwaa.','..aaaaaaaa..','..aaaaaaaa..','..aaa..aaa..','..ww....ww..'],
   frog:    ['.aa......aa.','awwa....awwa','awKa....aKwa','.aaaaaaaaaa.','aaaaaaaaaaaa','aaaaaaaaaaaa','akaaaaaaaaka','.akkkkkkkka.','..aaaaaaaa..','.aaaaaaaaaa.','.aa.aaaa.aa.','aaa......aaa'],
   person:  ['...bbbbbb...','..bbbbbbbb..','..ssssssss..','..sKssssKs..','..ssssssss..','...ssppss...','.aaaawwaaaa.','.aaaawwaaaa.','.saaaaaaaas.','..aaaaaaaa..','..bb....bb..','..bb....bb..'],
-  ghost:   ['...aaaaaa...','..aaaaaaaa..','.aaaaaaaaaa.','.awKaaaawKa.','.awKaaaawKa.','.aaaaaaaaaa.','.aaaappaaaa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.aa.aa.aa.a.','.a..a..a....']
+  ghost:   ['...aaaaaa...','..aaaaaaaa..','.aaaaaaaaaa.','.awKaaaawKa.','.awKaaaawKa.','.aaaaaaaaaa.','.aaaappaaaa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.aaaaaaaaaa.','.aa.aa.aa.a.','.a..a..a....'],
+  bee:     ['..k......k..','...k....k...','..aaaaaaaa..','.aaaaaaaaaa.','.aKaaaaaaKa.','.aaaappaaaa.','..aaaaaaaa..','wwwkkkkkkwww','wwwaaaaaawww','.wwkkkkkkww.','...aaaaaa...','...bb..bb...'],
+  beaver:  ['.aa....aa...','.aaaaaaaa...','.aaaaaaaa...','.aKaaaaKa...','.aawkkwaa...','.aawwwwaa.bb','..aawwaa.bkb','..aaaaaa.bkb','..aaaaaaabbb','..aaaaaabkb.','..aa..aabb..','..bb..bb....']
 };
 function botSvg(color, sprite, crown){
   var c = esc(color || '#9ca3af'), rows = SPRITES[sprite] || SPRITES.ghost, out = '', edge = '', H = rows.length, W = 12, x, y, ch;
@@ -409,14 +411,24 @@ var SPOTS = [
   { x: 69, y: 66, emo: '', acts: ['ﾌｷﾌｷ', '🧹 ｻｯｻｯ', 'ﾋﾟｶﾋﾟｶ'] }, { x: 93, y: 68, emo: '', acts: ['ｲﾗｯｼｬｲﾏｾｰ', '👀 ｷｮﾛｷｮﾛ', '🌤 ｲｲ天気'] }           // 島の棚の前・入口のそば
 ];
 // メンバーごとのくせ（待機中にときどき出る）
-var HABITS = { boss: ['👑 ﾖｼﾖｼ', '☕ ﾋﾄｲｷ', 'ﾐﾝﾅ ｹﾞﾝｷｶﾅ'], research: ['🔍 ｷｮﾛｷｮﾛ', '📰 ﾌﾑﾌﾑ', 'ﾒﾓﾒﾓ'], planner: ['🧮 ﾊﾟﾁﾊﾟﾁ', '1,2,3…', '📊 ﾌﾑ'], strategy: ['🤔 ｳｰﾝ', '💡 ﾋﾗﾒｲﾀ', '📝 ｶｷｶｷ'], pop: ['✏️ ｶｷｶｷ', '🎨 ﾇﾘﾇﾘ', '✂️ ﾁｮｷﾁｮｷ'], 'crew-info': ['📣 ｱｰ ｱｰ', '🔔 ﾁﾘﾝ', 'ﾚﾝｼｭｳ ﾚﾝｼｭｳ'], 'crew-care': ['🌱 ﾐｽﾞﾔﾘ', '🎵 ｹﾛｹﾛ', 'ﾆｺﾆｺ'], 'system-dev': ['🔧 ｶﾁｬｶﾁｬ', '⚙️ ｷﾘｷﾘ', 'ﾃﾝｹﾝ ﾖｼ'] };
+var HABITS = { boss: ['👑 ﾖｼﾖｼ', '☕ ﾋﾄｲｷ', 'ﾐﾝﾅ ｹﾞﾝｷｶﾅ'], research: ['🔍 ｷｮﾛｷｮﾛ', '📰 ﾌﾑﾌﾑ', 'ﾒﾓﾒﾓ'], planner: ['🧮 ﾊﾟﾁﾊﾟﾁ', '1,2,3…', '📊 ﾌﾑ'], strategy: ['🤔 ｳｰﾝ', '💡 ﾋﾗﾒｲﾀ', '📝 ｶｷｶｷ'], pop: ['✏️ ｶｷｶｷ', '🎨 ﾇﾘﾇﾘ', '✂️ ﾁｮｷﾁｮｷ'], 'crew-info': ['📣 ｱｰ ｱｰ', '🔔 ﾁﾘﾝ', 'ﾚﾝｼｭｳ ﾚﾝｼｭｳ'], 'crew-care': ['🌱 ﾐｽﾞﾔﾘ', '🎵 ｹﾛｹﾛ', 'ﾆｺﾆｺ'], 'system-dev': ['🔧 ｶﾁｬｶﾁｬ', '⚙️ ｷﾘｷﾘ', 'ﾃﾝｹﾝ ﾖｼ'], qa: ['✅ ﾖｼ', '🔦 ﾋﾟｶｯ', 'ﾌﾞﾝﾌﾞﾝ'], 'tools-dev': ['🔩 ｷｭｯｷｭｯ', '🔨 ﾄﾝﾄﾝ', '📐 ﾊｶﾙ ﾊｶﾙ'] };
 var CHAT = [['ﾍﾟﾁｬｸﾁｬ', 'ｳﾝｳﾝ'], ['ｿﾚﾃﾞﾈ…', 'ﾍｪｰ'], ['😄', 'ｱﾊﾊ'], ['ｷｮｳ ｲｿｶﾞｼｲ?', 'ﾎﾞﾁﾎﾞﾁ']];
+// 席の決め方（2026-10-12 2階「システムの部屋」を足した）
+// ・1階の机の列：今までと同じ「7つ分の間かく」（ミル〜ケロの席は動かさない。1階に 8人以上が座る時だけ、等間隔につめる）。
+// ・2階（システムの部屋）：UPSTAIRS に書いた人。この並びが、2階の机の左からの順。印 up: 1 を付けて返す（斜め見下ろしの部品が、2階の高さに描く）。
+//   2階の机は3つ分の広さ。4人目からは、部品 office_iso_view.js の F2（2階の広さ）も広げる。
+// ・平面のオフィス（予備の絵。部品が読めない時・?office=flat の時）には2階が無いので、名簿の順に1階の列へ。8人目・9人目は商品棚の前（FLAT_EXTRA）。
+var SEATS_1F = 7, UPSTAIRS = ['system-dev', 'qa', 'tools-dev'], FLAT_EXTRA = [{ x: 58.5, y: 33 }, { x: 70.5, y: 33 }];
 function seatOf(id){
   if (id === 'owner') return { x: 89, y: 39 };
   if (id === 'boss') return { x: 44, y: 44 };
-  var n = TEAM.members.length, i = -1;
-  TEAM.members.forEach(function(m, k){ if (m.id === id) i = k; });
+  var iso = ISO.on, up = UPSTAIRS.indexOf(id), row, i = -1;
+  if (iso && up >= 0) return memberOf(id) ? { x: 57 + up * 11.5, y: -3, up: 1 } : null;
+  row = iso ? TEAM.members.filter(function(m){ return UPSTAIRS.indexOf(m.id) < 0; }) : TEAM.members;
+  row.forEach(function(m, k){ if (m.id === id) i = k; });
   if (i < 0) return null;
+  if (!iso && i >= SEATS_1F && row.length <= SEATS_1F + FLAT_EXTRA.length) return FLAT_EXTRA[i - SEATS_1F];
+  var n = Math.max(SEATS_1F, row.length);
   return { x: n === 1 ? 50 : 15 + i * (70 / (n - 1)), y: 88 };   // 席は横いっぱいに等間隔（人数が増えても重ならないように）
 }
 function sceneSvg(){
@@ -965,7 +977,7 @@ function renderFlow(){
     { t: '材料を集める', w: who('research', '外で起きること') + who('planner', '店の数字') + who('crew-care', 'クルーの状況') },
     { t: '作戦を立てる', w: who('strategy', '狙い・やること・確かめ方') },
     { t: '点検して決める', w: who('boss', '点検して渡す') + who('owner', '決める') },
-    { t: '形にする', w: who('pop', 'お客様向け（POP・売場）') + who('crew-info', 'クルー向け（お知らせ・手順）') + who('system-dev', 'アプリ') },
+    { t: '形にする', w: who('pop', 'お客様向け（POP・売場）') + who('crew-info', 'クルー向け（お知らせ・手順）') + who('system-dev', 'アプリ') + who('tools-dev', 'しくみ・道具') + who('qa', '公開の前の点検') },
     { t: '確かめる', w: who('planner', '実績の数字') + who('strategy', '当たり・外れ → 次の作戦へ') }
   ];
   var h = '<div class="fstages">' + stages.map(function(s, i){
