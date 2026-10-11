@@ -53,7 +53,12 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
       thanksLog:[{from:staff[0],to:staff[1],stampId:'thanks',message:'ありがとう',sentAt:now-36e5}],lastThanksSeen:{all:now-72e5},
       storeState:{teamPoints:42,teamTotalEarned:1800,cleanliness:64,mascotName:'みほん',foodInventory:[],lastFreeStoreGacha:'',activity:[{type:'complete',who:staff[1],info:'トイレ清掃',at:now-5e6},{type:'carry',who:staff[2],info:'床のモップがけ',at:now-4e6}]},
       areaChecks:{},amUsed:true};
-    return {stores:[{id:'cmpW',name:'見本の店（大町の地図つき）',createdAt:1},{id:'cmpX',name:'空の店',createdAt:2}],states:{cmpW:J(st),cmpX:null},crew:{},mkChecks:true};
+    // 番号（やる順）を並べた店：seq あり（同じ数・とびとび）・seq 無し（足したばかり）・今までの優先度つき・回数が全部0（休み）の作業をまぜる
+    const works=[['toilet','トイレ','🚻','red','点検',[2,3,3,2],3000],['counter','カウンター内','💴','blue','点検',[1,1,1,1],1000],['coffee','コーヒーマシン','☕','blue','点検',[2,3,3,2],2000,3],['face_red','前陳：その他（赤ゾーン）','📦','red','前陳',[1,1,0,1],2000],['stock_red','品出し（赤ゾーン）','📥','red','品出し',[0,1,0,1],null,1],['trash','ゴミ箱・上台周辺','🗑','blue','点検',[2,3,3,2],null],['face_daily','前陳：米飯・日配・ベーカリー','🍙','both','前陳',[1,2,2,1],2500],['rest','休みの作業','💤','both','その他',[0,0,0,0],4000]]
+      .map(a=>{ const w={id:a[0],name:a[1],icon:a[2],zone:a[3],kind:a[4],sch:a[5],sub:'見本の説明',days:null,items:[['見本の確認','見本の対応'],['見本の確認2','']]}; if(a[6]!=null)w.seq=a[6]; if(a[7])w.pri=a[7]; return w; });
+    const st2=JSON.parse(J(st)); st2.amWorks=works;
+    st2.areaChecks={toilet:[{at:new Date(now-40*60000).toISOString(),by:staff[0]}],coffee:[{at:new Date(now-26*3600000).toISOString(),by:staff[1]}],trash:[{at:new Date(now-100*60000).toISOString(),by:staff[2]},{at:new Date(now-20*60000).toISOString(),by:''}],counter:[{at:new Date(now-5*3600000).toISOString(),by:staff[1]}]};
+    return {stores:[{id:'cmpW',name:'見本の店（大町の地図つき）',createdAt:1},{id:'cmpX',name:'空の店',createdAt:2},{id:'cmpS',name:'番号を並べた店（大町の地図つき）',createdAt:3}],states:{cmpW:J(st),cmpX:null,cmpS:J(st2)},crew:{},mkChecks:true};
   }
   function fromFile(obj){
     let d=obj; for(const w of ['data','keys','localStorage']){ if(obj&&obj[w]&&typeof obj[w]==='object'&&Object.keys(obj[w]).some(k=>/^(ws_v1|global_stores$)/.test(k))){ d=obj[w]; break; } }
@@ -68,7 +73,10 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
     const base=new Date(); base.setHours(0,0,0,0); const T=[2.98,3,8.99,9,12,14.9,15,20.99,21,23.5,26.5].map(h=>base.getTime()+h*3600000);
     const ws=amWorks();
     ws.forEach((w,wi)=>{ T.forEach((t,i)=>safe('点検の状態/'+wi+'/'+i,()=>{ const s=amStatus(w,t); return {st:s.st,lv:s.lv,rank:s.rank,min:s.min,deadline:s.deadline,next:s.next,cur:s.cur}; })); safe('点検の枠/'+wi,()=>amSlots(w,T[4])); safe('点検の予定の文/'+wi,()=>amSchText(w)); safe('点検の優先度/'+wi,()=>amPri(w)); });
-    T.forEach((t,i)=>safe('点検の並び/'+i,()=>{ const sts={}; ws.forEach(w=>sts[w.id]=amStatus(w,t)); return ws.slice().sort((a,b)=>amCmp(a,b,sts)).map(w=>w.id); }));
+    safe('番号（やる順）',()=>amOrdered().map(w=>w.id)); safe('番号の表',()=>amNums()); safe('番号：seq',()=>ws.map(w=>[w.id,amSeqOf(w)]));
+    T.forEach((t,i)=>safe('点検の並び/'+i,()=>{ const sts={}, num=amNums(); ws.forEach(w=>sts[w.id]=amStatus(w,t)); return ws.slice().sort((a,b)=>amCmp(a,b,sts,num)).map(w=>w.id); }));
+    T.forEach((t,i)=>safe('つぎはこれ/'+i,()=>{ const sts={}, num=amNums(); ws.forEach(w=>sts[w.id]=amStatus(w,t)); const nx=amNextUp(ws.slice().sort((a,b)=>amCmp(a,b,sts,num)),sts); return [nx.top&&nx.top.id,nx.sec&&nx.sec.id,nx.idle&&nx.idle.id]; }));
+    safe('さいきん押した人',()=>amRecentNames());
     safe('地図',()=>{ const m=amMap(); return m?{w:m.w,h:m.h,n:(m.cells||[]).length}:null; });
     Object.keys(state.tasks||{}).forEach((k,i)=>safe('タスクの並び/'+k,()=>getTasks(k).map(t=>t.id)));
     safe('名簿',()=>staffList());
@@ -101,7 +109,7 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
         put('global_stores',J(data.stores)); put('ffv6_stores',J(data.stores.map(x=>({id:x.id,name:x.name})))); put('current_store_id',s.id); put('ffv6_current',s.id);
         ['kp_gist_token','kp_gist_id','ws_v1'].forEach(k=>put(k,null));
         let src=data.states[s.id];
-        if(src&&data.mkChecks){ const o=JSON.parse(src), now=Date.now(); o.areaChecks={w_toilet:[{at:new Date(now-40*60000).toISOString(),by:o.staff[0]}],w_ff:[{at:new Date(now-9*3600000).toISOString(),by:o.staff[1]}]}; src=J(o); }
+        if(src&&data.mkChecks&&!Object.keys(JSON.parse(src).areaChecks||{}).length){ const o=JSON.parse(src), now=Date.now(); o.areaChecks={w_toilet:[{at:new Date(now-40*60000).toISOString(),by:o.staff[0]}],w_ff:[{at:new Date(now-9*3600000).toISOString(),by:o.staff[1]}]}; src=J(o); }
         put('ws_v1_store_'+s.id,src||null); Object.keys(data.crew||{}).forEach(k=>put(k,data.crew[k]));
         const open=async()=>{ const [a,b]=await Promise.all([load(fo,'../ws/index.html?embedded=1&cmp='+Date.now()),load(fn,'ws/index.html?embedded=1&mem=1&wait=1&cmp='+Date.now())]);
           b.alert=()=>{}; b.confirm=()=>true; b.prompt=()=>null; a.alert=()=>{}; a.confirm=()=>true; a.prompt=()=>null;
@@ -132,12 +140,20 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
         // ④ 同じ操作をした後の、保存の中身
         const who=data.real?'確認用':'見本 花子';
         both(`(()=>{ const w=amWorks()[0]; amRecord(w.id,${J(who)}); })()`);
+        // 売場マップの窓（マスを押した窓・点検カード・「？」・登録の表）を開いて比べ、番号（やる順）を動かして 保存の中身を比べる
+        for(const [lab,code] of [['マスを押した窓',`amCloseSheet(); amCellTap('soup')`],['点検カード',`amOpenArea(amOrdered()[0].id)`],['点検カード（ほかの人）',`amCardOthers()`],['？',`amOpenHelp()`],['登録の表',`amOpenWorks()`],['登録の表（夕）',`amSetPeek('yu')`],['動かす途中',`amSetPeek('all'); amMoveStart(amOrdered().slice(-1)[0].id)`]]){ both(code); cmp1('④','窓 '+lab,`(document.getElementById('am-sheet')||{}).innerHTML||''`,3); }
+        both(`amCloseSheet(); amMoveTo(amOrdered().slice(-1)[0].id,1)`); cmp1('④','動かした後の番号',`JSON.stringify(amOrdered().map(w=>[w.id,amSeqOf(w)]))`,3); cmp1('④','動かした直後のお知らせ（元に戻す）',`(document.getElementById('am-snack')||{}).outerHTML||''`,3);
+        both(`amMoveTo(amOrdered()[0].id,3)`); cmp1('④','もう1回 動かした後の番号',`JSON.stringify(amOrdered().map(w=>[w.id,amSeqOf(w)]))`,3);
+        both(`amOpenWorks()`); cmp1('④','動かした後の登録の表',`(document.getElementById('am-sheet')||{}).innerHTML||''`,3); both(`amCloseSheet()`);
         both(`(()=>{ const k=dateKey(new Date()); if(!state.tasks[k])state.tasks[k]=[]; state.tasks[k].push({id:'t_cmp_add',text:'答え合わせで足したタスク',hour:12,min:0,endHour:13,endMin:null,tan:'both',cats:[],zones:[],memo:'',manual:'',checklist:[],done:false,carryOvers:[],order:99,createdAt:'2026-10-05T00:00:00.000Z'}); saveState(); render(); })()`);
         both(`(()=>{ const k=dateKey(new Date()); const t=state.tasks[k].find(x=>x.id==='t_cmp_add'); t.done=true; t.completedBy=${J(who)}; t.completedAt='2026-10-05T03:00:00.000Z'; saveState(); render(); })()`);
         both(`(()=>{ const k=dateKey(new Date()); state.tasks[k]=state.tasks[k].filter(x=>x.id!=='t_cmp_add'); saveState(); render(); })()`);
         await sleep(300);
         const strip=`(s=>{ if(s===null)return 'null'; const o=JSON.parse(s); delete o._modifiedAt; const z=x=>{ if(x&&typeof x==='object'){ if(Array.isArray(x))x.forEach(z); else { delete x._at; if(typeof x.at==='string'&&/^20\\d\\d-/.test(x.at)&&Date.now()-Date.parse(x.at)<600000)x.at='(いま)'; Object.keys(x).forEach(k=>z(x[k])); } } }; z(o); return JSON.stringify(o); })`;
         r.n[3]++; { const a=N(wo.eval(strip+`(localStorage.getItem(${J('ws_v1_store_'+s.id)}))`)), b=N(wn.eval(strip+`(localStorage.getItem(${J('ws_v1_store_'+s.id)}))`)); if(a!==b)r.diffs.push(show('④ 保存の中身',a,b)); }
+        // 「いま」の画面の保存（本物の localStorage）は、同じ場所にいる「新しい」画面へ storage の知らせとして届く（答え合わせで2つを並べているせい。本番の新しいシステムでは起きない）。
+        // その知らせで「新しい」画面だけ ［元に戻す］のお知らせが「使えなくなりました」に替わるので、売場マップを比べる前に、両方のお知らせを消してそろえる（お知らせの中身は、上で動かした直後に比べてある）
+        both(`(()=>{ const s=document.getElementById('am-snack'); if(s){ s.classList.remove('show','am-snack-top'); s.innerHTML=''; } })()`);
         cmp1('④','操作の後の画面が持っているデータ',strip+'(JSON.stringify(state))',3); cmp1('④','操作の後の売場マップ',BODY,3);
         row(name+(src?'':'（データなし）'),r);
       }

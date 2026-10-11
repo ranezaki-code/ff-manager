@@ -90,9 +90,135 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     check('14','A がタスクを直し・足した → 古い状態の B が後から保存 → A の入力は1つも消えない',task(A,'t1').text==='新しい名前のタスク'&&task(A,'t1').hour===8&&!!task(A,'a9')&&A.ev('state.recurringTasks.length')===1&&task(B,'t1').text==='新しい名前のタスク'&&!!task(B,'a9')&&task(A,'t2').done===false&&same(),`名前 ${task(B,'t1').text}・足したタスク ${task(B,'a9')?'あり':'なし'}`);
     const mA=A.ev('state._modifiedAt'), cnt0=cloud.writes; B.ev('saveState()'); await sync();
     check('15','何も変えずに保存しても、ネット上には何も書かない（最終保存の時刻は端末ごと）',cloud.writes===cnt0&&A.ev('state._modifiedAt')===mA,'書いた文書 '+(cloud.writes-cnt0)+' 個');
-    check('16','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
-    const srv=await c.readServer(); check('17','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
-    check('18','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
+    // ---------- 番号（やる順）：2026-10-11 段1。保存するのは作業ごとの seq（並びの位置）だけ。画面の番号は保存しない ----------
+    const DEF=JSON.parse(A.ev('JSON.stringify(DEFAULT_WORKS.map(w=>w.id))'));
+    const ord=d=>d.ev('amOrdered().map(w=>w.id).join(",")');
+    const numOf=(d,id)=>d.ev(`amNums()[${J(id)}]`);
+    const seqs=d=>JSON.parse(d.ev('JSON.stringify((Array.isArray(state.amWorks)?state.amWorks:[]).map(w=>[w.id,typeof w.seq==="number"?w.seq:null]))'));
+    const seqOf=(d,id)=>{ const p=seqs(d).find(x=>x[0]===id); return p?p[1]:undefined; };
+    const mv=(d,id,pos,opt)=>JSON.parse(d.ev(`JSON.stringify(amMoveTo(${J(id)},${pos},${J(opt||{})}))`));
+    const changed=(a,b)=>b.filter(p=>{ const q=a.find(x=>x[0]===p[0]); return !q||q[1]!==p[1]; });
+    const wk=(d,id)=>JSON.parse(d.ev(`JSON.stringify(amWork(${J(id)})||null)`));
+    const stat=d=>d.ev(`(()=>{ const base=new Date(); base.setHours(0,0,0,0); return JSON.stringify([3,8.99,9,12,14.9,15,20.99,21,26.5].map(h=>amWorks().slice().sort((a,b)=>a.id<b.id?-1:1).map(w=>{ const s=amStatus(w,base.getTime()+h*3600000); return [w.id,s.st,s.lv,s.deadline||0]; }))); })()`);
+    A.ev('isAdmin=true'); B.ev('isAdmin=true');
+    await sync();
+    { const key=A.ev('STORAGE_KEY'), raw0=A.ev(`localStorage.getItem(${J(key)})`), w0=cloud.writes, st0=stat(A);
+      const first=ord(A), nn=DEF.map(id=>numOf(A,id)).join(',');
+      A.ev(`amOpenWorks(); amSetPeek('yu'); amSetPeek('all'); amMoveStart('coffee'); amMoveBy('cancel'); amMoveStart('coffee'); amRowTap('coffee'); amCloseSheet(); renderMapView(); amOpenArea('toilet'); amCardOthers(); amCloseSheet(); amOpenHelp(); amCloseSheet(); amCellTap('soup'); amCloseSheet(); amToggleMap(); amToggleMap(); amToggleDone(); amToggleDone();`);
+      const same1=mv(A,DEF[0],1);                                   // 同じ場所へ「動かす」＝何も書かない
+      await sync();
+      check('16','番号：1件も保存していない時は、登録の順のまま 1〜17番。開いただけ・表を開いただけ・動かしかけて やめただけでは、何も保存しない',
+        first===DEF.join(',')&&nn===DEF.map((x,i)=>i+1).join(',')&&same1===null&&!A.ev('Array.isArray(state.amWorks)')&&A.ev(`localStorage.getItem(${J(key)})`)===raw0&&cloud.writes===w0&&stat(A)===st0,
+        `並び ${first===DEF.join(',')?'登録の順':'ちがう'}・書いた文書 ${cloud.writes-w0} 個・登録の写し ${A.ev('Array.isArray(state.amWorks)')?'できた':'なし'}`);
+    }
+    { const o1=A.ev(`amOrdered(null,[{id:'a'},{id:'b',pri:1},{id:'c',pri:3},{id:'d'},{id:'e',pri:3}]).map(w=>w.id).join(',')`);
+      const o2=A.ev(`amOrdered(null,[{id:'x',seq:3000},{id:'b',pri:3},{id:'y',seq:1000},{id:'z2',seq:2000},{id:'z1',seq:2000},{id:'n'},{id:'s',seq:'5'},{id:'l',pri:1},{id:'q',seq:NaN}]).map(w=>w.id).join(',')`);
+      const o3=A.ev(`amOrdered('yu',[{id:'a',seq:1000,seqYu:9000},{id:'b',seq:2000},{id:'c',seq:3000}]).map(w=>w.id).join(',')+'/'+amOrdered(null,[{id:'a',seq:1000,seqYu:9000},{id:'b',seq:2000},{id:'c',seq:3000}]).map(w=>w.id).join(',')`);
+      check('17','番号を読む決まり：seq の小さい順 → 同じ数は id の順 → seq 無しは その後ろに「今までの 高 → 中 → 低 → 登録の順」。数字でない seq は「無し」と読む（あとで足す 時間帯ごとの欄も読める）',
+        o1==='c,e,a,d,b'&&o2==='y,z1,z2,x,b,n,s,q,l'&&o3==='b,c,a/a,b,c',o1+'｜'+o2+'｜'+o3); }
+    { const o=A.ev(`(()=>{ const ws=[{id:'a',seq:1000},{id:'b',seq:2000},{id:'c',seq:3000},{id:'d',seq:4000},{id:'e',seq:5000}], num=amNums(null,ws);
+        const sts={a:{st:'soon',min:900},b:{st:'fire',lv:1,min:5},c:{st:'fire',lv:3,min:999},d:{st:'done'},e:{st:'todo'}};
+        return ws.slice().reverse().sort((x,y)=>amCmp(x,y,sts,num)).map(w=>num[w.id]+w.id).join(','); })()`);
+      check('18','並び：状態（おくれ → そろそろ → これから → 済）→ 番号の小さい順。🔥 の数・最後の記録の古さでは動かない（2番の 🔥1つ が、3番の 🔥3つ より先。1番の そろそろ は その後）',o==='2b,3c,1a,5e,4d',o); }
+    { const st0=stat(A), r=mv(A,'stock_red',2), s=seqs(A); await sync();
+      const exp=DEF.filter(x=>x!=='stock_red'); exp.splice(1,0,'stock_red');
+      check('19','初めて動かした時：その時の並び全部を 1000 きざみで書く（全部の作業に書くのは この時だけ）。2台の番号が同じ',
+        r&&r.all===true&&r.n===17&&s.length===17&&s.every(p=>p[1]%1000===0&&p[1]>0)&&ord(A)===exp.join(',')&&ord(B)===exp.join(',')&&numOf(B,'stock_red')===2&&same(),`書いた作業 ${r&&r.n} 件・品出し（赤ゾーン）は ${numOf(B,'stock_red')}番`);
+      check('20','番号を付けても、今までの 🔥 の出方（作業ごとの状態・ぬけた回数・しめきり）は変わらない',stat(A)===st0&&stat(B)===st0); }
+    { const b=seqs(A), r=mv(A,'coffee',1), a=seqs(A), c=changed(b,a); await sync();
+      check('21','2回目からは、動かした1件だけを書く（前と後ろの真ん中の数）',r&&r.all===false&&r.n===1&&c.length===1&&c[0][0]==='coffee'&&c[0][1]===500&&numOf(A,'coffee')===1&&numOf(B,'coffee')===1&&same(),J(c)); }
+    { let all=0, one=0, last=null; const ids=['trash','supply','copy','atm','tobacco','counter','face_ff','outside','floor_red','face_red','floor_blue','face_blue'];
+      for(const id of ids){ const b=seqs(A), r=mv(A,id,1), c=changed(b,seqs(A)); if(r&&r.all){ all++; last=id; if(c.length<2)all=99; } else if(r&&r.n===1&&c.length===1) one++; else all=99; if(all)break; }
+      const s=seqs(A); await sync();
+      check('22','いちばん上へ 何回も入れて すき間が無くなった時だけ、全部を 1000 きざみに振り直す（順は変わらない）',all===1&&one>=5&&s.every(p=>p[1]%1000===0&&p[1]>0)&&new Set(s.map(p=>p[1])).size===s.length&&numOf(A,last)===1&&ord(A)===ord(B)&&same(),`1件だけ書いた ${one} 回 → 全部を書いた ${all} 回`); }
+    { // 古い版の端末（seq を知らない）が作業を足した時の形：seq 無し・pri つき
+      B.ev(`state.amWorks.push({id:'w_old1',name:'古い版で足した作業',icon:'🧪',kind:'その他',pri:2,zone:'blue',sub:'',sch:[0,1,0,0],days:null,items:[]}); state.amUsed=true; saveState();`); await sync();
+      const n1=numOf(A,'w_old1'), isNew=A.ev(`amWorksView().isNew(amWork('w_old1'))`), top=mv(A,'toilet',99), n2=numOf(A,'w_old1'), nt=numOf(A,'toilet');
+      const b=seqs(A), r=mv(A,'w_old1',A.ev(`amWorksView().maxPos('w_old1')`),{here:true}), c=changed(b,seqs(A)); await sync();
+      check('23','seq の無い作業（番号を保存した後に足した・古い版で足した）は「新」として いちばん下。ほかの作業は その下へ入らない。「ここでよい」で場所が決まる（1件だけ書く）',
+        n1===18&&isNew===true&&n2===18&&nt===17&&r&&r.n===1&&c.length===1&&c[0][0]==='w_old1'&&numOf(B,'w_old1')===18&&typeof seqOf(B,'w_old1')==='number'&&same(),`足した直後 ${n1}番・トイレを いちばん下へ → トイレ ${nt}番／新 ${n2}番`); }
+    { // 古い版の保存のしかた（seq を知らないまま、回数を変える・内容を保存して pri を書く・古い状態のまま全体を保存）
+      B.be.setOnline(false);
+      const r=mv(A,'trash',3); await sync();
+      B.ev(`(()=>{ const w=state.amWorks.find(x=>x.id==='toilet'); w.sch[0]=((+w.sch[0]||0)+1)%5; state.amUsed=true; saveState(); Object.assign(state.amWorks.find(x=>x.id==='copy'),{name:'コピー機（古い版で直した）',pri:3}); saveState(); })()`);
+      B.be.setOnline(true); await sync();
+      const sa=seqs(A), sb=seqs(B);
+      check('24','古い状態の端末が、seq を知らないまま保存（回数を変える・内容を保存して 優先度を書く）→ 番号は消えない。A の動かした結果も、B の直しも残る',
+        r&&numOf(A,'trash')===3&&numOf(B,'trash')===3&&sa.length===18&&sa.every(p=>typeof p[1]==='number')&&J(sa)===J(sb)&&wk(A,'copy').name==='コピー機（古い版で直した）'&&wk(A,'copy').pri===3&&wk(A,'toilet').sch[0]===wk(B,'toilet').sch[0]&&wk(A,'toilet').sch[0]===3&&same(),`ゴミ箱 ${numOf(B,'trash')}番・seq のある作業 ${sa.filter(p=>typeof p[1]==='number').length}/18`); }
+    { // 新しい版で「内容」を保存しても、今までの優先度（pri）は書き換えない。番号も変わらない
+      const n0=numOf(A,'copy'), s0=seqOf(A,'copy');
+      A.ev(`amEditWork('copy'); document.getElementById('amw-sub').value='新しい版で直した説明'; amSaveWork('copy'); amCloseSheet();`); await sync();
+      check('25','新しい版で 作業の内容を保存しても、今までの優先度（pri）の値は そのまま。番号も変わらない（優先度の欄は もう無い）',
+        wk(A,'copy').pri===3&&wk(B,'copy').pri===3&&wk(B,'copy').sub==='新しい版で直した説明'&&numOf(A,'copy')===n0&&seqOf(B,'copy')===s0&&!A.ev(`(amEditWork('copy'),!!document.getElementById('amw-pri'))`)&&(A.ev('amCloseSheet()'),same()),`pri ${wk(B,'copy').pri}・${numOf(B,'copy')}番`); }
+    { off(); const r=mv(A,'supply',1); B.ev(`Object.assign(state.amWorks.find(x=>x.id==='tobacco'),{sub:'Bが直した説明'}); saveState();`); on(); await sync();
+      check('26','2台同時：A が番号を動かし、B が別の作業の内容を直した → 両方残る',r&&numOf(A,'supply')===1&&numOf(B,'supply')===1&&wk(A,'tobacco').sub==='Bが直した説明'&&ord(A)===ord(B)&&same(),`消耗品 ${numOf(B,'supply')}番・タバコの説明「${wk(A,'tobacco').sub}」`); }
+    { const regFirst=A.ev(`state.amWorks.findIndex(w=>w.id==='trash')<state.amWorks.findIndex(w=>w.id==='coffee')`); off(); const ra=mv(A,'trash',1), rb=mv(B,'coffee',1); on(); await sync();
+      const tie=seqOf(A,'coffee')===seqOf(A,'trash'), o=ord(A).split(',').slice(0,3).join(',');
+      const r2=mv(A,'toilet',2); await sync();
+      check('27','2台同時：A と B が別々の作業を動かした → 両方残る。同じ数になっても、番号は2台で同じ（id の順。登録の順は ゴミ箱 → コーヒーマシン、id の順は coffee → trash なので、id の順で決めている事が分かる）。その間へ入れた時は、全部を振り直す',
+        regFirst===true&&ra&&rb&&tie&&o==='coffee,trash,supply'&&r2&&r2.all===true&&ord(A).split(',').slice(0,3).join(',')==='coffee,toilet,trash'&&ord(A)===ord(B)&&new Set(seqs(B).map(p=>p[1])).size===18&&same(),`同じ数 ${tie?'あり':'なし'} → ${o} → ${ord(B).split(',').slice(0,3).join(',')}`); }
+    { const idf='face_ff', n0=n(A,idf); off(); const r=mv(A,idf,2); B.win.amRecord(idf,'見本 太郎'); on(); await sync();
+      check('28','2台同時：A が番号を動かし、B が点検を記録した → 両方残る（記録は消えない）',r&&numOf(A,idf)===2&&numOf(B,idf)===2&&n(A,idf)===n0+1&&n(B,idf)===n0+1&&same(),`${numOf(B,idf)}番・記録 ${n(B,idf)} 件`); }
+    { const cnt0=A.ev('state.amWorks.length'), chk0=A.ev('JSON.stringify(state.areaChecks)');
+      off(); mv(A,'outside',1); await sleep(30); mv(B,'outside',6); B.be.setOnline(true); await B.store.settle(); A.be.setOnline(true); await sync();
+      check('29','2台同時：同じ作業を 2台が別の場所へ動かした → あとから動かしたほうが残る。作業も記録も1つも消えない',
+        numOf(A,'outside')===6&&numOf(B,'outside')===6&&A.ev('state.amWorks.length')===cnt0&&B.ev('state.amWorks.length')===cnt0&&A.ev('JSON.stringify(state.areaChecks)')===chk0&&ord(A)===ord(B)&&same(),`店外 A:${numOf(A,'outside')}番 B:${numOf(B,'outside')}番・作業 ${B.ev('state.amWorks.length')} 件`); }
+    { const b=seqs(A), o0=ord(A); mv(A,'stock_blue',3); const moved=ord(A)!==o0; A.ev('amSeqUndoRun()'); await sync();
+      check('30','「1つ前に戻す」：動かす前の seq と並びに戻る（もう1台も同じ）',moved&&J(seqs(A))===J(b)&&ord(A)===o0&&ord(B)===o0&&same()); }
+    { const chk0=A.ev('JSON.stringify(state.areaChecks)');
+      A.ev('amOpenWorks(); amResetWorks(); amCloseSheet();'); await sync();
+      const o1=ord(A), okReset=!A.ev('Array.isArray(state.amWorks)')&&!B.ev('Array.isArray(state.amWorks)')&&o1===DEF.join(',')&&ord(B)===DEF.join(',')&&A.ev('JSON.stringify(state.areaChecks)')===chk0&&B.ev('JSON.stringify(state.areaChecks)')===chk0;
+      const r=mv(A,'stock_red',2); A.ev('amSeqUndoRun()'); await sync();
+      check('31','「初期値に戻す」：番号の保存が全部消えて、最初の番号（登録の順）に戻る。点検の記録は残る。その後 初めて動かして「1つ前に戻す」と、seq は全部なくなる',
+        okReset&&r&&r.all===true&&seqs(A).length===17&&seqs(A).every(p=>p[1]===null)&&ord(A)===DEF.join(',')&&ord(B)===DEF.join(',')&&same(),`戻した後の並び ${o1===DEF.join(',')?'登録の順':'ちがう'}・seq のある作業 ${seqs(B).filter(p=>p[1]!==null).length} 件`); }
+    { // さいきん押した人：新しく保存する物は無い（記録から その場で計算）。2台で同じ並び
+      const key=A.ev('STORAGE_KEY'), w0=cloud.writes, raw0=A.ev(`localStorage.getItem(${J(key)})`);
+      const ra=A.ev('JSON.stringify(amRecentNames())'), rb=B.ev('JSON.stringify(amRecentNames())');
+      A.ev(`amOpenArea(${J(wid)}); amCloseSheet();`); await sync();
+      check('32','さいきん押した人（名前のボタンの先頭）：今ある記録から計算するだけで、何も保存しない。2台で同じ並び',ra===rb&&JSON.parse(ra).length>=2&&JSON.parse(ra).every(x=>/^見本 /.test(x))&&cloud.writes===w0&&A.ev(`localStorage.getItem(${J(key)})`)===raw0,ra); }
+    { // 2台が同時に「初めての並べ替え」（どの作業にも seq が無い時に、2台が別々に動かす）
+      const chk0=A.ev('JSON.stringify(state.areaChecks)'), none=seqs(A).every(p=>p[1]===null);
+      off(); const ra=mv(A,'coffee',1); await sleep(30); const rb=mv(B,'trash',1); B.be.setOnline(true); await B.store.settle(); A.be.setOnline(true); await sync();
+      const s=seqs(A);
+      check('33','2台が同時に「初めての並べ替え」をした → 作業も記録も消えない。番号は2台で同じになる（あとから動かした端末の並びが残る。先の端末の動きは残らない＝最初の並べ替えは1台で行う）',
+        none&&ra&&rb&&ra.all===true&&rb.all===true&&s.length===17&&s.every(p=>typeof p[1]==='number')&&new Set(s.map(p=>p[1])).size===17&&ord(A)===ord(B)&&numOf(A,'trash')===1&&numOf(B,'trash')===1&&A.ev('JSON.stringify(state.areaChecks)')===chk0&&same(),`ゴミ箱 ${numOf(A,'trash')}番・コーヒーマシン ${numOf(A,'coffee')}番・作業 ${s.length} 件`); }
+    { // 登録の表を開いている時に、ほかの端末の変更が届く
+      A.ev(`amOpenWorks(); amMoveStart('coffee');`); mv(B,'toilet',5); B.ev(`Object.assign(state.amWorks.find(x=>x.id==='trash'),{name:'ゴミ箱（Bが直した名前）'}); saveState();`); await sync();
+      const rows=A.ev(`Array.prototype.map.call(document.querySelectorAll('#am-sheet .amw-row[data-row]'),r=>r.querySelector('.am-no').textContent+':'+r.getAttribute('data-row')+(r.classList.contains('sel')?'*':'')).join(',')`);
+      const okRows=rows.split(',').map(x=>x.split(':')[1].replace('*','')).join(',')===ord(B), name=A.ev(`document.querySelector('#am-sheet').textContent.indexOf('ゴミ箱（Bが直した名前）')>=0`);
+      const r=JSON.parse(A.ev(`(amRowTap('toilet'), JSON.stringify([amNums().coffee, amNums().toilet, _amMoving]))`)); A.ev('amCloseSheet()'); await sync();
+      check('34','登録の表を開いて 動かしている途中に、ほかの端末の変更が届いた → 表が新しい並び・名前に描き直され、動かす途中の作業は選ばれたまま。そのまま行き先を押すと、届いた後の並びで入る',
+        okRows&&name===true&&/\*/.test(rows)&&rows.indexOf('coffee*')>=0&&r[0]===5&&r[1]===6&&r[2]===null&&ord(A)===ord(B)&&same(),`コーヒーマシン ${r[0]}番・トイレ ${r[1]}番`); }
+    { // お知らせ（取り消す）が、次に開いたカードのボタンに かぶらない（2026-10-12 点検の指摘 F1）
+      const n1=n(A,wid), n2=n(A,wid2);
+      const r=JSON.parse(A.ev(`(()=>{ amRecord(${J(wid)},'見本 花子'); amOpenArea(${J(wid2)});
+        const sn=document.getElementById('am-snack'), sr=sn.getBoundingClientRect(), shown=sn.classList.contains('show')&&!!sn.querySelector('button');
+        const bs=Array.prototype.slice.call(document.querySelectorAll('#am-sheet button')); let hit=0, cover=0;
+        bs.forEach(b=>{ const q=b.getBoundingClientRect(); if(q.right>sr.left&&q.left<sr.right&&q.bottom>sr.top&&q.top<sr.bottom) cover++; const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2); if(e&&(e===b||b.contains(e))) hit++; });
+        const anon=bs.filter(b=>/名前なしで/.test(b.textContent))[0], q=anon.getBoundingClientRect(), e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2), tgt=e&&e.closest('button');
+        if(tgt) tgt.click();
+        return JSON.stringify({shown,n:bs.length,hit,cover,clicked:tgt?tgt.textContent.trim():'',top:Math.round(sr.top),bottom:Math.round(sr.bottom)}); })()`));
+      await sync();
+      check('35','記録の直後に 次のカードを開いても、お知らせ（取り消す）は カードのどのボタンにも かぶらない。ボタンのまん中を押すと そのボタンが押される（「名前なしで 記録」→ 記録は2件とも残る）',
+        r.shown&&r.n>=4&&r.hit===r.n&&r.cover===0&&/名前なしで/.test(r.clicked)&&n(A,wid)===n1+1&&n(A,wid2)===n2+1&&n(B,wid)===n1+1&&n(B,wid2)===n2+1&&same(),`ボタン ${r.n} 個・まん中が自分 ${r.hit} 個・かぶり ${r.cover} 個・押された物「${r.clicked}」・お知らせの場所 上から ${r.top}〜${r.bottom}px`); }
+    { // ［元に戻す］が出ている間に、ほかの端末の変更が届く（F2）
+      mv(A,'supply',2); const had=A.ev(`(()=>{ const s=document.getElementById('am-snack'); return s.classList.contains('show')&&!!s.querySelector('button'); })()`);
+      B.ev(`Object.assign(state.amWorks.find(x=>x.id==='tobacco'),{sub:'Bが もう一度 直した'}); saveState();`); await sync();
+      const after=JSON.parse(A.ev(`(()=>{ const s=document.getElementById('am-snack'); return JSON.stringify({btn:!!s.querySelector('button'),txt:s.textContent,undo:!!_amSeqUndo}); })()`));
+      A.ev('amSeqUndoRun(); amSnackAct();'); await sync();
+      check('36','［元に戻す］のお知らせが出ている間に ほかの端末の変更が届いた → 押しても何も起きない［元に戻す］は残らない（理由を1行で知らせる）。動かした結果は そのまま',
+        had===true&&after.btn===false&&/使えなくなりました/.test(after.txt)&&after.undo===false&&numOf(A,'supply')===2&&numOf(B,'supply')===2&&wk(A,'tobacco').sub==='Bが もう一度 直した'&&same(),after.txt); }
+    { // 点検カードを開いている時に、並べ替えが届く（F5）
+      const nb=numOf(A,'stock_blue'); A.ev(`amOpenArea('stock_blue')`); const s0=A.ev(`document.querySelector('#am-sheet .am-cd-t .am-no').textContent`);
+      mv(B,'stock_blue',1); await sync();
+      const s1=A.ev(`document.querySelector('#am-sheet .am-cd-t .am-no').textContent`), open=A.ev('amSheetName()'); A.ev('amCloseSheet()');
+      check('37','点検カードを開いている時に 並べ替えが届いた → カードは開いたまま、番号の丸の字だけ 新しい番号になる',String(nb)===s0&&nb!==1&&s1==='1'&&open==='card'&&numOf(A,'stock_blue')===1&&same(),`${s0}番 → ${s1}番`); }
+    { const o=A.ev(`amOrdered(null,[null,{id:'a'},undefined,'x',7,{id:'b',seq:1000}]).map(w=>w.id).join(',')`);
+      const rk=A.ev(`[amRestKind({sch:5}),amRestKind({sch:'abc'}),amRestKind({sch:{0:2}}),amRestKind({}),amRestKind(null),amRestKind({sch:[0,1,0,0]}),amInBand({sch:7},0),amInBand(null,1)].join('|')`);
+      check('38','こわれた値に強い：登録の中の null や、配列でない回数の欄があっても、番号を読む所と「休み」の判定は止まらない（F3）',o==='b,a'&&rk==='休み|休み|休み|休み|休み||false|false',o+'／'+rk); }
+    check('39','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    const srv=await c.readServer(); check('40','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
+    check('41','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
   $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
