@@ -45,6 +45,13 @@ h1 .chip{vertical-align:middle;margin-left:4px}
 .today b{font-weight:400;color:var(--work);margin-right:8px}
 .today span{color:var(--sub)}
 .offwrap{overflow-x:auto;border:4px solid #3d4248;border-radius:6px;box-shadow:4px 4px 0 #b9bdc3;background:#f4f4f2}
+/* 斜め見下ろしのオフィス：部品 office_iso_view.js が #isoOffice の中に描く（中の見た目は部品が持つ）。
+   部品が動いている間だけ .offwrap に iso が付き、平面のオフィス（#office）を隠す。部品が読めない・失敗した時は付かず、平面のオフィスがそのまま出る */
+#isoOffice{display:none}
+.offwrap.iso{overflow:hidden}
+.offwrap.iso #office{display:none}
+.offwrap.iso #isoOffice{display:block}
+#office-msg{margin-top:8px}
 .office{position:relative;width:100%;min-width:620px;aspect-ratio:2/1;overflow:hidden}
 .office>svg.bg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .fx{position:absolute;transform:translate(-50%,0)}
@@ -248,13 +255,14 @@ h1 .chip{vertical-align:middle;margin-left:4px}
   <nav class="tabs" id="tabs">
     <button data-tab="office">🏢 オフィス</button>
     <button data-tab="tasks">📌 やること <span id="tk-cnt"></span></button>
+    <button data-tab="board">🧭 進み具合 <span id="bd-ren-cnt"></span></button>
     <button data-tab="files">📄 提出物 <span id="files-cnt"></span></button>
     <button data-tab="inbox">📥 入れる場所</button>
   </nav>
 
   <section id="tab-office">
     <div class="today" id="week"></div>
-    <div class="offwrap"><div class="office" id="office"></div></div>
+    <div class="offwrap" id="offwrap"><div class="office" id="office"></div><div id="isoOffice"></div></div>
     <div class="roster" id="roster"></div>
     <div id="rdetail"></div>
     <details class="fold" id="fold-flow"><summary>この組織の流れ</summary>
@@ -263,6 +271,7 @@ h1 .chip{vertical-align:middle;margin-left:4px}
     <details class="fold" id="fold-log"><summary>やりとりの記録</summary><div class="log" id="log"></div></details>
   </section>
 
+  <section id="tab-board" class="hide"><div class="today">途中の仕事を「いま誰の番か」で見る。れんさんの番は、やることと同じ物です。</div><div id="board"></div></section>
   <section id="tab-tasks" class="hide">
     <div id="tasks"></div>
   </section>
@@ -276,7 +285,9 @@ h1 .chip{vertical-align:middle;margin-left:4px}
   </section>
 </div>
 <script src="../autoupdate.js" defer></script><!-- 新しい版が公開されたら自動で読み込み直す（公開ページ用。このパソコンでは無くてもよい） -->
-<script>document.write('<script src="share.js?t='+Date.now()+'"><\/script>')</script><!-- ほかの端末でオフィスを見るための部品（送る側・見る側） -->
+<script>document.write('<script src="share.js?t='+Date.now()+'"><\/script>')</script>
+<script>document.write('<script src="board_ui.js?t='+Date.now()+'"><\/script>')</script><!-- 進み具合の画面 --><!-- ほかの端末でオフィスを見るための部品（送る側・見る側） -->
+<script>document.write('<script src="office_iso_view.js?t='+Date.now()+'"><\/script>')</script><!-- オフィスの絵（斜め見下ろし）を描く部品。読めない時は、平面のオフィスがそのまま出る -->
 <script>
 var TEAM = window.__AI_TEAM || null, STATE = null;
 var XP_PER_TASK = 20, XP_PER_LV = 200;
@@ -379,6 +390,9 @@ function storeTag(t){
 }
 
 // ================= オフィス（モノトーン。休憩室・トレーニングルーム・売場・事務所・作業スペース） =================
+// ※ 2026-10-10 から、ふだんの絵は「斜め見下ろし」（この下の「オフィスの絵：斜め見下ろし」と、部品 office_iso_view.js）が描く。
+//    ここは平面のオフィス：部品が読めない時・失敗した時・URL に ?office=flat を付けた時にだけ使う（中身は変えていない）。
+//    ただし SPOTS（ことば）・HABITS・CHAT・seatOf は、斜め見下ろしも使う。ここを直すと両方に効く。
 // 位置はすべて％（左上が 0,0。横は幅に対する％、縦は高さに対する％）。キャラクターは足元が基準。
 // 背景（床・壁・棚・机まわりなど）は SVG（横200×縦100の方眼）で描き、席とカウンターとキャラクターは上に重ねる。
 var OFFICE = { sig: '', chars: {}, prev: {}, lastPrompt: 0 };
@@ -675,23 +689,77 @@ document.addEventListener('visibilitychange', function(){
   Object.keys(OFFICE.chars).forEach(function(id){ var c = OFFICE.chars[id]; if (c.seated && c.seat && c.sit && !c.el.classList.contains('work') && !c.el.classList.contains('train')){ c.moveId++; c.el.style.transitionDuration = '0s'; place(c, c.seat.x, c.seat.y); c.sit(); c.due = 0; } });
 });
 
+// ================= オフィスの絵：斜め見下ろし（2026-10-10 店長「オフィスは入れてください」） =================
+// 描くのは部品 office_iso_view.js（window.IsoOffice）。ここは「名簿と状態を渡す・押された人を受け取る」つなぎだけ。
+// ・枠の高さは OFFICE_H（px。幅がせまい時は 幅×0.66 にちぢむ）。変える時は、この数字だけ直す。
+// ・部品が読めない時（ファイルが無い等）・失敗した時・URL に ?office=flat を付けた時は、上の平面のオフィスをそのまま使う（自動で戻る）。
+//   部品が動いている間は、上の平面のオフィスの関数は呼ばれない（OFFICE.chars が空なので、上の2秒ごとの動きも何もしない）。
+// ・部品はファイルを読まない。state.js を読むのは今までどおり下の poll() だけ（読む人を増やさない）。
+// ・絵・ことば・席（SPRITES・SPOTS・HABITS・CHAT・seatOf・toolWords）は、上の物を部品に渡して使う（同じ事実を2か所に書かない）。
+var OFFICE_H = 700;
+var ISO = { on: false, why: '' };
+// 確かめ用：URL に ?demo=1 を付けると、state.js を読まずに仮の状態（3人が作業中）で描く（0＝全員待ち・2＝全員作業中・3＝全員が自主点検）。
+// STATE には入れないので、📡 でほかの端末へ送られることはない。見る側（?viewer=1・公開ページ）では使わない
+var DEMO = (function(){ var m = /[?&]demo=([^&#]*)/.exec(location.search || ''); return m && window.IsoOffice && !window.__VIEWER ? (m[1] || '1') : null; })(), DEMO_ST = null;
+function officeMsg(t){   // オフィスの枠のすぐ下に、1行のお知らせを出す（絵を出せなかった時だけ）
+  var el = document.getElementById('office-msg'), w = document.getElementById('offwrap');
+  if (!el){ el = document.createElement('div'); el.id = 'office-msg'; el.className = 'rtip'; w.parentNode.insertBefore(el, w.nextSibling); }
+  el.textContent = t;
+}
+function isoOff(e){      // 斜め見下ろしをやめて、平面のオフィスに戻す
+  ISO.on = false; ISO.why = (e && e.message) || String(e || '');
+  DEMO = null; DEMO_ST = null;   // 仮の状態は斜め見下ろしの確かめ用。平面に戻ったら、本物の状態を読む
+  try { IsoOffice.stop(); } catch (x) {}
+  document.getElementById('offwrap').classList.remove('iso');
+  officeMsg('斜め見下ろしのオフィスを出せなかったので、平面のオフィスに戻しています（' + ISO.why + '）。');
+  try { console.warn('オフィス：平面に戻しました', e); } catch (x) {}
+  lastSig = '';          // 次の読み直し（1.5秒以内）で、平面のオフィスを描く
+}
+function drawOffice(st){
+  if (ISO.on){
+    try { IsoOffice.update(TEAM, st); return; }
+    catch (e){ isoOff(e); }
+  }
+  updateOffice();
+}
+(function(){
+  if (!window.IsoOffice){ officeMsg('斜め見下ろしのオフィスの部品（office_iso_view.js）を読みこめなかったので、平面のオフィスを出しています。'); return; }
+  if (/[?&]office=flat(&|#|$)/.test(location.search || '')){ DEMO = null; return; }
+  try {
+    document.getElementById('offwrap').classList.add('iso');
+    IsoOffice.mount({ el: document.getElementById('isoOffice'), height: OFFICE_H,
+      SPRITES: SPRITES, SPOTS: SPOTS, HABITS: HABITS, CHAT: CHAT, XP: XP_PER_TASK,
+      memberOf: memberOf, seatOf: seatOf, toolWords: toolWords, cut: cut, esc: esc,
+      cardHtml: function(id){ var m = id ? memberOf(id) : null; return m && m.role ? detailHtml(id) : ''; },   // 絵の中の役割の説明。見る側（役割の文が送られない）では出さない
+      onPick: function(id){ selectMember(id); },
+      onError: function(e){ isoOff(e); } });
+    ISO.on = true;
+  } catch (e){ isoOff(e); }
+})();
+
 // ================= メンバー一覧・記録 =================
 // 役割の説明：一覧の行（またはオフィスのキャラクター）を押すと、一覧の下の決まった場所に1人ぶんだけ出る
+// （斜め見下ろしのオフィスでは、同じ中身を絵の中にも出す。枠が高く、一覧の下が画面の外になりやすいため。
+//   画面がせまい時＝スマホなどは、絵の中には出さず、今までどおり一覧の下だけ）
 var SEL = '';
-function renderDetail(){
-  var el = document.getElementById('rdetail'), m = SEL ? memberOf(SEL) : null;
-  if (!m){ el.innerHTML = '<div class="rtip">メンバーを押すと、役割の説明がここに出ます。</div>'; return; }
-  el.innerHTML = '<div class="rdesc" style="--c:'+esc(m.color||'#9ca3af')+'">'+
-    '<div class="rdh"><span class="rbot">'+botSvg(m.color, m.sprite || 'ghost', SEL === 'boss')+'</span><span class="nick">'+esc(m.nick||m.name)+'</span><span class="rrole">'+esc(m.name)+'</span>'+
+function detailHtml(id){
+  var m = id ? memberOf(id) : null;
+  if (!m) return '';
+  return '<div class="rdesc" style="--c:'+esc(m.color||'#9ca3af')+'">'+
+    '<div class="rdh"><span class="rbot">'+botSvg(m.color, m.sprite || 'ghost', id === 'boss')+'</span><span class="nick">'+esc(m.nick||m.name)+'</span><span class="rrole">'+esc(m.name)+'</span>'+
       '<button class="rclose" data-rclose="1">✕ とじる</button></div>'+
     '<div class="rdb"><div>'+esc(m.role || '')+'</div>'+
     ((m.makes || []).length ? '<div class="rmk">出すもの</div><ul>'+m.makes.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>' : '')+
     (m.when ? '<div class="rmk">いつ動く</div><div>'+esc(m.when)+'</div>' : '')+'</div></div>';
 }
+function renderDetail(){
+  document.getElementById('rdetail').innerHTML = detailHtml(SEL) || '<div class="rtip">メンバーを押すと、役割の説明がここに出ます。</div>';
+}
 function selectMember(id){
   SEL = SEL === id ? '' : id;
   renderDetail();
   Array.prototype.forEach.call(document.querySelectorAll('.rrow'), function(r){ r.classList.toggle('sel', r.getAttribute('data-row') === SEL); });
+  if (ISO.on){ try { IsoOffice.select(SEL); } catch (e) {} }   // 絵の中に「◯◯の席」の印と役割の説明を出す
 }
 function rosterRow(m, st, opt){
   st = st || {}; opt = opt || {};
@@ -714,14 +782,16 @@ function rosterRow(m, st, opt){
 function render(){
   if (!TEAM){ document.getElementById('roster').innerHTML = '<div class="empty">名簿（team.js）を読み込めません</div>'; return; }
   document.getElementById('stores').innerHTML = (TEAM.stores||[]).map(function(s){ return '<span class="chip store">'+esc(s)+'</span>'; }).join('');
-  var st = STATE || {}, agents = st.agents || {}, boss = st.boss || {};
+  var st = DEMO_ST || STATE || {}, agents = st.agents || {}, boss = st.boss || {};
 
   var dn = ['日','月','火','水','木','金','土'], today = new Date().getDay(), rt = TEAM.routine || {}, w = '';
   w = '<b>今日（'+dn[today]+'）</b>'+esc(rt[today] || '定例なし');
   for (var i=1;i<=6;i++){ var d = (today+i)%7; if (rt[d]){ w += '<span>次：'+dn[d]+'曜　'+esc(rt[d])+'</span>'; break; } }
   document.getElementById('week').innerHTML = w;
 
-  updateOffice();
+  // オフィスの絵（斜め見下ろし。だめな時は平面）。ここで失敗しても、下の一覧・記録・提出物・入れる場所は出す
+  try { drawOffice(st); }
+  catch (e){ officeMsg('オフィスの絵を出せませんでした：' + e.message); }
 
   var anyWork = boss.status === 'working', rh = rosterRow(TEAM.boss, boss, { boss: true });
   TEAM.members.forEach(function(m){ var a = agents[m.id] || {}; if (a.status === 'working') anyWork = true; rh += rosterRow(m, a); });
@@ -754,7 +824,7 @@ function render(){
   renderInbox();
 
   document.getElementById('live').className = 'live' + (anyWork ? ' on' : '');
-  document.getElementById('live-txt').textContent = !STATE ? '接続待ち' : (anyWork ? '稼働中' : '全員待機中') + '・最終更新 ' + hm(st.updatedAt || Date.now());
+  document.getElementById('live-txt').textContent = DEMO_ST ? 'デモ（仮の状態）' : !STATE ? '接続待ち' : (anyWork ? '稼働中' : '全員待機中') + '・最終更新 ' + hm(st.updatedAt || Date.now());
 }
 
 // ================= 店舗の絞り込み（やること・提出物で共通） =================
@@ -882,6 +952,7 @@ function pollTasks(){
   };
   // tasks_teian.js＝週1回の自主点検で出た「提案」（れんさんが承認するまで、だれも進めない）
   loadScript('tasks.js', fin); loadScript('tasks_auto.js', fin); loadScript('tasks_teian.js', fin); loadScript('tasks_done.js', fin);
+  loadScript('board.js', function(){ try { if (window.renderBoard) renderBoard(); } catch (e) {} });
 }
 
 // ================= この組織の流れ（図） =================
@@ -940,7 +1011,7 @@ try { TAB = localStorage.getItem('ai_team_tab') || 'office'; } catch (e) {}
 function showTab(t){
   if (!document.getElementById('tab-' + t)) t = 'office';
   TAB = t;
-  ['office','tasks','files','inbox'].forEach(function(k){ document.getElementById('tab-' + k).classList.toggle('hide', k !== t); });
+  ['office','board','tasks','files','inbox'].forEach(function(k){ document.getElementById('tab-' + k).classList.toggle('hide', k !== t); });
   Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(b){ b.classList.toggle('on', b.getAttribute('data-tab') === t); });
   try { localStorage.setItem('ai_team_tab', t); } catch (e) {}
 }
@@ -964,16 +1035,19 @@ fl.addEventListener('toggle', function(){ try { localStorage.setItem('ai_team_fo
 
 var lastSig = '';
 function poll(){
-  loadScript('state.js', function(ok){
+  var after = function(ok){
     if (ok && window.__AI_STATE) STATE = window.__AI_STATE;
     // 1分ごとにも描き直す（「動きがありません」の判定は時間で変わるため）
-    var sig = JSON.stringify(STATE) + '|' + JSON.stringify(TEAM) + '|' + new Date().getDay() + '|' + Math.floor(Date.now()/60000);
+    var sig = JSON.stringify(DEMO_ST || STATE) + '|' + JSON.stringify(TEAM) + '|' + new Date().getDay() + '|' + Math.floor(Date.now()/60000);
     if (sig !== lastSig){
       lastSig = sig;
       try { render(); }
       catch (e){ document.getElementById('roster').innerHTML = '<div class="empty">表示に失敗しました：'+esc(e.message)+'</div>'; }
     }
-  });
+  };
+  // 確かめ用（?demo=）：state.js を読まず、仮の状態で描く
+  if (DEMO !== null){ if (TEAM){ try { DEMO_ST = IsoOffice.demoState(TEAM, DEMO); } catch (e){ DEMO_ST = null; } } after(false); return; }
+  loadScript('state.js', after);
 }
 // 稼働時間だけは毎秒進める（全体は描き直さない）
 setInterval(function(){
