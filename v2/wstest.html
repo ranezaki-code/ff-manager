@@ -104,7 +104,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     await sync();
     { const key=A.ev('STORAGE_KEY'), raw0=A.ev(`localStorage.getItem(${J(key)})`), w0=cloud.writes, st0=stat(A);
       const first=ord(A), nn=DEF.map(id=>numOf(A,id)).join(',');
-      A.ev(`amOpenWorks(); amSetPeek('yu'); amSetPeek('all'); amMoveStart('coffee'); amMoveBy('cancel'); amMoveStart('coffee'); amRowTap('coffee'); amCloseSheet(); renderMapView(); amOpenArea('toilet'); amCardOthers(); amCloseSheet(); amOpenHelp(); amCloseSheet(); amCellTap('soup'); amCloseSheet(); amToggleMap(); amToggleMap(); amToggleDone(); amToggleDone();`);
+      A.ev(`amOpenWorks(); amSetPeek('yu'); amSetPeek('all'); amMoveStart('coffee'); amMoveBy('cancel'); amMoveStart('coffee'); amRowTap('coffee'); amCloseSheet(); renderMapView(); amOpenArea('toilet'); amCardOthers(); amCloseSheet(); amOpenHelp(); amCloseSheet(); amCellTap('soup'); amCloseSheet(); amFToggle(); amFToggle(); amToggleDone(); amToggleDone();`);
       const same1=mv(A,DEF[0],1);                                   // 同じ場所へ「動かす」＝何も書かない
       await sync();
       check('16','番号：1件も保存していない時は、登録の順のまま 1〜17番。開いただけ・表を開いただけ・動かしかけて やめただけでは、何も保存しない',
@@ -191,7 +191,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         okRows&&name===true&&/\*/.test(rows)&&rows.indexOf('coffee*')>=0&&r[0]===5&&r[1]===6&&r[2]===null&&ord(A)===ord(B)&&same(),`コーヒーマシン ${r[0]}番・トイレ ${r[1]}番`); }
     { // お知らせ（取り消す）が、次に開いたカードのボタンに かぶらない（2026-10-12 点検の指摘 F1）
       const n1=n(A,wid), n2=n(A,wid2);
-      const r=JSON.parse(A.ev(`(()=>{ amRecord(${J(wid)},'見本 花子'); amOpenArea(${J(wid2)});
+      A.ev(`amRecord(${J(wid)},'見本 花子'); amOpenArea(${J(wid2)});`); await sleep(500);   // カードが開いた直後の 0.4秒は、カードの中を押されても受けない作り（試験 46）。ひと息おいてから ボタンを押す（確かめる中身は前と同じ）
+      const r=JSON.parse(A.ev(`(()=>{
         const sn=document.getElementById('am-snack'), sr=sn.getBoundingClientRect(), shown=sn.classList.contains('show')&&!!sn.querySelector('button');
         const bs=Array.prototype.slice.call(document.querySelectorAll('#am-sheet button')); let hit=0, cover=0;
         bs.forEach(b=>{ const q=b.getBoundingClientRect(); if(q.right>sr.left&&q.left<sr.right&&q.bottom>sr.top&&q.top<sr.bottom) cover++; const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2); if(e&&(e===b||b.contains(e))) hit++; });
@@ -208,17 +209,170 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       A.ev('amSeqUndoRun(); amSnackAct();'); await sync();
       check('36','［元に戻す］のお知らせが出ている間に ほかの端末の変更が届いた → 押しても何も起きない［元に戻す］は残らない（理由を1行で知らせる）。動かした結果は そのまま',
         had===true&&after.btn===false&&/使えなくなりました/.test(after.txt)&&after.undo===false&&numOf(A,'supply')===2&&numOf(B,'supply')===2&&wk(A,'tobacco').sub==='Bが もう一度 直した'&&same(),after.txt); }
-    { // 点検カードを開いている時に、並べ替えが届く（F5）
-      const nb=numOf(A,'stock_blue'); A.ev(`amOpenArea('stock_blue')`); const s0=A.ev(`document.querySelector('#am-sheet .am-cd-t .am-no').textContent`);
+    { // 点検カードを開いている時に、並べ替えが届く（F5）。2026-10-12 段3 で決まりが変わった：クルーの画面の数字は「いま やる順（列の上から 1・2・3）」。カードの数字は、開いた時のまま
+      const colNo=(d,id)=>d.ev(`(()=>{ const r=Array.prototype.filter.call(document.querySelectorAll('#amf-col .amf-r'),x=>x.dataset.w===${J(id)})[0]; return r?r.querySelector('.am-no').textContent:''; })()`);
+      const cardNo=d=>d.ev(`(()=>{ const e=document.querySelector('#am-sheet .am-cd-t .am-no'); return e?e.textContent:''; })()`);
+      A.ev(`setView('map'); _amPatrol='all'; renderMapView();`);
+      const nb=numOf(A,'stock_blue'), c0=colNo(A,'stock_blue'); A.ev(`amOpenArea('stock_blue')`); const s0=cardNo(A);
       mv(B,'stock_blue',1); await sync();
-      const s1=A.ev(`document.querySelector('#am-sheet .am-cd-t .am-no').textContent`), open=A.ev('amSheetName()'); A.ev('amCloseSheet()');
-      check('37','点検カードを開いている時に 並べ替えが届いた → カードは開いたまま、番号の丸の字だけ 新しい番号になる',String(nb)===s0&&nb!==1&&s1==='1'&&open==='card'&&numOf(A,'stock_blue')===1&&same(),`${s0}番 → ${s1}番`); }
+      const s1=cardNo(A), c1=colNo(A,'stock_blue'), open=A.ev('amSheetName()');
+      A.ev('renderMapView()'); const s1b=cardNo(A);        // 30秒ごとの描き直しと同じ
+      A.ev('amCardOthers()'); const s1c=cardNo(A);          // カードの中の「ほかの人」を押しても同じ
+      A.ev(`amCloseSheet(); amOpenArea('stock_blue')`); const s2=cardNo(A); A.ev('amCloseSheet()');
+      check('37','点検カードを開いている時に 並べ替えが届いた → カードは開いたまま。丸の数字は 開いた時のまま（開いた時に 列に出ていた数字）。列の数字は 届いた後の並びに変わり、カードを閉じて開き直すと 列と同じ数字になる。決まった番号（登録の表の番号）は 届いた番号になる',
+        nb!==1&&/^\d+$/.test(c0)&&c0!=='1'&&s0===c0&&s1===s0&&s1b===s0&&s1c===s0&&open==='card'&&c1==='1'&&s2==='1'&&numOf(A,'stock_blue')===1&&same(),`カード ${s0} → ${s1}（開いたまま）→ 開き直すと ${s2}／列 ${c0} → ${c1}／決まった番号 ${nb} → ${numOf(A,'stock_blue')}`); }
     { const o=A.ev(`amOrdered(null,[null,{id:'a'},undefined,'x',7,{id:'b',seq:1000}]).map(w=>w.id).join(',')`);
       const rk=A.ev(`[amRestKind({sch:5}),amRestKind({sch:'abc'}),amRestKind({sch:{0:2}}),amRestKind({}),amRestKind(null),amRestKind({sch:[0,1,0,0]}),amInBand({sch:7},0),amInBand(null,1)].join('|')`);
       check('38','こわれた値に強い：登録の中の null や、配列でない回数の欄があっても、番号を読む所と「休み」の判定は止まらない（F3）',o==='b,a'&&rk==='休み|休み|休み|休み|休み||false|false',o+'／'+rk); }
-    check('39','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
-    const srv=await c.readServer(); check('40','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
-    check('41','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
+    // ---------- 最初の画面（2026-10-12 段3）：地図が主役・右に作業の列。クルーの画面の数字は「いま やる順」（列の上から 1・2・3）。決まった番号（amNums）は登録の表だけ ----------
+    { // 列に出ている行（済も開いて読む）と、決まり（状態 → 決まった番号）から道具が自分で作った並び・数字を、同じ時に読んで比べる
+      const read=d=>JSON.parse(d.ev(`(()=>{ setView('map'); _amPatrol='all'; _amDoneOpen=true; renderMapView();
+        const got=Array.prototype.map.call(document.querySelectorAll('#amf-col .amf-r'),r=>[r.dataset.w,r.querySelector('.am-no').textContent,(/\\b(fire|soon|todo|done|none)\\b/.exec(r.className)||[])[1]]);
+        const now=Date.now(), ws=amWorks().filter(w=>w&&typeof w==='object'), num=amNums(), G={fire:3,soon:2,todo:1,done:0,none:-1}, st={}; ws.forEach(w=>st[w.id]=amStatus(w,now).st);
+        let n=0; const exp=ws.slice().sort((a,b)=>(G[st[b.id]]-G[st[a.id]])||(num[a.id]-num[b.id])).map(w=>[w.id,G[st[w.id]]>0?String(++n):(st[w.id]==='done'?'✓':'–'),st[w.id]]);
+        const first=document.querySelectorAll('#amf-col .amf-r.amf-first'), on=document.querySelectorAll('#amf-col .amf-r.amf-on');
+        const svg=document.querySelector('#amf-map svg'), digits=svg?Array.prototype.filter.call(svg.querySelectorAll('text'),t=>/^\\d{1,3}$/.test(t.textContent.trim())).length:-1;
+        const hi=svg?Array.prototype.map.call(svg.querySelectorAll('#amf-hi rect'),r=>r.getAttribute('x')+','+r.getAttribute('y')).sort().join('|'):'', top=got.length?got[0][0]:'';
+        const hiExp=(amMap()?amMap().cells:[]).filter(c=>(c.works||[]).includes(top)).map(c=>(c.x-4)+','+(c.y-4)).sort().join('|');
+        amOpenWorks(); const tbl=Array.prototype.map.call(document.querySelectorAll('#am-sheet .amw-row[data-row]'),r=>[r.getAttribute('data-row'),r.querySelector('.am-no').textContent]); amCloseSheet();
+        _amDoneOpen=false; renderMapView();
+        return JSON.stringify({total:ws.length,got,exp,firstN:first.length,firstId:first.length?first[0].dataset.w:'',onN:on.length,digits,marks:svg?svg.querySelectorAll('.am-mark,.am-flame').length:-1,hi,hiExp,tbl,nums:amNums(),rule:(document.getElementById('amf-rule')||{}).textContent||''}); })()`));
+      const a=read(A), b=read(B), act=a.got.filter(r=>r[2]==='fire'||r[2]==='soon'||r[2]==='todo');
+      check('39','最初の画面：列は 決まりどおりの並び（おくれ → そろそろ → これから。同じ中は 決まった番号の小さい順）で、数字は 上から 1・2・3（いま やる順）。終わった作業に数字は無い（✓）。いちばん上の行に青いわく・地図の青いわくは その作業の場所。地図に 数字・番号の丸・小さい🔥 は無い。「お客様・レジが いつでも先」が出ている。2台で同じ',
+        a.total>=17&&a.got.length===a.total&&J(a.got)===J(a.exp)&&J(b.got)===J(b.exp)&&J(a.got)===J(b.got)&&act.length>=3&&act.every((r,i)=>r[1]===String(i+1))&&a.got.filter(r=>r[2]==='done').every(r=>r[1]==='✓')&&a.firstN===1&&a.onN===1&&a.firstId===a.got[0][0]&&a.digits===0&&a.marks===0&&a.hi===a.hiExp&&/お客様・レジが いつでも先/.test(a.rule)&&same(),
+        `列 ${act.map(r=>r[1]).join('・')}／済 ${a.got.filter(r=>r[2]==='done').length} 件／地図の数字 ${a.digits} 個`);
+      check('40','決まった番号（seq から出る番号）は、登録の表（管理者）に 今までどおり出る。列の数字とは別の物（列の数字は保存しない）',
+        a.tbl.length===a.total&&a.tbl.every(r=>r[1]===String(a.nums[r[0]]))&&J(a.tbl)===J(b.tbl),
+        `登録の表 ${a.tbl.slice(0,5).map(r=>r[1]+':'+r[0]).join(' ')} …／列 ${act.slice(0,5).map(r=>r[1]+':'+r[0]).join(' ')} …`); }
+    { // カード・マスを押した窓の数字は、列と同じ。列に無い作業（済・絞って出ていない）は 数字なし
+      const r=JSON.parse(A.ev(`(()=>{ setView('map'); _amPatrol='all'; renderMapView(); const out={total:amWorks().length,card:[],pick:[],blue:[]};
+        const colNo=id=>{ const x=Array.prototype.filter.call(document.querySelectorAll('#amf-col .amf-r'),e=>e.dataset.w===id)[0]; return x?x.querySelector('.am-no').textContent:''; };
+        const cardNo=()=>{ const e=document.querySelector('#am-sheet .am-cd-t .am-no'); return e?e.textContent:''; };
+        amWorks().forEach(w=>{ amOpenArea(w.id); out.card.push([w.id,amStatus(w).st,colNo(w.id),cardNo()]); amCloseSheet(); });
+        (amMap()?amMap().cells:[]).filter(c=>(c.works||[]).map(amWork).filter(Boolean).length>=2).slice(0,8).forEach(c=>{ amCellTap(c.id); Array.prototype.forEach.call(document.querySelectorAll('#am-sheet .am-pick .am-wr'),e=>{ const id=(/amOpenArea\\('([^']+)'\\)/.exec(e.getAttribute('onclick'))||[])[1]; out.pick.push([id,colNo(id),e.querySelector('.am-no').textContent]); }); amCloseSheet(); });
+        amSetPatrol('blue'); const rows=Array.prototype.map.call(document.querySelectorAll('#amf-col .amf-r'),e=>[e.dataset.w,e.querySelector('.am-no').textContent,(amWork(e.dataset.w)||{}).zone]);
+        const red=amWorks().filter(w=>w.zone==='red')[0]; amOpenArea(red.id); out.blue={rows,filt:(document.querySelector('#amf-wrap .amf-filt')||{}).textContent||'',redCard:cardNo(),redSt:amStatus(red).st}; amCloseSheet(); amSetPatrol('all'); out.after=document.querySelectorAll('#amf-col .amf-r').length;
+        return JSON.stringify(out); })()`));
+      check('41','カードの丸の数字は、列と同じ数字（地図のマスから開いても同じ）。終わった作業のカードは ✓。マスに作業が2つ以上ある時の 選ぶ窓の数字も、列と同じ',
+        r.card.length===r.total&&r.card.every(c=>c[2]?c[3]===c[2]:(c[1]==='done'?c[3]==='✓':c[3]===''))&&r.card.some(c=>/^\d+$/.test(c[3]))&&r.pick.length>=4&&r.pick.every(p=>p[1]?p[2]===p[1]:!/\d/.test(p[2]))&&r.pick.some(p=>/^\d+$/.test(p[2])),
+        `カード ${r.card.filter(c=>/^\d+$/.test(c[3])).length} 枚に数字・選ぶ窓 ${r.pick.length} 行`);
+      check('42','持ち場で絞っている間：列の数字は、出ている列の上から 1・2・3。「◯◯ だけ 出ています／すべてに戻す」が出る。列に出ていない作業のカードに 数字は出ない。戻すと 元の列',
+        r.blue.rows.length>=2&&r.blue.rows.every((x,i)=>x[1]===String(i+1)&&(x[2]==='blue'||x[2]==='both'))&&/カウンター周辺 だけ 出ています/.test(r.blue.filt)&&/すべてに戻す/.test(r.blue.filt)&&!/\d/.test(r.blue.redCard)&&r.after>r.blue.rows.length,
+        `絞った列 ${r.blue.rows.map(x=>x[1]).join('・')}／赤ゾーンの作業のカードの丸「${r.blue.redCard}」`); }
+    { // 列を出す・しまう：保存しない。しまった後は、描き直し（30秒ごと）・自分の記録・ほかの端末の変更が届いても、勝手に出ない。出ている時は、勝手に しまわれない
+      const open=d=>d.ev(`document.getElementById('amf-wrap').classList.contains('amf-open')`), key=A.ev('STORAGE_KEY');
+      await sync(); const w0=cloud.writes, raw0=A.ev(`localStorage.getItem(${J(key)})`);
+      A.ev(`setView('map'); amFToggle(false)`); const o1=open(A); A.ev('renderMapView()'); const o2=open(A);
+      const noWrite=cloud.writes===w0&&A.ev(`localStorage.getItem(${J(key)})`)===raw0;
+      const n1=n(A,wid2); B.win.amRecord(wid2,'見本 太郎'); await sync(); const o3=open(A), got=n(A,wid2)===n1+1;
+      A.win.amRecord(wid,'見本 花子'); const o4=open(A); await sync();
+      A.ev('amFToggle()'); const o5=open(A); A.ev('renderMapView()'); const o6=open(A);
+      B.win.amRecord(wid2,'見本 太郎'); await sync(); const o7=open(A); A.win.amRecord(wid,'見本 花子'); const o8=open(A); await sync();
+      check('43','列を しまう・出す：何も保存しない。しまった後は、描き直し・自分の記録・ほかの端末の記録が届いても 出ない。出した後は、同じ事をしても しまわれない',
+        o1===false&&o2===false&&noWrite&&got&&o3===false&&o4===false&&o5===true&&o6===true&&o7===true&&o8===true&&same(),`しまった後 ${[o1,o2,o3,o4].join('/')}・出した後 ${[o5,o6,o7,o8].join('/')}・しまう時に書いた文書 ${noWrite?0:'あり'}`); }
+    { // 2026-10-12 点検 A5：選ぶ窓・カードを開く時は、列を「今」の並びで描き直してから数字を読む（前の描き直しの時の覚えを使わない）。選ぶ窓の行から開いたカードは、窓に出ていた数字
+      const ra=JSON.parse(A.ev(`(()=>{ setView('map'); _amPatrol='all'; renderMapView(); const out={};
+        const colNos=()=>{ const o={}; Array.prototype.forEach.call(document.querySelectorAll('#amf-col .amf-r'),e=>{ o[e.dataset.w]=e.querySelector('.am-no').textContent; }); return o; };
+        const pick=()=>Array.prototype.map.call(document.querySelectorAll('#am-sheet .am-pick .am-wr'),e=>[(/amOpenArea\\('([^']+)'\\)/.exec(e.getAttribute('onclick'))||[])[1],e.querySelector('.am-no').textContent]);
+        const before=colNos(), top=document.querySelector('#amf-col .amf-r').dataset.w;
+        const cell=(amMap()?amMap().cells:[]).filter(c=>(c.works||[]).map(amWork).filter(Boolean).filter(w=>+before[w.id]>2).length>=2)[0];
+        if(!cell) return JSON.stringify({noCell:true});
+        /* 画面は描き直さずに、中身だけ変える（列のいちばん上の作業が 済になる）＝枠が切りかわった直後・つぎの描き直しの前と同じ形（画面の列は 古いまま） */
+        const keep=JSON.stringify(state.areaChecks||{}); if(!state.areaChecks)state.areaChecks={};
+        state.areaChecks[top]=(state.areaChecks[top]||[]).concat([{at:new Date().toISOString(),by:''}]);
+        out.stale=JSON.stringify(colNos())===JSON.stringify(before);
+        amCellTap(cell.id); out.sheet1=amSheetName(); const p1=pick(), c1=colNos();
+        out.colRedrawn=!c1[top]&&JSON.stringify(c1)!==JSON.stringify(before);
+        out.pickMatchesCol=p1.length>=2&&p1.every(x=>c1[x[0]]?x[1]===c1[x[0]]:!/\\d/.test(x[1]));
+        const ns=p1.filter(x=>/^\\d+$/.test(x[1])).map(x=>+x[1]); out.asc=ns.length>=2&&ns.every((n,i)=>i===0||n>ns[i-1]);
+        /* 選ぶ窓を開いたまま、もう1回 列の並びを変えて描き直す（30秒ごとの描き直し・ほかの端末の記録が届いた時と同じ形） */
+        const top2=document.querySelector('#amf-col .amf-r').dataset.w, tgt=p1.filter(x=>/^\\d+$/.test(x[1])).slice(-1)[0];
+        if(!tgt){ state.areaChecks=JSON.parse(keep); amCloseSheet(); renderMapView(); return JSON.stringify(Object.assign(out,{noTgt:true,p1,cell:cell.id,works:cell.works})); }
+        state.areaChecks[top2]=(state.areaChecks[top2]||[]).concat([{at:new Date().toISOString(),by:''}]); renderMapView();
+        const c2=colNos(); out.colMoved=!!c2[tgt[0]]&&c2[tgt[0]]!==tgt[1];
+        const row=Array.prototype.filter.call(document.querySelectorAll('#am-sheet .am-pick .am-wr'),e=>e.getAttribute('onclick').indexOf("'"+tgt[0]+"'")>=0)[0];
+        out.pickStill=amSheetName()==='pick'&&row.querySelector('.am-no').textContent===tgt[1];
+        window.__t44={tgt,keep,before,c2}; return JSON.stringify(out); })()`));
+      await sleep(500);   // 選ぶ窓が開いた直後の 0.4秒は、窓の中を押されても受けない作り（試験 46）。ひと息おいてから 行を押す
+      const rb=(ra.noCell||ra.noTgt)?{}:JSON.parse(A.ev(`(()=>{ const out={}, T=window.__t44, tgt=T.tgt, c2=T.c2; delete window.__t44;
+        const colNos=()=>{ const o={}; Array.prototype.forEach.call(document.querySelectorAll('#amf-col .amf-r'),e=>{ o[e.dataset.w]=e.querySelector('.am-no').textContent; }); return o; };
+        const cardNo=()=>{ const e=document.querySelector('#am-sheet .am-cd-t .am-no'); return e?e.textContent:''; };
+        const row=Array.prototype.filter.call(document.querySelectorAll('#am-sheet .am-pick .am-wr'),e=>e.getAttribute('onclick').indexOf("'"+tgt[0]+"'")>=0)[0];
+        row.click(); out.sheet2=amSheetName(); out.cardFromPick=cardNo()===tgt[1];
+        amCloseSheet(); amOpenArea(tgt[0]); out.cardFresh=cardNo()===c2[tgt[0]]&&cardNo()===colNos()[tgt[0]]; amCloseSheet();
+        state.areaChecks=JSON.parse(T.keep); renderMapView(); out.restored=JSON.stringify(colNos())===JSON.stringify(T.before);
+        out.show=[tgt[1],c2[tgt[0]]];
+        return JSON.stringify(out); })()`));
+      const r=Object.assign({},ra,rb);
+      check('44','選ぶ窓（マスに作業が2つ以上）を開く時は、列を「今」の並びで描き直してから数字を読む：画面の列が古いままでも（枠が切りかわった直後）、窓の数字は 描き直した列と同じ・上から小さい順。窓を開いたまま 列の並びが変わっても、窓の行から開くカードは 窓に出ていた数字。閉じて 列から開き直すと 列と同じ数字',
+        !r.noCell&&!r.noTgt&&r.stale&&r.sheet1==='pick'&&r.colRedrawn&&r.pickMatchesCol&&r.asc&&r.colMoved&&r.pickStill&&r.sheet2==='card'&&r.cardFromPick&&r.cardFresh&&r.restored&&same(),
+        r.noCell?'作業が2つ以上のマスが無い':(r.noTgt?'窓に数字の行が無い：'+J(r):`窓とカード ${r.show[0]}／その後の列 ${r.show[1]}`)); }
+    { // 2026-10-12 点検 B1：名前のボタンを 同じ所で つづけて押した時の守り（窓の中を押した後の 0.5秒は、下の 売場マップの物が押されても受けない。「取り消す」は押せる）
+      await sleep(650);
+      A.ev(`(()=>{ setView('map'); _amPatrol='all'; amFToggle(true); renderMapView(); window.__t45=Object.keys(state.areaChecks||{}).reduce((n,k)=>n+(state.areaChecks[k]||[]).length,0); document.querySelectorAll('#amf-col .amf-r')[0].click(); })()`);
+      await sleep(500);   // カードが開いた直後の 0.4秒は、カードの中を押されても受けない作り（試験 46）。ひと息おいてから 名前を押す
+      const r=JSON.parse(A.ev(`(()=>{ const out={};
+        const tot=()=>Object.keys(state.areaChecks||{}).reduce((n,k)=>n+(state.areaChecks[k]||[]).length,0);
+        const rows=()=>document.querySelectorAll('#amf-col .amf-r'), wrap=()=>document.getElementById('amf-wrap');
+        const t0=window.__t45; delete window.__t45; out.opened=amSheetName();
+        const nb=Array.prototype.filter.call(document.querySelectorAll('#am-sheet button'),b=>/名前なしで/.test(b.textContent))[0];
+        nb.click(); out.rec={sheet:amSheetName(),plus:tot()-t0};
+        /* カードが閉じた直後：下の行・地図のマス・「作業」のボタン・「？」を押しても 受けない */
+        rows()[0].click(); out.rowBlocked=amSheetName()==='';
+        const cell=document.querySelector('#amf-map svg g.am-cell.am-tap'); if(cell) cell.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); out.cellBlocked=!!cell&&amSheetName()==='';
+        const o0=wrap().classList.contains('amf-open'); document.getElementById('amf-tab').click(); out.tabBlocked=wrap().classList.contains('amf-open')===o0;
+        document.querySelector('#amf-wrap .am-help-btn').click(); out.helpBlocked=amSheetName()==='';
+        out.plus2=tot()-t0;
+        /* 「取り消す」（お知らせ）は、その間も押せる */
+        const ub=document.querySelector('#am-snack button'); out.undoShown=!!ub&&document.getElementById('am-snack').classList.contains('show'); if(ub) ub.click(); out.afterUndo=tot()-t0;
+        return JSON.stringify(out); })()`));
+      await sleep(650);
+      const r2=JSON.parse(A.ev(`(()=>{ document.querySelectorAll('#amf-col .amf-r')[0].click(); const s=amSheetName(); amCloseSheet(); return JSON.stringify({sheet:s}); })()`));
+      await sync();
+      check('45','つづけて押した時の守り：名前のボタンを押して カードが閉じた直後（0.5秒）は、下の行・地図のマス・「作業」のボタン・「？」を押しても受けない＝別のカードが開かない・記録は1件だけ。「取り消す」は その間も押せる。ひと息おけば ふつうに押せる',
+        r.opened==='card'&&r.rec.sheet===''&&r.rec.plus===1&&r.rowBlocked&&r.cellBlocked&&r.tabBlocked&&r.helpBlocked&&r.plus2===1&&r.undoShown&&r.afterUndo===0&&r2.sheet==='card'&&same(),
+        `記録 +${r.rec.plus} → つづけて押した後も +${r.plus2}（行 ${r.rowBlocked?'受けない':'開いた'}・マス ${r.cellBlocked?'受けない':'開いた'}・ボタン ${r.tabBlocked?'受けない':'動いた'}・？ ${r.helpBlocked?'受けない':'開いた'}）→ 取り消す ${r.afterUndo===0?'押せた':'押せない'} → ひと息おいて ${r2.sheet==='card'?'開いた':'開かない'}`); }
+    { // 2026-10-12 守り その2：作業の行を つづけて押した時（1回目でカードが開き、2回目・3回目が 名前のボタン・×・窓の外に当たる）。カード・選ぶ窓を 開いた（描き直した）直後の 0.4秒は、その窓の中を押されても受けない
+      await sleep(650);
+      const tot=()=>A.ev(`Object.keys(state.areaChecks||{}).reduce((n,k)=>n+(state.areaChecks[k]||[]).length,0)`), sheet=()=>A.ev('amSheetName()');
+      const anon=()=>A.ev(`(()=>{ const b=Array.prototype.filter.call(document.querySelectorAll('#am-sheet button'),x=>/名前なしで/.test(x.textContent))[0]; if(b) b.click(); return !!b; })()`);
+      const xBtn=()=>A.ev(`(()=>{ const b=document.querySelector('#am-sheet .am-x'); if(b) b.click(); return !!b; })()`);
+      const bg=()=>A.ev(`(()=>{ const m=document.getElementById('am-sheet'); m.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); return true; })()`);
+      const t0=tot(), o={};
+      /* (a) 列の行：1回目で開く → 0.1秒後・その 0.2秒後に 名前のボタン → その 0.15秒後に × → その 0.15秒後に 窓の外。どれも受けない＝記録 0件・カードは開いたまま */
+      A.ev(`setView('map'); _amPatrol='all'; amFToggle(true); renderMapView(); document.querySelectorAll('#amf-col .amf-r')[0].click();`); o.a0=sheet();
+      await sleep(100); o.a1b=anon(); o.a1=[sheet(),tot()-t0];
+      await sleep(200); anon(); o.a2=[sheet(),tot()-t0];
+      await sleep(150); xBtn(); o.a3=[sheet(),tot()-t0];
+      await sleep(150); bg(); o.a4=[sheet(),tot()-t0];
+      /* ひと息（0.5秒より長く）おけば、名前のボタンは 今までどおり 1回で記録できる。その記録は「取り消す」で戻す */
+      await sleep(700); anon(); o.a5=[sheet(),tot()-t0];
+      A.ev(`(()=>{ const b=document.querySelector('#am-snack button'); if(b) b.click(); })()`); o.a6=tot()-t0;
+      /* (b) 地図のマス（作業が1つ）から開いたカードも同じ */
+      await sleep(650);
+      const cells=JSON.parse(A.ev(`JSON.stringify((()=>{ const cs=(amMap()?amMap().cells:[]), n=c=>(c.works||[]).map(amWork).filter(Boolean).length; return [(cs.filter(c=>n(c)===1)[0]||{}).id||'', (cs.filter(c=>n(c)>=2)[0]||{}).id||'']; })())`));
+      A.ev(`amCellTap(${J(cells[0])})`); o.b0=sheet(); await sleep(120); anon(); o.b1=[sheet(),tot()-t0]; await sleep(600); A.ev('amCloseSheet()');
+      /* (c) 選ぶ窓（作業が2つ以上のマス）：開いた直後に 窓の行を押しても受けない（窓のまま）。ひと息おいて行を押すと カードが開き、その直後の 名前のボタンも受けない */
+      await sleep(650);
+      const pickRow=()=>A.ev(`(()=>{ const r=document.querySelector('#am-sheet .am-pick .am-wr'); if(r) r.click(); return !!r; })()`);
+      A.ev(`amCellTap(${J(cells[1])})`); o.c0=sheet(); await sleep(120); pickRow(); o.c1=sheet();
+      await sleep(600); pickRow(); o.c2=sheet(); await sleep(120); anon(); o.c3=[sheet(),tot()-t0]; await sleep(600); A.ev('amCloseSheet()');
+      /* (d) カードの中の「ほかの人」を押して 名前の一覧が出た直後も、名前のボタンを受けない */
+      await sleep(650);
+      A.ev(`document.querySelectorAll('#amf-col .amf-r')[0].click();`); await sleep(600);
+      o.d0=A.ev(`(()=>{ const b=Array.prototype.filter.call(document.querySelectorAll('#am-sheet .am-nm-2 .am-nm.sub'),x=>/ほかの人/.test(x.textContent))[0]; if(b) b.click(); return !!b; })()`);
+      await sleep(120); o.d1=A.ev(`(()=>{ const b=document.querySelector('#am-sheet .am-nm-o .am-nm'); if(b) b.click(); return !!b; })()`); o.d2=[sheet(),tot()-t0];
+      await sleep(600); A.ev('amCloseSheet()'); await sync();
+      const J2=x=>J(x);
+      check('46','作業の行を つづけて押した時の守り：カードが開いた直後の 0.4秒は、カードの中（名前のボタン・×・窓の外）を押されても受けない＝0.1〜0.3秒おきに 2回・3回 押しても 記録は 0件・カードは開いたまま。ひと息おけば 名前のボタンは 1回で記録できる。地図のマスから開いたカード・選ぶ窓・選ぶ窓から開いたカード・「ほかの人」を開いた直後も同じ',
+        o.a0==='card'&&o.a1b===true&&J2(o.a1)==='["card",0]'&&J2(o.a2)==='["card",0]'&&J2(o.a3)==='["card",0]'&&J2(o.a4)==='["card",0]'&&J2(o.a5)==='["",1]'&&o.a6===0
+        &&!!cells[0]&&o.b0==='card'&&J2(o.b1)==='["card",0]'
+        &&!!cells[1]&&o.c0==='pick'&&o.c1==='pick'&&o.c2==='card'&&J2(o.c3)==='["card",0]'
+        &&(o.d0!==true||(o.d1===true&&J2(o.d2)==='["card",0]'))&&tot()===t0&&same(),
+        `行：${J2(o.a1)}→${J2(o.a2)}→×${J2(o.a3)}→外${J2(o.a4)}→ひと息おいて${J2(o.a5)}→取り消し ${o.a6}／マス ${J2(o.b1)}／選ぶ窓 ${o.c1}→${o.c2}→${J2(o.c3)}／ほかの人 ${o.d0?J2(o.d2):'（ボタンなし）'}`); }
+    check('47','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    const srv=await c.readServer(); check('48','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
+    check('49','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
   $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
