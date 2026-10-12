@@ -415,15 +415,16 @@ var HABITS = { boss: ['👑 ﾖｼﾖｼ', '☕ ﾋﾄｲｷ', 'ﾐﾝﾅ ｹﾞ
 var CHAT = [['ﾍﾟﾁｬｸﾁｬ', 'ｳﾝｳﾝ'], ['ｿﾚﾃﾞﾈ…', 'ﾍｪｰ'], ['😄', 'ｱﾊﾊ'], ['ｷｮｳ ｲｿｶﾞｼｲ?', 'ﾎﾞﾁﾎﾞﾁ']];
 // 席の決め方（2026-10-12 2階「システムの部屋」を足した）
 // ・1階の机の列：今までと同じ「7つ分の間かく」（ミル〜ケロの席は動かさない。1階に 8人以上が座る時だけ、等間隔につめる）。
-// ・2階（システムの部屋）：UPSTAIRS に書いた人。この並びが、2階の机の左からの順。印 up: 1 を付けて返す（斜め見下ろしの部品が、2階の高さに描く）。
-//   2階の机は3つ分の広さ。4人目からは、部品 office_iso_view.js の F2（2階の広さ）も広げる。
+// ・2階（システムの部屋）：UPSTAIRS に書いた人。1階と同じ形・同じ大きさの部屋が真上にあり、机の列も1階と同じ並び（縦 88・7つ分の間かく）。
+//   UPSTAIRS の 1〜3人目は 列の 4・5・6番目（7番目の所はリフト）。4人目からは 3・2・1番目と、左へ足していく（6人まで。先にいる人の席は動かない）。
+//   印 up: 1 を付けて返す（斜め見下ろしの部品が、2階の高さに描く）。
 // ・平面のオフィス（予備の絵。部品が読めない時・?office=flat の時）には2階が無いので、名簿の順に1階の列へ。8人目・9人目は商品棚の前（FLAT_EXTRA）。
 var SEATS_1F = 7, UPSTAIRS = ['system-dev', 'qa', 'tools-dev'], FLAT_EXTRA = [{ x: 58.5, y: 33 }, { x: 70.5, y: 33 }];
 function seatOf(id){
   if (id === 'owner') return { x: 89, y: 39 };
   if (id === 'boss') return { x: 44, y: 44 };
   var iso = ISO.on, up = UPSTAIRS.indexOf(id), row, i = -1;
-  if (iso && up >= 0) return memberOf(id) ? { x: 57 + up * 11.5, y: -3, up: 1 } : null;
+  if (iso && up >= 0){ i = up < 3 ? 3 + up : 5 - up; return memberOf(id) && i >= 0 ? { x: 15 + i * (70 / (SEATS_1F - 1)), y: 88, up: 1 } : null; }
   row = iso ? TEAM.members.filter(function(m){ return UPSTAIRS.indexOf(m.id) < 0; }) : TEAM.members;
   row.forEach(function(m, k){ if (m.id === id) i = k; });
   if (i < 0) return null;
@@ -703,12 +704,13 @@ document.addEventListener('visibilitychange', function(){
 
 // ================= オフィスの絵：斜め見下ろし（2026-10-10 店長「オフィスは入れてください」） =================
 // 描くのは部品 office_iso_view.js（window.IsoOffice）。ここは「名簿と状態を渡す・押された人を受け取る」つなぎだけ。
-// ・枠の高さは OFFICE_H（px。幅がせまい時は 幅×0.66 にちぢむ）。変える時は、この数字だけ直す。
+// ・枠の高さの上限は OFFICE_H（px）。変える時は、この数字だけ直す。2階ができて絵が縦に長くなったので 700 → 870 にした（2026-10-12）。
+//   700 に戻すと、枠は今までの高さに収まるが、絵が2割ほど小さくなる（スマホの幅では、どちらでも同じ絵）。
 // ・部品が読めない時（ファイルが無い等）・失敗した時・URL に ?office=flat を付けた時は、上の平面のオフィスをそのまま使う（自動で戻る）。
 //   部品が動いている間は、上の平面のオフィスの関数は呼ばれない（OFFICE.chars が空なので、上の2秒ごとの動きも何もしない）。
 // ・部品はファイルを読まない。state.js を読むのは今までどおり下の poll() だけ（読む人を増やさない）。
 // ・絵・ことば・席（SPRITES・SPOTS・HABITS・CHAT・seatOf・toolWords）は、上の物を部品に渡して使う（同じ事実を2か所に書かない）。
-var OFFICE_H = 700;
+var OFFICE_H = 870;
 var ISO = { on: false, why: '' };
 // 確かめ用：URL に ?demo=1 を付けると、state.js を読まずに仮の状態（3人が作業中）で描く（0＝全員待ち・2＝全員作業中・3＝全員が自主点検）。
 // STATE には入れないので、📡 でほかの端末へ送られることはない。見る側（?viewer=1・公開ページ）では使わない

@@ -9,8 +9,10 @@
    ・絵の大きさは、入れ物の幅と「高さの上限」（index.html の OFFICE_H）から決める（下の layout）。
    ・描き直し：歩いている人・飛んでいる紙がある間だけ細かく（1秒に約30回）。だれも動いていない時は 0.5秒に1回（ひとこと・トレーニング中は 0.25秒）で、
      前と同じ絵なら描かない。ブラウザを裏にした時・ほかのタブを開いている時は止める。
-   ・2階「システムの部屋」（2026-10-12）：1階の奥の壁の上にのる小さな部屋（下の F2）。絵の右上の空いていた所に描くので、
-     1階の物の位置・絵の大きさ・枠の高さは変えていない。1階とは「はしご」でつなぐ。だれの席が2階かは index.html の seatOf が決める（up: 1）。
+   ・2階「システムの部屋」（2026-10-12。店長「同じ部屋のサイズでそのまま二階ができると思ってた。そのぶんすこし壁を高くして1階の視認性も確保する」）：
+     1階と同じ形・同じ大きさの部屋を、真上に重ねる（下の F2）。1階の壁を2階の床まで高くし、手前の2面は切ってあるので、2階の床の下から1階が見える。
+     1階の机・家具・人の場所は変えていない。1階とは、机の列の右はしの「リフト」でつなぐ。だれの席が2階かは index.html の seatOf が決める（up: 1）。
+     描く順は「1階の物 → 2階の床と壁（先に1回描いておいた絵 f2Cv）→ 2階の物 → 名札・吹き出し」。絵の縦の長さは、2階の高さ（F2.z）の分だけ長くなる（layout の EXTRA）。
 */
 (function(){
 'use strict';
@@ -54,10 +56,14 @@ function paintBot(g, color, sprite, crown, ps, eyesOpen){
 // 位置はすべて％（平面のオフィスと同じ。横 0〜100・縦 0〜100、足元が基準）。描く時だけ斜めに置きかえる
 var OFFICE = { sig: '', chars: {}, prev: {}, lastPrompt: 0, fx: [], desk: {}, trn: false };
 var Y_BACK = 28, Y_FRONT = 70, AISLES = [24, 62];
-// 2階「システムの部屋」。1階と同じ方眼で、奥の壁（縦14）の向こう側に置く：横 x0〜x1・縦 y0〜y1。床の高さ z（1階の壁の高さ 22 ＋ 床の厚み 4）、壁の高さ wh。
-// aisle＝机の後ろの通り道（縦）。はしご：横 lx（％。冷蔵ケースと商品棚の間）、足元 ly0 → 上 ly1。top＝はしごを上がって立つ所（縦）。climb＝上り下りの秒数。
-// 2階の席（index.html の seatOf）は 横 57・68.5・80％、縦 -3。机を増やす時は x1 を右へは広げられない（絵の右はし）。左（x0）へ広げる。
-var F2 = { x0: 96, x1: 172, y0: -14, y1: 14, z: 26, wh: 18, aisle: -9.5, lx: 51, ly0: 24.5, ly1: 14.5, top: 9, climb: 1.6 };
+// 2階「システムの部屋」。1階と同じ形・同じ大きさ（横 0〜200・縦 14〜100）を、真上に重ねる。
+// z＝2階の床の高さ（＝1階の壁の高さ。101 なら、1階の奥の人・棚・壁の札「休憩室」まで、2階の床に隠れずに見える。小さくすると、1階の奥から順に隠れる：
+//   100 より小さいと奥の壁の札、88 より小さいと奥に立つ人の頭が、2階の床のへりに隠れる）。
+// wh＝2階の壁の高さ。glass＝2階の床の透け具合（0＝透けない。0.5 なら半分透けて、下の1階が見える）。
+// aisle＝2階の机の列の後ろの通り道（縦）。リフト（1階⇔2階）：横 lx（％）・乗る所 ly・乗り口 lin（縦）。climb＝上り下りの秒数。
+// 2階の席（index.html の seatOf）は、1階の机の列と同じ並び（縦 88・横は7つ分の間かくの 4〜6番目）。人が増えたら、同じ列の左へ足す（3〜1番目）。
+var F2 = { z: 101, wh: 14, glass: 0, aisle: 82, lx: 85, ly: 91, lin: 82, climb: 2.6 };
+var EXTRA = (F2.z + F2.wh - 22) * 0.055;   // 2階の分、絵が縦に長くなる量（マスの幅を1として）。1階だけの時の壁の高さ 22 との差
 // 休み場所の位置（12か所。並びは index.html の SPOTS と同じ。ことば＝acts・emo などは index.html の物を使う）。
 // 斜めにすると「奥の人の名札」が「手前の人の顔」にちょうど重なる5か所だけ、平面のオフィスから少しずらしてある
 // （冷蔵ケース前の2つ目 x41→46.5／コーヒーマシン前 y25→22／ランニングマシン y69→65／ダンベル前 x14→20／マット x16,y73→x15,y68）
@@ -81,14 +87,14 @@ function trainSpot(k){
 var FONT = '"MS Gothic","DotGothic16","Yu Gothic UI",monospace';
 var INK = '#3d4248';
 var V = { W: 0, H: 0, dpr: 1, tw: 0, th: 0, zs: 0, ox: 0, oy: 0, ps: 2, lw: 1, F: 13, fs: 13, small: false, fine: true, gen: 0, rw: 0, rdpr: 0, cssW: 0, cssH: 0 };
-var WH = 22, WT = 2.4;   // 壁の高さ・厚み
+var WH = 22, WT = 2.4;   // 壁の高さ（1階の壁の飾り・帯の位置。2階ができる前の壁の高さ）・厚み。1階の壁そのものは、2階の床（F2.z）まで伸ばす
 var boxEl = null, worldEl = null, floorCv = null, stageCv = null, floorG = null, stageG = null, statusEl = null, cardEl = null;
+var f2Cv = null, f2G = null;   // 2階の動かない物（壁・床の線・壁ぎわの物）を先に1回描いておく絵。画面には出さず、render が1階の物の後に重ねる
 var PERF = { n: 0, sum: 0, max: 0, last: 0, objs: 0, faces: 0 }, FACES = 0;
 
-var ZB = 0;   // 2階の物を描いている間だけ F2.z（床の高さ）。それ以外は 0。lift() と drawFloor2 が出し入れする
+var ZB = 0;   // 2階の物を描いている間だけ F2.z（床の高さ）。それ以外は 0。lift() と drawStatic2 が出し入れする
 function P(x, y, z){ var u = x / 10, v = (y - 14) / 10; return [V.ox + (u - v) * V.tw / 2, V.oy + (u + v) * V.th / 2 - ((z || 0) + ZB) * V.zs]; }
 function lift(fn){ return function(g, now){ ZB = F2.z; try { fn(g, now); } finally { ZB = 0; } }; }   // 2階の物の描き方を包む
-function same(fn){ return fn; }
 function R(v){ return Math.round(v); }
 var MIX = {};
 function mix(hex, to, t){   // to：0＝黒へ、255＝白へ
@@ -132,9 +138,9 @@ function rr(g, x, y, w, h, r){
 }
 
 // ---- 絵の大きさを決める（入れ物の幅と、高さの上限 HMAX から） ----
-// 部屋ぜんたい（壁・床の厚みこみ）は、マスの幅を 1 として 横 14.6 × 縦 8.84。
-// ・広い時：マスは「幅」と「HMAX」の小さい方で決まる。枠の高さは 幅×0.66（上限 HMAX）。
-//   入れ物の幅が 1060px・HMAX が 700 なら 高さ 700・マス 70px・人の絵 56×64px で、見本を 1060×700 で開いた時と同じ絵になる。
+// 部屋ぜんたい（壁・床の厚みこみ）は、マスの幅を 1 として 横 14.6 × 縦 TALL（1階だけなら 8.84。2階の分 EXTRA だけ長い）。
+// ・広い時：マスは「幅」と「HMAX」の小さい方で決まる。枠の高さは、絵が入る高さ（上限 HMAX）。
+//   2階ができて絵が縦に長くなったので、パソコンでは「HMAX で決まる」事が多い（HMAX 870・F2.z 101 なら マス 60px・人の絵 42×48px）。
 // ・せまい時（マスが 44px 未満＝入れ物の幅が およそ 666px 未満。スマホなど）：横幅いっぱいにちぢめる（はみ出さない）。
 //   13px の吹き出しを絵の中に出すと こみ合うので、作業中の文は絵の中に出さない（ぬりつぶした名札と光るモニターで分かる。
 //   仕事の名前は、すぐ下のメンバー一覧に出ている）。「作業中 ◯人」の行は、絵の下に置く。
@@ -145,20 +151,20 @@ function layout(){
   V.rw = W; V.rdpr = raw;                      // 作り直すかどうかは、入れ物の幅とブラウザの拡大率で決める（refit）
   if (!W) return false;                        // 見えていない間（ほかのタブを開いている時）は決めない
   W = Math.max(240, W);
-  var padX = 12, padT = 14, padB = 14, cssH;
-  var tw = even(Math.min((W - 2 * padX) / 14.6, (HMAX - padT - padB) / 8.84)), small = tw < 44;
+  var padX = 12, padT = 14, padB = 14, cssH, TALL = 8.84 + EXTRA;
+  var tw = even(Math.min((W - 2 * padX) / 14.6, (HMAX - padT - padB) / TALL)), small = tw < 44;
   if (small){
     padX = 4; padT = 10; padB = 8;
-    tw = even(Math.min((W - 2 * padX) / 14.6, (HMAX - padT - padB) / 8.84));
-    cssH = padT + Math.ceil(8.84 * tw) + padB;
-  } else cssH = Math.max(padT + Math.ceil(8.84 * tw) + padB, Math.min(HMAX, Math.round(W * 0.66)));
+    tw = even(Math.min((W - 2 * padX) / 14.6, (HMAX - padT - padB) / TALL));
+    cssH = padT + Math.ceil(TALL * tw) + padB;
+  } else cssH = Math.max(padT + Math.ceil(TALL * tw) + padB, Math.min(HMAX, Math.round(W * 0.66)));
   var dpr = Math.min(small ? 3 : 2, Math.max(1, raw));   // 小さな絵は、画素3倍のスマホでもくっきり描く
-  var freeW = Math.max(0, W - 2 * padX - 14.6 * tw), freeH = Math.max(0, cssH - padT - padB - 8.84 * tw);
+  var freeW = Math.max(0, W - 2 * padX - 14.6 * tw), freeH = Math.max(0, cssH - padT - padB - TALL * tw);
   V.dpr = dpr; V.W = Math.round(W * dpr); V.H = Math.round(cssH * dpr); V.small = small; V.fine = tw >= 40;
   V.cssW = W; V.cssH = cssH;
   V.tw = tw * dpr; V.th = V.tw / 2; V.zs = V.tw * 0.055;
   V.ox = Math.round((padX + freeW / 2 + 4.45 * tw) * dpr);
-  V.oy = Math.round((padT + freeH * 0.5 + 1.34 * tw) * dpr);
+  V.oy = Math.round((padT + freeH * 0.5 + (1.34 + EXTRA) * tw) * dpr);   // 2階の分だけ、1階を下へ下げる
   V.ps = Math.max(1, Math.round(Math.max(tw / 18, 1.9) * dpr));   // ドット絵の1マス（整数にして、つぶれを防ぐ）
   V.lw = Math.max(1, Math.round(tw / 44 * dpr));
   V.fs = tw < 30 ? 11 : 13;                    // 字の大きさ（px）。とても小さな絵（スマホの縦）では 11px
@@ -168,7 +174,9 @@ function layout(){
   worldEl.style.width = W + 'px'; worldEl.style.height = cssH + 'px';
   floorCv.style.width = stageCv.style.width = W + 'px'; floorCv.style.height = stageCv.style.height = cssH + 'px';
   floorCv.width = stageCv.width = V.W; floorCv.height = stageCv.height = V.H;
+  f2Cv.width = V.W; f2Cv.height = V.H;
   drawStatic(floorG);
+  drawStatic2(f2G);
   WRAP = {}; lastKey = '';
   return true;
 }
@@ -228,8 +236,13 @@ function drawStatic(g){
   faceX(g, 0, 14, 100, 0, WH, null, true);
   faceY(g, 14, 0, 200, 0, WH, '#fbfbfa'); faceY(g, 14, 0, 200, WH - 2.6, WH, '#3a3f45'); faceY(g, 14, 0, 200, WH - 3.2, WH - 2.6, '#c9ccd1'); faceY(g, 14, 0, 200, 0, 1.6, '#d4d6da');
   faceY(g, 14, 0, 200, 0, WH, null, true);
-  faceY(g, 100, -WT, 0, -4, WH, '#d4d6da', true); faceX(g, 200, 14 - WT, 14, -4, WH, '#b4b8be', true);
-  quad(g, [P(-WT,14-WT,WH), P(200,14-WT,WH), P(200,14,WH), P(0,14,WH), P(0,100,WH), P(-WT,100,WH)], '#c9ccd1', true);
+  // 2階の床まで、壁を上へ伸ばす（色は同じ。今までの壁の上はしの帯は、そのままの高さに残る）。2階の床に隠れる所は、後から2階の絵が上に重なる
+  faceX(g, 0, 14, 100, WH, F2.z, '#e9eaec', true); faceY(g, 14, 0, 200, WH, F2.z, '#fbfbfa', true);
+  faceY(g, 100, -WT, 0, -4, F2.z, '#d4d6da', true); faceX(g, 200, 14 - WT, 14, -4, F2.z, '#b4b8be', true);
+  if (F2.z >= 70){   // 壁が高い時は、上のほうに高窓を付ける（左の壁に2つ、奥の壁の右はしに1つ。2階の床に隠れない所）
+    [[62, 75.5], [78.5, 92]].forEach(function(w){ faceX(g, 0, w[0], w[1], 32, 56, '#fbfbfa', true); faceX(g, 0, w[0] + 1, w[1] - 1, 33, 55, '#d5dde3'); faceX(g, 0, w[0] + 2.6, w[0] + 5.2, 48, 49.2, '#ffffff'); faceX(g, 0, w[0] + 6, w[0] + 9.4, 40, 41.2, '#ffffff'); });
+    faceY(g, 14, 174, 192, 32, 56, '#fbfbfa', true); faceY(g, 14, 175, 191, 33, 55, '#d5dde3'); faceY(g, 14, 177, 180, 48, 49.2, '#ffffff'); faceY(g, 14, 183, 188, 40, 41.2, '#ffffff');
+  }
   // 壁の飾り：左の壁の窓（休憩室）と鏡（トレーニング）、奥の壁のホワイトボードと窓（事務所）
   faceX(g, 0, 22, 40, 8.5, 18.5, '#fbfbfa', true); faceX(g, 0, 23, 30.5, 9.4, 17.6, '#d5dde3'); faceX(g, 0, 31.5, 39, 9.4, 17.6, '#d5dde3');
   faceX(g, 0, 24.5, 27, 14.5, 15.5, '#ffffff'); faceX(g, 0, 33, 36, 12, 13, '#ffffff');
@@ -299,60 +312,77 @@ function drawStatic(g){
     if (j) seg(g, P(190, 26.5, j*3.67), P(198, 26.5, j*3.67), INK);
     faceY(g, 26.5, 193, 195, 1.6 + j*3.67, 2.2 + j*3.67, '#6f757d');
   }
-  drawFloor2(g);
   g.restore();
 }
-// 2階「システムの部屋」の動かない物：床・壁・壁ぎわの物。1階の奥の壁の上（絵の右上）に描く。色と帯は1階と同じ
-function drawFloor2(g){
-  var x0 = F2.x0, x1 = F2.x1, y0 = F2.y0, y1 = F2.y1, wh = F2.wh, i, k, z, fine = V.fine;
+// 2階「システムの部屋」の動かない物（壁・床の線と厚み・壁ぎわの物）。1階と同じ形を、F2.z だけ上に描く。色と帯は1階と同じ。
+// 床の色そのものは render が塗る（F2.glass で透かせるように、ここには入れない）。画面に出さない絵 f2Cv に1回描き、render が1階の物の後に重ねる
+function drawStatic2(g){
+  var wh = F2.wh, i, k, z, x0, fine = V.fine;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, V.W, V.H);
+  g.save(); if (V.lw % 2) g.translate(0.5, 0.5);
+  g.lineWidth = V.lw; g.lineJoin = 'round';
   ZB = F2.z;
   try {
-    // 床の厚み（1階の壁の上にのる）と、床（作業スペースと同じカーペット）
-    faceY(g, y1, x0 - WT, x1, -4, 0, '#b9bdc3', true); faceX(g, x1, y0 - WT, y1, -4, 0, '#a2a7ad', true);
-    faceTop(g, x0, y0, x1, y1, 0, '#e3e4e7');
-    for (i = Math.ceil((x0 + 1) / 10) * 10; i < x1; i += 10) seg(g, P(i, y0), P(i, y1), '#d6d8dc');
-    quad(g, [P(x0,y0,0), P(x1,y0,0), P(x1,y1,0), P(x0,y1,0)], null, true);
-    // 壁（左と奥）
-    faceX(g, x0, y0, y1, 0, wh, '#e9eaec'); faceX(g, x0, y0, y1, wh - 2.6, wh, '#33383d'); faceX(g, x0, y0, y1, 0, 1.6, '#c4c7cc');
-    faceX(g, x0, y0, y1, 0, wh, null, true);
-    faceY(g, y0, x0, x1, 0, wh, '#fbfbfa'); faceY(g, y0, x0, x1, wh - 2.6, wh, '#3a3f45'); faceY(g, y0, x0, x1, wh - 3.2, wh - 2.6, '#c9ccd1'); faceY(g, y0, x0, x1, 0, 1.6, '#d4d6da');
-    faceY(g, y0, x0, x1, 0, wh, null, true);
-    faceY(g, y1, x0 - WT, x0, 0, wh, '#d4d6da', true); faceX(g, x1, y0 - WT, y0, -4, wh, '#b4b8be', true);
-    quad(g, [P(x0-WT,y0-WT,wh), P(x1,y0-WT,wh), P(x1,y0,wh), P(x0,y0,wh), P(x0,y1,wh), P(x0-WT,y1,wh)], '#c9ccd1', true);
-    // 奥の壁：点検ボード（チェックの行）
-    faceY(g, y0, 110, 127, 5, 13.4, '#fbfbfa', true);
+    // 床の厚み（手前の2面）と、床の線（作業スペースと同じカーペット）、リフトの乗り場の印
+    faceY(g, 100, 0, 200, -4, 0, '#b9bdc3', true); faceX(g, 200, 14, 100, -4, 0, '#a2a7ad', true);
+    for (i = 1; i < 20; i++) seg(g, P(i*10, 14), P(i*10, 100), '#d6d8dc');
+    faceTop(g, 163, 86, 177, 97.6, 0, '#d4d6da', true);
+    faceTop(g, 34, 33, 66, 59, 0, '#d6d8dc', fine);   // 打ち合わせの所の敷物
+    quad(g, [P(0,14,0), P(200,14,0), P(200,100,0), P(0,100,0)], null, true);
+    // 壁（左と奥。1階の壁の真上）
+    faceX(g, 0, 14, 100, 0, wh, '#e9eaec'); faceX(g, 0, 14, 100, wh - 2.6, wh, '#33383d'); faceX(g, 0, 14, 100, 0, 1.6, '#c4c7cc');
+    faceX(g, 0, 14, 100, 0, wh, null, true);
+    faceY(g, 14, 0, 200, 0, wh, '#fbfbfa'); faceY(g, 14, 0, 200, wh - 2.6, wh, '#3a3f45'); faceY(g, 14, 0, 200, wh - 3.2, wh - 2.6, '#c9ccd1'); faceY(g, 14, 0, 200, 0, 1.6, '#d4d6da');
+    faceY(g, 14, 0, 200, 0, wh, null, true);
+    faceY(g, 100, -WT, 0, -4, wh, '#d4d6da', true); faceX(g, 200, 14 - WT, 14, -4, wh, '#b4b8be', true);
+    quad(g, [P(-WT,14-WT,wh), P(200,14-WT,wh), P(200,14,wh), P(0,14,wh), P(0,100,wh), P(-WT,100,wh)], '#c9ccd1', true);
+    // 壁の飾り：左の壁の窓、奥の壁の点検ボード（チェックの行）と窓
+    faceX(g, 0, 26, 46, 3.4, 10.6, '#fbfbfa', true); faceX(g, 0, 27, 35.5, 4.2, 9.8, '#d5dde3'); faceX(g, 0, 36.5, 45, 4.2, 9.8, '#d5dde3');
+    faceX(g, 0, 29, 32, 7.6, 8.4, '#ffffff'); faceX(g, 0, 38.5, 42, 5.6, 6.4, '#ffffff');
+    faceY(g, 14, 62, 86, 3.4, 10.6, '#fbfbfa', true);
     for (k = 0; k < 3; k++){
-      z = 11.6 - k * 2.2;
-      faceY(g, y0, 111.4, 112.8, z - 0.6, z + 0.6, k < 2 ? '#8d9299' : '#fbfbfa', fine);
-      seg(g, P(114.2, y0, z), P(k === 1 ? 121 : 124.6, y0, z), k ? '#a7abb1' : '#6f757d');
+      z = 9 - k * 2;
+      faceY(g, 14, 63.6, 65.2, z - 0.6, z + 0.6, k < 2 ? '#8d9299' : '#fbfbfa', fine);
+      seg(g, P(67, 14, z), P(k === 1 ? 77 : 83.6, 14, z), k ? '#a7abb1' : '#6f757d');
     }
-    faceY(g, y0, 110, 127, 4.1, 5, '#b9bdc3', true);
+    faceY(g, 14, 62, 86, 2.5, 3.4, '#b9bdc3', true);
+    faceY(g, 14, 104, 126, 3.4, 10.6, '#fbfbfa', true); faceY(g, 14, 105, 114.5, 4.2, 9.8, '#d5dde3'); faceY(g, 14, 115.5, 125, 4.2, 9.8, '#d5dde3');
+    faceY(g, 14, 107, 110, 7.6, 8.4, '#ffffff'); faceY(g, 14, 118, 122, 5.6, 6.4, '#ffffff');
     // 部屋の名前（広い画面だけ）
     if (!V.small){
       g.font = V.F + 'px ' + FONT; g.textAlign = 'left'; g.textBaseline = 'middle';
-      var u = V.tw / 20, t = '2階 システム', wU = g.measureText(t).width / u + 1.6, at = 131, p;
-      faceY(g, y0, at, at + wU, 7.2, 12, '#fbfbfa', true);
-      p = P(at + 0.8, y0, 9.6); g.save(); g.setTransform(1, 0.5, 0, 1, R(p[0]), R(p[1]));
+      var u = V.tw / 20, t = '2階 システム', wU = g.measureText(t).width / u + 1.6, at = 196 - wU, p;
+      faceY(g, 14, at, at + wU, 4.6, 9.4, '#fbfbfa', true);
+      p = P(at + 0.8, 14, 7); g.save(); g.setTransform(1, 0.5, 0, 1, R(p[0]), R(p[1]));
       g.fillStyle = '#6f757d'; g.fillText(t, 0, V.dpr); g.restore();
     }
-    // 奥の左すみ：サーバーの棚（小さな明かり）
-    shadow(g, 97.5, y0 + 0.4, 106, y0 + 3);
-    box(g, 97.5, y0 + 0.4, 106, y0 + 3, 0, 12.5, ['#4b5057','#3a3f45','#2f3338'], true);
-    for (k = 0; k < 3; k++){
-      faceY(g, y0 + 3, 98.6, 104.9, 9.3 - k * 3.4, 10.9 - k * 3.4, '#5a6068');
-      faceY(g, y0 + 3, 99.4, 100.4, 9.8 - k * 3.4, 10.4 - k * 3.4, k === 1 ? '#9af0c0' : '#c9ccd1');
-      if (fine) seg(g, P(101.4, y0 + 3, 10.1 - k * 3.4), P(104.2, y0 + 3, 10.1 - k * 3.4), '#8d9299');
+    // 奥の壁ぎわ（右）：点検の台（ためす端末を並べる長い机）
+    shadow(g, 130, 14.4, 160, 20);
+    box(g, 130, 14.4, 160, 20, 0, 6, ['#eceded','#c9ccd1','#b4b8be'], true);
+    for (k = 0; k < 4; k++){ box(g, 132.6 + k * 7, 15.4, 137 + k * 7, 16.4, 6, 10, ['#4b5057','#3a3f45','#2f3338'], fine); faceY(g, 16.4, 133.1 + k * 7, 136.5 + k * 7, 6.8, 9.4, k === 2 ? '#9af0c0' : '#aeb6bf'); faceTop(g, 133 + k * 7, 17.6, 136.2 + k * 7, 19.2, 6, '#fbfbfa', fine); }
+    // 奥の壁ぎわ：サーバーの棚（3つ。小さな明かり）
+    for (i = 0; i < 3; i++){
+      x0 = 8 + i * 12;
+      shadow(g, x0, 14.4, x0 + 10, 18.4);
+      box(g, x0, 14.4, x0 + 10, 18.4, 0, 11.4, ['#4b5057','#3a3f45','#2f3338'], true);
+      for (k = 0; k < 3; k++){
+        faceY(g, 18.4, x0 + 1.2, x0 + 8.8, 8.4 - k * 3.2, 10 - k * 3.2, '#5a6068');
+        faceY(g, 18.4, x0 + 2, x0 + 3.1, 8.9 - k * 3.2, 9.5 - k * 3.2, (i + k) % 3 === 1 ? '#9af0c0' : '#c9ccd1');
+        if (fine) seg(g, P(x0 + 4.2, 18.4, 9.2 - k * 3.2), P(x0 + 8, 18.4, 9.2 - k * 3.2), '#8d9299');
+      }
     }
   } finally { ZB = 0; }
+  g.restore();
 }
 
 // ---- 動く物と重なる家具（毎回、奥から手前の順に並べて描く） ----
-var SCENE = [];
+var SCENE = [], SCENE2 = [], RIDERS = 0;   // 1階の物・2階の物・いまリフトに乗っている人数
 function glow(color, now, ms){ return Math.floor(now / ms) % 2 ? mix(color, 255, 0.32) : color; }   // 光の切りかえは 0.5秒・1秒きざみ（render の tq の区切りに合わせる）
 function buildScene(){
-  var L = SCENE = [], thin = V.fine ? true : null;
+  var L = SCENE = [], L2 = SCENE2 = [], thin = V.fine ? true : null;
   var cols = ['#b9bdc3','#8d9299','#dcdee1','#6f757d','#eeeeec','#a7abb1','#c9ccd1','#7d848c'];
-  function add(x0, y0, x1, y1, draw){ L.push({ x0: x0, y0: y0, x1: x1, y1: y1, draw: draw }); }
+  // up を付けた物は2階の物：2階の一覧（SCENE2）に入れ、描く時に F2.z だけ持ち上げる
+  function add(x0, y0, x1, y1, draw, up){ (up ? L2 : L).push({ x0: x0, y0: y0, x1: x1, y1: y1, draw: up ? lift(draw) : draw }); }
   // 低い仕切り（休憩室・トレーニング・事務所）。背を低くして、奥の人が隠れないように。事務所の手前は、店長席の机が見えるように まん中を空けた
   [[40,14,42,21],[40,35,42,49.5],[0,47.5,40,49.5],[42,49.5,44,58.5],[158,14,160,21],[158,35,160,49.5],[160,47.5,168.5,49.5],[189.5,47.5,200,49.5]].forEach(function(r){
     add(r[0], r[1], r[2], r[3], function(g){ box(g, r[0], r[1], r[2], r[3], 0, 3.6, ['#dcdee1','#c4c7cc','#b0b4ba'], true); });
@@ -365,7 +395,7 @@ function buildScene(){
     box(g, 19.4, 36, 21, 37.4, 6, 7.6, ['#fbfbfa','#eeeeec','#dcdee1'], thin);
   });
   [[8,43],[32,43]].forEach(function(s){ stool(s[0], s[1]); });
-  function stool(x, y, wrap){ add(x - 2.4, y - 2.4, x + 2.4, y + 2.4, (wrap || same)(function(g){ box(g, x - 2.2, y - 2.2, x + 2.2, y + 2.2, 0, 3.2, ['#8d9299','#6f757d','#5a6068'], true); })); }
+  function stool(x, y, up){ add(x - 2.4, y - 2.4, x + 2.4, y + 2.4, function(g){ box(g, x - 2.2, y - 2.2, x + 2.2, y + 2.2, 0, 3.2, ['#8d9299','#6f757d','#5a6068'], true); }, up); }
   // レジ（社長席）：ホットケース・レジ・コーヒーマシン。チロルの作業中はレジの画面が光る
   add(61, 47.5, 115, 53.5, function(g, now){
     shadow(g, 61, 47.5, 115, 53.5);
@@ -392,14 +422,14 @@ function buildScene(){
     faceX(g, 162, 53, 55.4, 5, 7.4, '#fbfbfa'); faceX(g, 162, 57, 59.4, 5, 7.4, '#a7abb1');
   });
   // 植木
-  [[56, 62], [164.5, 41], [167.6, -10.6, 1]].forEach(function(p){   // 3つ目は2階（奥の右すみ）
+  [[56, 62], [164.5, 41], [192, 21, 1], [7, 93, 1], [96, 21, 1]].forEach(function(p){   // 3つ目からは2階（奥の右すみ・手前の左すみ・奥の壁ぎわ）
     var cx = p[0], cy = p[1];
-    add(cx - 2.4, cy - 2.4, cx + 2.4, cy + 2.4, (p[2] ? lift : same)(function(g){
+    add(cx - 2.4, cy - 2.4, cx + 2.4, cy + 2.4, function(g){
       var u = V.tw / 20, c = P(cx, cy, 8.4);
       isoEllipse(g, cx + 0.8, cy + 0.8, 0, 3.4, 'rgba(30,34,40,.13)');
       box(g, cx - 2, cy - 2, cx + 2, cy + 2, 0, 4.6, ['#a7abb1','#8d9299','#7d848c'], true);
       disc(g, R(c[0]), R(c[1]), 4.4 * u, '#7f9686', true); disc(g, R(c[0] - 2.2 * u), R(c[1] + 1.9 * u), 2.6 * u, '#6c8373'); disc(g, R(c[0] + 1.4 * u), R(c[1] - 1.6 * u), 1.6 * u, '#9db3a4');
-    }));
+    }, p[2]);
   });
   // トレーニング：ダンベル棚・ランニングマシン
   add(18, 51, 39, 57.6, function(g){
@@ -443,9 +473,9 @@ function buildScene(){
   // 席：店長席と、メンバーの席（人は机の向こう側に座る。モニターは作業中に本人の色で点滅）
   function desk(id, color, depth){
     var s = seatOf(id); if (!s) return;
-    var X = s.x * 2, Y = s.y, x0 = X - 7, x1 = X + 9, y0 = Y + 3.5, y1 = y0 + depth, h = 6, wrap = s.up ? lift : same;
-    stool(X, Y, wrap);
-    add(x0, y0, x1, y1, wrap(function(g, now){
+    var X = s.x * 2, Y = s.y, x0 = X - 7, x1 = X + 9, y0 = Y + 3.5, y1 = y0 + depth, h = 6;
+    stool(X, Y, s.up);
+    add(x0, y0, x1, y1, function(g, now){
       var on = OFFICE.desk[id], mc = id === 'owner' ? glow('#aeb6bf', now, 1000) : (on ? glow(color, now, 500) : '#3a3f45');
       shadow(g, x0, y0, x1, y1);
       box(g, x0, y0, x1, y1, 0, h, ['#eceded','#c9ccd1','#b4b8be'], true);
@@ -454,21 +484,53 @@ function buildScene(){
       box(g, X + 6.2, y1 - 2.2, X + 7.8, y1 - 0.8, h, h + 1.8, color, thin);
       box(g, x0 + 1.5, y0 + 2.2, x0 + 2.3, y0 + 3.2, h, h + 1.4, '#22262a');
       box(g, x0 + 1.2, y0 + 0.6, x0 + 2.5, y0 + 4.6, h + 1.2, h + 7, ['#4b5057','#3a3f45', mc], true);
-    }));
+    }, s.up);
   }
-  // はしご（1階の奥の通路 → 2階。冷蔵ケースと商品棚の間に立てかける）
-  add(100, 14, 104, F2.ly0 - 0.5, function(g){
-    var xa = 100.5, xb = 103.5, yf = F2.ly0 - 0.5, yt = 14.2, n = 8, k, t, w = Math.max(2, Math.round(V.lw * 1.5));
-    isoEllipse(g, 102.6, yf + 0.6, 0, 2.6, 'rgba(30,34,40,.13)');
-    for (k = 1; k < n; k++){ t = k / n; seg(g, P(xa, yf + (yt - yf) * t, F2.z * t), P(xb, yf + (yt - yf) * t, F2.z * t), '#8d9299', w); }
-    seg(g, P(xa, yf, 0), P(xa, yt, F2.z), '#5a6068', w); seg(g, P(xb, yf, 0), P(xb, yt, F2.z), '#5a6068', w);
+  // リフト（1階⇔2階。机の列の右はし＝ギアの机があった所）。奥の2本の柱と横木・ガラスの背板。人は柱の手前の台に乗って上り下りする
+  var LX = F2.lx * 2, lx0 = LX - 8, lx1 = LX + 8, ly0 = F2.ly - 7, ly1 = F2.ly + 6.6;   // 横 162〜178・縦 84〜97.6
+  add(lx0, ly0, lx1, ly0 + 1.2, function(g){
+    var k;
+    faceY(g, ly0 + 1.2, lx0 + 1.2, lx1 - 1.2, 0, F2.z - 4, 'rgba(213,221,227,.22)', thin);
+    for (k = 12; k < F2.z - 6; k += 12) faceY(g, ly0 + 1.2, lx0 + 1.2, lx1 - 1.2, k, k + 0.8, '#a7abb1');
+    box(g, lx0, ly0, lx0 + 1.2, ly0 + 1.2, 0, F2.z - 4, '#8d9299', thin); box(g, lx1 - 1.2, ly0, lx1, ly0 + 1.2, 0, F2.z - 4, '#8d9299', thin);
   });
-  // 2階の手すり（手前のへり。はしごの上がり口は空けておく）
-  add(108, F2.y1 - 0.8, F2.x1, F2.y1, lift(function(g){
-    var a, st = (F2.x1 - 0.8 - 108) / 5;
-    for (a = 0; a < 6; a++) box(g, 108 + a * st, F2.y1 - 0.8, 108.8 + a * st, F2.y1, 0, 3, '#b0b4ba', thin);
-    box(g, 108, F2.y1 - 0.8, F2.x1, F2.y1, 3, 3.7, ['#dcdee1','#c4c7cc','#b0b4ba'], true);
-  }));
+  add(lx0 + 1, ly0 + 2, lx1 - 1, ly1, function(g){   // 1階の乗り場。だれも乗っていない時は、ここに台がある
+    faceTop(g, lx0 + 1, ly0 + 2, lx1 - 1, ly1, 0, '#d4d6da', true);
+    if (!RIDERS) box(g, lx0 + 1.6, ly0 + 2.6, lx1 - 1.6, ly1 - 0.6, 0, 1.2, ['#f1f2f3','#c9ccd1','#b4b8be'], true);
+  });
+  add(lx0, ly0, lx1, ly0 + 1.2, function(g){   // 2階：柱の上の部分と、はり
+    faceY(g, ly0 + 1.2, lx0 + 1.2, lx1 - 1.2, 0, 13, 'rgba(213,221,227,.32)', thin);
+    box(g, lx0, ly0, lx0 + 1.2, ly0 + 1.2, 0, 13, '#8d9299', thin); box(g, lx1 - 1.2, ly0, lx1, ly0 + 1.2, 0, 13, '#8d9299', thin);
+    box(g, lx0, ly0, lx1, ly0 + 1.2, 13, 14.6, ['#a7abb1','#8d9299','#7d848c'], true);
+  }, 1);
+  // 2階の床の手前の角をささえる柱（宙に浮いて見えないように）
+  add(198.6, 98.6, 200, 100, function(g){ box(g, 198.6, 98.6, 200, 100, 0, F2.z - 4, ['#dcdee1','#c4c7cc','#b0b4ba'], true); });
+  // 2階：手前の2面の手すり
+  add(0, 99.2, 199.2, 100, function(g){
+    var a;
+    for (a = 0; a <= 14; a++) box(g, a * 14.17, 99.2, a * 14.17 + 0.8, 100, 0, 3, '#b0b4ba', thin);
+    box(g, 0, 99.2, 199.2, 100, 3, 3.7, ['#dcdee1','#c4c7cc','#b0b4ba'], true);
+  }, 1);
+  add(199.2, 14, 200, 100, function(g){
+    var a;
+    for (a = 0; a <= 6; a++) box(g, 199.2, 14 + a * 14.2, 200, 14.8 + a * 14.2, 0, 3, '#b0b4ba', thin);
+    box(g, 199.2, 14, 200, 100, 3, 3.7, ['#dcdee1','#c4c7cc','#b0b4ba'], true);
+  }, 1);
+  // 2階：打ち合わせの丸テーブルと いす（休憩室の物と同じ形）、道具の棚
+  add(44.4, 40.4, 55.6, 51.6, function(g){
+    isoEllipse(g, 50.8, 46.8, 0, 6, 'rgba(30,34,40,.13)');
+    box(g, 49, 45, 51, 47, 0, 5.2, '#8d9299');
+    isoEllipse(g, 50, 46, 5.2, 5.6, '#b9bdc3', true); isoEllipse(g, 50, 46, 6, 5.6, '#dcdee1', true); isoEllipse(g, 49, 45, 6, 2.6, '#eeeeec');
+    box(g, 49.4, 45.5, 51, 46.9, 6, 7.6, ['#fbfbfa','#eeeeec','#dcdee1'], thin);
+  }, 1);
+  [[38, 52.5], [62, 52.5], [50, 37]].forEach(function(s){ stool(s[0], s[1], 1); });
+  add(2, 58, 9, 84, function(g){
+    var k;
+    shadow(g, 2, 58, 9, 84);
+    box(g, 2, 58, 9, 84, 0, 7, ['#dcdee1','#c4c7cc','#b0b4ba'], true);
+    seg(g, P(9, 58, 3.5), P(9, 84, 3.5), INK);
+    for (k = 0; k < 3; k++) box(g, 3.4, 61 + k * 8, 7.4, 65 + k * 8, 7, 9 + (k % 2), k === 1 ? '#6f757d' : '#a7abb1', thin);
+  }, 1);
   if (TEAM){
     desk('owner', TEAM.owner.color || '#9ca3af', 4.6);
     TEAM.members.forEach(function(m){ desk(m.id, m.color || '#9ca3af', 6); });
@@ -519,7 +581,7 @@ function spriteSet(color, sprite, crown){
 }
 
 // ================= メンバーの動き（index.html の updateOffice まわりと同じ決め方） =================
-function place(c, x, y, z){ c.x = x; c.y = y; c.z = z || 0; }   // z＝床からの高さ（1階は 0、2階は F2.z、はしごの途中は その間）
+function place(c, x, y, z){ c.x = x; c.y = y; c.z = z || 0; }   // z＝床からの高さ（1階は 0、2階は F2.z、リフトの途中は その間）
 function visPos(c, now){   // いま画面に見えている位置（歩いている途中は、区間の中を一定の速さで進む）
   var t = c.tw;
   if (!t) return { x: c.x, y: c.y, z: c.z || 0 };
@@ -540,20 +602,20 @@ function route1(c, t){
   pts.push({ x: t.x, y: t.y });
   return pts;
 }
-// 2階の中の道：机の後ろの通り道（縦 F2.aisle）を通る
+// 2階の中の道：机の列の後ろの通り道（縦 F2.aisle）を通る
 function route2(c, t){ return [{ x: c.x, y: F2.aisle }, { x: t.x, y: F2.aisle }, { x: t.x, y: t.y }]; }
-// 行き先までの道。階がちがう時は、はしご（足元 L ⇔ 上 U）を通る。climb: 1 の点は「はしごを上り下りする区間」。
+// 行き先までの道。階がちがう時は、リフトを通る（乗り口 D → 台 C に乗る → 上り下り → 乗り口 D）。climb: 1 の点は「リフトで上り下りする区間」。
 // 高さ z を書いていない点は、その前の点の高さのまま歩く
 function routeTo(c, t){
-  var L = { x: F2.lx, y: F2.ly0 }, U = { x: F2.lx, y: F2.ly1 }, T = { x: F2.lx, y: F2.top }, pts;
-  var onLad = c.z > 0 && c.y >= F2.y1, cf = c.z > 0 && !onLad ? 2 : 1, tf = t.up ? 2 : 1;
-  if (onLad){         // はしごの途中で行き先が変わった時は、今いる段から 行き先の階へ
-    if (tf === 2) pts = [{ x: U.x, y: U.y, z: F2.z, climb: 1 }, { x: T.x, y: T.y, z: F2.z }].concat(route2(T, t));
-    else pts = [{ x: L.x, y: L.y, z: 0, climb: 1 }].concat(route1(L, t));
+  var D = { x: F2.lx, y: F2.lin }, C = { x: F2.lx, y: F2.ly }, pts;
+  var riding = c.z > 0 && c.z < F2.z, cf = c.z >= F2.z ? 2 : 1, tf = t.up ? 2 : 1;
+  if (riding){        // リフトの途中で行き先が変わった時は、今の高さから 行き先の階へ
+    if (tf === 2) pts = [{ x: C.x, y: C.y, z: F2.z, climb: 1 }, { x: D.x, y: D.y, z: F2.z }].concat(route2(D, t));
+    else pts = [{ x: C.x, y: C.y, z: 0, climb: 1 }, { x: D.x, y: D.y, z: 0 }].concat(route1(D, t));
   }
   else if (cf === tf) pts = cf === 2 ? route2(c, t) : route1(c, t);
-  else if (tf === 2) pts = route1(c, L).concat([{ x: U.x, y: U.y, z: F2.z, climb: 1 }, { x: T.x, y: T.y, z: F2.z }], route2(T, t));
-  else pts = route2(c, T).concat([{ x: U.x, y: U.y, z: F2.z }, { x: L.x, y: L.y, z: 0, climb: 1 }], route1(L, t));
+  else if (tf === 2) pts = route1(c, D).concat([{ x: C.x, y: C.y }, { x: C.x, y: C.y, z: F2.z, climb: 1 }, { x: D.x, y: D.y, z: F2.z }], route2(D, t));
+  else pts = route2(c, D).concat([{ x: C.x, y: C.y }, { x: C.x, y: C.y, z: 0, climb: 1 }, { x: D.x, y: D.y, z: 0 }], route1(D, t));
   return pts.filter(function(p, i){ var q = i ? pts[i-1] : c; return p.climb || Math.abs(p.x - q.x) > 0.3 || Math.abs(p.y - q.y) > 0.3; });
 }
 function walkTo(c, target, done){
@@ -567,7 +629,7 @@ function walkTo(c, target, done){
     if (!p){ c.k.walk = false; c.tw = null; if (done) done(); return; }
     var pz = p.z == null ? c.z : p.z;
     var dx = (p.x - c.x) * 2, dy = p.y - c.y, sec = Math.max(0.15, Math.sqrt(dx*dx + dy*dy) / 13);   // 速さ一定
-    if (p.climb) sec = Math.max(0.3, F2.climb * Math.abs(pz - c.z) / F2.z);   // はしごは、上り下りした高さで時間が決まる（向きは変えない）
+    if (p.climb) sec = Math.max(0.3, F2.climb * Math.abs(pz - c.z) / F2.z);   // リフトは、上り下りした高さで時間が決まる（向きは変えない）
     else if (Math.abs(dx - dy) > 0.6) c.k.flip = (dx - dy) < 0;   // 画面の上で左へ進む時は左向き
     c.k.walk = true;
     c.tw = { x0: c.x, y0: c.y, z0: c.z, x1: p.x, y1: p.y, z1: pz, t0: Date.now(), dur: sec * 1000 };
@@ -662,7 +724,7 @@ function updateOffice(){
         if (was === false && o.id !== 'boss' && OFFICE.chars.boss) fx('paper', '📄', OFFICE.chars.boss, seat);
         c.seat = seat; c.k.busy = false;
         var sit = function(){ c.k.flip = false; c.k.walk = false; c.k[c.train ? 'train' : 'work'] = true; c.say.cls = 'say'; c.say.t = c.train ? '' : (c.text || ''); };
-        c.sit = sit; c.due = Date.now() + (seat.up || c.z > 0 ? 34000 : 20000);   // 20秒（はしごを通る時は 34秒）たっても席に着いていなければ、席へ直接戻す
+        c.sit = sit; c.due = Date.now() + (seat.up || c.z > 0 ? 42000 : 20000);   // 20秒（リフトを通る時は 42秒）たっても席に着いていなければ、席へ直接戻す
         walkTo(c, seat, sit);
       } else if (c.k.work) { c.say.cls = 'say'; c.say.t = text; }
       else if (!c.k.train && c.due && Date.now() > c.due){ c.moveId++; c.tw = null; place(c, c.seat.x, c.seat.y, c.seat.up ? F2.z : 0); c.sit(); c.due = 0; }
@@ -777,7 +839,7 @@ function render(now){
     c.vx = v.x; c.vy = v.y; c.vz = v.z || 0;
     c.bob = c.k.walk ? Math.floor(tq / 180) % 2 * 2 : c.k.train ? Math.floor(tq / 250) % 2 * 2 : c.k.busy ? Math.floor(tq / 250) % 2 : c.k.work ? Math.floor(tq / 500) % 2 : 0;
     c.shut = ((tq + c.blink) % 5000) < wink ? 1 : 0;
-    key += c.id + ':' + Math.round(v.x * 8) + ',' + Math.round(v.y * 8) + ',' + c.bob + c.shut + (c.k.flip ? 'f' : '') + (c.seated ? 's' : '') + c.say.cls + c.say.t + ';';
+    key += c.id + ':' + Math.round(v.x * 8) + ',' + Math.round(v.y * 8) + (c.vz ? ',' + Math.round(c.vz * 4) : '') + ',' + c.bob + c.shut + (c.k.flip ? 'f' : '') + (c.seated ? 's' : '') + c.say.cls + c.say.t + ';';
   }
   key += (anyOn ? Math.floor(tq / 500) % 2 : '') + '/' + Math.floor(tq / 1000) % 2 + '/' + (OFFICE.fx.length ? now : '') + '/' + SEL;
   lastDraw = now;
@@ -786,34 +848,54 @@ function render(now){
   var t0 = performance.now();
   FACES = 0;
 
-  items = SCENE.slice();
+  // 1階の物と人・2階の物と人に分ける（床より上にいる人＝2階の人と、リフトで上り下りしている人は、2階の側で描く）
+  var items2 = SCENE2.slice();
+  items = SCENE.slice(); RIDERS = 0;
   for (i = 0; i < ids.length; i++){
     c = OFFICE.chars[ids[i]];
-    items.push({ ch: c, x0: c.vx * 2 - 3, x1: c.vx * 2 + 3, y0: c.vy - 1.2, y1: c.vy + 1.2 });
+    if (c.vz > 0 && c.vz < F2.z) RIDERS++;
+    (c.vz > 0 ? items2 : items).push({ ch: c, x0: c.vx * 2 - 3, x1: c.vx * 2 + 3, y0: c.vy - 1.2, y1: c.vy + 1.2 });
   }
-  items = sortItems(items);
+  items = sortItems(items); items2 = sortItems(items2);
 
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, V.W, V.H);
   g.imageSmoothingEnabled = false;
   g.save(); if (V.lw % 2) g.translate(0.5, 0.5);
   g.lineWidth = V.lw; g.lineJoin = 'round';
   HITS = [];
-  for (i = 0; i < items.length; i++){
-    if (items[i].ch){ g.restore(); drawChar(g, items[i].ch); list.push(items[i].ch); g.save(); if (V.lw % 2) g.translate(0.5, 0.5); g.lineWidth = V.lw; g.lineJoin = 'round'; }
-    else items[i].draw(g, tq);
+  function pass(a){
+    for (var n = 0; n < a.length; n++){
+      if (a[n].ch){ g.restore(); drawChar(g, a[n].ch); list.push(a[n].ch); g.save(); if (V.lw % 2) g.translate(0.5, 0.5); g.lineWidth = V.lw; g.lineJoin = 'round'; }
+      else a[n].draw(g, tq);
+    }
   }
+  pass(items);
+  // 2階の床（F2.glass の分だけ透かす）→ 2階の壁・床の線・壁ぎわの物（先に描いておいた絵）→ 2階の物と人
+  ZB = F2.z;
+  try { g.globalAlpha = 1 - F2.glass; faceTop(g, 0, 14, 200, 100, 0, '#e3e4e7'); } finally { g.globalAlpha = 1; ZB = 0; }
+  g.restore();
+  g.drawImage(f2Cv, 0, 0);
+  g.save(); if (V.lw % 2) g.translate(0.5, 0.5);
+  g.lineWidth = V.lw; g.lineJoin = 'round';
+  pass(items2);
   g.restore();
   drawLabels(g, list);
   drawFx(g, now);
 
   var ms = performance.now() - t0;
-  PERF.n++; PERF.sum += ms; PERF.last = ms; if (PERF.n > 3 && ms > PERF.max) PERF.max = ms; PERF.objs = items.length; PERF.faces = FACES;
+  PERF.n++; PERF.sum += ms; PERF.last = ms; if (PERF.n > 3 && ms > PERF.max) PERF.max = ms; PERF.objs = items.length + items2.length; PERF.faces = FACES;
 }
 function drawChar(g, c){
   var set = spriteSet(c.m.color || '#9ca3af', c.m.sprite || 'ghost', c.crown), ps = V.ps;
   var p = P(c.vx * 2, c.vy, c.vz || 0), cx = Math.round(p[0]), cy = Math.round(p[1]);
   var bob = Math.round(c.bob * Math.max(1, ps / 2) / 2);
   var x = cx - set.w / 2, y0 = cy - set.h + Math.round(ps / 2), y = y0 - bob;   // 札や吹き出しは、足ぶみでは揺らさない（y0 を基準にする）
+  if (c.vz > 0 && c.vz < F2.z){   // リフトで上り下りしている間は、足の下に台を描く
+    var LX = F2.lx * 2;
+    g.save(); if (V.lw % 2) g.translate(0.5, 0.5); g.lineWidth = V.lw; g.lineJoin = 'round';
+    box(g, LX - 6.4, F2.ly - 4.4, LX + 6.4, F2.ly + 6, c.vz - 1.2, c.vz, ['#f1f2f3','#c9ccd1','#b4b8be'], true);
+    g.restore();
+  }
   // 足元の丸い影
   g.fillStyle = 'rgba(60,45,25,.22)';
   g.beginPath(); g.ellipse(cx, cy, set.w * 0.36, set.w * 0.15, 0, 0, 6.2832); g.fill();
@@ -1068,7 +1150,7 @@ function onVisible(){
 }
 function onFonts(){   // Web の字（DotGothic16）が届いたら、字の幅の覚えを捨てて描き直す（先に別の字で描いた壁の札・名札を直す）
   if (!RUN || !V.W) return;
-  try { WRAP = {}; lastKey = ''; drawStatic(floorG); if (shown()) render(Date.now()); } catch (e) {}
+  try { WRAP = {}; lastKey = ''; drawStatic(floorG); drawStatic2(f2G); if (shown()) render(Date.now()); } catch (e) {}
 }
 
 // ================= メンバーを押した時 =================
@@ -1194,6 +1276,7 @@ function mount(o){
   boxEl.innerHTML = '<div class="iso-world"><canvas aria-hidden="true"></canvas><canvas role="img" aria-label="オフィスの絵。メンバーを押すと役割の説明が出ます"></canvas></div><div class="iso-status"></div><div class="iso-card"></div>';
   worldEl = boxEl.firstChild; floorCv = worldEl.firstChild; stageCv = worldEl.lastChild; statusEl = boxEl.children[1]; cardEl = boxEl.children[2];
   floorG = floorCv.getContext('2d'); stageG = stageCv.getContext('2d');
+  f2Cv = document.createElement('canvas'); f2G = f2Cv.getContext('2d');   // 2階の動かない物を描いておく絵（画面には出さない）
   if (!floorG || !stageG) throw new Error('Canvas が使えません');
   SIDE_H = null; SEATR = null;   // 止めてから付け直した時も、「作業中 ◯人」の行を出し直す（前に出した文を覚えたままにしない）
   RUN = true; FAILS = 0;
