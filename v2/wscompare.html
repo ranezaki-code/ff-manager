@@ -168,6 +168,17 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
         both(`amOpenArea('w_cmpb'); amCardPick('a',5); amCardPick('b',0); amRecord('w_cmpb','')`); both(`amRecord('w_cmpt',${J(who)})`);
         cmp1('④','記録した後の ⏰ 売場以外の画面',`document.getElementById('off-view').innerHTML`,3);
         both(`setView('dashboard'); amWho('only',false)`); cmp1('④','売場以外を足した後の 📊',`document.getElementById('who-view').innerHTML`,3); both(`amWho('only',true); setView('map')`);
+        // 5.8：DF 再チェック（5分前の時刻の作業に recheck を付け、数字をえらんで「DF中」で記録 → カード・お知らせ・⏰ の画面・30分後の一覧（状態だけ。時刻は 2つの画面で数 ms ずれるので 比べない）・帯・📊 → 取り消し → 作業を消す）
+        both(`(()=>{ const d=new Date(Date.now()-5*60000), tm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); amWorksEdit().push({id:'w_cmpd',place:'off',name:'答え合わせのDF再チェックの作業',icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[tm],lead:30,grace:60,recheck:30,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]}); amSave(); setView('off'); })()`);
+        both(`amCloseSheet(); amOpenArea('w_cmpd'); amCardPick('a',7);`); cmp1('④','DF中のカード（点灯の前）',`(document.getElementById('am-sheet')||{}).innerHTML||''`,3);
+        both(`amCardDf()`); cmp1('④','DF中のカード（点灯）',`(document.getElementById('am-sheet')||{}).innerHTML||''`,3);
+        both(`amRecord('w_cmpd',${J(who)})`); cmp1('④','DF中で記録した直後のお知らせ',`((document.getElementById('am-snack')||{}).textContent||'').replace(/\\d+:\\d+/g,'HH:MM')`,3);
+        cmp1('④','DF中の記録の後の ⏰ 売場以外の画面',`document.getElementById('off-view').innerHTML`,3);
+        cmp1('④','30分後の一覧（状態だけ）',`JSON.stringify(amOffList(Date.now()+31*60000).filter(o=>o.w.id==='w_cmpd').map(o=>[o.k,o.lock,o.st,o.re||0]))`,3);
+        cmp1('④','30分後の帯（🔁 の有無）',`String(/🔁/.test(amOffBarHtml(Date.now()+31*60000)))+'｜'+String(/答え合わせのDF/.test(amOffBarHtml(Date.now()+31*60000)))`,3);
+        both(`setView('dashboard'); amWho('only',false)`); cmp1('④','DF中の記録の後の 📊（マスの印の時刻の数 ms は 2つの画面でずれるので そろえて比べる）',`document.getElementById('who-view').innerHTML.replace(/w_cmpd\\|\\d+/g,'w_cmpd|T')`,3); both(`amWho('only',true); setView('map')`);
+        both(`amUndoLast()`); cmp1('④','DF中の記録を取り消した後の一覧（再チェックの枠が無い）',`JSON.stringify(amOffList(Date.now()+31*60000).filter(o=>o.w.id==='w_cmpd').map(o=>[o.k,o.lock,o.st,o.re||0]))`,3);
+        both(`(()=>{ state.amWorks=state.amWorks.filter(w=>w.id!=='w_cmpd'); amSave(); renderMapView(); })()`);
         both(`(()=>{ const k=dateKey(new Date()); if(!state.tasks[k])state.tasks[k]=[]; state.tasks[k].push({id:'t_cmp_add',text:'答え合わせで足したタスク',hour:12,min:0,endHour:13,endMin:null,tan:'both',cats:[],zones:[],memo:'',manual:'',checklist:[],done:false,carryOvers:[],order:99,createdAt:'2026-10-05T00:00:00.000Z'}); saveState(); render(); })()`);
         both(`(()=>{ const k=dateKey(new Date()); const t=state.tasks[k].find(x=>x.id==='t_cmp_add'); t.done=true; t.completedBy=${J(who)}; t.completedAt='2026-10-05T03:00:00.000Z'; saveState(); render(); })()`);
         both(`(()=>{ const k=dateKey(new Date()); state.tasks[k]=state.tasks[k].filter(x=>x.id!=='t_cmp_add'); saveState(); render(); })()`);

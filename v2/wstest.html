@@ -664,6 +664,13 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       o.sel=ev(A,'_amEm.sel').sort(); o.on=A.ev(`document.querySelectorAll('#am-emap .am-em-c.on').length`); o.foot=A.ev(`document.getElementById('am-em-sel').textContent`);
       o.cellsN=A.ev(`document.querySelectorAll('#am-emap .am-em-c').length===amMap().cells.length`); o.big0=A.ev('_amEm.big');                                  // 大きさ：はじめは「大きく」（iframe の幅では いちばん小さいマスが 44px に届かない）。「全体を見る」（幅いっぱい）に切りかえると 44px に届かないマスの押せる範囲（am-em-hit）が出る。選びは そのまま
       A.ev(`amEmZoom()`); o.hit=A.ev(`document.querySelectorAll('#am-emap .am-em-hit').length>0`); A.ev(`amEmZoom()`); o.zoomKeep=J(ev(A,'_amEm.sel').sort())===J(['wc1','wc2'])&&A.ev(`document.querySelectorAll('#am-emap .am-em-c.on').length`)===2;
+      /* 5.8：入口（door）のマスの中を押して選べる。しま模様の id は 背景の売場マップと別（am-hatch-em）。背景の地図をかくした形（スマホ幅で 列を出している間）でも、地の しま模様が出て マスの中が押せる */
+      o.door=JSON.parse(A.ev(`(()=>{ const m=amMap(), d=m.cells.find(c=>c.kind==='door'); if(!d) return JSON.stringify({none:true}); const mv=document.getElementById('map-view'), keepD=mv?mv.style.display:''; if(mv) mv.style.display='none';
+        const g=document.querySelector('#am-emap .am-em-c[data-c="'+d.id+'"]'); g.scrollIntoView({block:'center',inline:'center'}); const r=g.getBoundingClientRect(), t=document.elementFromPoint(r.left+r.width/2, r.top+r.height/2), hit=(t&&t.closest)?t.closest('.am-em-c'):null;
+        const ids=Array.prototype.map.call(document.querySelectorAll('[id^="am-hatch"]'),x=>x.id), fl=g.querySelector('rect[fill^="url("]'), fillUrl=fl?fl.getAttribute('fill'):'', svg=document.querySelector('#am-emap svg');
+        const ok=!!hit&&hit.getAttribute('data-c')===d.id; if(ok) hit.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+        const sel=_amEm.sel.includes(d.id); if(sel) hit.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+        if(mv) mv.style.display=keepD; return JSON.stringify({id:d.id,hit:ok,sel,ids,uniq:ids.length===new Set(ids).size,fillUrl,own:!!(svg&&fillUrl&&svg.querySelector('#'+fillUrl.slice(5,-1)))}); })()`));
       A.ev(`amEmDone();`);
       o.txt=A.ev(`document.getElementById('amw-cells-txt').textContent`); o.closed=A.ev(`!document.getElementById('am-emap').classList.contains('show')&&!document.getElementById('am-emap').innerHTML`);
       o.preMap=(mapS(A)===o.map0); o.preWork=A.ev(`!amWorks().some(w=>w.name==='試験の地図作業')`);                                  // 保存の前は 何も書かない
@@ -687,10 +694,10 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       A.ev(`amFormSeg('place','floor');`); o.segOn=A.ev(`document.getElementById('amw-cells-box').style.display!=='none'`); A.ev('amCloseSheet()');
       await sync(); o.sameB=(mapS(B)===mapS(A))&&J(cellW(B,o.wid))===J(o.c2)&&same();
       check('70','地図で えらぶ（5.8）：内容の窓の「地図で えらぶ」で マスを2つタッチ → 窓に「場所：トイレ①・トイレ②」と出る → 保存で、マップ登録の道で同じ事をした形と 1字同じ（マスの works に作業の id を最後に足す）。開き直すと いまの場所が選ばれていて、1つ外し・1つ足せる。使わない・やめる・変えずに決める時は 地図に何も書かない。売場以外には出さず 書かない。もう1台にも同じ地図が届く',
-        o.noMap0&&o.unused&&o.guardSel===0&&o.box&&o.txt0==='まだ ありません'&&J(o.sel)===J(['wc1','wc2'])&&o.on===2&&/トイレ①/.test(o.foot)&&/トイレ②/.test(o.foot)&&o.cellsN&&o.big0===true&&o.hit&&o.zoomKeep&&o.txt==='トイレ①・トイレ②'&&o.closed&&o.preMap&&o.preWork
+        o.noMap0&&o.unused&&o.guardSel===0&&o.box&&o.txt0==='まだ ありません'&&J(o.sel)===J(['wc1','wc2'])&&o.on===2&&/トイレ①/.test(o.foot)&&/トイレ②/.test(o.foot)&&o.cellsN&&o.big0===true&&o.hit&&o.zoomKeep&&o.txt==='トイレ①・トイレ②'&&o.closed&&o.preMap&&o.preWork&&o.door.hit&&o.door.sel&&o.door.own&&o.door.uniq
         &&J(o.c1)===J(['wc1','wc2'])&&/2 か所/.test(o.snack)&&J(o.wc1)===J(['toilet',o.wid])&&o.sameAsReg&&J(o.init)===J(['wc1','wc2'])&&o.txt2==='トイレ①・トイレ②'
         &&J(o.c2)===J(['sake','wc2'])&&J(o.wc1b)===J(['toilet'])&&J(o.sakeW)===J(['face_red','stock_red',o.wid])&&o.others&&o.cancel&&o.same&&o.offHidden&&o.offNoOpen&&o.offSaved&&o.offMap&&o.segOff&&o.segOn&&o.sameB,
-        J({c1:o.c1,c2:o.c2,wc1:o.wc1,big0:o.big0,hit:o.hit,zoomKeep:o.zoomKeep,snack:o.snack,sameAsReg:o.sameAsReg,guardSel:o.guardSel,cancel:o.cancel,same:o.same,offMap:o.offMap,sameB:o.sameB,txt:o.txt,txt2:o.txt2})); }
+        J({door:o.door,c1:o.c1,c2:o.c2,wc1:o.wc1,big0:o.big0,hit:o.hit,zoomKeep:o.zoomKeep,snack:o.snack,sameAsReg:o.sameAsReg,guardSel:o.guardSel,cancel:o.cancel,same:o.same,offMap:o.offMap,sameB:o.sameB,txt:o.txt,txt2:o.txt2})); }
     { // ③ 🔥 が出ている時に、🔥 でない作業のカードを開いたら「最優先で、火が出ているほうを先に完了させてください」の案内。「🔥 ◯◯ へ」「それでも この作業を やる」。名前のボタンは「それでも」まで押せない。🔥 のカード・🔥 が無い時・登録の画面には出さない
       A.ev('amFireTop=window.__ft0');   // 試験71 だけは、本物の amFireTop で流す
       const keepW=A.ev('JSON.stringify(Array.isArray(state.amWorks)?state.amWorks:null)'), keepC=A.ev('JSON.stringify(state.areaChecks||{})');
@@ -728,9 +735,256 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         &&o.goto.id==='w_fgF'&&o.goto.name==='card'&&o.goto.fg===0&&!o.goto.dis&&o.goto.fire&&J(o.self)===J([0,true])&&o.admin===0&&o.stF2!=='fire'&&o.top2&&J(o.nofire)===J([0,true])
         &&(!o.offFire||(o.topOff==='w_fgO'&&/w_fgO/.test(o.goOff)&&/試験の精算/.test(o.goOffTxt))),
         J({stF:o.stF,stH:o.stH,fg:o.fg,tr:o.tr,go:o.go,skip:o.skip,imm:o.imm,rec1:o.rec1,again:o.again,goto:o.goto,self:o.self,admin:o.admin,nofire:o.nofire,offFire:o.offFire,topOff:o.topOff,goOff:o.goOff})); }
-    check('72','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
-    const srv=await c.readServer(); check('73','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
-    check('74','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
+    { // 5.8：DF 再チェック（店長 10/13「温度チェックのタスクはDF時は30分後に再チェックしなくてはいけないので、30分後にタスクが再表示されるようにしてほしい」）。カードで「DF中」→ 名前 → 30分後に ⏰ のいま やること・売場マップの帯に もう一度 出る → 再チェックの記録で消える。2回目の再チェックまで・3回目は出ない。取り消せば 再チェックの枠も消える
+      const MIN=60000, o={}, wasAdmin=A.ev('isAdmin'), pad2=n=>(n<10?'0':'')+n;
+      /* 時計を 絵の中だけ進める（記録の時刻・「いま」が その時刻になる。いまの実際の時刻に左右されないように、きょうの 12:00・16:00・20:00 に合わせる）。試験の最後に 必ず戻す */
+      const warp=(d,off)=>d.ev(`(()=>{ if(!window.__rd0) window.__rd0=window.Date; const RD=window.__rd0, off=${off}; function FD(){ const a=Array.prototype.slice.call(arguments); if(!new.target) return new RD(RD.now()+off).toString(); if(a.length===0) return Reflect.construct(RD,[RD.now()+off],new.target); return Reflect.construct(RD,a,new.target); } FD.prototype=RD.prototype; Object.setPrototypeOf(FD,RD); FD.now=function(){ return RD.now()+off; }; window.Date=FD; })()`);
+      const unwarp=d=>d.ev('(()=>{ if(window.__rd0){ window.Date=window.__rd0; window.__rd0=null; } })()');
+      const goto=(d,t)=>{ unwarp(d); const n=Number(d.ev('Date.now()')); warp(d,t-n); };
+      const q=sel=>A.ev(`document.querySelectorAll(${J(sel)}).length`), txt=sel=>A.ev(`(document.querySelector(${J(sel)})||{}).textContent||''`);
+      const recsD=(d,id,t0)=>JSON.parse(d.ev(`JSON.stringify(amLogRange(${t0-864e5},${t0+10*864e5}).filter(r=>r.w===${J(id)}).map(r=>({by:r.by,df:r.df||0,re:r.re||0,v:r.v,t:r.t})))`)), recs=(id,t0)=>recsD(A,id,t0);
+      const lstD=(d,id,t)=>JSON.parse(d.ev(`JSON.stringify(amOffList(${t}).filter(x=>x.w.id===${J(id)}).map(x=>[x.k,x.lock?1:0,x.re||0]))`));
+      const lst=(id,t)=>JSON.parse(A.ev(`JSON.stringify(amOffList(${t}).filter(x=>x.w.id===${J(id)}).map(x=>[x.k,x.lock?1:0,x.re||0]))`));
+      const at=h=>{ const d=new Date(); d.setHours(h,0,0,0); return d.getTime(); };
+      const mkW=(id,name,tm)=>({id,place:'off',name,icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[tm],lead:30,grace:60,recheck:30,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]});   // 時刻 11:55・15:55・19:55・21:55・22:55 の 1日1回の作業（30分前から押せる・60分後が締切）。次の回は あした
+      const keepW=A.ev('JSON.stringify(Array.isArray(state.amWorks)?state.amWorks:null)'), ids=['w_df1','w_df2','w_df3','w_df4','w_df5'];
+      /* ほかの試験が足した 売場以外の作業（1時間ごとの作業）が 帯・いま やることに混ざらないよう、この試験の間だけ 5つだけにする（終わったら 元に戻す） */
+      A.ev(`isAdmin=false; amCloseSheet(); window.__ft1=amFireTop; amFireTop=function(){ return null; }; state.amWorks=${J([mkW('w_df1','DF再チェックの試験','11:55'),mkW('w_df2','DF2回の試験','15:55'),mkW('w_df3','DF取り消しの試験','19:55'),mkW('w_df4','DF2台の試験','21:55'),mkW('w_df5','DF2台同時の試験','22:55')])}; amSave(); setView('off');`);
+      try{
+        /* (a) 12:00 に カード：数字の欄の下に「DF中（30分後に もう一度）」。押すと 点灯 → 名前を押す → 記録に df:1 */
+        goto(A,at(12)); const T0=Number(A.ev('Date.now()'));
+        A.ev(`amOpenArea('w_df1'); amCardPick('a',7);`);
+        o.btn0=q('#am-sheet .ao-df'); o.t0=txt('#am-sheet .ao-df-t'); o.on0=q('#am-sheet .ao-df.on'); o.tr0=q('#am-sheet .ao-df .am-tr');
+        A.ev('amCardDf()'); o.on1=q('#am-sheet .ao-df.on'); o.pressed=A.ev(`document.querySelector('#am-sheet .ao-df').getAttribute('aria-pressed')`);
+        A.ev(`amRecord('w_df1','見本 花子')`); o.sn=txt('#am-snack');
+        o.r1=recs('w_df1',T0); o.ac=A.ev(`JSON.stringify(((state.areaChecks||{}).w_df1||[]).map(r=>Object.keys(r).sort().join()))`);   // 直近40件の記録は at・by のまま
+        const rt=o.r1[0]?o.r1[0].t:T0;
+        /* (b) 記録の直後〜90分後：枠は 保存せずに、記録から作る。30分たつまでは「これから」に ロックの行（再チェック）。30分後に「いま」。90分たつと 🔥 */
+        o.sA=JSON.parse(A.ev(`(()=>{ const s=amOffStatus(amWork('w_df1'),${rt+MIN}); return JSON.stringify([s.st,s.lock,(s.next&&s.next.re)||0,s.next?(s.next.s-${rt})/60000:-1]); })()`));
+        o.l1=lst('w_df1',rt+MIN); o.l29=lst('w_df1',rt+29*MIN); o.l31=lst('w_df1',rt+31*MIN); o.l89=lst('w_df1',rt+89*MIN); o.l91=lst('w_df1',rt+91*MIN);
+        o.bar31=A.ev(`amOffBarHtml(${rt+31*MIN})`); o.bar1=A.ev(`amOffBarHtml(${rt+MIN})`);
+        /* (c) 30分後の画面：⏰ のいま やること（再チェックの札）・売場マップの帯（🔁）・カード（見出しに 再チェック・DF中のボタンも まだ出る）→ 再チェックの記録（re:1）で消える */
+        goto(A,rt+31*MIN);
+        A.ev(`setView('off'); renderOffView();`); o.cardRe=q('#off-view .ao-card.soon .ao-tg.re'); o.cardTxt=txt('#off-view .ao-card.soon');
+        A.ev(`setView('map'); renderMapView();`); o.barDo=txt('#map-view .ao-x-do');
+        A.ev(`amOpenArea('w_df1')`); o.head=txt('#am-sheet .am-cd-m'); o.btnRe=q('#am-sheet .ao-df'); o.noteRe=q('#am-sheet .ao-dfn');
+        A.ev(`amCardPick('a',4); amRecord('w_df1','見本 太郎')`); o.sn2=txt('#am-snack');
+        o.r2=recs('w_df1',T0); o.l31b=lst('w_df1',rt+31*MIN); o.l200=lst('w_df1',rt+200*MIN); o.sB=A.ev(`amOffStatus(amWork('w_df1')).st`);
+        /* (d) 16:00：2回目まで。再チェックでまた DF中 → もう1回出る。2回目の再チェックには DF中のボタンは出ず（「2回まで」の1行）、DF中を無理に付けても記録に df は入らない。3回目の枠は出ない */
+        A.ev('amCloseSheet()'); goto(A,at(16)); const U0=Number(A.ev('Date.now()'));
+        A.ev(`amOpenArea('w_df2'); amCardPick('a',7); amCardDf(); amRecord('w_df2','見本 花子')`);
+        const rt2=recs('w_df2',U0)[0].t;
+        goto(A,rt2+31*MIN); A.ev(`amOpenArea('w_df2'); amCardPick('a',8); amCardDf();`); o.dfOn2=q('#am-sheet .ao-df.on'); A.ev(`amRecord('w_df2','見本 太郎')`);
+        const rt3=recs('w_df2',U0)[1].t;
+        goto(A,rt3+31*MIN); A.ev(`amOpenArea('w_df2'); amCardPick('a',8);`); o.btn3=q('#am-sheet .ao-df'); o.note3=q('#am-sheet .ao-dfn'); o.note3t=txt('#am-sheet .ao-dfn'); o.head3=txt('#am-sheet .am-cd-m');
+        A.ev(`_amCard.df=true; amRecord('w_df2','見本 花子')`);
+        o.r3=recs('w_df2',U0); o.l3=lst('w_df2',rt3+31*MIN); o.l3b=lst('w_df2',rt3+200*MIN);
+        /* (e) 20:00：取り消し。DF中の記録を取り消せば、再チェックの枠も無くなる */
+        A.ev('amCloseSheet()'); goto(A,at(20)); const V0=Number(A.ev('Date.now()'));
+        A.ev(`amOpenArea('w_df3'); amCardPick('a',7); amCardDf(); amRecord('w_df3','見本 花子')`);
+        const rt4=recs('w_df3',V0)[0].t; o.u1=lst('w_df3',rt4+31*MIN);
+        A.ev('amUndoLast()'); o.u2=lst('w_df3',rt4+31*MIN); o.u3=recs('w_df3',V0).length;
+        /* (f) 22:00・23:00：2台。A が DF中 → B（別の画面）に 再チェックの枠が届き、B が 再チェックを記録 → 2台とも 両方の記録が残る。
+           2台が ほぼ同時に 同じ回を記録して、先に入った記録が ふつうの記録・あとの記録が DF中 だった時も、DF中の印は落ちない（再チェックの枠は出る） */
+        A.ev('amCloseSheet()'); goto(A,at(22)); const X0=Number(A.ev('Date.now()'));
+        A.ev(`amOpenArea('w_df4'); amCardPick('a',7); amCardDf(); amRecord('w_df4','見本 花子')`);
+        const rt5=recsD(A,'w_df4',X0)[0].t; unwarp(A); await sync();
+        goto(B,rt5+31*MIN); o.f1=lstD(B,'w_df4',Number(B.ev('Date.now()')));
+        B.ev(`amOpenArea('w_df4'); amCardPick('a',4); amRecord('w_df4','見本 太郎')`); unwarp(B); await sync();
+        o.f2=[recsD(A,'w_df4',X0).map(r=>[r.df,r.re,r.by]),recsD(B,'w_df4',X0).map(r=>[r.df,r.re,r.by])]; o.f3=[lstD(A,'w_df4',rt5+31*MIN),lstD(B,'w_df4',rt5+31*MIN)];
+        goto(A,at(23)); goto(B,at(23)); const Y0=Number(A.ev('Date.now()'));
+        off(); B.ev(`amOpenArea('w_df5'); amCardPick('a',4); amRecord('w_df5','見本 太郎')`); await sleep(40); A.ev(`amOpenArea('w_df5'); amCardPick('a',7); amCardDf(); amRecord('w_df5','見本 花子')`); on(); unwarp(A); unwarp(B); await sync();
+        o.g1=[recsD(A,'w_df5',Y0).map(r=>[r.df,r.re,r.by]),recsD(B,'w_df5',Y0).map(r=>[r.df,r.re,r.by])]; o.g2=[lstD(A,'w_df5',Y0+31*MIN),lstD(B,'w_df5',Y0+31*MIN)];
+      } finally {
+        unwarp(A); unwarp(B);
+        A.ev(`(()=>{ const ids=${J(ids)}, kw=${J(keepW)}; if(kw&&kw!=='null') state.amWorks=JSON.parse(kw); else delete state.amWorks; amLogKeys().forEach(k=>{ Object.keys(state[k]).forEach(i=>{ if(state[k][i]&&ids.indexOf(state[k][i].w)>=0) delete state[k][i]; }); }); ids.forEach(i=>{ if(state.areaChecks) delete state.areaChecks[i]; }); amCloseSheet(); amFireTop=window.__ft1; isAdmin=${wasAdmin}; amSave(); setView('map'); })()`); await sync();
+      }
+      check('72','DF 再チェック（5.8）：カードの数字の欄の下に「DF中（30分後に もう一度）」→ 押して 名前を押すと 記録に df:1（直近40件の記録は at・by のまま）。記録の 30分後に、⏰ の「いま やること」と売場マップの帯に もう一度 出る（それまでは「これから」に ロックの行・90分たつと 🔥）。再チェックの記録（re:1）で消える。再チェックでまた DF中 → もう1回だけ出る（2回目の再チェックには DF中のボタンは無く「2回まで」の1行。3回目は出ない）。取り消せば 再チェックの枠も消える。2台：A の DF中 → B に 再チェックの枠が届き B が記録 → 両方残る。2台がほぼ同時に（先がふつう・あとが DF中）でも DF中の印は落ちない',
+        o.btn0===1&&/DF中（30分後に もう一度）/.test(o.t0)&&o.on0===0&&o.tr0===1&&o.on1===1&&o.pressed==='true'
+        &&o.r1.length===1&&o.r1[0].df===1&&o.r1[0].re===0&&!!o.r1[0].v&&o.r1[0].v.a===7&&/DF中 → \d+:\d+ に もう一度 出ます/.test(o.sn)&&J(JSON.parse(o.ac))===J(['at,by'])
+        &&J(o.sA)===J(['done',false,1,30])&&J(o.l1)===J([['done',0,0],['todo',1,1]])&&J(o.l29)===J([['done',0,0],['todo',1,1]])&&J(o.l31)===J([['done',0,0],['soon',0,1]])&&J(o.l89)===J([['done',0,0],['soon',0,1]])&&J(o.l91)===J([['done',0,0],['fire',0,1]])
+        &&o.bar1===''&&/ao-x-do soon/.test(o.bar31)&&/🔁/.test(o.bar31)
+        &&o.cardRe===1&&/再チェック/.test(o.cardTxt)&&/🔁/.test(o.barDo)&&/再チェック/.test(o.head)&&o.btnRe===1&&o.noteRe===0
+        &&o.r2.length===2&&o.r2[1].re===1&&o.r2[1].df===0&&o.r2[1].v.a===4&&/再チェック/.test(o.sn2)&&J(o.l31b)===J([['done',0,0],['done',0,1]])&&!o.l200.some(x=>x[2]&&x[0]!=='done')&&o.sB==='done'
+        &&o.dfOn2===1&&o.r3.length===3&&J(o.r3.map(r=>[r.df,r.re]))===J([[1,0],[1,1],[0,1]])&&o.btn3===0&&o.note3===1&&/2回まで/.test(o.note3t)&&/Re-check is limited to 2 times/.test(o.note3t)&&/पुनः जाँच/.test(o.note3t)&&/再チェック/.test(o.head3)
+        &&J(o.l3)===J([['done',0,0],['done',0,1],['done',0,2]])&&!o.l3b.some(x=>x[0]!=='done'&&x[2])
+        &&J(o.u1)===J([['done',0,0],['soon',0,1]])&&!o.u2.some(x=>x[2])&&o.u3===0
+        &&J(o.f1)===J([['done',0,0],['soon',0,1]])&&J(o.f2[0])===J([[1,0,'見本 花子'],[0,1,'見本 太郎']])&&J(o.f2[1])===J(o.f2[0])&&J(o.f3[0])===J([['done',0,0],['done',0,1]])&&J(o.f3[1])===J(o.f3[0])
+        &&J(o.g1[0])===J([[0,0,'見本 太郎'],[1,0,'見本 花子']])&&J(o.g1[1])===J(o.g1[0])&&J(o.g2[0])===J([['done',0,0],['soon',0,1]])&&J(o.g2[1])===J(o.g2[0])&&same(),
+        J({sA:o.sA,l1:o.l1,l29:o.l29,l31:o.l31,l91:o.l91,bar31:/🔁/.test(o.bar31),barDo:o.barDo,r1:o.r1.length,r2:o.r2.map(r=>[r.df,r.re]),r3:o.r3.map(r=>[r.df,r.re]),l3:o.l3,u1:o.u1,u2:o.u2,btn3:o.btn3,note3:o.note3,f1:o.f1,f2:o.f2,f3:o.f3,g1:o.g1,g2:o.g2,sn:o.sn})); }
+    { // 5.8：夜中のまたぎ・次の回が先の時・📊（再チェックの記録が無ければ「🔥 抜け」。DF中の記録は「✅ 時間内」のまま）
+      const o=JSON.parse(A.ev(`(()=>{
+        const out={}, base=new Date(); base.setHours(0,0,0,0); base.setDate(base.getDate()-3);
+        const at=(h,m)=>base.getTime()+h*3600000+(m||0)*60000, iso=ms=>new Date(ms).toISOString(), dayMs=base.getTime();
+        const wasAdmin=isAdmin, keys0=Object.keys(state).filter(k=>k.indexOf('amLog_')===0);
+        const W={id:'w_dfn',place:'off',name:'夜のDF試験',icon:'🌙',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['23:00'],lead:30,grace:60,recheck:30,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]};
+        const W2={id:'w_dfe',place:'off',name:'次の回のDF試験',icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['10:00','11:00'],lead:30,grace:60,recheck:30,items:[]};
+        amWorksEdit().push(W,W2);
+        let refs=[]; const add=(wid,ms,fl)=>{ refs.push(amLogAdd(wid,{at:iso(ms),by:'見本 花子'},null,fl)); }, clear=()=>{ refs.forEach(r=>amLogRemove(r)); refs=[]; };
+        const st=(w,ms)=>{ const s=amOffStatus(w,ms); return s.st+(s.lock?'*':'')+(s.slot&&s.slot.re?'R'+s.slot.re:'')+'@'+(s.slot?amHM(s.slot.s):'-'); };
+        const occ=(ms,id,only)=>{ const c=amOccCtx(ms,ms,Date.now()); return amDayOcc(ms,c).filter(x=>x.w.id===id&&(!only||x.re)).map(x=>(x.re?'R'+x.re+'/':'')+amHM(x.s)+':'+x.st+(x.pre?'(pre)':'')); };
+        try{
+          const w=amWork('w_dfn'), w2=amWork('w_dfe');
+          /* N1：23:50 に DF中 → 0:20 に もう一度（日付をまたぐ）→ 1:20 が締切 → 3:00 で 持ちこさない（5.7 の決め：締切の後の最初の 3:00） */
+          add('w_dfn',at(23,50),{df:1});
+          out.n1=[st(w,at(23,55)),st(w,at(24,10)),st(w,at(24,25)),st(w,at(25,30)),st(w,at(26,59)),st(w,at(27,0))];
+          out.occ1=occ(dayMs,'w_dfn'); out.stat1=amWhoStat(amDayOcc(dayMs,amOccCtx(dayMs,dayMs,Date.now())).filter(x=>x.w.id==='w_dfn'));
+          /* N2：再チェックの記録が 0:40（時間内）／2:00（締切 1:20 の後＝遅れ） */
+          add('w_dfn',at(24,40),{re:1}); out.occ2=occ(dayMs,'w_dfn'); out.n2=st(w,at(24,50));
+          clear(); add('w_dfn',at(23,50),{df:1}); add('w_dfn',at(26,0),{re:1}); out.occ3=occ(dayMs,'w_dfn');
+          /* N3：2:50 に DF中（この日の最後）→ 3:20 に もう一度（次の日の 3:00 の後） */
+          clear(); add('w_dfn',at(26,50),{df:1});
+          out.n3=[st(w,at(27,10)),st(w,at(27,25))]; out.occ4=occ(dayMs+86400000,'w_dfn',true);
+          /* 次の回が先に押せるようになる時：10:00/11:00 の作業（30分前から押せる）。9:45 に DF中 → 10:15 に もう一度（11:00 の回は 10:30 から押せる＝10:30 まで）。10:15 に DF中 → 10:45 は 11:00 の回が先に押せる（10:30）ので 再チェックの枠は出さない（抜けにも数えない） */
+          clear(); add('w_dfe',at(9,45),{df:1}); out.e1=amOffSlots(w2,at(12,0)).filter(x=>x.re).map(x=>amHM(x.s)); out.eOcc1=occ(dayMs,'w_dfe',true);
+          add('w_dfe',at(10,40),{}); out.eOcc3=occ(dayMs,'w_dfe',true);   // 11:00 の回を 10:40 に記録した → 10:15 の再チェックの締切（11:15）の前なので、それが 再チェックもかねる（時間内）
+          clear(); add('w_dfe',at(10,15),{df:1}); out.e2=amOffSlots(w2,at(12,0)).filter(x=>x.re).map(x=>amHM(x.s)); out.eOcc2=occ(dayMs,'w_dfe',true);
+          /* 再チェックの記録の無い DF中 → 📊（管理者）：再チェックのマスが 1つ・しるし（rc）・説明に「抜けに 数えます」 */
+          clear(); add('w_dfn',at(23,50),{df:1});
+          isAdmin=true; _who.help=false; setView('dashboard'); amWho('kind','off'); amWho('only',false); amWho('day',-3);
+          out.rcCells=document.querySelectorAll('#who-view .aw-wm .aw-cx.rc').length; out.legend=document.querySelectorAll('#who-view .aw-legend .aw-cx.rc').length;
+          const sel=amDayOcc(dayMs,amOccCtx(dayMs,dayMs,Date.now())).filter(x=>x.w.id==='w_dfn'&&x.re)[0];
+          amWho('sel',sel.w.id+'|'+sel.s); out.detail=document.querySelector('#who-view .aw-detail').textContent;
+          const sel0=amDayOcc(dayMs,amOccCtx(dayMs,dayMs,Date.now())).filter(x=>x.w.id==='w_dfn'&&!x.re)[0];
+          amWho('sel',sel0.w.id+'|'+sel0.s); out.detail0=document.querySelector('#who-view .aw-detail').textContent;
+          amWho('help'); out.help=document.querySelector('#who-view .aw-help').textContent; amWho('help');
+          /* 再チェックを決めた作業が 1つも無い時は、📊 に 説明も凡例も足さない（5.7 と同じ） */
+          const keepW=state.amWorks.slice(); state.amWorks=state.amWorks.filter(x=>x.id!=='w_dfn'&&x.id!=='w_dfe'); amWho('help'); out.helpNone=/DF中/.test(document.querySelector('#who-view .aw-help').textContent); out.legendNone=document.querySelectorAll('#who-view .aw-legend .aw-cx.rc').length; amWho('help'); state.amWorks=keepW;
+        } finally {
+          clear(); state.amWorks=state.amWorks.filter(x=>x.id!=='w_dfn'&&x.id!=='w_dfe');
+          Object.keys(state).filter(k=>k.indexOf('amLog_')===0&&keys0.indexOf(k)<0).forEach(k=>{ delete state[k]; });
+          _who.day=0; _who.kind='all'; _who.only=true; _who.sel=''; _who.help=false; _who.mode='day'; _who.who=''; isAdmin=wasAdmin; setView('map');
+        }
+        return JSON.stringify(out); })()`));
+      await sync();
+      check('73','DF 再チェック（5.8）：夜中のまたぎ（23:50 の DF中 → 0:20 に もう一度・1:20 が締切・3:00 で持ちこさない／2:50 の DF中 → 3:20 に もう一度＝次の日）。次の回が先に押せるようになる時は 再チェックの枠を出さない（10:15 の DF中）／枠は出るが次の回で 切れる時（9:45 の DF中）は 次の回の記録が 再チェックもかねる。📊：DF中の記録は「✅ 時間内」のまま、再チェックの記録が無ければ「🔥 抜け」（その日の中で 2枠・時間内 1・抜け 1）。再チェックの記録が 締切の後なら「遅れ」。再チェックを決めた作業が無い時は 📊 に何も足さない',
+        J(o.n1)===J(['done@23:00','done@23:00','soonR1@0:20','fireR1@0:20','fireR1@0:20','todo*@23:00'])
+        &&J(o.occ1)===J(['23:00:on','R1/0:20:miss'])&&o.stat1.due===2&&o.stat1.on===1&&o.stat1.miss===1&&o.stat1.rate===50
+        &&J(o.occ2)===J(['23:00:on','R1/0:20:on'])&&o.n2==='doneR1@0:20'&&J(o.occ3)===J(['23:00:on','R1/0:20:late'])
+        &&J(o.n3)===J(['todo*R1@3:20','soonR1@3:20'])&&J(o.occ4)===J(['R1/3:20:miss'])
+        &&J(o.e1)===J(['10:15'])&&J(o.eOcc1)===J(['R1/10:15:miss'])&&J(o.eOcc3)===J(['R1/10:15:on'])&&J(o.e2)===J([])&&J(o.eOcc2)===J([])
+        &&o.rcCells===1&&o.legend===1&&/再チェック/.test(o.detail)&&/抜けに 数えます/.test(o.detail)&&/DF中/.test(o.detail0)&&/✅ 時間内/.test(o.detail0)&&/🔁 DF中/.test(o.help)&&o.helpNone===false&&o.legendNone===0,
+        J(o)); }
+    { // 5.8：登録の窓の「再チェック」（作業の設定に追加）。数字を残す作業は 30 が初期値・直したら動かさない・空なら項目ごと無し・整数 1〜720・時刻で決める作業だけ・となりの時刻と近い時は注意
+      const o={}, q=sel=>A.ev(`document.querySelectorAll(${J(sel)}).length`), wasAdmin=A.ev('isAdmin');
+      const txt=sel=>A.ev(`(document.querySelector(${J(sel)})||{}).textContent||''`);
+      const amWarn=(t,l,g,r)=>JSON.parse(A.ev(`JSON.stringify(amFormTimeWarn(${J(t)},${l},${g},${r===undefined?'undefined':r}))`));
+      const find=name=>JSON.parse(A.ev(`JSON.stringify(amWorks().find(w=>w.name===${J(name)})||null)`));
+      const val=()=>A.ev(`document.getElementById('amw-recheck').value`);
+      const lab=v=>A.ev(`(()=>{ const i=document.querySelector('#amw-vals-box .amw-v-l'); i.value=${J(v)}; i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); return document.getElementById('amw-recheck').value; })()`);
+      const setRc=v=>A.ev(`(()=>{ const r=document.getElementById('amw-recheck'); r.value=${J(v)}; r.dispatchEvent(new Event('input',{bubbles:true})); r.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+      A.ev(`isAdmin=true; amCloseSheet(); window.alert=function(m){ window.__al=String(m); }; window.__al='';`);
+      try{
+        A.ev(`amEditWork('','off')`); o.box=q('#amw-recheck'); o.v0=val(); o.vis=A.ev(`document.getElementById('amw-time-box').style.display!=='none'`);
+        o.a1=lab('冷蔵'); o.a2=lab(''); o.a3=lab('冷蔵');                                // 数字の名前を入れ始めた → 30。消した → 空。また入れた → 30
+        setRc('45'); o.a4=lab('冷凍'); o.a5=lab('');                                      // 管理者が 45 に直した後は 動かさない
+        A.ev(`(()=>{ document.getElementById('amw-name').value='DF登録の試験'; _amForm.times=['09:00','15:00']; amFormSync(); const l=document.querySelector('#amw-vals-box .amw-v-l'); l.value='冷蔵'; document.querySelector('#amw-vals-box .amw-v-max').value='5'; amSaveWork(''); })()`);
+        o.w1=find('DF登録の試験'); const id1=o.w1&&o.w1.id;
+        A.ev(`amEditWork(${J(id1)})`); o.re1=val(); o.hv=A.ev(`document.getElementById('amw-recheck').dataset.hv`);
+        o.b1=lab('冷蔵庫');                                                                // すでに数字の名前がある作業は、名前を直しても 値を動かさない
+        setRc(''); A.ev(`amSaveWork(${J(id1)})`); o.w2=find('DF登録の試験');              // 空にして保存 → 項目ごと無し
+        const bad=[]; for(const v of ['0','721','30.5','ab','-5']){ A.ev(`amEditWork(${J(id1)})`); setRc(v); A.ev(`window.__al=''; amSaveWork(${J(id1)})`); bad.push([v,/再チェックの 分/.test(A.ev('window.__al')),'recheck' in find('DF登録の試験')]); }   // 保存されず、注意が出る
+        o.bad=bad;
+        A.ev(`amEditWork(${J(id1)})`); setRc('３０'); A.ev(`amSaveWork(${J(id1)})`); o.w3=find('DF登録の試験');   // 全角の数字も 30
+        A.ev(`amEditWork(${J(id1)})`); A.ev(`amFormSeg('how','band')`); o.rcBand=q('#amw-recheck'); A.ev(`amSaveWork(${J(id1)})`); o.w4=find('DF登録の試験');   // 「時間帯に ◯回」に変えて保存 → 再チェックは消える
+        A.ev(`amEditWork('','off')`); A.ev(`(()=>{ document.getElementById('amw-name').value='DF登録の試験B'; _amForm.times=['09:00']; amFormSync(); amSaveWork(''); })()`); o.wB=find('DF登録の試験B');   // 使わない作業は 保存の形が 今までどおり
+        A.ev(`amEditWork('','off')`); A.ev(`(()=>{ document.getElementById('amw-name').value='DF登録の試験C'; _amForm.times=['09:00','10:00']; amFormSync(); document.getElementById('amw-recheck').value='30'; amFormSync(); })()`); o.warnH=txt('#amw-time-warn'); A.ev(`amCloseSheet()`);
+        /* (5.8b) 数字の名前を 3つの欄へ 続けて打つ（実キーの形：1字ずつ input を送る）。共通の「入力途中の守り」が 3欄を同じ欄と見なして、3つ目に「冷蔵」が写り 数字が3つで保存されていた件（欄に id を足して直した）。再チェックの入力欄は 44px 以上 */
+        A.ev(`try{ sessionStorage.removeItem('__draft::'+location.pathname); sessionStorage.removeItem('__draft::'+location.pathname+'#focus'); }catch(e){}`);
+        A.ev(`amEditWork('','off')`);
+        const typeIn=async(i,text)=>{ A.ev(`document.querySelectorAll('#amw-vals-box .amw-v-l')[${i}].focus()`); for(const ch of text){ A.ev(`(()=>{ const el=document.querySelectorAll('#amw-vals-box .amw-v-l')[${i}]; el.value+=${J(ch)}; el.dispatchEvent(new Event('input',{bubbles:true})); })()`); await sleep(30); } };
+        await typeIn(0,'冷蔵'); await sleep(250); await typeIn(1,'冷凍'); await sleep(300);
+        o.keys=JSON.parse(A.ev(`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#amw-vals-box .amw-v-l'),e=>e.value))`)); o.rcAuto=val(); o.rcH=A.ev(`document.getElementById('amw-recheck').getBoundingClientRect().height`); o.ids=A.ev(`Array.prototype.map.call(document.querySelectorAll('#amw-vals-box .amw-v-l'),e=>e.id).join(',')`);
+        A.ev(`(()=>{ document.getElementById('amw-name').value='DF登録の試験D'; _amForm.times=['09:00']; amFormSync(); amSaveWork(''); })()`); o.wD=find('DF登録の試験D');
+        o.warn=J([amWarn(['09:00','10:00'],30,60,30).length,amWarn(['09:00','15:00'],30,60,30).length,amWarn(['09:00','10:00'],30,60,0).length,amWarn(['09:00','10:00'],30,60).length]);
+      } finally {
+        A.ev(`(()=>{ state.amWorks=state.amWorks.filter(w=>!/^DF登録の試験/.test(w.name||'')); amCloseSheet(); window.alert=function(){}; isAdmin=${wasAdmin}; amSave(); setView('map'); })()`); await sync();
+      }
+      check('74','登録の窓の「再チェック」（5.8）：時刻で決める売場以外の作業に 入力欄が出る。数字を残す名前を入れ始めると 30 が入り（消すと空に戻る）、管理者が直した後・すでに数字の名前がある作業では 動かさない。保存すると recheck（分）が作業に付き、空にして保存すると項目ごと消える。整数 1〜720 以外は 保存せず注意（0・721・30.5・文字・マイナス）。全角の数字も通る。「時間帯に ◯回」に変えて保存すると消える。使わない作業の保存の形は 今までどおり（recheck の項目が無い）。となりの時刻と近い時は 注意が出る。数字の名前を 3つの欄へ 続けて打っても 3つ目に写らない（実キーの形）・再チェックの入力欄は 44px 以上',
+        o.box===1&&o.v0===''&&o.vis===true&&o.a1==='30'&&o.a2===''&&o.a3==='30'&&o.a4==='45'&&o.a5==='45'
+        &&!!o.w1&&o.w1.recheck===45&&o.w1.place==='off'&&J(o.w1.times)===J(['09:00','15:00'])&&o.re1==='45'&&o.hv==='1'&&o.b1==='45'
+        &&!!o.w2&&!('recheck' in o.w2)&&o.bad.length===5&&o.bad.every(x=>x[1]&&!x[2])&&!!o.w3&&o.w3.recheck===30&&o.rcBand===1&&!!o.w4&&!('recheck' in o.w4)&&!!o.wB&&!('recheck' in o.wB)&&o.wB.place==='off'
+        &&o.warn==='[2,0,1,1]'&&/かねます/.test(o.warnH)
+        &&J(o.keys)===J(['冷蔵','冷凍',''])&&o.rcAuto==='30'&&o.rcH>=44&&o.ids==='amw-vl-0,amw-vl-1,amw-vl-2'&&!!o.wD&&o.wD.vals.length===2&&o.wD.vals[0].label==='冷蔵'&&o.wD.vals[1].label==='冷凍'&&o.wD.recheck===30,
+        J({box:o.box,v0:o.v0,a:[o.a1,o.a2,o.a3,o.a4,o.a5],w1:o.w1&&o.w1.recheck,re1:o.re1,b1:o.b1,w2:o.w2&&('recheck' in o.w2),bad:o.bad,w3:o.w3&&o.w3.recheck,w4:o.w4&&('recheck' in o.w4),wB:o.wB&&('recheck' in o.wB),warn:o.warn,keys:o.keys,rcAuto:o.rcAuto,rcH:o.rcH,ids:o.ids,wD:o.wD&&o.wD.vals&&o.wD.vals.map(v=>v.label)})); }
+    { // 5.8：列の行の長押し（店長 10/13「マウスカーソルだと対象のタスクにカーソルあてると売り場マップが青線で囲われるけど、タブレット前提でつくったほうがいい。たとえばタスク長押しでマップが囲われたり」）。指で 0.4秒以上 → 地図に その作業の場所が青く囲われる・離してもカードは開かない／短く押す → カードが開き、開いている間は 囲ったまま・閉じたら 1 の行に戻る／マウスは今までどおり／指が動いたら長押しにしない／「？」に1行
+      const o={}, sleep2=ms=>new Promise(r=>setTimeout(r,ms));
+      A.ev(`window.__pe=function(id,type,pt,dx){ const r=document.querySelector('#amf-col .amf-r[data-w="'+id+'"]'); if(!r) return false; const b=r.getBoundingClientRect(); r.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:7,isPrimary:true,pointerType:pt||'touch',clientX:b.left+b.width/2+(dx||0),clientY:b.top+b.height/2})); return true; };
+        window.__rowclick=function(id){ const r=document.querySelector('#amf-col .amf-r[data-w="'+id+'"]'); if(r) r.click(); return !!r; };
+        window.__st=function(){ const on=document.querySelector('#amf-col .amf-r.amf-on'), first=document.querySelector('#amf-col .amf-r.amf-first'); return JSON.stringify({on:on?on.dataset.w:'', first:first?first.dataset.w:'', sel:_amfSel, sheet:amSheetName(), card:(_amCard&&_amCard.id)||'', hi:Array.prototype.map.call(document.querySelectorAll('#amf-hi rect'),r=>r.getAttribute('x')+','+r.getAttribute('y')).sort().join('|')}); };
+        window.__hiOf=function(id){ const m=amMap(); return m?m.cells.filter(c=>(c.works||[]).includes(id)).map(c=>(c.x-4)+','+(c.y-4)).sort().join('|'):''; };`);
+      const st=()=>JSON.parse(A.ev('window.__st()')), pe=(id,type,pt,dx)=>A.ev(`window.__pe(${J(id)},${J(type)},${J(pt||'touch')},${dx||0})`), clk=id=>A.ev(`window.__rowclick(${J(id)})`);
+      A.ev(`amCloseSheet(); setView('map'); _amPatrol='all'; amFToggle(true); renderMapView(); amFSel(null);`);
+      const pick=JSON.parse(A.ev(`(()=>{ const rows=Array.prototype.slice.call(document.querySelectorAll('#amf-col .amf-r')), first=rows[0]&&rows[0].dataset.w; const cand=rows.slice(1).map(r=>r.dataset.w).filter(id=>window.__hiOf(id)&&window.__hiOf(id)!==window.__hiOf(first)); return JSON.stringify({first,id:cand[0]||'',n:rows.length}); })()`));
+      const id=pick.id, hiId=A.ev(`window.__hiOf(${J(id)})`), hiFirst=A.ev(`window.__hiOf(${J(pick.first)})`);
+      A.ev(`window.__st0=window.setTimeout; window.setTimeout=function(f,ms){ return window.__st0.apply(this,[f,ms===20000?1500:ms].concat(Array.prototype.slice.call(arguments,2))); };`);   // 20秒の戻りを 1.5秒に縮めて試す（試験の最後に 元に戻す）
+      try{
+        o.start=st();
+        /* (1) 指で長押し：0.4秒以上 押したまま → 囲われる。離す → click が来ても カードは開かない。メニュー（contextmenu）は止める。1.5秒（＝20秒）で 1 の行に戻る */
+        pe(id,'pointerdown'); await sleep2(150); o.p1=st();
+        o.ctx=A.ev(`(()=>{ const r=document.querySelector('#amf-col .amf-r[data-w="'+${J(id)}+'"]'), ev=new MouseEvent('contextmenu',{bubbles:true,cancelable:true}); r.dispatchEvent(ev); return ev.defaultPrevented; })()`);
+        await sleep2(330); pe(id,'pointerup'); clk(id); o.p2=st();                                  // 押してから 0.48秒
+        await sleep2(700); o.p3=st();                                                               // 離してから 0.7秒（押してから 1.2秒）：まだ囲っている（20秒の決め＝ここでは 押してから 1.5秒）
+        await sleep2(600); o.p4=st();                                                               // 戻った（押してから 1.8秒）
+        o.ctx0=A.ev(`(()=>{ const r=document.querySelector('#amf-col .amf-r[data-w="'+${J(id)}+'"]'), ev=new MouseEvent('contextmenu',{bubbles:true,cancelable:true}); r.dispatchEvent(ev); return ev.defaultPrevented; })()`);   // 押していない時は止めない
+        /* (2) 短く押す：カードが開き、開いている間は 囲ったまま（20秒の戻りを止める）。閉じたら 1 の行に戻る */
+        pe(id,'pointerdown'); await sleep2(60); pe(id,'pointerup'); clk(id); o.s1=st();
+        await sleep2(1800); o.s2=st();                                                              // 1.5秒（＝20秒）を過ぎても カードが開いている間は 囲ったまま
+        A.ev('amCloseSheet()'); o.s3=st();                                                          // 閉じたら 1 の行へ
+        /* (3) マウス：長押し（ゆっくりした クリック）も 今までどおり カードが開く */
+        pe(id,'pointerdown','mouse'); await sleep2(480); pe(id,'pointerup','mouse'); clk(id); o.m1=st(); A.ev('amCloseSheet()');
+        /* (4) 指が動いたら（列を送っている）長押しにしない：離した時の click は 受ける */
+        pe(id,'pointerdown'); await sleep2(100); pe(id,'pointermove','touch',40); await sleep2(420); pe(id,'pointerup'); clk(id); o.v1=st(); A.ev('amCloseSheet()');
+        /* (5) 長押しの後の click は 1回だけ 受けない：すぐ もう1回 click なら 開く。離した後 時間がたてば（次の押しで）ふつうに開く */
+        pe(id,'pointerdown'); await sleep2(480); pe(id,'pointerup'); clk(id); o.w1=st(); clk(id); o.w2=st(); A.ev('amCloseSheet()');
+        pe(id,'pointerdown'); await sleep2(480); pe(id,'pointerup'); await sleep2(950); pe(id,'pointerdown'); await sleep2(40); pe(id,'pointerup'); clk(id); o.w3=st(); A.ev('amCloseSheet()');
+        /* (6) 「？」に 1行（英語・ネパール語つき） */
+        A.ev('amOpenHelp()'); o.help=A.ev(`(document.querySelector('#am-sheet .am-lp')||{}).textContent||''`); A.ev('amCloseSheet()');
+      } finally {
+        A.ev(`window.setTimeout=window.__st0; amFSel(null); amCloseSheet(); delete window.__pe; delete window.__st; delete window.__rowclick; delete window.__hiOf;`);
+      }
+      check('75','列の行の長押し（5.8）：指で 0.4秒以上 押したままにすると、地図に その作業の場所が青く囲われる（離しても カードは開かない・長押しのメニューは止める）。20秒の決めで 1 の行に戻る。短く押せば カードが開き、開いている間は 囲ったまま（20秒を過ぎても）・閉じたら 1 の行に戻る。マウスは ゆっくり押しても今までどおり カードが開く。指が動いたら（列を送っている）長押しにしない。長押しの後の click は 1回だけ受けない。「？」に1行（英語・ネパール語つき）',
+        !!id&&!!hiId&&hiId!==hiFirst&&o.start.on===pick.first&&o.start.sel===null
+        &&o.p1.on===id&&o.ctx===true&&o.p2.sheet===''&&o.p2.on===id&&o.p2.hi===hiId&&o.p3.on===id&&o.p3.sheet===''&&o.p4.on===pick.first&&o.p4.sel===null&&o.p4.hi===hiFirst&&o.ctx0===false
+        &&o.s1.sheet==='card'&&o.s1.card===id&&o.s1.on===id&&o.s2.sheet==='card'&&o.s2.on===id&&o.s2.hi===hiId&&o.s3.sheet===''&&o.s3.on===pick.first&&o.s3.sel===null&&o.s3.hi===hiFirst
+        &&o.m1.sheet==='card'&&o.v1.sheet==='card'&&o.w1.sheet===''&&o.w2.sheet==='card'&&o.w3.sheet==='card'
+        &&/長押し/.test(o.help)&&/Press and hold/.test(o.help)&&/थिचिराख्नुहोस्/.test(o.help)&&same(),
+        J({id,first:pick.first,start:o.start,p1:o.p1.on===id,ctx:o.ctx,p2:[o.p2.sheet,o.p2.on===id,o.p2.hi===hiId],p3:o.p3.on===id,p4:[o.p4.on===pick.first,o.p4.sel],ctx0:o.ctx0,s1:[o.s1.sheet,o.s1.on===id],s2:[o.s2.sheet,o.s2.on===id],s3:[o.s3.sheet,o.s3.on===pick.first],m1:o.m1.sheet,v1:o.v1.sheet,w:[o.w1.sheet,o.w2.sheet,o.w3.sheet],help:o.help.slice(0,60)})); }
+    { // 5.8（追記29）：開いたままの 売場のカードの 🔥 の案内。🔥 が全部片づいたら 案内が消えて 名前が押せる／新しく 🔥 が出たら 案内が出る。案内の「有る・無し」が変わった時だけ 描き直す（変わらない時は カードをさわらない）。名前の並びは 開いた時のまま
+      const o={}, sleep3=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=sel=>A.ev(`document.querySelectorAll(${J(sel)}).length`);
+      const keepW=A.ev('JSON.stringify(Array.isArray(state.amWorks)?state.amWorks:null)'), keepC=A.ev('JSON.stringify(state.areaChecks||{})');
+      const dis=()=>JSON.parse(A.ev(`JSON.stringify(Array.prototype.filter.call(document.querySelectorAll('#am-sheet .am-nm'),b=>!/ほかの人/.test(b.textContent)).map(b=>b.disabled))`));
+      const bigNames=()=>JSON.parse(A.ev(`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#am-sheet .am-nm-g .am-nm'),b=>b.textContent))`));
+      const mark=()=>A.ev(`(()=>{ const b=document.querySelector('#am-sheet .am-cd-body'); if(b) b.__m=1; return !!b; })()`), marked=()=>A.ev(`!!(document.querySelector('#am-sheet .am-cd-body')||{}).__m`);
+      A.ev(`amFireTop=window.__ft0; amCloseSheet(); state.amWorks=[{id:'w_tkF',name:'火の作業',icon:'🧯',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],days:null,items:[['確認','']]},{id:'w_tkH',name:'ふつうの作業',icon:'🧹',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],days:null,items:[['確認','']]}]; state.areaChecks={};
+        (()=>{ const w=amWork('w_tkH'), now=Date.now(), sl=amSlots(w,now); let pi=-1; for(let i=0;i<sl.length;i++){ if(sl[i].e<=now) pi=i; } state.areaChecks['w_tkH']=[{at:new Date(sl[pi].s+1000).toISOString(),by:''}]; state.areaChecks['w_tkO']=[{at:new Date(Date.now()-60000).toISOString(),by:'見本 花子'}]; })();`);   // 火の作業＝記録なし（🔥）。ふつうの作業＝前の枠に記録があり 今の枠は まだ。「さいきん押した人」は 見本 花子 だけ
+      try{
+        o.stF=A.ev(`amStatus(amWork('w_tkF')).st`); o.stH=A.ev(`amStatus(amWork('w_tkH')).st`);
+        A.ev(`amOpenArea('w_tkH')`); await sleep3(100); o.a1=[q('#am-sheet .am-fg'),dis()]; o.names0=bigNames(); mark();      // (a) 🔥 が出ている：案内あり・名前は灰色
+        A.ev(`amTick30()`); o.same1=marked()&&q('#am-sheet .am-fg')===1;                                                      // (b) 変わらない時は カードをさわらない（同じ要素のまま）
+        A.ev(`state.areaChecks['w_tkF']=[{at:new Date().toISOString(),by:''}]; state.areaChecks['w_tkO'].push({at:new Date().toISOString(),by:'見本 太郎'});`);   // (c) 🔥 が片づいた（＋ほかの端末の記録が届いて「さいきん押した人」は 変わりうる）
+        o.stF2=A.ev(`amStatus(amWork('w_tkF')).st`); A.ev(`amTick30()`);
+        o.c1=[q('#am-sheet .am-fg'),dis(),q('#am-sheet .am-fg-need')]; o.names1=bigNames(); o.hold=A.ev('_amfHold>amFT()'); o.rcNow=A.ev('JSON.stringify(amRecentNames())');   // 案内が消えて 名前が押せる・名前の並びは 開いた時のまま・切りかわった直後は 押しの守り
+        mark(); A.ev(`amTick30()`); o.same2=marked();                                                                          // 案内なしのまま（変わらない）
+        A.ev(`state.areaChecks['w_tkF']=[]`); o.stF3=A.ev(`amStatus(amWork('w_tkF')).st`); A.ev(`amTick30()`);                  // (d) 新しく 🔥 が出た
+        o.d1=[q('#am-sheet .am-fg'),dis(),q('#am-sheet .am-fg-need')]; o.names2=bigNames();
+        A.ev(`amFireSkip()`); mark(); o.e1=dis();                                                                                // (e) 「それでも」→ 名前が押せる。🔥 の出入りが あっても 案内は出ない（押した事は残る）
+        A.ev(`state.areaChecks['w_tkF']=[{at:new Date().toISOString(),by:''}]; amTick30(); state.areaChecks['w_tkF']=[]; amTick30();`); o.e2=[q('#am-sheet .am-fg'),marked()];
+        A.ev(`amCloseSheet(); amOpenArea('w_tkF')`); await sleep3(100); mark(); A.ev(`amTick30()`); o.f1=[q('#am-sheet .am-fg'),marked(),A.ev(`!!document.querySelector('#am-sheet .am-st.fire')`)];   // (f) 🔥 の作業そのものの カードには 出ない・描き直さない
+      } finally {
+        A.ev(`(()=>{ const kw=${J(keepW)}, kc=${J(keepC)}; if(kw&&kw!=='null') state.amWorks=JSON.parse(kw); else delete state.amWorks; state.areaChecks=JSON.parse(kc); amCloseSheet(); amSave(); renderMapView(); })()`); await sync();
+      }
+      check('76','開いたままの 売場のカードの 🔥 の案内（5.8）：🔥 が全部片づいたら 30秒ごとの見直し（amTick30）で 案内が消えて 名前が押せる（切りかわった直後は 押しの守り）。新しく 🔥 が出たら 案内が出る。案内の「有る・無し」が変わらない時は カードをさわらない（同じ要素のまま）。名前の並び（さいきん押した人）は 開いた時のまま（開いている間に ほかの端末の記録が届いても 入れかわらない）。「それでも」の後は 案内を出さない。🔥 の作業そのもののカードには 出ない',
+        o.stF==='fire'&&(o.stH==='todo'||o.stH==='soon')&&o.stF2!=='fire'&&o.stF3==='fire'
+        &&o.a1[0]===1&&o.a1[1].length>0&&o.a1[1].every(x=>x)&&J(o.names0)===J(['見本 花子'])&&o.same1
+        &&o.c1[0]===0&&o.c1[1].length>0&&o.c1[1].every(x=>!x)&&o.c1[2]===0&&J(o.names1)===J(o.names0)&&J(JSON.parse(o.rcNow))===J(['見本 太郎','見本 花子'])&&o.hold===true&&o.same2
+        &&o.d1[0]===1&&o.d1[1].every(x=>x)&&o.d1[2]===1&&J(o.names2)===J(o.names0)
+        &&o.e1.length>0&&o.e1.every(x=>!x)&&o.e2[0]===0&&o.e2[1]===true&&o.f1[0]===0&&o.f1[1]===true&&o.f1[2]===true&&same(),
+        J({stF:o.stF,stH:o.stH,a1:o.a1,same1:o.same1,c1:o.c1,names:[o.names0,o.names1,o.names2],rcNow:o.rcNow,hold:o.hold,same2:o.same2,d1:o.d1,e1:o.e1,e2:o.e2,f1:o.f1})); }
+    check('77','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    const srv=await c.readServer(); check('78','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
+    check('79','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
   $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
