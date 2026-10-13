@@ -52,6 +52,7 @@
       if (key.indexOf('d:') === 0) return key.slice(2) + ' のタスク';
       if (key.indexOf('g:') === 0) return '人ごとのゲームの記録';
       if (key.indexOf('a:') === 0) return '点検の記録';
+      if (key.indexOf('s:amLog_') === 0) return key.slice(8) + ' の作業の記録（日ごと）';   // 2026-10-12：日ごとの記録（ws/index.html の amLog_YYYY-MM-DD）。知らない項目と同じ「s:」の記録のまま（古い分け方でも往復する）
       var N = { 's:staff': '従業員の一覧', 's:recurringTasks': '繰り返しタスク', 's:categories': 'カテゴリ', 's:presets': 'プリセット', 's:requestTasks': '依頼タスク', 's:breakLogs': '休憩の記録', 's:activeBreak': '休憩中の印', 's:gameSettings': 'ポイントの設定', 's:storeState': 'チームの記録', 's:thanksLog': '感謝の記録', 's:amWorks': '売場マップの作業', 's:amMap': '売場マップ', 's:amRoles': '巡回の役割', 's:__order': '並びの控え' };
       return N[key] || ('設定 ' + key.slice(2));
     }

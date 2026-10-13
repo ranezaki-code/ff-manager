@@ -77,6 +77,14 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
     T.forEach((t,i)=>safe('点検の並び/'+i,()=>{ const sts={}, num=amNums(); ws.forEach(w=>sts[w.id]=amStatus(w,t)); return ws.slice().sort((a,b)=>amCmp(a,b,sts,num)).map(w=>w.id); }));
     T.forEach((t,i)=>safe('つぎはこれ/'+i,()=>{ const sts={}, num=amNums(); ws.forEach(w=>sts[w.id]=amStatus(w,t)); const nx=amNextUp(ws.slice().sort((a,b)=>amCmp(a,b,sts,num)),sts); return [nx.top&&nx.top.id,nx.sec&&nx.sec.id,nx.idle&&nx.idle.id]; }));
     safe('さいきん押した人',()=>amRecentNames());
+    /* 段2（2026-10-12）・5.7：売場以外の作業の判定・今日の1回ぶんずつ（きのう・あしたの持ちこしも）・売場マップの帯・日ごとの記録 */
+    safe('売場以外：作業',()=>amOffWorks().map(w=>[w.id,amTimes(w),amOffLead(w),amOffGrace(w),amVals(w)]));
+    amOffWorks().forEach((w,wi)=>{ T.forEach((t,i)=>safe('売場以外の状態/'+wi+'/'+i,()=>{ const s=amOffNow(w,t); return {st:s.st,lock:s.lock,slot:s.slot&&[s.slot.s,s.slot.e,s.slot.o],next:s.next&&s.next.s,deadline:s.deadline}; })); });
+    T.forEach((t,i)=>safe('売場以外の一覧/'+i,()=>amOffList(t).map(o=>[o.w.id,o.s,o.e,o.k,o.lock,o.st,o.dd])));
+    T.forEach((t,i)=>safe('売場マップの帯/'+i,()=>amOffBarHtml(t)));
+    safe('日ごとの記録：日',()=>amLogKeys()); safe('日ごとの記録：いつから',()=>amLogSince(T[4]));
+    safe('日ごとの記録：きょうの突き合わせ',()=>{ const d=amLogDayMs(amLogDay(T[4])), ctx=amOccCtx(d,d,T[4]); return amDayOcc(d,ctx).map(o=>[o.w.id,o.s,o.st,o.pre,o.burn,o.bi,!!o.rec]); });
+    safe('登録の窓の注意',()=>amFormTimeWarn(['02:30','14:00','14:30'],30,60));
     safe('地図',()=>{ const m=amMap(); return m?{w:m.w,h:m.h,n:(m.cells||[]).length}:null; });
     Object.keys(state.tasks||{}).forEach((k,i)=>safe('タスクの並び/'+k,()=>getTasks(k).map(t=>t.id)));
     safe('名簿',()=>staffList());
@@ -85,13 +93,13 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
     safe('マスコット',()=>getMascotStage((state.storeState||{}).teamTotalEarned||0)); safe('リタイア一覧',()=>collectRetiredTasks().length);
     return out; })()`;
   const BODY=`(function(){ const c=document.body.cloneNode(true); c.querySelectorAll('script,#v2-wait,#standalone-warn,#save-info,#sync-indicator').forEach(x=>x.remove()); return c.innerHTML.replace(/<!--[\\s\\S]*?-->/g,'').replace(/\\n\\s*\\n+/g,'\\n').replace(/(width:\\s*)(\\d+\\.\\d{3,})%/g,(m,a,b)=>a+Math.round(+b)+'%'); })()`;   // 経過時間の棒の長さ（千分の1%まで出る）は、読んだ瞬間のずれが出るので、1% 単位で比べる
-  const VIEWS=['map','timeline','floor','staff','request','retire','game','thanks','store','dashboard','tasklist'];
+  const VIEWS=['map','off','timeline','floor','staff','request','retire','game','thanks','store','dashboard','tasklist'];
 
   const fo=$('fo'), fn=$('fn');
   const load=(f,url)=>new Promise(res=>{ f.onload=()=>res(f.contentWindow); f.src=url; });
   let total=0, bad=0, hide=false;
   // その場で作られる値（繰り返しタスクを その日に置く時の id・いまの時刻）は、2つの画面で必ずちがうので、そろえてから比べる
-  const N=s=>String(s).replace(/t_\d{13}_[a-z0-9]+/g,'t_ID').replace(/ data-talk="\d+"/g,'').replace(/"(20\d\d-\d\d-\d\dT[\d:.]+Z)"/g,(m,t)=>Math.abs(Date.now()-Date.parse(t))<600000?'"(いま)"':m).replace(/"_at":\d{13}/g,'"_at":0')
+  const N=s=>String(s).replace(/t_\d{13}_[a-z0-9]+/g,'t_ID').replace(/"r[0-9a-z]{9,13}":\{"w":/g,'"r_ID":{"w":').replace(/"by":"([^"]*)","d":"[^"]*"/g,'"by":"$1","d":"DEV"').replace(/ data-talk="\d+"/g,'').replace(/"(20\d\d-\d\d-\d\dT[\d:.]+Z)"/g,(m,t)=>Math.abs(Date.now()-Date.parse(t))<600000?'"(いま)"':m).replace(/"_at":\d{13}/g,'"_at":0')
     .replace(/\b1\d{12}\b/g,m=>Math.abs(Date.now()-(+m))<600000?'0':m)                                                    // いまの時刻（ミリ秒）の記録
     .replace(/style="([^"]*)"/g,(m,s)=>'style="'+s.replace(/\s*:\s*/g,':').replace(/\s*;\s*/g,';').replace(/;$/,'')+'"')   // 1秒ごとの描き直しが当たった所は書き方（空白）だけ変わる
     .replace(/(width:)(\d+\.\d{3,})%/g,(m,a,b)=>a+Math.round(+b)+'%');                                                   // 経過時間の棒は 1% 単位で比べる
@@ -145,6 +153,21 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
         both(`amCloseSheet(); amMoveTo(amOrdered().slice(-1)[0].id,1)`); cmp1('④','動かした後の番号',`JSON.stringify(amOrdered().map(w=>[w.id,amSeqOf(w)]))`,3); cmp1('④','動かした直後のお知らせ（元に戻す）',`(document.getElementById('am-snack')||{}).outerHTML||''`,3);
         both(`amMoveTo(amOrdered()[0].id,3)`); cmp1('④','もう1回 動かした後の番号',`JSON.stringify(amOrdered().map(w=>[w.id,amSeqOf(w)]))`,3);
         both(`amOpenWorks()`); cmp1('④','動かした後の登録の表',`(document.getElementById('am-sheet')||{}).innerHTML||''`,3); both(`amCloseSheet()`);
+        // 段2（2026-10-12）・5.7：📊 だれが・いつ（記録の後）／売場以外の作業を足す（時刻の作業＋時間帯の作業・数字の欄つき）→ ⏰ の画面・帯・カード・登録の窓 → 数字をえらんで記録 → 取り消し → もう一度記録 → 保存の中身（下で比べる）
+        both(`setView('dashboard')`); cmp1('④','📊 だれが・いつ（日）',`document.getElementById('who-view').innerHTML`,3);
+        both(`amWho('only',false); amWho('mode','week')`); cmp1('④','📊 だれが・いつ（週）',`document.getElementById('who-view').innerHTML`,3); both(`amWho('mode','day'); amWho('only',true); setView('map')`);
+        both(`(()=>{ const hh=n=>String(n).padStart(2,'0'), all=[]; for(let h=0;h<24;h++) all.push(hh(h)+':00'); const ws=amWorksEdit();
+          ws.push({id:'w_cmpt',place:'off',name:'答え合わせの時刻の作業',icon:'⏰',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:all,lead:60,grace:60,en:'Timed',items:[['見本の確認','見本の対応']]});
+          ws.push({id:'w_cmpb',place:'off',name:'答え合わせの時間帯の作業',icon:'🧪',kind:'清掃',zone:'blue',sub:'',sch:[1,1,1,1],days:null,vals:[{k:'a',label:'見本の数字',unit:'℃',max:10},{k:'b',label:'数',unit:'枚'}],items:[]});
+          amSave(); renderMapView(); })()`);
+        cmp1('④','売場以外を足した後の番号（売場の作業だけ）',`JSON.stringify(amOrdered().map(w=>[w.id,amSeqOf(w)]))`,3); cmp1('④','売場以外を足した後の売場マップ',`document.getElementById('map-view').innerHTML`,3);
+        both(`setView('off')`); cmp1('④','⏰ 売場以外の画面',`document.getElementById('off-view').innerHTML`,3);
+        for(const [lab,code] of [['時刻の作業のカード',`amOpenArea('w_cmpt')`],['数字の欄のカード（えらぶ前）',`amOpenArea('w_cmpb')`],['数字の欄のカード（1つ えらんだ）',`amCardPick('a',4)`],['数字の欄のカード（範囲の外・＋）',`amCardPick('b',11); amCardStep('b',1)`],['登録の表（売場以外の行）',`amCloseSheet(); amOpenWorks()`],['内容の窓（時刻の作業）',`amEditWork('w_cmpt')`],['内容の窓（売場の作業）',`amEditWork(amOrdered()[0].id)`],['内容の窓（売場以外を足す）',`amEditWork('','off')`]]){ both(code); cmp1('④','窓 '+lab,`(document.getElementById('am-sheet')||{}).innerHTML||''`,3); }
+        both(`amCloseSheet(); amOpenArea('w_cmpb'); amCardPick('a',12); amCardPick('b',3); amRecord('w_cmpb',${J(who)})`); cmp1('④','数字つきで記録した直後のお知らせ',`(document.getElementById('am-snack')||{}).textContent||''`,3);
+        both(`amUndoLast()`); cmp1('④','取り消した後の日ごとの記録の件数',`JSON.stringify(amLogKeys().map(k=>Object.keys(state[k]).length))`,3);
+        both(`amOpenArea('w_cmpb'); amCardPick('a',5); amCardPick('b',0); amRecord('w_cmpb','')`); both(`amRecord('w_cmpt',${J(who)})`);
+        cmp1('④','記録した後の ⏰ 売場以外の画面',`document.getElementById('off-view').innerHTML`,3);
+        both(`setView('dashboard'); amWho('only',false)`); cmp1('④','売場以外を足した後の 📊',`document.getElementById('who-view').innerHTML`,3); both(`amWho('only',true); setView('map')`);
         both(`(()=>{ const k=dateKey(new Date()); if(!state.tasks[k])state.tasks[k]=[]; state.tasks[k].push({id:'t_cmp_add',text:'答え合わせで足したタスク',hour:12,min:0,endHour:13,endMin:null,tan:'both',cats:[],zones:[],memo:'',manual:'',checklist:[],done:false,carryOvers:[],order:99,createdAt:'2026-10-05T00:00:00.000Z'}); saveState(); render(); })()`);
         both(`(()=>{ const k=dateKey(new Date()); const t=state.tasks[k].find(x=>x.id==='t_cmp_add'); t.done=true; t.completedBy=${J(who)}; t.completedAt='2026-10-05T03:00:00.000Z'; saveState(); render(); })()`);
         both(`(()=>{ const k=dateKey(new Date()); state.tasks[k]=state.tasks[k].filter(x=>x.id!=='t_cmp_add'); saveState(); render(); })()`);
