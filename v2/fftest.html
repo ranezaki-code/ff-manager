@@ -1113,6 +1113,110 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       check('64','【検算の直し】(1) ちょうど予定の時刻は「作る予定」（一覧・印と「いつ並べた？」の境目が同じ） (2) 2台で続けて記録して、先の記録の追加分がまだ予定の前（+2個・11:30）の時：「残り◯個」も「完売した」も計算せず「並べてから、もう一度」の文だけ（記録は増えない）。その予定を過ぎれば止めない。今日でない曜日のタブでは止めない。1台の形は今までどおりで、1つ目の選択肢は「作り始め」（1回目は「作成時刻」） (3) 時間帯別：予定の前の分は橙の印だけ・緑の「追加+N」は予定を過ぎた分だけ (4) 自分で描き直して一覧の箱が消えても、見ている作成表は動かない（データは変わらず、送る物も増えない） (5) 調理の時間が空でも選んだ記録が3件あれば目安が出る → ②商品設定に「目安は出ません」と書かない（2件までは今までどおり） (6) お知らせに背景の色が付き、長い文は折り返す',
         !s.err&&ok1&&ok2&&ok3&&ok4&&ok5&&ok6,
         s.err||`(1) ${ok1} ${J(s.edge)}／(2) ${ok2} 予定の番号 ${J(s.pend)}・残り◯個「${(wR.wait||'').slice(0,40)}」・完売した「${(wS.wait||'').slice(0,24)}」・記録なし ${s.noRec}・予定の後 ${J(af)}・きのうのタブ ${J(ot)}・1台の形 まだ ${on.ny}「${(on.lab||'').slice(0,12)}」・1回目「${(fi.lab||'').slice(0,12)}」／(3) ${ok3} 前 ${J(sb)}・後 ${J(sa)}／(4) ${ok4} 14時のマスの位置 ${sc.y0}→${sc.y1}・送り位置 ${sc.sc0}→${sc.sc1}（箱 ${sc.bh}px）・いちばん上 ${J(st)}・データ同じ ${s.sSame}／(5) ${ok5} 2件「${(c2.st||'').slice(0,40)}」目安 ${c2.I}・3件「${(c3.st||'').slice(0,60)}」目安 ${c3.I}／(6) ${ok6} ${J(to)}`); }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // A方式（2026-10-13 店長の決定：新商品の作成数。購入率は今の計算のまま）の試験 65〜68。画面の中だけで見本を作って計算し、元に戻す（保存しない）。
+    //   見本のカテゴリは「中華まん」。週の古さ（開いている週＝0＝先週の実績）ごとに、商品の定価販売を決めて並べる。客数は全部の週で同じ。
+    //   モード：'A'＝今の計算（新商品の道あり）／'old'＝前の計算（新商品の道なし）
+    const newProbe=function(which){
+      const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,ji:S.ji,cust:S.cust,soldOuts:S.soldOuts,activeWeek:S.activeWeek,weekStart:S.weekStart});
+      const bk0=JSON.parse(bk), out={};
+      const KEYS=['2026.10.6','2026.9.29','2026.9.22','2026.9.15','2026.9.8','2026.9.1','2026.8.25','2026.8.18','2026.8.11'];
+      const WS=['2026-10-06','2026-09-29','2026-09-22','2026-09-15','2026-09-08','2026-09-01','2026-08-25','2026-08-18','2026-08-11'];
+      const CAT='中華まん';
+      const mk=(id,x)=>Object.assign({id,name:id,category:CAT,cost:60,stdPrice:150,shopPrice:150,disc:30,minCount:1,tags:'',order:90,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},x||{});
+      const cust0=JSON.parse(JSON.stringify(S.cust));
+      const build=(spec,ids,extra)=>{
+        S.PM=bk0.PM.filter(p=>p.category!==CAT).concat(ids.map(id=>mk(id,(extra&&extra[id])||{})));
+        S.weeks={};
+        Object.keys(spec).forEach(a=>{ const ji={}; Object.keys(spec[a]).forEach(id=>{ ji[id]={teika:spec[a][id],nebiki:0,haiki:0}; });
+          S.weeks[KEYS[a]]={ji,cust:JSON.parse(JSON.stringify(cust0)),checks:{},skipped:{},orderChecks:{},soldOuts:{},leftovers:{},weekStart:WS[a]}; });
+        S.activeWeek=KEYS[0]; S.weekStart=WS[0]; S.ji=JSON.parse(JSON.stringify(S.weeks[KEYS[0]].ji)); S.cust=JSON.parse(JSON.stringify(cust0)); S.soldOuts=S.weeks[KEYS[0]].soldOuts;
+        clearAllocCache();
+      };
+      const mode=m=>{ NEWITEM_ON=(m==='A'); NEWITEM_AGE=2; clearAllocCache(); };
+      const snap=()=>{ const m=catDemandModel(CAT), rows={}; let sum=0;
+        S.PM.filter(p=>p.category===CAT).forEach(p=>{ const i=getRecentAvgTeikaInfo(p.id,4), b=getWeekTargetBase(p.id); const cfg=S.catCfg[CAT]; let wk=0; for(let d=0;d<7;d++)cfg.slots.forEach(h=>{ wk+=getProdCnt(p.id,d,h); });
+          rows[p.id]={src:i.src,avg:i.avg,share:i.share,teika:b.teika,target:b.target,week:wk,ownN:i.weeks.length,unmet:i.unmet||0,why:skuReasonText(p.id)}; sum+=b.teika; });
+        return {rows,sum,D:m.D,r:m.r,keys:m.weeks.map(w=>w.key),newIds:(typeof _newItemIds==='function'?Array.from(_newItemIds(CAT)):[]),a:m.a}; };
+      try{
+        if(which==='n67'){   // 新商品の道：1〜3週・0の週を飛ばす・4週で戻る
+          const reg={q1:20,q2:10};
+          build({0:Object.assign({q3:12},reg),1:reg,2:reg,3:reg},['q1','q2','q3']); mode('A'); out.one=snap(); mode('old'); out.oneW=snap();
+          build({0:Object.assign({q4:8},reg),1:reg,2:Object.assign({q4:4},reg),3:reg,4:reg},['q1','q2','q4']); mode('A'); out.skip=snap();
+          build({0:Object.assign({q3:12},reg),1:Object.assign({q3:12},reg),2:Object.assign({q3:12},reg),3:reg,4:reg},['q1','q2','q3']); mode('A'); out.three=snap();
+          build({0:Object.assign({q3:12},reg),1:Object.assign({q3:12},reg),2:Object.assign({q3:12},reg),3:Object.assign({q3:12},reg),4:reg,5:reg},['q1','q2','q3']); mode('A'); out.four=snap();
+          // 全部の商品が同じ短い履歴（古い週が無い）なら、誰も新商品にしない（今までと同じ）
+          build({0:{q1:20,q2:10,q3:12},1:{q1:20,q2:10,q3:12}},['q1','q2','q3']); mode('A'); out.young=snap(); mode('old'); out.youngOld=snap();
+        }else if(which==='u68'){   // 完売で作れなかった分の見込み
+          const reg={q1:20,q2:10}, W1=()=>S.weeks[KEYS[1]];
+          build({0:Object.assign({q3:12},reg),1:reg,2:reg,3:reg},['q1','q2','q3']);
+          const ev=(o)=>Object.assign({v:2,made:6,base:6,n1:100,n2:100,ncell:300,why:'make'},o);
+          out.c12=cust0[2][12]; out.c15=cust0[2][15];
+          W1().soldOuts={'2_6_q3':[ev({noticedAt:12,readyAt:12.5,added:2,pred:3.5,post:0.1})]};
+          mode('A'); out.u1=snap().rows.q3;   // 売り逃し 0.1×(0.5時間×44人)＝2.2 ＋ 見込み−追加＝1.5 → 3.7
+          W1().soldOuts['2_6_q3'].push(ev({noticedAt:15,readyAt:15.5,added:0,pred:2,post:0.1}));
+          clearAllocCache(); out.u2=snap().rows.q3;   // 2回目：売り逃し 2.2＋0.1×(0.5×47)＝2.35、見込み−追加は最後の記録だけ（2−0）→ 6.55
+          W1().leftovers={'2_6_q3':true};
+          clearAllocCache(); out.u3=snap().rows.q3;   // 余りが出たマス：見込み−追加は 0 → 4.55
+          W1().soldOuts['3_6_q3']=[ev({noticedAt:10,readyAt:10.5,added:0,pred:9,post:0.1,remain:5})];
+          clearAllocCache(); out.u4=snap().rows.q3;   // 「残り◯個」だけの記録は数えない → 4.55 のまま
+          // 実績が2週ある新商品：見込みは自分の実績に使った週ごとの平均
+          build({0:Object.assign({q3:12},reg),1:Object.assign({q3:6},reg),2:reg,3:reg,4:reg},['q1','q2','q3']);
+          S.weeks[KEYS[1]].soldOuts={'2_6_q3':[ev({noticedAt:12,readyAt:12.5,added:2,pred:3.5,post:0.1})]};   // 10/6 の実績の週（9/29 の週）の記録
+          S.weeks[KEYS[2]].soldOuts={'2_6_q3':[ev({noticedAt:12,readyAt:12.5,added:2,pred:3.5,post:0.1})]};   // 9/29 の実績（9/22 の週の販売）の記録
+          clearAllocCache(); out.u5=snap().rows.q3;   // 2週：(3.7＋3.7)÷2＝3.7 → 平均 (12+6)/2＋3.7＝12.7
+          // 親子商品（焼き鳥）：子のマスの見込みを本数にして足す（1パック＝2本）
+          build({0:Object.assign({q6:24},reg),1:reg,2:reg,3:reg},['q1','q2','q6','q7'],{q7:{packOf:'q6',packSize:2,packShare:100}});
+          S.weeks[KEYS[1]].soldOuts={'2_6_q7':[ev({noticedAt:12,readyAt:12.5,added:2,pred:3.5,post:0.1})]};
+          clearAllocCache(); out.u6=snap().rows.q6;   // 3.7×2＝7.4 → 24＋7.4
+          out.u6txt=skuReasonText('q6');
+          out.mut=(JSON.stringify(S.weeks[KEYS[1]].soldOuts)===JSON.stringify({'2_6_q7':[ev({noticedAt:12,readyAt:12.5,added:2,pred:3.5,post:0.1})]}));
+        }else if(which==='d69'){   // 二重取り・取りこぼしが無い
+          const reg={q1:20,q2:10};
+          build({0:{q1:15,q2:7.5,q3:7.5},1:reg,2:reg,3:reg},['q1','q2','q3']); mode('A'); out.steadyA=snap(); mode('old'); out.steadyW=snap();
+          build({0:{q1:20,q2:10,q3:12},1:reg,2:reg,3:reg},['q1','q2','q3']); mode('A'); out.mixA=snap(); mode('old'); out.mixW=snap();
+        }else if(which==='s70'){   // 新商品でない商品：購入率の重みの影響が無い見本では 1字も同じ
+          const w4={q1:40,q2:20,q3:10};
+          build({0:w4,1:w4,2:w4,3:w4},['q1','q2','q3']);
+          const rec=()=>{ const s=snap(); return JSON.stringify({rows:s.rows,D:s.D,r:s.r,a:s.a,sum:s.sum}); };
+          mode('old'); out.old=rec(); mode('A'); out.A=rec();
+        }
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      NEWITEM_ON=true; NEWITEM_AGE=2;
+      const o=JSON.parse(bk); S.PM=o.PM; S.weeks=o.weeks; S.ji=o.ji; S.cust=o.cust; S.soldOuts=o.soldOuts; S.activeWeek=o.activeWeek; S.weekStart=o.weekStart; clearAllocCache();
+      out.restored=(JSON.stringify({PM:S.PM,weeks:S.weeks,ji:S.ji,cust:S.cust,soldOuts:S.soldOuts,activeWeek:S.activeWeek,weekStart:S.weekStart})===bk);
+      return JSON.stringify(out);
+    };
+    const NP=w=>JSON.parse(A.ev('('+newProbe.toString()+')('+J(w)+')'));
+    { const s=NP('n67');
+      const q3=s.one.rows.q3, q3w=s.oneW.rows.q3, shareExp=12/42;
+      const okOne=q3.src==='new'&&ap(q3.avg,12,1e-9)&&q3.ownN===1&&q3.unmet===0&&/新商品（実績1週）：自分の実績の平均 12\.0個＋完売で作れなかった分の見込み 0\.0個 ＝ 12\.0個/.test(q3.why)&&s.one.newIds.includes('q3')
+        &&q3w.src==='mnl'&&ap(q3w.avg,s.oneW.D*shareExp,1e-3)&&s.one.rows.q1.src==='mnl'&&s.one.rows.q1.avg===s.oneW.rows.q1.avg;
+      const q4=s.skip.rows.q4, okSkip=q4.src==='new'&&ap(q4.avg,6,1e-9)&&q4.ownN===2;
+      const q3c=s.three.rows.q3, q3d=s.four.rows.q3, okBack=q3c.src==='new'&&q3c.ownN===3&&ap(q3c.avg,12,1e-9)&&q3d.src==='mnl'&&!s.four.newIds.includes('q3')&&ap(q3d.avg,s.four.D*s.four.rows.q3.share,1e-9);
+      const okYoung=s.young.newIds.length===0&&['q1','q2','q3'].every(i=>s.young.rows[i].src==='mnl')&&J(s.young.rows)===J(s.youngOld.rows);
+      check('65','【A方式①】新商品（実績3週以下）は「自分の実績の平均＋完売で作れなかった分の見込み」：1週の新商品＝自分の12（前は需要×取り分＝9.9）・ほかの商品は1字も同じ／0の週は飛ばして平均（8と4 → 6）／3週のうちは新商品・4週めに入ると自動でカテゴリ需要×取り分に戻る／全部が同じ短い履歴なら誰も新商品にしない',
+        !s.err&&okOne&&okSkip&&okBack&&okYoung&&s.restored,
+        s.err||`1週 ${q3.src} ${(+q3.avg).toFixed(2)}（前 ${q3w.src} ${(+q3w.avg).toFixed(2)}）／0週飛ばし ${q4.src} ${(+q4.avg).toFixed(2)}（${q4.ownN}週）／3週 ${q3c.src} ${(+q3c.avg).toFixed(2)}・4週 ${q3d.src} ${(+q3d.avg).toFixed(2)}／短い履歴 新商品 ${J(s.young.newIds)}／「${q3.why}」`); }
+    { const s=NP('u68'), q=s.u1;
+      const g1=0.1*0.5*s.c12, g2=0.1*0.5*s.c15, e1=g1+1.5, e2=g1+g2+2, e3=g1+g2;   // 手で出した期待値：売り逃し＝post×0.5時間の客数、見込み−追加＝3.5−2、2回目は 2−0
+      const okU=!s.err&&ap(q.unmet,e1,1e-9)&&ap(q.avg,12+e1,1e-9)&&ap(s.u2.unmet,e2,1e-9)&&ap(s.u3.unmet,e3,1e-9)&&ap(s.u4.unmet,e3,1e-9)&&ap(s.u5.unmet,e1,1e-9)&&ap(s.u5.avg,9+e1,1e-9)&&ap(s.u6.unmet,2*e1,1e-9)&&ap(s.u6.avg,24+2*e1,1e-9)&&s.mut&&s.restored;
+      check('66','【A方式①】完売で作れなかった分の見込み（完売の記録から）：売り逃し（気づいた12:00〜追加分が並ぶ12:30の客22人×0.1個）2.2＋見込み3.5−追加2＝1.5 → 3.7／同じマスの2回目は売り逃しを足し、見込み−追加は最後の記録だけ → 6.55／余りが出たマスは見込み−追加が0 → 4.55／「残り◯個」だけの記録は数えない／実績2週は週ごとの見込みの平均／親子（焼き鳥）は子のマスを本数にして足す（3.7×2本）／記録は書き換えない',
+        okU,
+        s.err||`① ${(+q.unmet).toFixed(3)}（期待 ${e1.toFixed(3)}・平均 ${(+q.avg).toFixed(3)}）・② ${(+s.u2.unmet).toFixed(3)}（${e2.toFixed(3)}）・余り ${(+s.u3.unmet).toFixed(3)}（${e3.toFixed(3)}）・残り◯個 ${(+s.u4.unmet).toFixed(3)}・2週 ${(+s.u5.unmet).toFixed(3)}（平均 ${(+s.u5.avg).toFixed(3)}）・親子 ${(+s.u6.unmet).toFixed(3)}（${(+s.u6.avg).toFixed(2)}）・記録そのまま ${s.mut}・復元 ${s.restored}／「${s.u6txt}」`); }
+    { const s=NP('d69');
+      // 見本1：新商品の自分の実績が、需要×取り分と同じ（7.5）→ カテゴリの合計は変わらない（需要 30）
+      const sa=s.steadyA, sw=s.steadyW;
+      // 見本2：新商品が需要×取り分より多く売れた（12）→ 合計は「需要＋(自分の実績＋見込み − 需要×取り分)」だけ増える。ほかの商品は1字も変わらない（取り分に新商品の魅力度が残るので、新商品の分を二重に引かない）
+      const ma=s.mixA, mw=s.mixW, dq=ma.rows.q3.avg-mw.rows.q3.avg;
+      const idOk=ap(ma.sum-mw.sum,dq,1e-9)&&ap(mw.sum,mw.D,1e-6)&&ap(ma.sum,mw.D+dq,1e-6)&&ma.rows.q1.avg===mw.rows.q1.avg&&ma.rows.q2.avg===mw.rows.q2.avg;
+      check('67','【A方式③】二重取り・取りこぼしが無い（分母の扱い）：見本1＝新商品の自分の実績が 需要×取り分 と同じ → カテゴリの合計は変わらず 需要30／見本2＝新商品が多く売れた → 合計の増えは「自分の実績＋見込み−需要×取り分」ちょうど・ほかの商品は1字も同じ（新商品の魅力度は分母に残す＝ほかは、新商品に取られた分を引いた残りを分け合う）',
+        !s.err&&ap(sa.sum,30,1e-4)&&ap(sw.sum,30,1e-4)&&ap(sa.sum,sw.sum,1e-4)&&sa.rows.q3.src==='new'&&idOk,
+        s.err||`見本1 合計 ${(+sa.sum).toFixed(4)}（新商品の道なし ${(+sw.sum).toFixed(4)}）／見本2 合計 ${(+ma.sum).toFixed(4)}（なし ${(+mw.sum).toFixed(4)}・需要 ${(+mw.D).toFixed(3)}）・新商品 ${(+ma.rows.q3.avg).toFixed(3)} vs ${(+mw.rows.q3.avg).toFixed(3)}・増え ${(+(ma.sum-mw.sum)).toFixed(6)}＝${(+dq).toFixed(6)}`); }
+    { const s=NP('s70');
+      check('68','【A方式・前後の比べ】新商品でない商品だけの見本（4週とも同じ売れ方）では、前の計算（新商品の道なし）と A の2つで、需要・魅力度・全商品の目標の元・目標・作成表の週合計が1字も同じ',
+        !s.err&&s.old===s.A&&s.old.length>200&&s.restored,
+        s.err||`同じ ${s.old===s.A}（${(s.old||'').length}字）・復元 ${s.restored}`); }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;

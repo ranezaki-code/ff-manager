@@ -1615,6 +1615,7 @@ const I18N = {
     'sku.rPlus':'＋この商品',
     'sku.rMiss':'{0}は実績の無い商品 {1}品の分を取り分で補正（×{2}）',
     'sku.rNew':'新商品 {0}品を、仮の取り分（カテゴリの中央値）で売場に数えています',
+    'sku.rNewItem':'新商品（実績{0}週）：自分の実績の平均 {1}個＋完売で作れなかった分の見込み {2}個 ＝ {3}個（実績が4週たまると、カテゴリ需要×取り分に戻ります）',
     'sku.rDaily':'販売期間で売場が日ごとに変わるため、日ごとの取り分で出しています（{0}）',
     'sku.rOff':'並ばない',
     'sku.rRest':'今週のメニューで休む {0}品を売場から外しています','sku.rRestPast':'{0}は、休みの記録がある商品を売場にも入力漏れの補正にも入れていません',
@@ -2117,6 +2118,7 @@ const I18N = {
     'sku.rPlus':' + this item',
     'sku.rMiss':'{0}: share-adjusted for {1} item(s) with no sales (×{2})',
     'sku.rNew':'{0} new item(s) counted on the shelf with a provisional share (category median)',
+    'sku.rNewItem':'New item ({0} wk of sales): its own average {1} + estimated sales lost to sell-outs {2} = {3} (after 4 weeks of sales it returns to category demand × share)',
     'sku.rDaily':'The shelf changes by day because of sales periods, so a daily share is used ({0})',
     'sku.rOff':'not on shelf',
     'sku.rRest':'{0} item(s) resting in this week\'s menu are taken off the shelf','sku.rRestPast':'In {0}, items recorded as resting are not counted on the shelf or as missing input',
@@ -2590,6 +2592,7 @@ const I18N = {
     'sku.rPlus':' + यो सामान',
     'sku.rMiss':'{0}: बिक्री नभएका {1} सामानको भाग मिलाइएको (×{2})',
     'sku.rNew':'नयाँ {0} सामानलाई अस्थायी भाग (वर्गको बीचको मान) मा गनिएको छ',
+    'sku.rNewItem':'नयाँ सामान ({0} हप्ताको बिक्री): आफ्नै औसत {1} + सकिँदा गुमेको बिक्रीको अनुमान {2} = {3} (४ हप्ताको बिक्री पुगेपछि वर्गको माग × भागमा फर्कन्छ)',
     'sku.rDaily':'बिक्री अवधिले शेल्फ दिनअनुसार फरक हुने भएकाले दिनको भाग प्रयोग गरिएको ({0})',
     'sku.rOff':'शेल्फमा छैन',
     'sku.rRest':'यो हप्ताको मेनुमा बिदा भएका {0} वटा सामान शेल्फबाट हटाइएका छन्','sku.rRestPast':'{0} मा बिदा भनी राखिएका सामानलाई शेल्फमा वा छुटेको इनपुटमा गनिएको छैन',
@@ -4679,6 +4682,11 @@ function getJiAllWeeks(pid){
 //   入れる場所はこの1か所（getRecentAvgTeikaInfo）。週の目標・撤退客数・追加作成の見込み m0・予算の表・作成0の一覧が同時にそろう。ランキングは実績のまま。
 //   保存しない（導出）。同じ処理の間だけ覚える（clearAllocCache と処理の終わりで捨てる）。
 const MNL_WEEKS=4, MNL_TOL=1e-6, MNL_ITER=100;
+//   A方式（2026-10-13 店長の決定）：新商品（実績3週以内に初めて実績が出た商品）は、取り分ではなく「自分の実績の平均＋完売で作れなかった分の見込み」で出す（getRecentAvgTeikaInfo の src:'new'）。
+//     実績が4週めになると自動でカテゴリ需要×取り分に戻る。新商品の魅力度 a は分母に残す（ほかの商品は、新商品に取られた分を引いた残りを分け合う）。
+//     購入率・取り分の推定（catDemandModel）は直さない（店長 10/13「新商品以外は直近4週間の平均で」）。
+//   値は var（試験・比べの道具が前の計算＝新商品の道なし を再現するため）。保存はしない。
+var NEWITEM_AGE=2, NEWITEM_ON=true;
 function _skuMemo(key,fn){
   if(_skuCache.has(key))return _skuCache.get(key);
   const v=fn(); _skuCache.set(key,v);
@@ -4793,6 +4801,59 @@ function catDemandModel(cat){
     return {main,ck,weeks,a,K,L,Lk,Lnew,aMed,sumNow,r,Cnow,D,mode,iter,conv,Cd,Dd,sumD,daily,restNow};
   });
 }
+// ---------- A方式の部品（2026-10-13 店長の決定：「新商品の作成数は A」「Aで行きましょう」。購入率は今の計算のまま＝店長 10/13「新商品以外は直近4週間の平均で」） ----------
+//   新商品（直近の実績が3週以下）の ID：カテゴリで「実績のある週」（定価販売が1つでもある週。古さに関わらず全部）を新しい順に並べ、
+//   その商品に最初に実績が出た週が、新しい順に NEWITEM_AGE（2）番目まで（＝実績3週以内）で、それより古い「実績のある週」があるのにその商品は無い物。
+//   （全部の商品が同じ短い履歴しか無いカテゴリ＝まだ「新しい」と言える古い週が無い時は、誰も新商品にしない＝今までと同じ。入力漏れで途中の週が抜けた古い商品も新商品にしない）
+//   catDemandModel は直さない（購入率・取り分の推定は今のまま）。ここで別に数える。覚え書きは同じ処理の間だけ（_skuMemo）。
+function _newItemIds(cat){
+  const main=mainCatOf(cat||'');
+  return _skuMemo('ni|'+main+'|'+S.activeWeek+'|'+S.weekStart,()=>{
+    const inCat=(S.PM||[]).filter(p=>p&&mainCatOf(p.category||'')===main&&!packParentOf(p));
+    const curNum=S.activeWeek?weekKeyNum(S.activeWeek):Infinity;
+    const keys=[S.activeWeek].concat(sortWeekKeys(Object.keys(S.weeks||{}).filter(k=>k!==S.activeWeek&&weekKeyNum(k)<curNum)).reverse()).filter(Boolean);
+    const hist=[];
+    keys.forEach(k=>{
+      const ji=_jiOfWeek(k), has=new Set(); let N=0;
+      inCat.forEach(p=>{ const j=ji[p.id]; if(!j)return; const t=Number(j.teika)||0; if(t+(Number(j.nebiki)||0)+(Number(j.haiki)||0)>0){ has.add(p.id); N+=t; } });
+      if(N>0)hist.push(has);
+    });
+    const out=new Set();
+    inCat.forEach(p=>{ let f=-1; hist.forEach((has,i)=>{ if(has.has(p.id))f=i; });
+      if(f>=0&&f<=NEWITEM_AGE&&f<hist.length-1)out.add(p.id); });
+    return out;
+  });
+}
+//   完売で作れなかった分の見込み：実績の週 k（ji＝前の週の販売）に対応する販売の週の完売の記録（salesMenuWeekOf＝週の始まりが k の7日前の週）から、商品 pid のぶんを足す。
+//   マス（曜日×時間帯）ごとに：
+//     売り逃し＝完売に気づいた時刻 noticedAt から追加分が並ぶ時刻 readyAt までの客数 × 記録の「客1人あたり個数」post（棚が空だった間）
+//     ＋ 追加でまかなえなかった見込み＝最後の記録の max(0, 見込み pred − 追加 added)（pred＝追加分が並んでから時間帯の終わりまでの売れそうな数。作らなかった時は added＝0 なので pred ぜんぶ。後で余りが出たマスは 0）
+//   「残り◯個」だけの記録（remain＞0。まだ棚に残っていた）は数えない。同じマスの2回目以降の記録は、売り逃しだけを足す（pred は前の記録と同じ時間を指すので二重に足さない）。
+//   親子商品（焼き鳥）は子のマスを本数にして足す。記録は書き換えない（読むだけ）。
+function _unmetOfSalesWeek(pid,k){
+  return _skuMemo('u|'+pid+'|'+k+'|'+S.activeWeek+'|'+S.weekStart,()=>{
+    const wk=salesMenuWeekOf(k); if(!wk)return 0;
+    const act=(wk===S.activeWeek), wobj=act?null:((S.weeks||{})[wk]||{});
+    const so=act?(S.soldOuts||{}):(wobj.soldOuts||{}), lo=act?(S.leftovers||{}):(wobj.leftovers||{}), tbl=_soCustTbl(wobj);
+    const p=getP(pid); if(!p)return 0;
+    const ids=isPackParent(p)?packChildren(pid).map(c=>[c.id,packSizeOf(c)]):[[pid,1]];
+    let u=0;
+    Object.keys(so).forEach(key=>{
+      const m=key.match(/^(\d+)_(\d+)_(.+)$/); if(!m)return; const hit=ids.find(x=>x[0]===m[3]); if(!hit)return;
+      const evs=(so[key]||[]).filter(e=>e&&!(e.remain>0)); if(!evs.length)return;
+      let c=0;
+      evs.forEach(e=>{ if(typeof e.noticedAt==='number'&&typeof e.readyAt==='number'&&e.readyAt>e.noticedAt&&e.post>0)c+=e.post*_soRateTbl(tbl,+m[1],e.noticedAt,e.readyAt)*(e.readyAt-e.noticedAt); });
+      if(!lo[key]){ const last=evs.reduce((x,y)=>((y.noticedAt||0)>=(x.noticedAt||0)?y:x)); c+=Math.max(0,(+last.pred||0)-(+last.added||0)); }
+      u+=c*hit[1];
+    });
+    return u;
+  });
+}
+//   新商品の「1週あたりの完売で作れなかった分の見込み」＝自分の実績の平均に使った週（own.weeks）それぞれの見込みの平均
+function _unmetAvg(pid,ownWeeks){
+  if(!ownWeeks||!ownWeeks.length)return 0;
+  return ownWeeks.reduce((s,w)=>s+_unmetOfSalesWeek(pid,w.key),0)/ownWeeks.length;
+}
 // 自分の定価販売の平均（今までの式。逃げ道と、比べる用の raw）：開いている週＋前の週を新しい順に、0 の週は飛ばして最大 N 週
 function _ownAvgTeika(pid,windowSize){
   windowSize=windowSize||4; const list=[];
@@ -4817,6 +4878,14 @@ function getRecentAvgTeikaInfo(pid, windowSize){
     return base;
   }
   const inL=m.L.includes(pid);
+  if(NEWITEM_ON&&inL&&own.avg>0&&_newItemIds(p.category).has(pid)){
+    // A方式：新商品（実績3週以内）は、取り分ではなく「自分の実績の平均（0 の週は飛ばす）＋完売で作れなかった分の見込み」。実績が4週めに入ると _newItemIds から外れ、下の「カテゴリ需要×取り分」に自動で戻る。
+    //   魅力度 a は分母に残す（実績から推定した本物の a。ほかの商品はこの商品に取られた分を引いた残りを分け合う）。週の一部だけ並ぶ商品は、逃げ道と同じく並ぶ日の客数の割合を掛ける。
+    const un=_unmetAvg(pid,own.weeks); let fr=1, ex={};
+    if(part){ let c=0,ca=0; for(let d=0;d<7;d++){ const k=getCatDayCust(p.category,d); ca+=k; if(on[d])c+=k; } fr=ca>0?c/ca:on.filter(Boolean).length/7; ex={onFrac:fr,dayW:on.map(b=>b?1:0)}; }
+    const avg=(own.avg+un)*fr;
+    return Object.assign(base,{avg,factor:own.avg>0?avg/own.avg:1,src:'new',share:m.D>0?avg/m.D:null,inLineup:true,a:m.a[pid],unmet:un,ownN:own.weeks.length},ex);
+  }
   if(!m.daily&&!part){
     const den=inL?m.sumNow:(m.sumNow+m.a[pid]), share=den>0?m.a[pid]/den:0, avg=m.D*share;
     return Object.assign(base,{avg,factor:own.avg>0?avg/own.avg:1,src:'mnl',share,inLineup:inL,a:m.a[pid]});
@@ -4832,6 +4901,7 @@ function getRecentAvgTeika(pid, windowSize){ return getRecentAvgTeikaInfo(pid, w
 function skuReasonText(pid){
   let p=getP(pid); if(!p)return ''; const par=packParentOf(p); if(par)p=par;
   const i=getRecentAvgTeikaInfo(p.id,4), m=i.model; if(!m)return '';
+  if(i.src==='new')return tf('sku.rNewItem',i.ownN,i.raw.toFixed(1),i.unmet.toFixed(1),i.avg.toFixed(1));   // A方式：新商品（2026-10-13）
   if(i.src!=='mnl'){
     if(!(i.raw>0))return '';
     return tf('sku.rOwn',i.raw.toFixed(1),i.weeks.length);
