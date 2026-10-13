@@ -1625,6 +1625,22 @@ const I18N = {
     'sku.rRest':'今週のメニューで休む {0}品を売場から外しています','sku.rRestPast':'{0}は、休みの記録がある商品を売場にも入力漏れの補正にも入れていません',
     'sku.sep':'・',
     'sku.wk':'{0}/{1}週',
+    // 総合ランキングの進捗率（2026-10-13 店長の依頼。実績は週単位）
+    'rank.weekNote':'開いている週に入れた実績＝先週の分です',
+    // 忘れ防止（2026-10-13 店長の依頼。「作った」のチェックの時に、付け忘れを大きく出す）
+    'rm.head':'忘れ防止',
+    'rm.lead':'作ったら、これを付けましたか？',
+    'rm.regQ':'作成登録（タブレット）もできていますか？',
+    'rm.regQMk':'プライスカードのチェックと、作成登録（タブレット）もできていますか？',
+    'rm.ok':'確認した',
+    'rm.cancel':'やめる',
+    'rm.setLabel':'忘れ防止（「作った」のチェックの時に出す）',
+    'rm.setTip':'付け忘れが多い物（ソース・つまようじなど）を選ぶと、この商品の「作った」のチェックを付けた時に大きく出ます。「確認した」を押すまで出たままです。',
+    'rm.freePh':'自由な文（例：からし抜き）',
+    'rm.freeNote':'自由な文はそのまま出ます（訳されません）',
+    'rm.fromParent':'親商品の設定も出ます',
+    'rm.badge':'忘れ防止あり',
+    'rm.p.sauce':'ソース','rm.p.pick':'つまようじ','rm.p.lid':'ふた','rm.p.label':'ラベル','rm.p.karashi':'からし','rm.p.towel':'おしぼり','rm.p.spoon':'スプーン','rm.p.chop':'はし',
   },
   en: {
     'app.title':'FF Management',
@@ -2128,6 +2144,20 @@ const I18N = {
     'sku.rRest':'{0} item(s) resting in this week\'s menu are taken off the shelf','sku.rRestPast':'In {0}, items recorded as resting are not counted on the shelf or as missing input',
     'sku.sep':', ',
     'sku.wk':'wk of {0}/{1}',
+    'rank.weekNote':'Sales entered for the open week are last week\'s sales',
+    'rm.head':'Don\'t forget',
+    'rm.lead':'Did you add these?',
+    'rm.regQ':'Is it also registered on the tablet?',
+    'rm.regQMk':'Price card checked and registered on the tablet too?',
+    'rm.ok':'Checked',
+    'rm.cancel':'Cancel',
+    'rm.setLabel':'Don\'t-forget list (shown when "made" is checked)',
+    'rm.setTip':'Pick the things that are often left out (sauce, toothpick...). They are shown in large text when "made" is checked for this product, and stay until "Checked" is pressed.',
+    'rm.freePh':'Free text (e.g. no mustard)',
+    'rm.freeNote':'Free text is shown as typed (not translated)',
+    'rm.fromParent':'Parent product settings are also shown',
+    'rm.badge':'Has a reminder',
+    'rm.p.sauce':'Sauce','rm.p.pick':'Toothpick','rm.p.lid':'Lid','rm.p.label':'Label','rm.p.karashi':'Mustard','rm.p.towel':'Wet towel','rm.p.spoon':'Spoon','rm.p.chop':'Chopsticks',
   },
   ne: {
     'app.title':'FF व्यवस्थापन',
@@ -2602,6 +2632,20 @@ const I18N = {
     'sku.rRest':'यो हप्ताको मेनुमा बिदा भएका {0} वटा सामान शेल्फबाट हटाइएका छन्','sku.rRestPast':'{0} मा बिदा भनी राखिएका सामानलाई शेल्फमा वा छुटेको इनपुटमा गनिएको छैन',
     'sku.sep':', ',
     'sku.wk':'{0}/{1} को हप्ता',
+    'rank.weekNote':'खुला हप्तामा हालेको बिक्री अघिल्लो हप्ताको बिक्री हो',
+    'rm.head':'नबिर्सनुहोस्',
+    'rm.lead':'यी थप्नुभयो?',
+    'rm.regQ':'ट्याब्लेटमा दर्ता पनि गर्नुभयो?',
+    'rm.regQMk':'मूल्य कार्ड जाँच र ट्याब्लेटमा दर्ता पनि गर्नुभयो?',
+    'rm.ok':'जाँच गरें',
+    'rm.cancel':'रद्द गर्नुहोस्',
+    'rm.setLabel':'नबिर्सने सूची ("बनाइयो" टिक गर्दा देखिन्छ)',
+    'rm.setTip':'प्रायः छुट्ने कुरा (सस, टुथपिक आदि) छान्नुहोस्। यो सामानको "बनाइयो" टिक गर्दा ठूलो अक्षरमा देखिन्छ र "जाँच गरें" थिचेसम्म रहन्छ।',
+    'rm.freePh':'आफ्नै शब्द (जस्तै: तोरी बिना)',
+    'rm.freeNote':'आफ्नै शब्द जस्ताको तस्तै देखिन्छ (अनुवाद हुँदैन)',
+    'rm.fromParent':'मूल सामानको सेटिङ पनि देखिन्छ',
+    'rm.badge':'सम्झना छ',
+    'rm.p.sauce':'सस','rm.p.pick':'टुथपिक','rm.p.lid':'ढक्कन','rm.p.label':'लेबल','rm.p.karashi':'तोरीको मसला','rm.p.towel':'भिजेको तौलिया','rm.p.spoon':'चम्चा','rm.p.chop':'चपस्टिक',
   }
 };
 function t(key){
@@ -5404,6 +5448,9 @@ function rankWeeks(){
   const act=S.activeWeek, n=act?weekKeyNum(act):Infinity;
   return sortWeekKeys(Object.keys(S.weeks||{}).filter(k=>weekKeyNum(k)<=n)).slice(-RANK_NEW_WEEKS);
 }
+// 販売進捗率＝定価販売 ÷（定価＋値引＋廃棄）。先週の分（開いている週に入れた実績）だけ。分母が 0 なら null（画面は「—」）。表示だけ（保存しない・S に項目を足さない）
+function rankProg(teika,nebiki,haiki){ const d=(teika||0)+(nebiki||0)+(haiki||0); return d>0?(teika||0)/d:null; }
+function rankProgTxt(v){ return v==null?'—':(v*100).toFixed(1)+'%'; }
 function calcRank4w(pid){
   const p=getP(pid); if(!p)return null;
   let teika=0,nebiki=0,haiki=0,weeksWith=0,weeksRest=0; const wks=rankWeeks();
@@ -5413,7 +5460,9 @@ function calcRank4w(pid){
   // 判定に使う販売数：休んだ週がある商品は、出した週の平均 × 週の数（＝ずっと出していたら）。休みが無ければ sold と同じ
   const soldJ=(weeksRest>0&&wks.length>weeksRest)?sold*wks.length/(wks.length-weeksRest):sold;
   const profit=teika*(p.shopPrice||0)+nebiki*((p.shopPrice||0)-(p.disc||0))-haiki*(p.cost||0)-sold*(p.cost||0);
-  return {p,teika,nebiki,haiki,sold,made,weeksWith,weeksRest,soldJ,wasteRate:made?haiki/made:0,discRate:sold?nebiki/sold:0,profit,wdRatio:withdrawRatio(pid)};
+  // 進捗率は「開いている週に入れた実績＝先週」の1週だけで出す（ほかの列は直近4週の合計）
+  const jx=(S.ji||{})[pid]||{}, w1={teika:jx.teika||0,nebiki:jx.nebiki||0,haiki:jx.haiki||0};
+  return {p,teika,nebiki,haiki,sold,made,weeksWith,weeksRest,soldJ,wasteRate:made?haiki/made:0,discRate:sold?nebiki/sold:0,prog:rankProg(w1.teika,w1.nebiki,w1.haiki),w1,profit,wdRatio:withdrawRatio(pid)};
 }
 function rankJudge(r,median){
   if(r.p.category.endsWith('新商品')&&r.weeksWith<RANK_NEW_WEEKS)return {k:'watch',t:'様子見',why:`新商品（実績 ${r.weeksWith}週）`};
@@ -5430,11 +5479,14 @@ function renderRankingTotal(el){
   const med={}; CATS.forEach(c=>{ const m=mainCatOf(c); if(med[m]!==undefined)return; const a=(S.PM||[]).filter(p=>p.enabled&&S.catOn[p.category]&&mainCatOf(p.category)===m).map(p=>calcRank4w(p.id)).filter(r=>r&&r.made>0).map(r=>r.soldJ).sort((x,y)=>x-y); med[m]=a.length?(a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2):0; });
   rows.forEach(r=>{ r.j=rankJudge(r,med[mainCatOf(r.p.category)]||0); });
   const key=_rankSort.key, dir=_rankSort.dir, ORD={cut:0,reduce:1,watch:2,keep:3};
-  const val=r=>key==='name'?r.p.name:key==='cat'?r.p.category:key==='judge'?ORD[r.j.k]:key==='waste'?r.wasteRate:key==='disc'?r.discRate:key==='profit'?r.profit:key==='wd'?r.wdRatio:r.sold;
+  const val=r=>key==='name'?r.p.name:key==='cat'?r.p.category:key==='judge'?ORD[r.j.k]:key==='waste'?r.wasteRate:key==='disc'?r.discRate:key==='profit'?r.profit:key==='wd'?r.wdRatio:key==='prog'?(r.prog==null?(dir<0?-1:Infinity):r.prog):r.sold;
   rows.sort((a,b)=>{ const x=val(a),y=val(b); if(typeof x==='string')return dir*x.localeCompare(y,'ja'); return dir*(x-y)||b.sold-a.sold; });
   const nCut=rows.filter(r=>r.j.k==='cut').length, nRed=rows.filter(r=>r.j.k==='reduce').length, nWatch=rows.filter(r=>r.j.k==='watch').length;
   const wk=rankWeeks();
-  const th=(k,l,tip)=>`<th onclick="setRankSort('${k}')" title="${tip||''}" style="cursor:pointer;white-space:nowrap;user-select:none">${l}${key===k?(dir<0?' ▼':' ▲'):''}</th>`;
+  // カテゴリ別の進捗率：表に出ている商品の「先週の分」の合計で、同じ式（高い順）
+  const catAgg={}; rows.forEach(r=>{ const c=r.p.category, a=catAgg[c]||(catAgg[c]={teika:0,nebiki:0,haiki:0}); a.teika+=r.w1.teika; a.nebiki+=r.w1.nebiki; a.haiki+=r.w1.haiki; });
+  const catProg=CATS.filter(c=>catAgg[c]).map(c=>({c,v:rankProg(catAgg[c].teika,catAgg[c].nebiki,catAgg[c].haiki)})).sort((a,b)=>(b.v==null?-1:b.v)-(a.v==null?-1:a.v));
+  const th=(k,l,tip,sub)=>`<th onclick="setRankSort('${k}')" title="${tip||''}" style="cursor:pointer;white-space:nowrap;user-select:none">${l}${key===k?(dir<0?' ▼':' ▲'):''}${sub?`<span style="display:block;font-size:10px;font-weight:600;color:#64748b">${sub}</span>`:''}</th>`;
   const JC={cut:'background:#fee2e2;color:#991b1b',reduce:'background:#ffedd5;color:#9a3412',watch:'background:#fef9c3;color:#854d0e',keep:'background:#dcfce7;color:#166534'};
   if(!rows.length){ el.innerHTML='<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;line-height:1.7">直近4週の実績がまだありません。<br>「📝 入力」タブで実績を入力すると、ここに表が出ます。</div>'; return; }
   el.innerHTML=`
@@ -5444,10 +5496,15 @@ function renderRankingTotal(el){
       <span style="font-size:13px;font-weight:700;color:#854d0e;background:#fef9c3;border-radius:999px;padding:3px 12px">様子見 ${nWatch}品</span>
       <span style="font-size:11px;color:#64748b;margin-left:auto">直近${wk.length}週の合計（${wk.map(k=>k.split('.').slice(1).join('/')).join('・')}）。列の見出しをタップで並べ替え</span>
     </div>
-    <div class="overflow-auto"><table class="bd-table" style="font-size:12px"><thead><tr>${th('name','商品')}${th('cat','カテゴリ')}${th('sold','販売数','定価＋値引の販売数（直近4週）')}${th('waste','廃棄率','廃棄数 ÷ 作成数（定価＋値引＋廃棄）')}${th('disc','値引率','値引販売数 ÷ 販売数')}${th('profit','利益','販売高 − 廃棄の原価 − 売れた分の原価（いまの売価・原価で）')}${th('wd','撤退以下','今週の作成表のマスのうち、範囲の客数が撤退客数より少ないマスの割合（表示だけ。判定には使わない。直近4週に完売があれば0%）')}${th('judge','判定','販売数が同じカテゴリのまん中より上か／廃棄率10%／新商品は実績4週未満なら様子見')}</tr></thead><tbody>
-      ${rows.map(r=>`<tr><td style="text-align:left;font-weight:600">${escapeHtmlP(r.p.name)}</td><td style="text-align:left;color:#64748b">${tCat(r.p.category)}</td><td>${r.sold}${r.weeksRest?`<span title="直近の週のうち、今週のメニューで休んだ週。判定は出した週の平均で比べます" style="display:inline-block;margin-left:4px;font-size:10px;font-weight:700;color:#5b21b6;background:#f5f3ff;border-radius:6px;padding:0 5px;white-space:nowrap">💤休み${r.weeksRest}週</span>`:''}</td><td style="${r.wasteRate>=RANK_WASTE_LINE?'color:#b91c1c;font-weight:700':''}">${(r.wasteRate*100).toFixed(0)}%</td><td>${(r.discRate*100).toFixed(0)}%</td><td>${fmt(r.profit)}</td><td style="${r.wdRatio>=0.5?'color:#6b21a8;font-weight:700':''}">${(r.wdRatio*100).toFixed(0)}%</td><td><span title="${escapeHtmlP(r.j.why)}" style="display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;white-space:nowrap;${JC[r.j.k]}">${r.j.t}</span></td></tr>`).join('')}
+    <div id="rank-prog-cats" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+      <span style="font-size:11px;color:#64748b">カテゴリ別の進捗率（先週）</span>
+      ${catProg.map(x=>`<span title="${escapeHtmlP(tCat(x.c))}：定価販売 ÷（定価＋値引＋廃棄）（先週の分）" style="font-size:12px;font-weight:700;color:#334155;background:#f1f5f9;border-radius:999px;padding:3px 12px;white-space:nowrap">${escapeHtmlP(tCat(x.c))} ${rankProgTxt(x.v)}</span>`).join('')}
+      <span id="rank-week-note" style="font-size:11px;color:#64748b;margin-left:auto">${escapeHtmlP(t('rank.weekNote'))}</span>
+    </div>
+    <div class="overflow-auto"><table class="bd-table" style="font-size:12px"><thead><tr>${th('name','商品')}${th('cat','カテゴリ')}${th('sold','販売数','定価＋値引の販売数（直近4週）')}${th('waste','廃棄率','廃棄数 ÷ 作成数（定価＋値引＋廃棄）')}${th('disc','値引率','値引販売数 ÷ 販売数')}${th('prog','進捗率','販売進捗率＝定価販売 ÷（定価＋値引＋廃棄）。先週の分（開いている週に入れた実績）だけで出します。実績が無ければ「—」','（先週）')}${th('profit','利益','販売高 − 廃棄の原価 − 売れた分の原価（いまの売価・原価で）')}${th('wd','撤退以下','今週の作成表のマスのうち、範囲の客数が撤退客数より少ないマスの割合（表示だけ。判定には使わない。直近4週に完売があれば0%）')}${th('judge','判定','販売数が同じカテゴリのまん中より上か／廃棄率10%／新商品は実績4週未満なら様子見')}</tr></thead><tbody>
+      ${rows.map(r=>`<tr><td style="text-align:left;font-weight:600">${escapeHtmlP(r.p.name)}</td><td style="text-align:left;color:#64748b">${tCat(r.p.category)}</td><td>${r.sold}${r.weeksRest?`<span title="直近の週のうち、今週のメニューで休んだ週。判定は出した週の平均で比べます" style="display:inline-block;margin-left:4px;font-size:10px;font-weight:700;color:#5b21b6;background:#f5f3ff;border-radius:6px;padding:0 5px;white-space:nowrap">💤休み${r.weeksRest}週</span>`:''}</td><td style="${r.wasteRate>=RANK_WASTE_LINE?'color:#b91c1c;font-weight:700':''}">${(r.wasteRate*100).toFixed(0)}%</td><td>${(r.discRate*100).toFixed(0)}%</td><td>${rankProgTxt(r.prog)}</td><td>${fmt(r.profit)}</td><td style="${r.wdRatio>=0.5?'color:#6b21a8;font-weight:700':''}">${(r.wdRatio*100).toFixed(0)}%</td><td><span title="${escapeHtmlP(r.j.why)}" style="display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;white-space:nowrap;${JC[r.j.k]}">${r.j.t}</span></td></tr>`).join('')}
     </tbody></table></div>
-    <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">判定の線：販売数＝同じカテゴリの中のまん中（中央値）より上か／廃棄率 10%／新商品は実績が4週未満なら「様子見」。判定をタップ（長押し）で理由。</div>`;
+    <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">判定の線：販売数＝同じカテゴリの中のまん中（中央値）より上か／廃棄率 10%／新商品は実績が4週未満なら「様子見」。判定をタップ（長押し）で理由。<br>進捗率＝定価販売 ÷（定価＋値引＋廃棄）。先週の分（開いている週に入れた実績）だけで出します（ほかの列は直近4週の合計）。先週の実績が無い商品は「—」。カテゴリ別は、そのカテゴリの合計で同じ式。</div>`;
 }
 function renderRanking(){
   const el=document.getElementById('ranking-list');
@@ -6485,6 +6542,7 @@ function renderProductCard(p){
   if(isPackParent(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="本数の実績用（親）。作成表にはパック商品で出ます">🍢親</span>`;
   else if(packParentOf(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="パック商品（子）。実績は親に本数で">🍢${packSizeOf(p)}本</span>`;
   badges+=prodPeriodMarks(p,_todayYmdP());   // 販売期間「10/13〜」「〜10/12」（2026-10-09）
+  { const rm=remindOf(p); if(rm.length) badges+=`<span style="font-size:10px;background:#fef3c7;color:#b45309;padding:1px 6px;border-radius:8px;font-weight:700" title="${escapeHtmlP(t('rm.badge'))}：${escapeHtmlP(rm.map(remindLabel).join('、'))}">🔔</span>`; }   // 忘れ防止の印（ある商品だけ。2026-10-13）
 
   // 一覧で見える要約: カテゴリ + 売価 + 値引
   const summary=`<span>${tCat(p.category)}</span><span>¥${p.shopPrice}</span><span class="s-disc">値引 -¥${p.disc}</span>`;
@@ -6542,7 +6600,7 @@ function renderProductCard(p){
             title="${t('product.discCalcTip')}">${t('product.calcBtn')}</button>
         </div>
       </div>
-      ${cookSettingHtml(p)}
+      ${cookSettingHtml(p)}${remindSettingHtml(p)}
       <!-- ここから詳細設定（滅多に触らない項目は折りたたみ。開閉状態は _advOpen で保持） -->
       <details class="pc-adv" style="grid-column:span 2" ${_advOpen.has(p.id+':adv')?'open':''} ontoggle="_advToggle('${p.id}:adv',this.open)">
         <summary>⚙️ 詳細設定 <span class="pc-sub">作成単位・作る時間帯・品切れ防止・タグ・種別・発注</span></summary>
@@ -8324,12 +8382,94 @@ const MK_FLOW=[
   'POTでサーマルシール内容（プライスカード）確認',
   '売り場陳列（セールストーク）'
 ];
+// ===== 忘れ防止（2026-10-13 店長の依頼）：商品ごとに「付け忘れ」を、「作った」のチェックを付けた時に大きく出す =====
+//   保存は商品に項目 remind（文字の配列。例 ['ソース','つまようじ']）を1つ足すだけ。無ければ今までどおり（古い端末が保存しても、この項目はそのまま残る）。
+//   出す時に読むだけで、何も保存しない（チェックの記録は今までどおり）。親子商品は、子にも親の設定を出す。
+//   消え方：「確認した」を押すまで出たまま（数秒で消えるとレジで見のがす）。「やめる」ならチェックは付かない。
+const REMIND_PRESETS=[['ソース','rm.p.sauce'],['つまようじ','rm.p.pick'],['ふた','rm.p.lid'],['ラベル','rm.p.label'],['からし','rm.p.karashi'],['おしぼり','rm.p.towel'],['スプーン','rm.p.spoon'],['はし','rm.p.chop']];
+// その商品の「作った」のチェックの時に出す物（親の設定＋自分の設定。文字だけ・重なりなし）。何も無ければ空の配列
+function remindOf(p){
+  const out=[]; if(!p)return out;
+  const par=packParentOf(p);
+  [par&&par.remind,p.remind].forEach(a=>{ if(!Array.isArray(a))return; a.forEach(x=>{ if(typeof x!=='string')return; x=x.trim(); if(x&&out.indexOf(x)<0)out.push(x); }); });
+  return out;
+}
+function remindLabel(x){ const it=REMIND_PRESETS.find(a=>a[0]===x); return it?t(it[1]):x; }
+// 商品自身の設定を「札（よくある物）」と「自由な文」に分ける
+function _remindOwn(p){
+  const pk=REMIND_PRESETS.map(a=>a[0]), cur=Array.isArray(p.remind)?p.remind.filter(x=>typeof x==='string'&&x.trim()):[];
+  return {on:new Set(cur.filter(x=>pk.indexOf(x)>=0)),frees:cur.filter(x=>pk.indexOf(x)<0)};
+}
+function _remindSet(p,on,frees){
+  const arr=REMIND_PRESETS.map(a=>a[0]).filter(k=>on.has(k)).concat(frees);
+  if(arr.length)p.remind=arr; else delete p.remind;   // 空なら項目ごと外す（「無ければ今までどおり」）
+}
+// 商品設定の欄（作った のチェックの時に出す）：よくある物の札（押すだけ）＋自由な文（1行）
+function remindSettingHtml(p){
+  const o=_remindOwn(p), par=packParentOf(p), pr=(par&&Array.isArray(par.remind))?par.remind.filter(x=>typeof x==='string'&&x.trim()):[];
+  return `<div style="grid-column:span 2" data-remind-field="1">
+        <label>🔔 ${t('rm.setLabel')} <span class="info" title="${escapeHtmlP(t('rm.setTip'))}">ℹ️</span></label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">
+          ${REMIND_PRESETS.map((a,i)=>{ const on=o.on.has(a[0]); return `<button type="button" onclick="toggleRemind('${p.id}',${i})" aria-pressed="${on}"
+            style="padding:7px 12px;font-size:12px;border-radius:14px;border:1.5px solid ${on?'#d97706':'#d1d5db'};background:${on?'#f59e0b':'#fff'};color:${on?'#fff':'#6b7280'};cursor:pointer;font-weight:600">${on?'✓ ':''}${escapeHtmlP(t(a[1]))}</button>`; }).join('')}
+        </div>
+        <input type="text" value="${escapeHtmlP(o.frees.join('、'))}" maxlength="40" placeholder="${escapeHtmlP(t('rm.freePh'))}" onchange="setRemindFree('${p.id}',this.value)">
+        <div style="font-size:11px;color:#64748b;margin-top:3px">${t('rm.freeNote')}</div>
+        ${pr.length?`<div style="font-size:11px;color:#64748b;margin-top:3px">${t('rm.fromParent')}：${pr.map(x=>escapeHtmlP(remindLabel(x))).join('、')}</div>`:''}
+      </div>`;
+}
+function toggleRemind(pid,i){
+  const p=S.PM.find(x=>x.id===pid), it=REMIND_PRESETS[i]; if(!p||!it)return;
+  const o=_remindOwn(p); if(o.on.has(it[0]))o.on.delete(it[0]); else o.on.add(it[0]);
+  _remindSet(p,o.on,o.frees); saveS(); renderProductCardInPlace(pid);
+}
+function setRemindFree(pid,v){
+  const p=S.PM.find(x=>x.id===pid); if(!p)return;
+  const o=_remindOwn(p), s=String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,40);
+  _remindSet(p,o.on,s?[s]:[]); saveS();   // 入力欄は描き直さない（フォーカスを奪わない）
+}
+// 「作った」のチェックを付けた時の大きい表示。「確認した」を押すまで出たまま。押すとチェックが付く（今までの OK と同じ）
+let _remindCtx=null, _remindT=0;
+function openRemindModal(key,pid,isMk){
+  const p=getP(pid); if(!p)return;
+  _remindCtx={key,pid};
+  let m=document.getElementById('ff-remind-modal'); if(!m){ m=document.createElement('div'); m.id='ff-remind-modal'; document.body.appendChild(m); }
+  clearTimeout(_remindT); m.style.background='';   // 閉じた直後の透明の幕が残っていても、開き直したらそのまま使う
+  m.className='modal-overlay show'; m.style.zIndex='300';
+  // 物が多くても「確認した」のボタンが画面の外に出ないように：箱は縦に並べ、物の一覧だけが送れる（ボタンは下に固定）
+  m.innerHTML=`<div class="modal-box" role="alertdialog" aria-modal="true" style="width:min(640px,94vw);padding:18px;display:flex;flex-direction:column;overflow:hidden;max-height:94vh">
+    <div style="flex:none;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span style="font-size:22px;font-weight:800;color:#b45309">🔔 ${t('rm.head')}</span><span style="font-size:16px;font-weight:700;color:#334155;overflow-wrap:anywhere">${escapeHtmlP(p.name)}</span></div>
+    <div style="flex:none;font-size:15px;color:#475569;margin:6px 0 10px">${t('rm.lead')}</div>
+    <div id="ff-remind-items" style="flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px">${remindOf(p).map(x=>`<div style="flex:none;font-size:clamp(24px,6.5vw,34px);font-weight:800;color:#7c2d12;background:#fef3c7;border:3px solid #f59e0b;border-radius:14px;padding:12px 16px;line-height:1.3;overflow-wrap:anywhere">⚠ ${escapeHtmlP(remindLabel(x))}</div>`).join('')}</div>
+    <div style="flex:none;font-size:13px;color:#64748b;margin:12px 0 0">${t(isMk?'rm.regQMk':'rm.regQ')}</div>
+    <div style="flex:none;display:flex;gap:10px;margin-top:12px">
+      <button type="button" onclick="remindCancel()" style="flex:1;padding:16px 8px;font-size:16px;font-weight:700;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;color:#475569;cursor:pointer">${t('rm.cancel')}</button>
+      <button type="button" id="ff-remind-ok" onclick="remindOk()" style="flex:2;padding:16px 8px;font-size:20px;font-weight:800;border-radius:12px;border:none;background:#16a34a;color:#fff;cursor:pointer">✔ ${t('rm.ok')}</button>
+    </div>
+  </div>`;
+}
+// 閉じる：暗い幕と中身はすぐ消すが、透明の幕を 0.4秒だけ残す（「確認した」「やめる」を素早く2回押した時、2回目が下の作成表の物に当たらないように。2026-10-13 テスの見つけ物）
+function _remindClose(){
+  _remindCtx=null; const m=document.getElementById('ff-remind-modal'); if(!m)return;
+  m.innerHTML=''; m.style.background='transparent';
+  clearTimeout(_remindT); _remindT=setTimeout(()=>{ m.className='modal-overlay'; m.style.background=''; },400);
+}
+function remindOk(){ const c=_remindCtx; _remindClose(); if(c)setCheck(c.key,true); }
+function remindCancel(){ _remindClose(); }
+// 作成手順（時間帯別）の行のチェック：忘れ防止がある商品だけ大きい表示を通す（無い商品は今までどおり setCheck）
+function schedCheck(key,pid,el){
+  const p=getP(pid);
+  if(el.checked&&remindOf(p).length){ el.checked=false; openRemindModal(key,pid,!!(p&&/まちかど厨房/.test(p.category||''))); return; }
+  setCheck(key,el.checked);
+}
+
 // 作成後チェック：チェックON時に確認を表示（まちかど厨房は2項目、それ以外は作成登録のみ）
 function confirmCreate(chkKey,pid,el){
   if(!el.checked){ setCheck(chkKey,false); return; }   // 解除時は確認なし
   const p=getP(pid);
   const isMk=p&&/まちかど厨房/.test(p.category||'');
   const msg=isMk?t('mk.confirmMk'):t('mk.confirm');
+  if(remindOf(p).length){ el.checked=false; openRemindModal(chkKey,pid,!!isMk); return; }   // 忘れ防止がある商品は大きく出す（確認した → チェック。2026-10-13）
   if(confirm(msg)){ setCheck(chkKey,true); }
   else { el.checked=false; }                            // キャンセル＝チェックを戻す
 }
@@ -8555,7 +8695,7 @@ function renderSlotSchedule(dayIdx,slotH){
     return `<div style="display:flex;flex-direction:column;padding:6px 0;border-bottom:1px dashed #f3f4f6;${rowOpacity};${checked?'background:#ecfdf5':''}">
       <div style="display:flex;align-items:center;gap:6px;font-size:13px">
         <input type="checkbox" ${checked?'checked':''}
-          onchange="setCheck('${ckKey}',this.checked)"
+          onchange="${remindOf(p).length?`schedCheck('${ckKey}','${p.id}',this)`:`setCheck('${ckKey}',this.checked)`}"
           style="width:18px;height:18px;cursor:pointer;flex-shrink:0">
         <span style="font-size:14px;font-weight:700;color:#1d4ed8;min-width:24px">${_circled(idx)}</span>
         <span style="font-weight:600;${textDecor}">${p.name}</span>${batchLabel}${newBadge}${endingBadge}${methodBadge}

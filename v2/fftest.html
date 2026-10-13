@@ -1217,6 +1217,119 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       check('68','【A方式・前後の比べ】新商品でない商品だけの見本（4週とも同じ売れ方）では、前の計算（新商品の道なし）と A の2つで、需要・魅力度・全商品の目標の元・目標・作成表の週合計が1字も同じ',
         !s.err&&s.old===s.A&&s.old.length>200&&s.restored,
         s.err||`同じ ${s.old===s.A}（${(s.old||'').length}字）・復元 ${s.restored}`); }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 総合ランキングの「進捗率」の列（2026-10-13 店長の依頼：販売進捗率＝定価販売 ÷（定価＋値引＋廃棄））の試験 69。画面の中だけで見本を作って描き、元に戻す（保存しない）。
+    const rankProbe=function(){
+      const bk=JSON.stringify({PM:S.PM,weeks:S.weeks,ji:S.ji,cust:S.cust,soldOuts:S.soldOuts,activeWeek:S.activeWeek,weekStart:S.weekStart}), S0=JSON.stringify(S);
+      const sv={mode:_rankMode,sort:Object.assign({},_rankSort),cat:_rankCategory}, out={};
+      const KEYS=['2026.10.6','2026.9.29','2026.9.22','2026.9.15','2026.9.8'], WS=['2026-10-06','2026-09-29','2026-09-22','2026-09-15','2026-09-08'];
+      const cust0=JSON.parse(JSON.stringify(S.cust));
+      const mk=(id,cat,x)=>Object.assign({id,name:id,category:cat,cost:100,stdPrice:200,shopPrice:200,disc:25,minCount:1,tags:'',order:90,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:7,timeEnd:22},x||{});
+      // 商品ごとの週ごとの実績（新しい週から）[定価,値引,廃棄]。h1 の5つめ（9/8の週）は直近4週に入らない。進捗率は開いている週（先頭）の実績だけで出す。h4 は先頭の週に実績が無い（null）
+      const spec={h1:['ホットFF',[[30,6,4],[20,0,10],[10,5,5],[40,0,0],[1000,0,0]]],h2:['ホットFF',[[0,10,0]]],h3:['ホットFF',[]],h4:['ホットFF',[null,[10,0,0]]],c1:['常温FF',[[50,0,0]]],c2:['常温FF',[[5,5,10]]],y1:['常温FF',[[20,0,5]]],y2:['常温FF',[],{packOf:'y1',packSize:2,packShare:100}]};
+      const READ=()=>{ const el=document.getElementById('ranking-list'), tb=el.querySelector('table'); if(!tb)return {none:true};
+        const rows=[...tb.querySelectorAll('tbody tr')].map(tr=>[...tr.children].map(td=>td.textContent.trim()));
+        return {heads:[...tb.querySelectorAll('thead th')].map(x=>x.textContent.trim()),rows,ids:rows.map(r=>r[0]),prog:rows.map(r=>r[5]),
+          cats:[...(document.getElementById('rank-prog-cats')||{querySelectorAll:()=>[]}).querySelectorAll('span[title]')].map(s=>s.textContent.trim()),
+          note:(document.getElementById('rank-week-note')||{}).textContent||'',foot:el.lastElementChild?el.lastElementChild.textContent:''}; };
+      try{
+        S.PM=Object.keys(spec).map(id=>mk(id,spec[id][0],spec[id][2]));
+        S.weeks={};
+        KEYS.forEach((k,a)=>{ const ji={}; Object.keys(spec).forEach(id=>{ const v=spec[id][1][a]; if(v)ji[id]={teika:v[0],nebiki:v[1],haiki:v[2]}; });
+          S.weeks[k]={ji,cust:JSON.parse(JSON.stringify(cust0)),checks:{},skipped:{},orderChecks:{},soldOuts:{},leftovers:{},weekStart:WS[a]}; });
+        S.activeWeek=KEYS[0]; S.weekStart=WS[0]; S.ji=JSON.parse(JSON.stringify(S.weeks[KEYS[0]].ji)); S.cust=JSON.parse(JSON.stringify(cust0)); S.soldOuts=S.weeks[KEYS[0]].soldOuts;
+        clearAllocCache();
+        _rankMode='total'; _rankCategory='all'; _rankSort={key:'sold',dir:-1}; renderRanking(); out.base=READ();
+        setRankSort('prog'); out.desc=READ();
+        setRankSort('prog'); out.asc=READ();
+        _rankSort={key:'sold',dir:-1}; setRankCategory('ホットFF'); out.hot=READ();
+        setRankCategory('all');
+        out.fn={z:rankProg(0,0,0),zt:rankProgTxt(rankProg(0,0,0)),a:rankProg(30,6,4),at:rankProgTxt(rankProg(30,6,4)),b:rankProgTxt(rankProg(0,5,0)),c:rankProgTxt(rankProg(7,0,0))};
+        out.i18n={ja:I18N.ja['rank.weekNote'],en:I18N.en['rank.weekNote'],ne:I18N.ne['rank.weekNote']};
+        out.keys=Object.keys(S).join(',');
+      }catch(e){ out.err=String(e&&e.stack||e); }
+      const o=JSON.parse(bk); S.PM=o.PM; S.weeks=o.weeks; S.ji=o.ji; S.cust=o.cust; S.soldOuts=o.soldOuts; S.activeWeek=o.activeWeek; S.weekStart=o.weekStart; clearAllocCache();
+      _rankMode=sv.mode; _rankSort=sv.sort; _rankCategory=sv.cat; try{ renderRanking(); }catch(_){}
+      out.restored=(JSON.stringify(S)===S0);
+      return JSON.stringify(out);
+    };
+    { const pend69=A.store.status().pending, s=JSON.parse(A.ev('('+rankProbe.toString()+')()'));
+      const b=s.base||{}, d=s.desc||{}, a=s.asc||{}, h=s.hot||{}, f=s.fn||{}, rowOf=(x,id)=>(x.rows||[]).find(r=>r[0]===id)||[];
+      // 手で出した答え：h1＝直近4週は 定価100・値引11・廃棄19（9/8の週の1000は入らない）→ 販売数111・廃棄率19÷130・値引率11÷111・利益＝100×200＋11×175−19×100−111×100＝8,925。進捗率は先週（開いている週）の 定価30・値引6・廃棄4 だけ → 30÷40＝75.0%（4週で出した 100÷130＝76.9% にならない）
+      const okRow=J(rowOf(b,'h1').slice(0,6))===J(['h1','ホットFF','111','15%','10%','75.0%'])&&rowOf(b,'h1')[6]==='8,925';
+      const okOther=rowOf(b,'h2')[5]==='0.0%'&&rowOf(b,'c1')[5]==='100.0%'&&rowOf(b,'c2')[5]==='25.0%'&&rowOf(b,'y1')[5]==='80.0%'&&rowOf(b,'h4')[5]==='—'&&rowOf(b,'h4')[2]==='10';   // 親（y1）は1行・子（y2）と実績0の h3 は出ない。先週の実績が無い h4（4週の販売数は10）は「—」
+      const okRows=J((b.ids||[]).slice().sort())===J(['c1','c2','h1','h2','h4','y1'])&&J((b.heads||[]).slice(2,8).map(x=>x.replace(/ [▼▲]$/,'')))===J(['販売数','廃棄率','値引率','進捗率（先週）','利益','撤退以下']);
+      // カテゴリの合計（先週の分）：ホットFF＝定価30（h1）＋0（h2）・値引6＋10・廃棄4 → 30÷50＝60.0%（h4 は先週の実績なし）／常温FF＝定価75（50＋5＋20）・値引5・廃棄15 → 75÷95＝78.9%。高い順
+      const okCat=J(b.cats)===J(['常温FF 78.9%','ホットFF 60.0%'])&&J(h.cats)===J(['ホットFF 60.0%'])&&J((h.ids||[]).slice().sort())===J(['h1','h2','h4']);
+      // 並べかえ：進捗率の見出し（高い順→もう一度で低い順）
+      const okSort=J(d.prog)===J(['100.0%','80.0%','75.0%','25.0%','0.0%','—'])&&J(a.prog)===J(['0.0%','25.0%','75.0%','80.0%','100.0%','—'])&&/進捗率 ▼/.test((d.heads||[]).join('|'))&&/進捗率 ▲/.test((a.heads||[]).join('|'))&&J(b.ids)===J(['h1','c1','y1','h2','h4','c2'])&&/販売数 ▼/.test((b.heads||[]).join('|'));   // 「—」は高い順でも低い順でも最後   // 初めの並びは今までどおり（販売数の多い順・同じ数は商品の順）
+      const okZero=f.z===null&&f.zt==='—'&&f.a===30/40&&f.at==='75.0%'&&f.b==='0.0%'&&f.c==='100.0%';
+      const okNote=b.note==='開いている週に入れた実績＝先週の分です'&&/進捗率＝定価販売 ÷（定価＋値引＋廃棄）。先週の分/.test(b.foot||'')&&!!s.i18n&&s.i18n.ja==='開いている週に入れた実績＝先週の分です'&&!!s.i18n.en&&!!s.i18n.ne&&s.i18n.en!==s.i18n.ja&&s.i18n.ne!==s.i18n.ja;
+      check('69','【総合ランキングの進捗率】列「進捗率（先週）」＝定価販売 ÷（定価＋値引＋廃棄）を、開いている週に入れた実績（＝先週）の1週だけで（見本：定価30・値引6・廃棄4 → 75.0%。ほかの列は直近4週のまま＝販売数111・廃棄率15%）。親子（焼き鳥）は親で1行・子と実績0の商品は出ない・先週の実績が無い商品は「—」／カテゴリ別の進捗率は表の商品の先週の分の合計で同じ式（ホットFF 60.0%・常温FF 78.9%・高い順。カテゴリを選ぶとそのカテゴリだけ）／見出しを押すと高い順・もう一度で低い順（「—」は最後）／分母0は「—」／既存の列（販売数・廃棄率・値引率・利益）はそのまま／「開いている週に入れた実績＝先週の分です」の1行（英語・ネパール語つき）／保存しない（S もそのまま・送る物も増えない）',
+        !s.err&&okRow&&okOther&&okRows&&okCat&&okSort&&okZero&&okNote&&s.restored&&A.store.status().pending===pend69,
+        s.err||`行 ${okRow} ${J(rowOf(b,'h1'))}／他 ${okOther} ${J(b.prog)}／行の並び ${okRows} ${J(b.ids)}／カテゴリ ${okCat} ${J(b.cats)}・ホットFFだけ ${J(h.cats)}／並べかえ ${okSort} 高い順 ${J(d.prog)}・低い順 ${J(a.prog)}／分母0 ${okZero} ${J(f)}／1行 ${okNote} 「${b.note}」／復元 ${s.restored}・未送信 ${A.store.status().pending}（前 ${pend69}）`); }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 忘れ防止（2026-10-13 店長の依頼：商品ごとに設定 → 「作った」のチェックを付けた時に大きく出す）の試験 70。2台で：A で設定→保存→B でチェック→大きく出る→「確認した」でチェックが付く。
+    //   画面の中だけで古い形・親子を作る物は、その場で元に戻す（保存しない）。
+    {
+      const o70={}, K1='3_14_p1', K2='3_14_p2', remOf=(d,id)=>d.ev('JSON.stringify((S.PM.find(p=>p.id==='+J(id)+')||{}).remind||null)');
+      const modal=d=>JSON.parse(d.ev('(()=>{ const m=document.getElementById("ff-remind-modal"); if(!m)return JSON.stringify({none:true}); const it=[...m.querySelectorAll("#ff-remind-items > div")]; const ok=document.getElementById("ff-remind-ok"); const r=ok?ok.getBoundingClientRect():null;'+
+        ' return JSON.stringify({show:/\\bshow\\b/.test(m.className),disp:getComputedStyle(m).display,items:it.map(x=>x.textContent.trim()),fs:it.length?parseFloat(getComputedStyle(it[0]).fontSize):0,okVis:!!r&&r.bottom<=innerHeight&&r.top>=0&&r.width>60,okFs:ok?parseFloat(getComputedStyle(ok).fontSize):0,empty:m.innerHTML==="",bg:getComputedStyle(m).backgroundColor,hit:document.elementFromPoint(innerWidth/2,innerHeight/2)===m}); })()'));
+      try{
+        A.ev('delete S.checks['+J(K1)+']; delete S.checks['+J(K2)+']'); await sync();
+        // 1) A の商品設定で p1 に 札2つ＋自由な文 → 保存 → B に届く（古い形のデータ＝remind が無い p2 はそのまま）
+        A.win.toggleRemind('p1',0); A.win.toggleRemind('p1',1); A.win.setRemindFree('p1','からし抜き'); await sync();
+        o70.remA=remOf(A,'p1'); o70.remB=remOf(B,'p1'); o70.rem2=remOf(B,'p2'); o70.same1=same();
+        // 2) B で p1 の「作った」にチェック → 大きい表示が出る（今までの confirm は出ない・チェックはまだ付かない）。何秒たっても出たまま
+        B.ev('window.__cf=0; window.confirm=function(){ window.__cf++; return true; }; window.__el={checked:true}; confirmCreate('+J(K1)+',"p1",window.__el); 1');
+        const pend0=B.store.status().pending+A.store.status().pending;
+        o70.m1=modal(B); o70.el1=B.ev('window.__el.checked'); o70.cf1=B.ev('window.__cf'); o70.ck1=B.ev('!!S.checks['+J(K1)+']');
+        await sleep(2600); o70.m1b=modal(B);
+        // 3) 「やめる」→ 閉じる・チェックは付かない・何も保存しない
+        B.ev('remindCancel()'); o70.m2=modal(B); o70.ck2=B.ev('!!S.checks['+J(K1)+']'); o70.pend1=(B.store.status().pending+A.store.status().pending)-pend0;
+        await sleep(500); o70.m2b=modal(B);
+        // 3b) 閉じた直後（透明の幕が残っている間）に開き直しても、幕のタイマーに閉じられない
+        B.ev('remindCancel(); window.__el={checked:true}; confirmCreate('+J(K1)+',"p1",window.__el); 1'); await sleep(700); o70.m2c=modal(B); B.ev('remindCancel()'); await sleep(500);
+        // 4) もう一度チェック → 「確認した」→ チェックが付く・閉じる。もう1台にも届く
+        B.ev('window.__el={checked:true}; confirmCreate('+J(K1)+',"p1",window.__el); 1'); o70.m3=modal(B);
+        B.ev('remindOk()'); o70.m4=modal(B); o70.ck3=B.ev('!!S.checks['+J(K1)+']'); await sync(); o70.m4b=modal(B); o70.ckA=A.ev('!!S.checks['+J(K1)+']'); o70.same2=same();
+        // 5) 忘れ防止が無い商品（p2）は今までどおり：confirm が1回出て、OK でチェック。大きい表示は出ない
+        B.ev('window.__cf=0; window.__el={checked:true}; confirmCreate('+J(K2)+',"p2",window.__el); 1'); o70.m5=modal(B); o70.cf5=B.ev('window.__cf'); o70.ck5=B.ev('!!S.checks['+J(K2)+']');
+        // 6) 古い形のデータ（remind が文字・null・数字・空の文字・オブジェクト）でも壊れず「無い」と同じ → remindOf は空・confirm の道
+        o70.old=JSON.parse(B.ev('(()=>{ const p=getP("p2"), oc=window.confirm, r=[]; window.confirm=function(){ window.__cf++; return false; };   /* 古い形の確かめでは「いいえ」にして、チェックも保存も起きないように */'+
+          ' [ "ソース", null, [1,"","  "], {a:1}, 5, [] ].forEach(v=>{ p.remind=v; let x=null,e=""; try{ x=remindOf(p).length; renderProductCard(p); window.__el={checked:true}; window.__cf=0; confirmCreate("3_9_p2","p2",window.__el); const m=document.getElementById("ff-remind-modal"); x=[x,window.__cf,!m||!/\bshow\b/.test(m.className),window.__el.checked]; }catch(err){ e=String(err); } r.push([x,e]); }); delete p.remind; window.confirm=oc; return JSON.stringify({r,undef:p.remind===undefined,ck:!!S.checks["3_9_p2"]}); })()'));
+
+        // 7) 親子：子（p2 を p1 の子にしたつもり）には、親の設定も出る（画面の中だけ）
+        o70.kid=JSON.parse(B.ev('(()=>{ const p=getP("p2"); p.packOf="p1"; window.__el={checked:true}; confirmCreate("3_9_p2","p2",window.__el); const m=document.getElementById("ff-remind-modal"); const it=[...m.querySelectorAll("#ff-remind-items > div")].map(x=>x.textContent.trim()); const list=remindOf(p); remindCancel(); delete p.packOf; return JSON.stringify({it,list,after:remindOf(p).length}); })()'));
+        // 8) 設定の画面：開いた商品の欄に「忘れ防止」・押した札は押された状態・自由な文が入る。閉じた一覧では、ある商品だけに 🔔
+        o70.ui=JSON.parse(A.ev('(()=>{ _expandedCards.add("p1"); const h1=renderProductCard(getP("p1")); _expandedCards.delete("p1"); _expandedCards.add("p2"); const h2=renderProductCard(getP("p2")); _expandedCards.delete("p2"); const c1=renderProductCard(getP("p1")), c2=renderProductCard(getP("p2"));'+
+          ' return JSON.stringify({f1:/data-remind-field/.test(h1),on1:(h1.match(/aria-pressed="true"/g)||[]).length,free:/value="からし抜き"/.test(h1),f2:/data-remind-field/.test(h2),on2:(h2.match(/aria-pressed="true"/g)||[]).length,b1:/🔔/.test(c1),b2:/🔔/.test(c2),f1c:/data-remind-field/.test(c1)}); })()'));
+        // 9) 2台が同時：A が p2 に「ふた」、B が p2 の原価を変える → 両方残る
+        off(); A.win.toggleRemind('p2',2); setP(B,'p2','cost',77); on(); await sync();
+        o70.both=[remOf(A,'p2'),remOf(B,'p2'),prod(A,'p2').cost,prod(B,'p2').cost,same()];
+        // 後始末：設定を外す（札は押し直し・自由な文は空に）／チェックを外す。外すと項目ごと無くなる
+        A.win.toggleRemind('p2',2); A.win.toggleRemind('p1',0); A.win.toggleRemind('p1',1); A.win.setRemindFree('p1','');
+        A.ev('delete S.checks['+J(K1)+']; delete S.checks['+J(K2)+']; saveS()'); await sync();
+        o70.cleanA=[remOf(A,'p1'),remOf(A,'p2'),A.ev('"remind" in S.PM.find(p=>p.id==="p1")'),A.ev('"remind" in S.PM.find(p=>p.id==="p2")')]; o70.same3=same();
+        // 10) 英語・ネパール語：rm.* の言葉が3つの言語にある（日本語と同じ文字ではない）
+        o70.i18n=JSON.parse(A.ev('(()=>{ const ks=Object.keys(I18N.ja).filter(k=>/^rm\\./.test(k)); return JSON.stringify({n:ks.length,miss:ks.filter(k=>!I18N.en[k]||!I18N.ne[k]).length,same:ks.filter(k=>I18N.en[k]===I18N.ja[k]||I18N.ne[k]===I18N.ja[k]).length}); })()'));
+      }catch(e){ o70.err=String(e&&e.stack||e); }
+      const m1=o70.m1||{}, m1b=o70.m1b||{}, m2=o70.m2||{}, m2b=o70.m2b||{}, m2c=o70.m2c||{}, m3=o70.m3||{}, m4=o70.m4||{}, m4b=o70.m4b||{}, m5=o70.m5||{}, kd=o70.kid||{}, ui=o70.ui||{}, ol=o70.old||{r:[]}, bt=o70.both||[], cl=o70.cleanA||[], i18=o70.i18n||{};
+      const want=['ソース','つまようじ','からし抜き'], wantJ=J(want);
+      const okSet=o70.remA===wantJ&&o70.remB===wantJ&&o70.rem2==='null'&&o70.same1;                                        // 1) 設定が保存され、もう1台に届く
+      const okShow=m1.show&&m1.disp==='flex'&&J(m1.items)===J(want.map(x=>'⚠ '+x))&&m1.fs>=24&&m1.okVis&&m1.okFs>=18&&o70.el1===false&&o70.cf1===0&&o70.ck1===false&&m1b.show&&J(m1b.items)===J(m1.items);   // 2) 大きく出て、出たまま・まだチェックは付かない
+      const okCancel=m2.none===undefined&&m2.empty&&m2.hit&&m2.bg==='rgba(0, 0, 0, 0)'&&m2b.show===false&&m2b.hit===false&&m2b.empty&&o70.ck2===false&&o70.pend1===0&&m2c.show===true&&J(m2c.items)===J(want.map(x=>'⚠ '+x));                              // 3) やめる：閉じる・何も保存しない
+      const okOk=m3.show&&m4.empty&&m4.hit&&m4.bg==='rgba(0, 0, 0, 0)'&&m4b.show===false&&m4b.hit===false&&m4b.empty&&o70.ck3===true&&o70.ckA===true&&o70.same2;                                   // 4) 確認した → チェック
+      const okNone=(m5.none===true||m5.show===false)&&o70.cf5===1&&o70.ck5===true;                                              // 5) 無い商品は今までどおり
+      const okOld=(ol.r||[]).length===6&&ol.r.every(x=>!x[1]&&J(x[0])===J([0,1,true,false]))&&ol.undef&&ol.ck===false;                                 // 6) 古い形でも壊れない・confirm の道
+      const okKid=J(kd.list)===wantJ&&J(kd.it)===J(want.map(x=>'⚠ '+x))&&kd.after===0;                                          // 7) 親の設定が子にも出る
+      const okUi=ui.f1&&ui.on1===2&&ui.free&&ui.f2&&ui.on2===0&&ui.b1&&!ui.b2&&!ui.f1c;                                          // 8) 設定の欄・印
+      const okBoth=bt[0]===J(['ふた'])&&bt[1]===J(['ふた'])&&bt[2]===77&&bt[3]===77&&bt[4];                                   // 9) 2台同時
+      const okClean=cl[0]==='null'&&cl[1]==='null'&&cl[2]===false&&cl[3]===false&&o70.same3;                                    // 外すと項目ごと無くなる
+      const okLang=i18.n>=20&&i18.miss===0&&i18.same===0;                                                                      // 10) 英語・ネパール語
+      check('70','【忘れ防止】商品設定に「忘れ防止」（よくある物の札＋自由な文。商品のデータに項目 remind を足すだけ）→ A で設定すると B に届く／B で「作った」のチェックを付けると、その商品の忘れ防止が大きく出る（文字 24px 以上・「確認した」は画面の中・何秒たっても出たまま・今までの confirm は出ない・チェックはまだ付かない）／「やめる」ならチェックは付かず何も保存しない／閉じた直後 0.4秒は透明の幕が残り（素早く2回押した2回目が下の物に当たらない）、その間に開き直しても閉じられない／「確認した」でチェックが付き、もう1台にも届く／忘れ防止が無い商品は今までどおり（confirm→チェック）／古い形（remind が文字・null・数字・空・オブジェクト）でも壊れない／親子は子にも親の設定が出る／設定の欄・🔔の印／2台が同時（設定と原価）に変えても両方残る／設定を外すと項目ごと無くなる／英語・ネパール語がそろう',
+        !o70.err&&okSet&&okShow&&okCancel&&okOk&&okNone&&okOld&&okKid&&okUi&&okBoth&&okClean&&okLang,
+        o70.err||`設定 ${okSet} A:${o70.remA} B:${o70.remB} p2:${o70.rem2}／出る ${okShow} ${J(m1.items)} 文字${m1.fs}px・確認した ${m1.okFs}px 見える ${m1.okVis}・confirm ${o70.cf1}回・チェック ${o70.ck1}・2.6秒後 ${m1b.show}／やめる ${okCancel} 未送信の増え ${o70.pend1}／確認した ${okOk} B:${o70.ck3} A:${o70.ckA}／無い商品 ${okNone} confirm ${o70.cf5}回・チェック ${o70.ck5}／古い形 ${okOld} ${J(ol.r)}／親子 ${okKid} ${J(kd)}／画面 ${okUi} ${J(ui)}／同時 ${okBoth} ${J(bt)}／外す ${okClean} ${J(cl)}／言葉 ${okLang} ${J(i18)}`); }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
