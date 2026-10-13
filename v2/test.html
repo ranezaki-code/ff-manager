@@ -48,6 +48,12 @@ tr.grp td{background:#eff6ff;font-weight:700}
     { const sp=V2.SPECS.cal; const st={events:[ev('e9','九'),ev('e1','一'),ev('e5','五')]}; const recs=sp.split(st,{}); const back=sp.join(recs); check('0-4','分けて組み立て直すと、元と1文字も違わない（並び順も）',J(back)===J(st),Object.keys(recs).length+' 件');
       const st2={events:[st.events[0],st.events[2]]}; const recs2=sp.split(st2,recs); check('0-5','1件消しても、ほかの記録の中身は変わらない',recs2['e:e9']===recs['e:e9']&&recs2['e:e5']===recs['e:e5']&&!('e:e1' in recs2));
       const st3={events:st.events.concat([ev('e7','七')])}; const recs3=sp.split(st3,recs); check('0-6','1件足しても、ほかの記録の中身は変わらない',['e:e9','e:e1','e:e5'].every(k=>recs3[k]===recs[k])&&J(sp.join(recs3))===J(st3)); }
+    // 2026-10-13 足した：続きの送り（基準＝画面が見ていた中身）の時だけ使う「間に足した」並びの合わせ方（merge3 の8つ目の引数）
+    { const e=n=>({by:n}), lost=[]; const r=V2.merge3({a:[e('前'),e('B1')]},{a:[e('前'),e('B1'),e('B2')]},{a:[e('前'),e('A1'),e('B1')]},true,4,'',lost,true);
+      check('0-7','続きの送りの合わせ方（id の無い記録の並び）：基準 [前,B1]・自分 [前,B1,B2]・保存先 [前,A1,B1] → [前,A1,B1,B2]（両方の分が残り、負けた入力は無い）',r.a.map(x=>x.by).join()==='前,A1,B1,B2'&&lost.length===0,J(r)+'・負け '+lost.length); }
+    { const lost=[]; const r=V2.merge3({a:[{n:1},{n:2}]},{a:[{n:1},{n:2},{n:3}]},{a:[{n:1},{n:9},{n:2}]},true,4,'',lost);
+      const lost2=[]; const r2=V2.merge3({a:[{n:1},{n:2}]},{a:[{n:1}]},{a:[{n:1},{n:9},{n:2}]},true,4,'',lost2,true);
+      check('0-8','ふつうの合わせ方（8つ目の引数なし）は今までどおり（間に足した形は後勝ち）。続きの送りでも、自分が消した形（取り消し）は今までどおり後勝ち',J(r.a)===J([{n:1},{n:2},{n:3}])&&lost.length===1&&J(r2.a)===J([{n:1}])&&lost2.length===1,J(r)+' / '+J(r2)); }
 
     // ---------- 1. 1件ずつの保存 ----------
     group('① 1件ずつの保存と読み直し');
@@ -160,6 +166,105 @@ tr.grp td{background:#eff6ff;font-weight:700}
     { const cloud=new V2.MemoryCloud(); const A=await open(mk(cloud,'A')); const evs=[]; for(let i=0;i<120;i++)evs.push({id:'x'+i,date:'2026-11-01',time:'',cat:'memo',title:'予定'+i,note:''});
       A.c.setState({events:evs}); await A.store.settle(); const B=await open(mk(cloud,'B')); await sync(A,B);
       check('7-3','120件を一度に入れても、順番どおり全部届く',J(B.c.getState())===J({events:evs}),B.c.getState().events.length+' 件'); }
+
+    // ---------- 8. 送っている途中に、同じ記録へ2つ目の変更（続きの送り）（2026-10-13 足した） ----------
+    // B の1つ目の送りを、わざとおそくする（pre＝保存先が読む前に待つ・post＝保存先に入った後、返事が来るまで待つ。Infinity＝返事が来ない＝タブを閉じた）。
+    // その間に A の変更が先に保存先へ入り、B が同じ記録にもう1つ変更を足す。直す前は、A の変更が消えていた（知らせも出なかった）。
+    group('⑧ 送っている途中に、同じ記録へ2つ目の変更を足した時（続きの送り）');
+    { const slowTx=(be,pre,post)=>{ const orig=be.txn; be.txn=function(ids,fn){ const self=this; return sleep(pre||0).then(()=>orig.call(self,ids,fn)).then(r=>post===Infinity?new Promise(()=>{}):sleep(post||0).then(()=>r)); }; return ()=>{ be.txn=orig; }; };
+      const until=async(fn,ms)=>{ const t0=Date.now(); while(!fn()){ if(Date.now()-t0>(ms||6000))throw new Error('待ちきれない'); await sleep(10); } };
+      const tb=async(no,fn)=>{ try{ await fn(); }catch(e){ check(no,'この試験の途中で止まった',false,String(e&&e.stack||e)); } };
+      const busyOp=d=>d.store.outbox.some(o=>o.inflight);
+      const mod=(c,fn)=>{ const s=c.getState(); fn(s); return c.setState(s); };
+      const enc=s=>encodeURIComponent(String(s)).replace(/~/g,'%7E').replace(/\./g,'%2E');
+      const srv=(cloud,coll,rec)=>{ const d=cloud.docs['TEST~r~'+enc(coll)+'~'+enc(rec)]; return d&&!d.del?JSON.parse(d.d):null; };
+      const lostN=cloud=>Object.keys(cloud.docs).filter(k=>/^TEST~h~/.test(k)&&(cloud.docs[k].lost||cloud.docs[k].lostOnly)).length;
+      async function pair(spec,init,coll,kvB){ const cloud=new V2.MemoryCloud(); const A=mk(cloud,'A'), B=mk(cloud,'B',kvB); A.c=await A.store.open(coll,spec); B.c=await B.store.open(coll,spec);
+        A.c.setState(init); await sync(A); await until(()=>J(B.c.getState())===J(A.c.getState())); await sleep(30); B.nRemote=0; B.c.onChange(r=>{ if(r)B.nRemote++; }); return {cloud,A,B}; }
+      // B が b1（おそい送り）→ 送っている途中に A が a1（先に入る）→ B が b2（続き）
+      async function flow(P,b1,a1,b2,pre,post,afterCommit){ const rs=slowTx(P.B.be,pre==null?600:pre,post||0);
+        b1(); await until(()=>busyOp(P.B));
+        if(afterCommit) await until(()=>Object.keys(P.cloud.docs).some(k=>/~r~/.test(k)&&P.cloud.docs[k].by==='B'));
+        a1(); await sync(P.A); if(b2)b2(); const chained=P.B.store.outbox.some(o=>o.base&&o.base.chain);
+        await P.B.store.settle(15000); rs(); await sync(P.A,P.B); await sleep(80); return chained; }
+      const xyz=f=>!!f&&f.x===1&&f.y===1&&f.z===1;
+
+      await tb('8-1',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0}},'m'); const ch=await flow(P,()=>mod(P.B.c,s=>s.k.y=1),()=>mod(P.A.c,s=>s.k.x=1),()=>mod(P.B.c,s=>s.k.z=1)); const f=srv(P.cloud,'m','k');
+        check('8-1','B が y を送っている途中に、A の x が先に入り、B が同じ記録の z を足した → x・y・z が全部残る',ch&&xyz(f),J(f));
+        check('8-2','その時、B の画面にも A の x が出て、「ほかの端末の変更」の知らせが来る。2台の中身が同じ',P.B.c.getState().k.x===1&&P.B.nRemote>0&&J(P.A.c.getState())===J(P.B.c.getState()),J(P.B.c.getState().k)+'・知らせ '+P.B.nRemote); });
+      await tb('8-3',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0}},'m'); P.B.be.setOnline(false); mod(P.A.c,s=>s.k.x=1); await sync(P.A); mod(P.B.c,s=>s.k.y=1);
+        const rs=slowTx(P.B.be,600,0); P.B.be.setOnline(true); await until(()=>busyOp(P.B)); mod(P.B.c,s=>s.k.z=1); await P.B.store.settle(15000); rs(); await sync(P.A,P.B); await sleep(60); const f=srv(P.cloud,'m','k');
+        check('8-3','切れていた B（その間に A が x を変えた）がつながって y を送っている途中に z を足した（つなぎ直し・スリープ明け）→ 全部残る',xyz(f)&&J(P.A.c.getState())===J(P.B.c.getState()),J(f)); });
+      await tb('8-4',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0,p:0,q:0}},'m'); const rs=slowTx(P.B.be,500,0);
+        mod(P.B.c,s=>s.k.y=1); await until(()=>busyOp(P.B)); mod(P.A.c,s=>s.k.x=1); await sync(P.A); mod(P.B.c,s=>s.k.z=1);
+        await until(()=>P.B.store.outbox.length===1&&busyOp(P.B)); mod(P.A.c,s=>s.k.p=1); await sync(P.A); mod(P.B.c,s=>s.k.q=1); await P.B.store.settle(15000); rs(); await sync(P.A,P.B); await sleep(60); const f=srv(P.cloud,'m','k');
+        check('8-4','3つ続く（続きの送りの途中に、さらに続き）。そのあいだに A も2回 → 5つとも残る',xyz(f)&&f.p===1&&f.q===1,J(f)); });
+      await tb('8-5',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0}},'m'); const rs=slowTx(P.B.be,500,0);
+        mod(P.B.c,s=>s.k.y=1); await until(()=>busyOp(P.B)); mod(P.A.c,s=>s.k.x=1); await sync(P.A); mod(P.B.c,s=>s.k.z=1);
+        P.B.be.setOnline(false); await until(()=>!P.B.store.busy); rs(); P.B.be.setOnline(true); await sync(P.A,P.B); await sleep(60); const f=srv(P.cloud,'m','k');
+        check('8-5','1つ目の送りが失敗（切れた）→ 続きが残ったまま、つながってやり直す → 全部残る',xyz(f),J(f)); });
+      await tb('8-6',async()=>{ const kvB=new V2.MemKV(); const P=await pair('meta',{k:{x:0,y:0,z:0}},'m',kvB); const rs=slowTx(P.B.be,500,0);
+        mod(P.B.c,s=>s.k.y=1); await until(()=>busyOp(P.B)); mod(P.A.c,s=>s.k.x=1); await sync(P.A); mod(P.B.c,s=>s.k.z=1); await sleep(30);
+        P.B.be.setOnline(false); await until(()=>!P.B.store.busy); rs();
+        const B2=mk(P.cloud,'B',kvB); B2.c=await B2.store.open('m','meta'); await sync(P.A,B2); await sleep(60); const f=srv(P.cloud,'m','k');
+        check('8-6','送る前にタブを閉じた（1つ目と続きが端末の控えに残った）→ 次に開いたタブが引き取って送る → 全部残る',xyz(f)&&J(P.A.c.getState())===J(B2.c.getState()),J(f)); });
+      await tb('8-7',async()=>{ const kvB=new V2.MemKV(); const P=await pair('meta',{k:{x:0,y:0,z:0}},'m',kvB); slowTx(P.B.be,0,Infinity);
+        mod(P.B.c,s=>s.k.y=1); await until(()=>Object.keys(P.cloud.docs).some(k=>/~r~/.test(k)&&P.cloud.docs[k].by==='B')); mod(P.A.c,s=>s.k.x=1); await sync(P.A); mod(P.B.c,s=>s.k.z=1); await sleep(30);
+        const B2=mk(P.cloud,'B',kvB); B2.c=await B2.store.open('m','meta'); await sync(P.A,B2); await sleep(60); const f=srv(P.cloud,'m','k');
+        check('8-7','1つ目は保存先に入ったが、返事の前にタブを閉じた。その後に A の x が入った → 次に開いたタブが送り直しても、全部残る',xyz(f),J(f)); });
+      await tb('8-8',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0},k2:{n:0}},'m'); await flow(P,()=>mod(P.B.c,s=>s.k.y=1),()=>mod(P.A.c,s=>s.k.x=1),()=>mod(P.B.c,s=>{ delete s.k; })); const f=srv(P.cloud,'m','k');
+        check('8-8','B の続きの変更が「記録を消す」で、A が先にその記録を変えていた → 消さずに残る（古い端末の「消す」と同じ決まり）。消す操作は「負けた入力」として履歴に残る',!!f&&f.x===1&&f.y===1&&!!P.B.c.getState().k&&lostN(P.cloud)>0,J(f)+'・負けた入力 '+lostN(P.cloud)); });
+      await tb('8-9',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0},k2:{n:0}},'m'); await flow(P,()=>mod(P.B.c,s=>s.k.y=1),()=>mod(P.A.c,s=>{ delete s.k; }),()=>mod(P.B.c,s=>s.k.z=1)); const f=srv(P.cloud,'m','k');
+        check('8-9','A が記録を消した。B の1つ目（その記録の変更）は負け、B が続きでもう1つ変えた → 消したまま（戻らない）。B の入力は履歴に残る',!f&&!P.B.c.getState().k&&!P.A.c.getState().k&&lostN(P.cloud)>=2,(f?'戻った ':'消えたまま ')+'・負けた入力 '+lostN(P.cloud)); });
+      await tb('8-10',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0}},'m'); await flow(P,()=>mod(P.B.c,s=>s.k.y=1),()=>mod(P.A.c,s=>s.k.z=5),()=>mod(P.B.c,s=>s.k.z=7)); const f=srv(P.cloud,'m','k');
+        const ch=await P.A.c.changes(1), le=ch.find(x=>x.lost), h=le?await P.A.c.historyOf(le.id,le.h||le.rev):null;
+        check('8-10','同じ項目を A（先）と B の続き（後）が変えた → あとから入力した B が残り、A の入力は「負けた入力」として履歴に残る',f.z===7&&f.y===1&&!!h&&/"theirs":5/.test(h.lost||''),J(f)+'・履歴 '+(h?'あり':'なし')); });
+      await tb('8-11',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0}},'m'); await flow(P,()=>mod(P.B.c,s=>s.k.y=1),()=>mod(P.A.c,s=>s.k.x=1),()=>{ mod(P.B.c,s=>s.k.z=1); mod(P.B.c,s=>s.k.z=0); }); const f=srv(P.cloud,'m','k');
+        check('8-11','B が続きで z を変えて、すぐ元に戻した（1つ目の中身と同じ）→ A の x は残り、B の画面にも出る',f.x===1&&f.y===1&&f.z===0&&J(P.B.c.getState().k)===J(f),J(f)); });
+      await tb('8-12',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0}},'m'); const rs=slowTx(P.B.be,400,0);
+        mod(P.B.c,s=>s.k.y=1); await until(()=>busyOp(P.B)); mod(P.A.c,s=>s.k.x=1); await sync(P.A); mod(P.B.c,s=>s.k.z=1);
+        await until(()=>P.B.store.outbox.length===1&&busyOp(P.B)); P.B.be.setOnline(false); await until(()=>!P.B.store.busy);
+        const n0=P.B.nRemote; mod(P.B.c,s=>s.k.z=0); const kept=P.B.store.outbox.length; rs(); P.B.be.setOnline(true); await sync(P.A,P.B); await sleep(80); const f=srv(P.cloud,'m','k');
+        check('8-12','続きの送りが失敗して列に残っている間に、B が元に戻した → 列から外さずに送り、A の x が B の画面に「ほかの端末の変更」として届く',kept===1&&f.x===1&&f.z===0&&P.B.nRemote>n0&&J(P.B.c.getState().k)===J(f),J(f)+'・列 '+kept+'・知らせ '+(P.B.nRemote-n0)); });
+      await tb('8-13',async()=>{ const P=await pair('meta',{k:{list:[{id:'a',v:0}]}},'m'); await flow(P,()=>mod(P.B.c,s=>s.k.list.push({id:'b1'})),()=>mod(P.A.c,s=>s.k.list.push({id:'a1'})),()=>mod(P.B.c,s=>s.k.list.push({id:'b2'}))); const ids=srv(P.cloud,'m','k').list.map(x=>x.id).sort().join();
+        check('8-13','id のある並び（タスクの一覧の形）：B が b1・A が a1・B の続きで b2 → 全部残る',ids==='a,a1,b1,b2',ids); });
+      await tb('8-14',async()=>{ const P=await pair('meta',{k:{arr:[{at:1,by:'前'}]}},'m'); await flow(P,()=>mod(P.B.c,s=>s.k.arr.push({at:2,by:'B1'})),()=>mod(P.A.c,s=>s.k.arr.push({at:3,by:'A1'})),()=>mod(P.B.c,s=>s.k.arr.push({at:4,by:'B2'}))); const a=srv(P.cloud,'m','k').arr.map(x=>x.by).join();
+        check('8-14','id の無い「後ろに足していくだけの並び」（直近40件・完売の記録の形）：B が B1・A が A1・B の続きで B2 → 全部残る',a==='前,A1,B1,B2',a); });
+      // FF の形（週1つ＝記録1件）
+      const cu=()=>Array.from({length:7},(_,d)=>Array.from({length:24},(_,h)=>h>=6&&h<22?30+d+h:2));
+      const ffWk=()=>({ji:{p1:{teika:40,nebiki:3,haiki:2},p2:{teika:20,nebiki:1,haiki:1}},cust:cu(),checks:{},skipped:{},orderChecks:{},soldOuts:{'2_14_p2':[{readyAt:14,soldAt:14,added:2,v:2}]},leftovers:{},weekStart:'2026-10-06'});
+      const ffSt=()=>{ const w=ffWk(); return {storeName:'試験の店',PM:[{id:'p1',name:'商品1',category:'ホットFF',cost:100,shopPrice:200,disc:25},{id:'p2',name:'商品2',category:'ホットFF',cost:100,shopPrice:200,disc:25}],catOn:{'ホットFF':true},ji:JSON.parse(J(w.ji)),cust:JSON.parse(J(w.cust)),checks:{},skipped:{},orderChecks:{},soldOuts:JSON.parse(J(w.soldOuts)),leftovers:{},weekStart:w.weekStart,weeks:{'2026.10.6':w},activeWeek:'2026.10.6'}; };
+      const wk=P=>srv(P.cloud,'ff~t1','w:2026-10-06').v;
+      await tb('8-15',async()=>{ const P=await pair('ff',ffSt(),'ff~t1'); await flow(P,()=>mod(P.B.c,s=>{ s.checks['0_6_p1']=true; }),()=>mod(P.A.c,s=>{ s.checks['1_10_p2']=true; s.soldOuts['0_10_p1']=[{readyAt:11,soldAt:11,added:3,v:2}]; }),()=>mod(P.B.c,s=>{ s.checks['2_14_p1']=true; })); const v=wk(P);
+        check('8-15','FF の週の記録：B が作成表のチェック（送っている途中）→ A が別のマスのチェックと完売の記録 → B がもう1つチェック → 全部残る',!!v.checks['0_6_p1']&&!!v.checks['1_10_p2']&&!!v.checks['2_14_p1']&&!!v.soldOuts['0_10_p1'],J(Object.keys(v.checks))+'・完売 '+J(Object.keys(v.soldOuts))); });
+      await tb('8-16',async()=>{ const P=await pair('ff',ffSt(),'ff~t1'); await flow(P,()=>mod(P.B.c,s=>{ s.ji.p1.teika=55; }),()=>mod(P.A.c,s=>{ s.cust[0][8]=77; s.weeks[s.activeWeek].invest={p1:{0:{10:5}}}; }),()=>mod(P.B.c,s=>{ s.ji.p2.haiki=9; })); const v=wk(P);
+        check('8-16','FF の週の記録：B が実績を続けて2か所（送っている途中に2つ目）→ その間に A が客数のマスと投資の数 → 全部残る',v.ji.p1.teika===55&&v.ji.p2.haiki===9&&v.cust[0][8]===77&&!!v.invest&&v.invest.p1[0][10]===5,J(v.ji)+'・客数 '+v.cust[0][8]); });
+      await tb('8-17',async()=>{ const P=await pair('ff',ffSt(),'ff~t1'), k='2_14_p2'; await flow(P,()=>mod(P.B.c,s=>s.soldOuts[k].push({readyAt:15,soldAt:15,added:1,v:2,by:'B1'})),()=>mod(P.A.c,s=>s.soldOuts[k].push({readyAt:15.5,soldAt:15.5,added:1,v:2,by:'A1'})),()=>mod(P.B.c,s=>s.soldOuts[k].push({readyAt:16,soldAt:16,added:1,v:2,by:'B2'}))); const a=wk(P).soldOuts[k];
+        check('8-17','FF：同じマスの完売の記録（前に1件ある）に、B が1件（送っている途中）・A が1件・B がもう1件 → 4件とも残る',a.length===4&&a.map(e=>e.by||'前').join()==='前,A1,B1,B2',a.map(e=>e.by||'前').join()); });
+      await tb('8-18',async()=>{ const P=await pair('ff',ffSt(),'ff~t1'); await flow(P,()=>mod(P.B.c,s=>{ s.PM[0].cost=130; }),()=>mod(P.A.c,s=>{ s.PM[0].shopPrice=260; }),()=>mod(P.B.c,s=>{ s.PM[0].disc=33; })); const p=srv(P.cloud,'ff~t1','p:p1').v;
+        check('8-18','FF の商品設定：B が同じ商品の原価・値引額を続けて入力（2つ目は送っている途中）、その間に A が売価 → 全部残る',p.cost===130&&p.shopPrice===260&&p.disc===33,J({cost:p.cost,shopPrice:p.shopPrice,disc:p.disc})); });
+      // ワークスケジュールの形
+      const D='2026-10-13', Tk=(id,h)=>({id,text:'タスク'+id,hour:h,min:0,done:false,order:0});
+      const wsSt=()=>({tasks:{[D]:[Tk('t1',9),Tk('t2',10),Tk('t3',11)]},staff:['見本 花子','見本 太郎'],areaChecks:{coffee:[{at:'2026-10-12T01:00:00.000Z',by:'見本 花子'},{at:'2026-10-12T02:00:00.000Z',by:'見本 太郎'}]},amWorks:[{id:'coffee'}],['amLog_'+D]:{r0:{w:'coffee',at:'2026-10-13T00:00:00.000Z',by:'見本 花子'}}});
+      await tb('8-19',async()=>{ const P=await pair('ws',wsSt(),'ws~w1'), rec=(c,by)=>mod(c,s=>{ s.areaChecks.coffee.push({at:'2026-10-13T03:00:00.000Z',by}); if(s.areaChecks.coffee.length>40)s.areaChecks.coffee=s.areaChecks.coffee.slice(-40); });
+        await flow(P,()=>rec(P.B.c,'見本 B'),()=>rec(P.A.c,'見本 A'),()=>rec(P.B.c,'見本 C')); const a=srv(P.cloud,'ws~w1','a:coffee').v.map(e=>e.by);
+        check('8-19','ワークスケジュール：同じ作業に3件（直近40件。B が1件＝送っている途中・A が1件・B がもう1件）→ 5件とも残る',a.length===5&&['見本 A','見本 B','見本 C'].every(x=>a.includes(x)),a.join()); });
+      await tb('8-20',async()=>{ const P=await pair('ws',wsSt(),'ws~w1'), dn=(c,id)=>mod(c,s=>{ s.tasks[D].find(t=>t.id===id).done=true; });
+        await flow(P,()=>dn(P.B.c,'t1'),()=>dn(P.A.c,'t2'),()=>dn(P.B.c,'t3')); const ts=srv(P.cloud,'ws~w1','d:'+D).v;
+        check('8-20','ワークスケジュール：その日のタスク。B が t1 を完了（送っている途中）・A が t2・B が t3 → 3つとも完了',ts.every(t=>t.done),ts.map(t=>t.id+':'+t.done).join()); });
+      await tb('8-21',async()=>{ const P=await pair('ws',wsSt(),'ws~w1'), lg=(c,id)=>mod(c,s=>{ s['amLog_'+D][id]={w:'trash',at:'2026-10-13T03:00:00.000Z',by:id}; });
+        await flow(P,()=>lg(P.B.c,'rB1'),()=>lg(P.A.c,'rA1'),()=>lg(P.B.c,'rB2')); const o=srv(P.cloud,'ws~w1','s:amLog_'+D);
+        check('8-21','ワークスケジュール：その日の記録を1つの文書に入れる形（5.6）。B が1件（送っている途中）・A が1件・B がもう1件 → 全部残る',['r0','rB1','rA1','rB2'].every(k=>o[k]),Object.keys(o).join()); });
+      // カレンダーの形
+      await tb('8-22',async()=>{ const P=await pair('cal',{events:[ev('e1','一')]},'cal~s1'), ed=(c,p)=>mod(c,s=>Object.assign(s.events.find(e=>e.id==='e1'),p));
+        await flow(P,()=>ed(P.B.c,{title:'一（B）'}),()=>ed(P.A.c,{note:'Aのメモ'}),()=>ed(P.B.c,{time:'09:00'})); const e=srv(P.cloud,'cal~s1','e:e1').v;
+        check('8-22','カレンダー：同じ予定。B が題（送っている途中）・A がメモ・B が時刻 → 全部残る',e.title==='一（B）'&&e.note==='Aのメモ'&&e.time==='09:00',J(e)); });
+      // 比べ（直す前から守れていた形。直した後も同じ）
+      await tb('8-23',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0}},'m'); const ch=await flow(P,()=>mod(P.B.c,s=>s.k.y=1),()=>mod(P.A.c,s=>s.k.x=1),()=>mod(P.B.c,s=>s.k.z=1),0,700,true); const f=srv(P.cloud,'m','k');
+        check('8-23','（比べ）B の1つ目が保存先に入った後・返事の前に A が入り、B が続きを足した → 全部残る（直す前から同じ）',ch&&xyz(f),J(f)); });
+      await tb('8-24',async()=>{ const P=await pair('meta',{k:{x:0,y:0,z:0}},'m'); await flow(P,()=>mod(P.B.c,s=>s.k.y=1),()=>mod(P.A.c,s=>s.k.x=1),()=>P.B.c.setRecs({k:J({x:0,y:9,z:9})},{force:true,why:'restore'})); const f=srv(P.cloud,'m','k');
+        check('8-24','（比べ）B の続きが「履歴から戻す」（そのまま書く決まり）→ 戻した中身になる（直す前から同じ）',J(f)===J({x:0,y:9,z:9}),J(f)); });
+    }
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
 
   const ng=R.filter(r=>!r.ok).length;

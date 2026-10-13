@@ -39,7 +39,14 @@
     for (var i = 0; i < a.length; i++) { var x = a[i]; if (!isObj(x) || x.id == null || typeof x.id === 'object') return null; var k = String(x.id); if (k in o) return null; o[k] = x; }
     return o;
   }
-  function merge3(b, m, t, mineWins, depth, path, lost) {
+  // x が ba の物を同じ順に全部ふくみ、ほかは「間や後ろに足しただけ」なら、ba の物のあいだごとに足した物を分けて返す（ba.length+1 個）。そうでなければ null
+  function insGaps(ba, x) {
+    var g = [[]], j = 0, bs = ba.map(function (e) { return S(e); });
+    for (var i = 0; i < x.length; i++) { if (j < ba.length && S(x[i]) === bs[j]) { j++; g.push([]); } else g[g.length - 1].push(x[i]); }
+    return j === ba.length ? g : null;
+  }
+  // ins＝続きの送り（基準が「画面が見ていた中身」）の時だけ true。足すだけの並びを「間に足した」まで広げて合わせる（下の注）
+  function merge3(b, m, t, mineWins, depth, path, lost, ins) {
     var ms = S(m), ts = S(t), bs = S(b);
     if (ms === ts) return m;
     if (ms === bs) return t;
@@ -51,7 +58,7 @@
         var out2 = [], pos = {};
         t.forEach(function (x) {
           var k = String(x.id);
-          if (k in im) { var v2 = merge3(ib[k], im[k], x, mineWins, depth - 1, path + '[' + k + ']', lost); if (v2 !== undefined) { pos[k] = out2.length; out2.push(v2); } }
+          if (k in im) { var v2 = merge3(ib[k], im[k], x, mineWins, depth - 1, path + '[' + k + ']', lost, ins); if (v2 !== undefined) { pos[k] = out2.length; out2.push(v2); } }
           else if (k in ib) { if (S(x) !== S(ib[k])) { lost.push({ path: path + '[' + k + ']', mine: null, theirs: x, kept: 'theirs', kind: 'delete-vs-edit' }); out2.push(x); } }   // 自分は消したが、相手が先に変えていた → 残す
           else out2.push(x);                                                                                    // 相手が足した
         });
@@ -76,16 +83,23 @@
       }
       // 後ろに足していくだけの並び（記録の一覧など）：両方が足していたら、両方の分を残す
       if (Array.isArray(b) && ba.length < m.length && ba.length < t.length && S(m.slice(0, ba.length)) === S(ba) && S(t.slice(0, ba.length)) === S(ba)) return t.concat(m.slice(ba.length));
+      // （続きの送りの時だけ）両方が「前の並びの間や後ろに足しただけ」なら、両方の分を残す（足した場所ごとに、相手の分 → 自分の分の順）。
+      //   続きの送りの基準（画面が見ていた並び＝自分の1つ目の中身）は、保存先ではほかの端末の分が自分の1つ目より前に入っていて、
+      //   「後ろに足しただけ」の形にならないため（例：基準 [前,B1]・自分 [前,B1,B2]・保存先 [前,A1,B1] → [前,A1,B1,B2]）
+      if (ins && Array.isArray(b) && ba.length < m.length && ba.length < t.length) {
+        var gm = insGaps(ba, m), gt = gm && insGaps(ba, t);
+        if (gm && gt) { var o3 = []; for (var i4 = 0; i4 <= ba.length; i4++) { o3 = o3.concat(gt[i4], gm[i4]); if (i4 < ba.length) o3.push(ba[i4]); } return o3; }
+      }
     }
     if (depth > 0 && Array.isArray(m) && Array.isArray(t) && Array.isArray(b) && m.length === t.length && b.length === m.length) {
       // 同じ長さの並び（客数の表など）は、マスごとに合成する
-      return m.map(function (x, i) { var v = merge3(b[i], x, t[i], mineWins, depth - 1, path + '[' + i + ']', lost); return v === undefined ? null : v; });
+      return m.map(function (x, i) { var v = merge3(b[i], x, t[i], mineWins, depth - 1, path + '[' + i + ']', lost, ins); return v === undefined ? null : v; });
     }
     if (depth > 0 && isObj(m) && isObj(t)) {
       var bb = isObj(b) ? b : {}, out = {}, seen = {};
       Object.keys(t).concat(Object.keys(m)).forEach(function (k) {
         if (seen[k]) return; seen[k] = 1;
-        var v = merge3(bb[k], m[k], t[k], mineWins, depth - 1, path ? path + '.' + k : k, lost);
+        var v = merge3(bb[k], m[k], t[k], mineWins, depth - 1, path ? path + '.' + k : k, lost, ins);
         if (v !== undefined) out[k] = v;
       });
       return out;
@@ -94,6 +108,7 @@
     return mineWins ? m : t;
   }
   // op＝{base:{rev,d,del}|null, next:文字列|null(＝消す), t:入力した時刻}、remote＝ネット上の今の記録（無ければ null）
+  //   base.rev が -1 ＝続きの送りの基準が「画面が見ていた中身」（flush の後の付けかえで作る）。保存先のどの版とも同じにならないので、必ず合わせる
   // 戻り値 {write:文字列|null} ＝書く／{noop:true} ＝書かない。lost＝負けた側の入力（履歴に残す）
   function resolve(op, remote) {
     var baseRev = op.base ? op.base.rev : 0, rRev = remote ? remote.rev : 0;
@@ -117,7 +132,7 @@
     try { b = (op.base && !op.base.del) ? JSON.parse(op.base.d) : undefined; m = JSON.parse(op.next); t = JSON.parse(remote.d); }
     catch (e) { return { noop: true, lost: { kind: 'unreadable', mine: op.next } }; }
     var lost = [], mineWins = (op.t || 0) > (remote.ct || 0);
-    var out = S(merge3(b, m, t, mineWins, 9, '', lost));
+    var out = S(merge3(b, m, t, mineWins, 9, '', lost, !!(op.base && op.base.rev === -1)));
     var L = lost.length ? { kind: 'field', items: lost } : null;
     if (out === remote.d) return { noop: true, lost: L };
     return { write: out, lost: L };
@@ -334,7 +349,9 @@
       var label = ''; try { label = self.spec.label ? self.spec.label(rec, next === null ? (cur || '') : next) : rec; } catch (e) { label = rec; }
       if (lastOp && !lastOp.inflight) {
         lastOp.next = next; lastOp.t = now; lastOp.label = label; if (o.force) lastOp.force = true;
-        var b = lastOp.base, same = b && !b.chain && ((next === null && b.del) || (next !== null && !b.del && b.d === next));
+        // 前の中身に戻った変更は、送る列から外す。ただし基準が「画面が見ていた中身」（rev -1）の続きの変更は外さない
+        // （保存先にはほかの端末の分が入っているので、送って合わせ、その結果を画面に知らせる）
+        var b = lastOp.base, same = b && !b.chain && b.rev !== -1 && ((next === null && b.del) || (next !== null && !b.del && b.d === next));
         if ((same || (!b && next === null)) && !lastOp.force) st.outbox.splice(st.outbox.indexOf(lastOp), 1);
       } else {
         var base = lastOp ? { chain: lastOp.id } : (self.recs[rec] ? { rev: self.recs[rec].rev, d: self.recs[rec].d, del: !!self.recs[rec].del } : null);
@@ -416,7 +433,15 @@
       results.forEach(function (r) {
         if (r.fin) c.recs[r.op.rec] = r.fin;
         var i = self.outbox.indexOf(r.op); if (i >= 0) self.outbox.splice(i, 1);
-        self.outbox.forEach(function (o) { if (o.base && o.base.chain === r.op.id) o.base = r.fin ? { rev: r.fin.rev, d: r.fin.d, del: r.fin.del } : null; });
+        // 続きの変更（送っている途中に、同じ記録へ足した物）の基準を付けかえる。続きの変更は「送った中身」（画面が見ていた中身）の上に作ってある。
+        // ・送った中身のまま保存先に入った時：今までどおり、入った版を基準にする（そのまま書ける）
+        // ・ほかの端末の分と合わさった・負けた・相手が消していた時（入った中身が送った中身とちがう）：送った中身を基準にして、
+        //   次の送りで保存先の中身と合わせる（rev -1＝保存先のどの版とも同じにならない）。入った版を基準にすると、合わせずにそのまま書いて、ほかの端末の分を消す
+        var sent = r.op.next, asSent = r.fin ? (r.fin.del ? sent === null : (sent !== null && r.fin.d === sent)) : sent === null;
+        self.outbox.forEach(function (o) {
+          if (!(o.base && o.base.chain === r.op.id)) return;
+          o.base = asSent ? (r.fin ? { rev: r.fin.rev, d: r.fin.d, del: r.fin.del } : null) : { rev: -1, d: sent === null ? '' : sent, del: sent === null };
+        });
       });
       self.busy = false; self.error = ''; self.offline = false; self.lastOk = Date.now(); self.backoff = 0;
       c._changed(true); self._saveOutbox(); self._emit();
