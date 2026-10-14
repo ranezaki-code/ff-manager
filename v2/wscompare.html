@@ -55,7 +55,7 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:none;background:#2
       areaChecks:{},amUsed:true};
     // 番号（やる順）を並べた店：seq あり（同じ数・とびとび）・seq 無し（足したばかり）・今までの優先度つき・回数が全部0（休み）の作業をまぜる
     const works=[['toilet','トイレ','🚻','red','点検',[2,3,3,2],3000],['counter','カウンター内','💴','blue','点検',[1,1,1,1],1000],['coffee','コーヒーマシン','☕','blue','点検',[2,3,3,2],2000,3],['face_red','前陳：その他（赤ゾーン）','📦','red','前陳',[1,1,0,1],2000],['stock_red','品出し（赤ゾーン）','📥','red','品出し',[0,1,0,1],null,1],['trash','ゴミ箱・上台周辺','🗑','blue','点検',[2,3,3,2],null],['face_daily','前陳：米飯・日配・ベーカリー','🍙','both','前陳',[1,2,2,1],2500],['rest','休みの作業','💤','both','その他',[0,0,0,0],4000]]
-      .map(a=>{ const w={id:a[0],name:a[1],icon:a[2],zone:a[3],kind:a[4],sch:a[5],sub:'見本の説明',days:null,items:[['見本の確認','見本の対応'],['見本の確認2','']]}; if(a[6]!=null)w.seq=a[6]; if(a[7])w.pri=a[7]; return w; });
+      .map(a=>{ const w={id:a[0],name:a[1],icon:a[2],zone:a[3],kind:a[4],sch:a[5],sub:'見本の説明',days:null,items:[['見本の確認','見本の対応'],['見本の確認2','']]}; if(a[6]!=null)w.seq=a[6]; if(a[7])w.pri=a[7]; if(a[0]==='trash')w.sch7=[1,1,2,1,3,1,1]; return w; });   // 5.10：ゴミ箱は 7つの回数（sch7。sch〔2,3,3,2〕と整合）も持たせる。ほかは 古い形のまま（7つへ写して読む）
     const st2=JSON.parse(J(st)); st2.amWorks=works;
     st2.areaChecks={toilet:[{at:new Date(now-40*60000).toISOString(),by:staff[0]}],coffee:[{at:new Date(now-26*3600000).toISOString(),by:staff[1]}],trash:[{at:new Date(now-100*60000).toISOString(),by:staff[2]},{at:new Date(now-20*60000).toISOString(),by:''}],counter:[{at:new Date(now-5*3600000).toISOString(),by:staff[1]}]};
     return {stores:[{id:'cmpW',name:'見本の店（大町の地図つき）',createdAt:1},{id:'cmpX',name:'空の店',createdAt:2},{id:'cmpS',name:'番号を並べた店（大町の地図つき）',createdAt:3}],states:{cmpW:J(st),cmpX:null,cmpS:J(st2)},crew:{},mkChecks:true};

@@ -450,7 +450,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         J(r.out)===J(['todo*@9:00','soon@9:00','soon@9:00','fire@9:00','fire@9:00','soon@15:00','fire@15:00','fire@15:00','todo*@9:00','done@9:00','done@9:00','soon@15:00'])&&J(r.sl)===J([23*60,25.5*60])&&r.fl==='09:00',r.out.join(' ')+'｜'+r.sl.join(',')+'｜'+r.fl); }
     { // 予定の回と記録の突き合わせ（📊 と ⏰ が使う。読むだけ）
       const r=JSON.parse(A.ev(`(()=>{ const base=new Date(); base.setHours(0,0,0,0); base.setDate(base.getDate()-2); const d=base.getTime(), at=(h,m)=>d+h*3600000+(m||0)*60000, R=(w,h,m)=>({id:'x',key:'',w,t:at(h,m),by:'',v:null});
-        const tw={id:'tw_x',place:'off',times:['09:00','13:00','17:00','21:00'],lead:30,grace:60}, bw={id:'bw_x',sch:[1,2,1,0]};
+        const tw={id:'tw_x',place:'off',times:['09:00','13:00','17:00','21:00'],lead:30,grace:60}, bw={id:'bw_x',sch:[1,2,1,0],sch7:[1,0,1,1,1,0,0]};   // 5.10：古い [1,2,1,0] と同じ枠（3:00・9:00・12:00・15:00）になる 7つを一緒に持たせる
         const mk=since=>({recsBy:{tw_x:[R('tw_x',9,5),R('tw_x',14,20)],bw_x:[R('bw_x',5,0),R('bw_x',12,10),R('bw_x',15,40)]},since,now:Date.now(),works:[tw,bw]});
         const f=ctx=>amDayOcc(d,ctx).map(o=>o.w.id.slice(0,2)+amHM(o.s)+':'+o.st+(o.pre?'(pre)':''));
         return JSON.stringify([f(mk(0)),f(mk(at(12,0))),f(mk(null))]); })()`));
@@ -580,17 +580,17 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const r=JSON.parse(A.ev(`(()=>{ const o={}, keep=JSON.stringify(state.amWorks||null), base=new Date(); base.setHours(0,0,0,0);
         const hm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0'), nowMin=Math.floor((Date.now()-base.getTime())/60000)%1440;
         const dayMin=Math.floor((Date.now()-amLogDayMs(amLogDay(Date.now())))/60000);   // 3:00 始まりの日の中で、いま何分か（180〜1619）
-        const far=hm((nowMin+600)%1440), soon=hm((nowMin+10)%1440), past=hm(Math.max(181,dayMin-130)%1440);   // past＝きょうの日の中で 130分前（3:00 をまたがない）
+        const NOW=(()=>{ const d=new Date(); d.setDate(d.getDate()-3); d.setHours(10,0,0,0); return d.getTime(); })(), far=hm(Math.min(dayMin+600,1439)%1440), soon=hm((nowMin+10)%1440), past=hm(Math.max(181,dayMin-130)%1440);   // past＝きょうの日の中で 130分前（3:00 をまたがない）
         try{
-          state.amWorks=[{id:'w_b1',place:'off',name:'帯の試験の作業',icon:'🧪',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[far],lead:30,grace:60,items:[]}];
-          o.none=amOffBarHtml(Date.now());                                     // これから だけ → 帯なし
-          state.amWorks[0].times=[soon]; o.soon=amOffBarHtml(Date.now());       // 🟡 → 帯あり・名前入り
-          state.amWorks[0].lead=800; state.amWorks[0].grace=1; state.amWorks[0].times=[past]; o.fire=amOffBarHtml(Date.now());   // きょうの日の中の 130分前の回・締切 1分後 → 🔥（3:02 より前に流すと きょうの日に入らない）
+          state.amWorks=[{id:'w_b1',place:'off',name:'帯の試験の作業',icon:'🧪',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['20:00'],lead:30,grace:60,items:[]}];
+          o.none=amOffBarHtml(NOW);                                            // これから だけ（10:00 の時に 20:00 の回）→ 帯なし。5.10：固定の「いま」
+          state.amWorks[0].times=['10:10']; o.soon=amOffBarHtml(NOW);           // 🟡（10:00 の時に 10:10 の回）→ 帯あり・名前入り
+          state.amWorks[0].lead=800; state.amWorks[0].grace=1; state.amWorks[0].times=['07:50']; o.fire=amOffBarHtml(NOW); state.amWorks[0].times=[past];   // 10:00 の時に 7:50 の回・締切 1分後 → 🔥。そのあと 売場マップの確かめ用に きょうの日の中の 130分前の回にする（3:02 より前に流すと きょうの日に入らない）
           renderMapView(); o.inMap=!!document.querySelector('#map-view .ao-xbar'); o.inLow=document.querySelectorAll('#map-view #amf-col .amf-dn .amf-o.fire').length;   // 5.9：帯は 売場マップの画面に出さない。同じ 🔥 は 右の列の下に出る
-          state.amWorks[0].times=[far]; state.amWorks[0].lead=30; state.amWorks[0].grace=60; renderMapView(); o.inMap0=!!document.querySelector('#map-view .ao-xbar');
+          state.amWorks[0].times=['12:00']; state.amWorks[0].days=[(new Date(Date.now()-3*3600000).getDay()+3)%7]; state.amWorks[0].lead=30; state.amWorks[0].grace=60; renderMapView(); o.inMap0=!!document.querySelector('#map-view .ao-xbar');
           /* おわりの行：時間帯に◯回の作業（昼に1回）で、きのうの 15:13 の記録で きょうの昼の分が済に見える時（前からある弱さ A）、日付を出す */
-          const rid='amLog_'+amLogDay(Date.now()-864e5); const yd=new Date(Date.now()-864e5); yd.setHours(15,13,0,0); state[rid]=state[rid]||{}; state[rid].q57={w:'w_b1',at:yd.toISOString(),by:'見本 花子'};
-          state.amWorks[0].times=[]; state.amWorks[0].sch=[0,1,0,0]; delete state.amWorks[0].vals;
+          const bd=amLogDayMs(amLogDay(Date.now())), yd=new Date(bd-864e5); yd.setHours(15,13,0,0); const rid='amLog_'+amLogDay(yd.getTime());   /* 5.10：きのう＝営業日（3:00 始まり）の きのう */ state[rid]=state[rid]||{}; state[rid].q57={w:'w_b1',at:yd.toISOString(),by:'見本 花子'};
+          state.amWorks[0].times=[]; state.amWorks[0].days=null; state.amWorks[0].sch=[0,1,0,0]; delete state.amWorks[0].vals;   /* 5.10：場所の無い曜日（これから だけ）は ここで 毎日に戻す */
           const ol=amOffList(Date.now()).filter(x=>x.w.id==='w_b1'); o.done=ol.map(x=>x.k); o.row=ol.length?amOffRowHtml(ol[0]):'';
           delete state[rid].q57;
         } finally { state.amWorks=keep==='null'?undefined:JSON.parse(keep); if(state.amWorks===undefined) delete state.amWorks; renderMapView(); }
@@ -705,7 +705,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const dis=()=>JSON.parse(A.ev(`JSON.stringify(Array.prototype.filter.call(document.querySelectorAll('#am-sheet .am-nm'),b=>!/ほかの人/.test(b.textContent)).map(b=>b.disabled))`));   // 「ほかの人 ▾」は 記録しないので 押せるまま（数えない）
       const nrec=id=>A.ev(`((state.areaChecks||{})[${J(id)}]||[]).length`), card=id=>A.ev(`amOpenArea(${J(id)})`);
       const o={};
-      A.ev(`amCloseSheet(); state.amWorks=[{id:'w_fgF',name:'火の作業',icon:'🧯',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],days:null,items:[['確認','']]},{id:'w_fgH',name:'ふつうの作業',icon:'🧹',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],days:null,items:[['確認','']]}]; state.areaChecks={};
+      A.ev(`amCloseSheet(); state.amWorks=[{id:'w_fgF',name:'火の作業',icon:'🧯',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],sch7:[4,4,4,4,4,4,4],days:null,items:[['確認','']]},{id:'w_fgH',name:'ふつうの作業',icon:'🧹',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],sch7:[4,4,4,4,4,4,4],days:null,items:[['確認','']]}]; state.areaChecks={};
         (()=>{ const w=amWork('w_fgH'), now=Date.now(), sl=amSlots(w,now); let pi=-1; for(let i=0;i<sl.length;i++){ if(sl[i].e<=now) pi=i; } state.areaChecks['w_fgH']=[{at:new Date(sl[pi].s+1000).toISOString(),by:''}]; })();`);   // 火の作業＝記録なし（🔥）。ふつうの作業＝前の枠に記録があり 今の枠は まだ（🟡 か ⬜）
       o.stF=A.ev(`amStatus(amWork('w_fgF')).st`); o.stH=A.ev(`amStatus(amWork('w_fgH')).st`); o.base=nrec('w_fgH');
       card('w_fgH'); await sleep(650);                                                                                                             // (a) 🔥 でない作業のカード → 案内が出て、名前は灰色
@@ -841,7 +841,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clear(); add('w_dfe',at(10,15),{df:1}); out.e2=amOffSlots(w2,at(12,0)).filter(x=>x.re).map(x=>amHM(x.s)); out.eOcc2=occ(dayMs,'w_dfe',true);
           /* 再チェックの記録の無い DF中 → 📊（管理者）：再チェックのマスが 1つ・しるし（rc）・説明に「抜けに 数えます」 */
           clear(); add('w_dfn',at(23,50),{df:1});
-          isAdmin=true; _who.help=false; setView('dashboard'); amWho('kind','off'); amWho('only',false); amWho('day',-3);
+          isAdmin=true; _who.help=false; setView('dashboard'); amWho('kind','off'); amWho('only',false); amWho('day',Math.round((dayMs-amLogDayMs(amLogDay(Date.now())))/86400000));
           out.rcCells=document.querySelectorAll('#who-view .aw-wm .aw-cx.rc').length; out.legend=document.querySelectorAll('#who-view .aw-legend .aw-cx.rc').length;
           const sel=amDayOcc(dayMs,amOccCtx(dayMs,dayMs,Date.now())).filter(x=>x.w.id==='w_dfn'&&x.re)[0];
           amWho('sel',sel.w.id+'|'+sel.s); out.detail=document.querySelector('#who-view .aw-detail').textContent;
@@ -957,7 +957,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const dis=()=>JSON.parse(A.ev(`JSON.stringify(Array.prototype.filter.call(document.querySelectorAll('#am-sheet .am-nm'),b=>!/ほかの人/.test(b.textContent)).map(b=>b.disabled))`));
       const bigNames=()=>JSON.parse(A.ev(`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#am-sheet .am-nm-g .am-nm'),b=>b.textContent))`));
       const mark=()=>A.ev(`(()=>{ const b=document.querySelector('#am-sheet .am-cd-body'); if(b) b.__m=1; return !!b; })()`), marked=()=>A.ev(`!!(document.querySelector('#am-sheet .am-cd-body')||{}).__m`);
-      A.ev(`amFireTop=window.__ft0; amCloseSheet(); state.amWorks=[{id:'w_tkF',name:'火の作業',icon:'🧯',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],days:null,items:[['確認','']]},{id:'w_tkH',name:'ふつうの作業',icon:'🧹',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],days:null,items:[['確認','']]}]; state.areaChecks={};
+      A.ev(`amFireTop=window.__ft0; amCloseSheet(); state.amWorks=[{id:'w_tkF',name:'火の作業',icon:'🧯',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],sch7:[4,4,4,4,4,4,4],days:null,items:[['確認','']]},{id:'w_tkH',name:'ふつうの作業',icon:'🧹',kind:'点検',zone:'blue',sub:'',sch:[4,4,4,4],sch7:[4,4,4,4,4,4,4],days:null,items:[['確認','']]}]; state.areaChecks={};
         (()=>{ const w=amWork('w_tkH'), now=Date.now(), sl=amSlots(w,now); let pi=-1; for(let i=0;i<sl.length;i++){ if(sl[i].e<=now) pi=i; } state.areaChecks['w_tkH']=[{at:new Date(sl[pi].s+1000).toISOString(),by:''}]; state.areaChecks['w_tkO']=[{at:new Date(Date.now()-60000).toISOString(),by:'見本 花子'}]; })();`);   // 火の作業＝記録なし（🔥）。ふつうの作業＝前の枠に記録があり 今の枠は まだ。「さいきん押した人」は 見本 花子 だけ
       try{
         o.stF=A.ev(`amStatus(amWork('w_tkF')).st`); o.stH=A.ev(`amStatus(amWork('w_tkH')).st`);
@@ -990,7 +990,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           state.amWorks=JSON.parse(JSON.stringify(DEFAULT_WORKS)); delete state.areaChecks; renderMapView(); const base=q('#amf-col .amf-r').map(r=>r.dataset.w).join(',');
           o.a={split:col().classList.contains('amf-split'), sh:q('#amf-col .amf-sh').length, bar:q('#map-view .ao-xbar').length, rows:q('#amf-col .amf-r').length};
           const mk=(n,name,times,extra)=>Object.assign({id:idn(n),place:'off',name:name,icon:'⏰',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:times,lead:30,grace:60,items:[]},extra||{});
-          const W=[mk(1,'ふつう1',['10:30']),mk(2,'いま1',['12:10']),mk(3,'あと1',['18:00']),mk(4,'済1',['08:00']),mk(5,'時間帯1',null,{sch:[0,1,0,0]}),mk(6,'ふつう2',['11:00'],{grace:30})]; delete W[4].times;
+          const W=[mk(1,'ふつう1',['10:30']),mk(2,'いま1',['12:10']),mk(3,'あと1',['18:00']),mk(4,'済1',['08:00']),mk(5,'時間帯1',null,{sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0]}),mk(6,'ふつう2',['11:00'],{grace:30})]; delete W[4].times;
           amWorksEdit().push.apply(amWorksEdit(),W); state.areaChecks=state.areaChecks||{}; state.areaChecks[idn(4)]=[{at:iso(T(10,14,8,10)),by:''}];
           const d=amOffColData(T(10,14,12,0));
           o.c={act:d.act.map(x=>x.w.name+':'+x.k+':'+amHM(x.s)), done:d.done.map(x=>x.w.name), nF:d.nF, nS:d.nS, lock:d.act.map(x=>x.lock?1:0).join('')};
@@ -1004,7 +1004,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         return JSON.stringify(o); })()`));
       check('77','右の列を上下に分ける（5.9）：売場以外の作業が1つも無い店は 今までの1本の列（見出しも帯も無い）。登録があれば、上＝🧹 点検（今までの行・同じ順・数字あり）／下＝⏰ 地図に ない 作業（売場以外。数字なし・時刻が先頭）。並びは おくれ → いま → これから（同じ中は 時刻の順）・済は下にたたむ。見出しの 🔥🟡 の数と、「作業」のボタンの 🔥 は 下の分も数える。売場以外の帯は 出ない',
         r.a.split===false&&r.a.sh===0&&r.a.bar===0&&r.a.rows>0
-        &&J(r.c.act)===J(['ふつう1:fire:10:30','ふつう2:fire:11:00','いま1:soon:12:10','時間帯1:todo:9:00','あと1:todo:18:00'])&&J(r.c.done)===J(['済1'])&&r.c.nF===2&&r.c.nS===1&&r.c.lock==='00001'
+        &&J(r.c.act)===J(['ふつう1:fire:10:30','ふつう2:fire:11:00','いま1:soon:12:10','時間帯1:todo:12:00','あと1:todo:18:00'])&&J(r.c.done)===J(['済1'])&&r.c.nF===2&&r.c.nS===1&&r.c.lock==='00001'
         &&r.b.split===true&&J(r.b.heads)===J(['🧹 点検','⏰ 地図に ない 作業'])&&r.b.bar===0&&r.b.same===true&&r.b.lowRows===r.b.liveRows&&r.b.lowNo===0&&r.b.upNo>0&&r.b.lowTime===r.b.lowRows&&r.b.chips===r.b.liveChips&&r.b.tab===r.b.tabExp&&r.b.noMore===2,
         `売場以外なし：${J(r.a)}｜12:00 の下の列 ${r.c.act.join(' ')}／済 ${r.c.done.join(',')}｜登録あり：${J(r.b)}`); }
     { // 78：登録の窓の「くり返し」（5.9）
@@ -1012,7 +1012,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         try{
           isAdmin=true;
           amEditWork(''); o.f0={rk:_amForm.rk, days:g('amw-days').style.display, rc:g('amw-rc-l')?g('amw-rc-l').style.display:'(なし)', box:!!g('amw-rep-box'), note:g('amw-rep-note').style.display};
-          g('amw-name').value='週1の清掃'; g('amw-sch-1').value='1'; amFormSeg('rk','w'); g('amw-rep-wd').value='3'; g('amw-rep-wt').value='5'; amFormSync();
+          g('amw-name').value='週1の清掃'; g('amw-sch-3').value='1'; amFormSeg('rk','w'); g('amw-rep-wd').value='3'; g('amw-rep-wt').value='5'; amFormSync();
           o.f1={days:g('amw-days').style.display, wbox:g('amw-rep-w').style.display, mbox:g('amw-rep-m').style.display, note:g('amw-rep-note').textContent, on:Array.prototype.map.call(g('amw-rep').children,b=>b.classList.contains('on')?b.getAttribute('data-v'):'').join('')};
           amSaveWork(''); const w1=cp(last()); o.w1=w1; o.at0=last().rep.at; amEditWork(w1.id); amSaveWork(w1.id); o.at1=amWork(w1.id).rep.at;
           amEditWork(w1.id); o.f2={rk:_amForm.rk, wd:g('amw-rep-wd').value, wt:g('amw-rep-wt').value, days:g('amw-days').style.display};
@@ -1032,7 +1032,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       check('78','登録の窓の「くり返し」（5.9）：毎日／週1／月1。週1は 始まりの曜日と終わりの曜日（その日だけなら 同じ日＝to なし）、月1は 日にち（31日＝その月に無ければ 月末）。毎日の時だけ「行う曜日」と「再チェック」が出る。保存は 作業に rep を足すだけ（毎日に戻すと 項目ごと消える・週1・月1は 曜日の選びを使わず days は null・再チェックの項目は消える）。もう1台にも同じ形で届く',
         r.f0.rk==='d'&&r.f0.days===''&&r.f0.rc===''&&r.f0.box===true&&r.f0.note==='none'
         &&r.f1.days==='none'&&r.f1.wbox===''&&r.f1.mbox==='none'&&/水〜金/.test(r.f1.note)&&r.f1.on==='w'
-        &&J(r.w1.rep)===J({k:'w',d:[3],to:5})&&r.w1.repAt==='number'&&r.at0>1.6e12&&r.at1===r.at0&&r.w1.days===null&&r.w1.sch[1]===1&&!('recheck' in r.w1)&&r.w1.place===undefined
+        &&J(r.w1.rep)===J({k:'w',d:[3],to:5})&&r.w1.repAt==='number'&&r.at0>1.6e12&&r.at1===r.at0&&r.w1.days===null&&r.w1.sch[1]===1&&J(r.w1.sch7)===J([0,0,0,1,0,0,0])&&!('recheck' in r.w1)&&r.w1.place===undefined
         &&r.f2.rk==='w'&&r.f2.wd==='3'&&r.f2.wt==='5'&&r.f2.days==='none'
         &&/31日/.test(r.f3.note)&&/月末|最後の日/.test(r.f3.note)&&r.f3.mbox===''&&r.f3.wbox==='none'&&J(r.w2.rep)===J({k:'m',d:31})
         &&J(r.w3.rep)===J({k:'w',d:[1]})&&!('rep' in r.w4)&&r.f4.days===''&&r.f4.rc===''
@@ -1041,22 +1041,22 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         `保存 ${J(r.w1.rep)}→${J(r.w2.rep)}→${J(r.w3.rep)}→${'rep' in r.w4?'あり':'なし'}｜時刻の作業 ${r.w5.recheck}分→${r.w6.has?'再チェックあり':'再チェックなし'}・${J(r.w6.rep)}｜B ${idsB}`); }
     { // 79：くり返しの判定（売場の作業。毎日の作業は変えない）
       const r=JSON.parse(A.ev(`(()=>{ const T=(m,d,h,mi)=>new Date(2026,m-1,d,h,mi||0).getTime(), iso=ms=>new Date(ms).toISOString(), idn=n=>'w_'+(T(10,12,9)+n).toString(36);
-        const mk=(n,rep)=>({id:idn(n),name:'清掃',icon:'🧹',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],days:null,items:[],rep:rep});
+        const mk=(n,rep)=>({id:idn(n),name:'清掃',icon:'🧹',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0],days:null,items:[],rep:rep});   // 5.10：昼（12-15）1回。枠の まんなかは 13:30
         const st=(w,t)=>{ const s=amStatus(w,T.apply(null,t)); return s.st+(s.carry?'*':'')+(s.lv||''); };
         const wA=mk(1,{k:'w',d:[3]}), wR=mk(2,{k:'w',d:[3],to:5}), wM=mk(3,{k:'m',d:15}), wD=mk(4,{k:'d'}), wJ=mk(5,{k:'w',d:[9]}), wC=mk(6,{k:'w',d:[5],to:1});
         const rec=(w,t)=>{ state.areaChecks=state.areaChecks||{}; state.areaChecks[w.id]=[{at:iso(T.apply(null,t)),by:''}]; };
         const o={}, keepA=JSON.stringify(state.areaChecks===undefined?null:state.areaChecks);
         try{
-          o.A=[[10,13,12],[10,14,5],[10,14,11,59],[10,14,12],[10,14,14,59],[10,14,15],[10,15,2,59],[10,15,3],[10,20,12],[10,21,2,59],[10,21,3]].map(t=>st(wA,t));
+          o.A=[[10,13,12],[10,14,5],[10,14,11,59],[10,14,13,30],[10,14,14,59],[10,14,15],[10,15,2,59],[10,15,3],[10,20,12],[10,21,2,59],[10,21,3]].map(t=>st(wA,t));
           rec(wA,[10,15,10]); o.A1=[[10,15,10,1],[10,16,2,59],[10,16,3],[10,21,3]].map(t=>st(wA,t));
           rec(wA,[10,14,9,30]); o.A2=[[10,14,9,31],[10,15,2,59],[10,15,3],[10,21,3]].map(t=>st(wA,t));
           delete state.areaChecks[wA.id];
-          o.R=[[10,14,12],[10,15,20],[10,16,5],[10,16,12],[10,16,15],[10,17,2,59],[10,17,3],[10,21,2,59],[10,21,3]].map(t=>st(wR,t));
+          o.R=[[10,14,12],[10,15,20],[10,16,5],[10,16,13,30],[10,16,15],[10,17,2,59],[10,17,3],[10,21,2,59],[10,21,3]].map(t=>st(wR,t));
           rec(wR,[10,14,10]); o.R1=[[10,14,10,1],[10,15,2,59],[10,15,3],[10,16,12]].map(t=>st(wR,t)); delete state.areaChecks[wR.id];
           o.Rsoon=[amStatus(wR,T(10,14,12)).early, amStatus(wR,T(10,16,12)).early, /金曜/.test(amWhenText(amStatus(wR,T(10,14,12))))];
-          o.M=[[10,14,12],[10,15,5],[10,15,12],[10,15,15],[10,16,3],[11,14,12],[11,15,2,59],[11,15,3]].map(t=>st(wM,t));
+          o.M=[[10,14,12],[10,15,5],[10,15,13,30],[10,15,15],[10,16,3],[11,14,12],[11,15,2,59],[11,15,3]].map(t=>st(wM,t));
           o.D=[amIsRep(wD),amIsRep(wJ),JSON.stringify(amStatus(wD,T(10,14,12)))===JSON.stringify(amStatus(Object.assign({},wD,{rep:undefined}),T(10,14,12))),JSON.stringify(amStatus(wJ,T(10,14,12)))===JSON.stringify(amStatus(Object.assign({},wJ,{rep:undefined}),T(10,14,12)))];
-          o.C=[[10,16,12],[10,17,12],[10,19,5],[10,19,12],[10,19,15],[10,20,2,59],[10,20,3],[10,23,2,59],[10,23,3]].map(t=>st(wC,t));
+          o.C=[[10,16,12],[10,17,12],[10,19,5],[10,19,13,30],[10,19,15],[10,20,2,59],[10,20,3],[10,23,2,59],[10,23,3]].map(t=>st(wC,t));
           const fm=ms=>{ const d=new Date(ms); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); };
           const oc=(d,y,m,dd,h)=>{ const O=amRepOcc({id:'x',rep:{k:'m',d:d}},new Date(y,m-1,dd,h||12).getTime()); return fm(O.A)+'→'+fm(O.N); };
           o.mo=[oc(31,2026,11,29),oc(31,2026,11,30),oc(31,2027,2,28),oc(31,2027,3,1),oc(30,2027,2,28),oc(31,2028,2,29),oc(31,2027,1,15),oc(15,2026,12,31),oc(1,2027,1,1,2)];
@@ -1077,7 +1077,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     { // 80：くり返しの判定（売場以外の時刻の作業）と、右の列の下・⏰ の一覧
       const r=JSON.parse(A.ev(`(()=>{ const T=(m,d,h,mi)=>new Date(2026,m-1,d,h,mi||0).getTime(), iso=ms=>new Date(ms).toISOString(), idn=n=>'w_'+(T(10,12,9)+n).toString(36);
         const wT={id:idn(7),place:'off',name:'精算の確認',icon:'🧾',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['14:00'],lead:30,grace:60,items:[],rep:{k:'w',d:[3]}};
-        const wB={id:idn(8),place:'off',name:'棚卸し',icon:'📦',kind:'点検',zone:'blue',sub:'',sch:[0,1,0,0],days:null,items:[],rep:{k:'m',d:15}};
+        const wB={id:idn(8),place:'off',name:'棚卸し',icon:'📦',kind:'点検',zone:'blue',sub:'',sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0],days:null,items:[],rep:{k:'m',d:15}};
         const sx=t=>{ const s=amOffNow(wT,T.apply(null,t)); return s.st+(s.lock?'L':'')+(s.carry?'*':'')+'@'+(s.slot?amHM(s.slot.s):'-'); };
         const o={}, keep=JSON.stringify(state.amWorks===undefined?null:state.amWorks), kA=JSON.stringify(state.areaChecks===undefined?null:state.areaChecks);
         try{
@@ -1088,15 +1088,15 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.L=[li([10,14,8]),li([10,14,13,40]),li([10,14,16]),li([10,16,12]),li([10,22,12]),li([10,15,5]),li([11,15,16])];
           state.areaChecks[wT.id]=[{at:iso(T(10,14,14,10)),by:'見本 花子'}]; o.Ld=[li([10,14,14,30]),li([10,15,2,59]),li([10,15,3])];
           const bs=t=>{ const s=amOffNow(wB,T.apply(null,t)); return s.st+((s.band&&s.band.carry)?'*':''); }; delete state.areaChecks[wT.id];
-          o.B=[[10,14,12],[10,15,5],[10,15,12],[10,15,16],[10,16,3]].map(t=>bs(t));
+          o.B=[[10,14,12],[10,15,5],[10,15,13,30],[10,15,16],[10,16,3]].map(t=>bs(t));
           o.bi=[amOccBand(amOffList(T(10,15,12)).find(x=>x.w.id===wB.id)).label];
-          state.amWorks=[Object.assign({},wB,{sch:[0,0,0,0]})]; o.allday=[amOffList(T(10,15,12)).map(x=>x.k+':'+amOccBand(x).label+':'+x.allday), amOffNow(state.amWorks[0],T(10,15,12)).st, amOffNow(state.amWorks[0],T(10,16,4)).st+'*'];
+          state.amWorks=[Object.assign({},wB,{sch:[0,0,0,0],sch7:[0,0,0,0,0,0,0]})]; o.allday=[amOffList(T(10,15,12)).map(x=>x.k+':'+amOccBand(x).label+':'+x.allday), amOffNow(state.amWorks[0],T(10,15,12)).st, amOffNow(state.amWorks[0],T(10,16,4)).st+'*'];
         } finally { state.amWorks=keep==='null'?undefined:JSON.parse(keep); if(state.amWorks===undefined) delete state.amWorks; state.areaChecks=kA==='null'?undefined:JSON.parse(kA); if(state.areaChecks===undefined) delete state.areaChecks; }
         return JSON.stringify(o); })()`));
       check('80','くり返しの判定（5.9・売場以外）：時刻の作業の週1＝その日の 3:00 から ⬜ これから（まだ押せない）→ 30分前から 🟡 → 締切（60分後）を過ぎたら 🔥 → 3:00 を過ぎても 🔥（持ち越し）→ 次の回で新しい回。やると その日の終わりまで済。⏰ の一覧・右の列の下に 1件ずつ出る（札は 週1・持ち越し）。時間帯の作業の月1＝その日に出て、持ち越す。時間帯の回数が無い物は「1日」',
         J(r.T)===J(['todoL@14:00','todoL@14:00','soon@14:00','soon@14:00','soon@14:00','fire@14:00','fire@14:00','fire*@14:00','fire*@14:00','fire*@14:00','todoL@14:00'])&&J(r.T1)===J(['done@14:00','done@14:00','none@-','todoL@14:00'])
-        &&J(r.L[0])===J(['精算の確認:todoL:w:14:00:0'])&&J(r.L[1])===J(['精算の確認:soon:w:14:00:0'])&&J(r.L[2])===J(['精算の確認:fire:w:14:00:0'])&&J(r.L[3])===J(['精算の確認:fire*:w:14:00:0','棚卸し:fire*:m:9:00:0'])&&J(r.L[4])===J(['棚卸し:fire*:m:9:00:0','精算の確認:fire*:w:14:00:0'])&&J(r.L[5])===J(['精算の確認:fire*:w:14:00:0','棚卸し:todo:m:9:00:0'])&&J(r.L[6])===J(['精算の確認:fire*:w:14:00:0','棚卸し:fire:m:9:00:0'])
-        &&J(r.Ld)===J([['精算の確認:done:w:14:00:0'],['精算の確認:done:w:14:00:0'],['棚卸し:todo:m:9:00:0']])&&J(r.B)===J(['none','todo','soon','fire','fire*'])&&J(r.bi)===J(['昼'])&&J(r.allday[0])===J(['todo:1日:true'])&&r.allday[1]==='todo'&&r.allday[2]==='fire*',
+        &&J(r.L[0])===J(['精算の確認:todoL:w:14:00:0'])&&J(r.L[1])===J(['精算の確認:soon:w:14:00:0'])&&J(r.L[2])===J(['精算の確認:fire:w:14:00:0'])&&J(r.L[3])===J(['精算の確認:fire*:w:14:00:0','棚卸し:fire*:m:12:00:0'])&&J(r.L[4])===J(['棚卸し:fire*:m:12:00:0','精算の確認:fire*:w:14:00:0'])&&J(r.L[5])===J(['精算の確認:fire*:w:14:00:0','棚卸し:todo:m:12:00:0'])&&J(r.L[6])===J(['精算の確認:fire*:w:14:00:0','棚卸し:fire:m:12:00:0'])
+        &&J(r.Ld)===J([['精算の確認:done:w:14:00:0'],['精算の確認:done:w:14:00:0'],['棚卸し:todo:m:12:00:0']])&&J(r.B)===J(['none','todo','soon','fire','fire*'])&&J(r.bi)===J(['昼'])&&J(r.allday[0])===J(['todo:1日:true'])&&r.allday[1]==='todo'&&r.allday[2]==='fire*',
         `時刻 ${r.T.join(' ')}｜やった ${r.T1.join(' ')}｜一覧 ${r.L.map(x=>x.join('+')).join(' ／ ')}｜時間帯の月1 ${r.B.join(' ')}｜1日 ${J(r.allday)}`); }
     { // 81：「やらなかった」の記録（5.9）
       const r=JSON.parse(A.ev(`(()=>{ const T=(m,d,h,mi)=>new Date(2026,m-1,d,h,mi||0).getTime(), iso=ms=>new Date(ms).toISOString(), idn=n=>'w_'+(T(10,12,9)+n).toString(36);
@@ -1144,11 +1144,11 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         `持ち越し ${s0.join('/')}→別の端末が記録 ${s1.join('/')}｜同時に記録 ${nrec2.join('/')} 件｜同時に miss ${sa}+${sb}→${ma.length}件（B ${mb.length}）`); }
     { // 83：📊 週1・月1の やった／やらなかった（5.9）
       const r=JSON.parse(A.ev(`(()=>{ const T=(m,d,h,mi)=>new Date(2026,m-1,d,h,mi||0).getTime(), iso=ms=>new Date(ms).toISOString(), idn=n=>'w_'+(T(10,12,9)+n).toString(36), DAY=86400000;
-        const wF={id:idn(11),name:'床みがき',icon:'🧽',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],days:null,items:[],rep:{k:'w',d:[3]}};
-        const wR={id:idn(12),name:'冷蔵庫の掃除',icon:'🧊',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],days:null,items:[],rep:{k:'w',d:[3],to:5}};
+        const wF={id:idn(11),name:'床みがき',icon:'🧽',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0],days:null,items:[],rep:{k:'w',d:[3]}};
+        const wR={id:idn(12),name:'冷蔵庫の掃除',icon:'🧊',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0],days:null,items:[],rep:{k:'w',d:[3],to:5}};
         const wT={id:idn(13),place:'off',name:'精算の確認',icon:'🧾',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['14:00'],lead:30,grace:60,items:[],rep:{k:'w',d:[3]}};
-        const wD={id:idn(14),name:'毎日の作業',icon:'🧹',kind:'点検',zone:'blue',sub:'',sch:[0,1,0,0],days:null,items:[]};
-        const wX={id:idn(15),name:'ほかの掃除',icon:'🧹',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],days:null,items:[],rep:{k:'w',d:[4]}};
+        const wD={id:idn(14),name:'毎日の作業',icon:'🧹',kind:'点検',zone:'blue',sub:'',sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0],days:null,items:[]};
+        const wX={id:idn(15),name:'ほかの掃除',icon:'🧹',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0],days:null,items:[],rep:{k:'w',d:[4]}};
         const o={}, keep=JSON.stringify(state.amWorks===undefined?null:state.amWorks), kS=JSON.stringify(state), logs=()=>Object.keys(state).filter(k=>/^amLog_/.test(k));
         const dm=(m,d)=>new Date(2026,m-1,d).getTime(), fm=x=>x.w.name.slice(0,2)+':'+x.st+(x.burn?'b':'')+(x.carry?'*':'')+(x.pre?'p':'')+':'+x.bi+':'+amHM(x.rec?x.rec.t:x.s);
         try{
@@ -1165,7 +1165,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { Object.keys(state).filter(k=>/^amLog_/.test(k)).forEach(k=>{ Object.keys(state[k]).forEach(i=>{ const r=state[k][i]; if(r&&[wF.id,wR.id,wT.id,wD.id,wX.id].includes(r.w)) delete state[k][i]; }); }); state.amWorks=keep==='null'?undefined:JSON.parse(keep); if(state.amWorks===undefined) delete state.amWorks; try{ applyAdminMode(); }catch(e){} }
         return JSON.stringify(o); })()`));
       check('83','📊（5.9）：週1・月1の 回は、「やった日」（持ち越して やった時は ⏱）か「やらなかった回の最後の日」のマスに 1つだけ出る（ほかの日には出ない）。冷蔵庫の掃除（水〜金）は やった水曜に ✅。やらないまま次の回が始まった回は 🔥（持ち越しの終わり）。いまの回は 🟡。週の表の作業名に「週1」の札',
-        J(r.d14)===J(['冷蔵:on:1:10:00','精算:on:1:14:10'])&&J(r.d15)===J(['床み:late*:1:10:00','ほか:miss*:1:9:00'])&&J(r.d16)===J([])&&J(r.d17)===J([])&&J(r.d21)===J(['床み:cur:1:9:00','精算:fut:1:14:00'])&&J(r.d21b)===J(['床み:missb:1:9:00','精算:missb:1:14:00'])&&J(r.d15c)===J(['床み:late*:1:10:00','ほか:missb*:1:9:00'])&&J(r.cnt)===J([1,1,1])&&r.tag>=4,
+        J(r.d14)===J(['冷蔵:on:2:10:00','精算:on:3:14:10'])&&J(r.d15)===J(['床み:late*:2:10:00','ほか:miss*:3:12:00'])&&J(r.d16)===J([])&&J(r.d17)===J([])&&J(r.d21)===J(['床み:cur:3:12:00','精算:fut:3:14:00'])&&J(r.d21b)===J(['床み:missb:3:12:00','精算:missb:3:14:00'])&&J(r.d15c)===J(['床み:late*:2:10:00','ほか:missb*:3:12:00'])&&J(r.cnt)===J([1,1,1])&&r.tag>=4,
         `10/14 ${r.d14.join(' ')}｜10/15 ${r.d15.join(' ')}｜10/16 ${r.d16.join(' ')}｜10/17 ${r.d17.join(' ')}｜10/21 ${r.d21.join(' ')}／夕方 ${r.d21b.join(' ')}｜持ち越しの間（10/16）の 10/15 ${r.d15c.join(' ')}｜毎日の作業 ${r.cnt.join(',')}｜札 ${r.tag}`); }
     { // 84：行・カード・「？」（5.9）
       const r=JSON.parse(A.ev(`(()=>{ const o={}, keep=JSON.stringify(state.amWorks===undefined?null:state.amWorks), kA=JSON.stringify(state.areaChecks===undefined?null:state.areaChecks), q=s=>document.querySelector(s), txt=s=>(q(s)||{}).textContent||'';
@@ -1189,7 +1189,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         `上の行 ${r.up.join('／')}｜下の行 ${r.lo.join('／')}｜カード ${r.c1[0]}／${r.c2[0]}｜「？」${J(r.h1)}→${J(r.h0)}`); }
     { // 85：下の列の行の押しの守り（5.9）
       const id='w_'+(Date.now()-3600000).toString(36);
-      A.ev(`(()=>{ window.__k85=JSON.stringify(state.amWorks===undefined?null:state.amWorks); state.amWorks=[{id:${J(id)},place:'off',name:'守りの試験2',icon:'🧪',kind:'点検',zone:'blue',sub:'',sch:[1,1,1,1],days:null,items:[]}]; renderMapView(); })()`);
+      A.ev(`(()=>{ window.__k85=JSON.stringify(state.amWorks===undefined?null:state.amWorks); state.amWorks=[{id:${J(id)},place:'off',name:'守りの試験2',icon:'🧪',kind:'点検',zone:'blue',sub:'',sch:[2,2,1,2],sch7:[1,1,1,1,1,1,1],days:null,items:[]}]; renderMapView(); })()`);   // 5.10：1日ぜんぶを おおう 7つ（流す時刻で 下の列の行が 出ない事が 無いように）
       const o={}; o.row=A.ev(`document.querySelectorAll('#amf-col .amf-dn .amf-r.amf-o').length`);
       A.ev(`(()=>{ document.querySelector('#amf-col .amf-dn .amf-r.amf-o').click(); })()`); o.open1=A.ev('amSheetName()');
       await sleep(700);
@@ -1200,9 +1200,282 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       A.ev(`(()=>{ amCloseSheet(); const k=window.__k85; state.amWorks=k==='null'?undefined:JSON.parse(k); if(state.amWorks===undefined) delete state.amWorks; renderMapView(); })()`);
       check('85','下の列の行（5.9）：押すと そのカードが開く。カードを閉じた直後 0.5秒は、同じ所を押しても 下の行のカードが開かない（上の行と同じ守り）。0.5秒すぎれば 開く',
         o.row>=1&&o.open1==='card'&&o.guard===''&&o.after==='card',`行 ${o.row}・開く ${o.open1}・閉じた直後 ${o.guard||'開かない'}・あと ${o.after}`); }
-    check('86','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
-    const srv=await c.readServer(); check('87','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
-    check('88','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
+    { // 89：時間帯は 7つ（5.10）。帯の定義・古い4つの帯からの写し・古い版（5.9）が sch だけを直した時の読み方（amSch）。机の上の全部の組み合わせで「消えない・増えない」を確かめる
+      const r=JSON.parse(A.ev(`(()=>{ const o={}, J=JSON.stringify, S=w=>J(amSch(w));
+        o.bands=J(AM_BANDS.map(b=>[b.label,b.s,b.e]));
+        o.names=J(AM_BANDS.map(b=>[b.ico,b.en,b.ne]));
+        o.cont=AM_BANDS.every((b,i)=>i===0?b.s===3:b.s===AM_BANDS[i-1].e)&&AM_BANDS[AM_BANDS.length-1].e===27;
+        o.tbl=[[2,3,3,2],[0,1,0,0],[1,1,1,1],[4,0,0,4],[0,0,0,0],[0,0,4,0]].map(s=>S({sch:s}));
+        o.bad=[5,'abc',{0:2},undefined,null,[]].map(v=>S({sch:v})).concat([S(null),S(undefined),S({}),S({sch7:[1,2,3]}),S({sch7:'abc'}),S({sch7:[1,1,1,1,1,1,'x']})]);
+        let n=0, lost=0, grew=0, back=0, same7=0, first='';
+        for(let a=0;a<=4;a++)for(let b=0;b<=4;b++)for(let c=0;c<=4;c++)for(let d=0;d<=4;d++){ const s=[a,b,c,d], x=amSch({sch:s}); n++;
+          const sum=x.reduce((p,q)=>p+q,0); if(sum<a+b+c+d)lost++; if(sum>a+b+c+d)grew++;
+          if(J(amSchFold(x))!==J(s)){ back++; if(!first)first=' 戻らない '+J(s); }
+          if(J(amSch({sch:s,sch7:x}))!==J(x))same7++; }
+        o.n=n; o.lost=lost; o.grew=grew; o.back=back; o.same7=same7; o.first=first;
+        /* 新しい7つ（合計 6 まで）→ まとめた数 → 新しい版は 7つのとおりに読む */
+        let seed=5; const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed>>8; };
+        let n7=0, ng7=0, f7=''; for(let i=0;i<3000;i++){ const sb=[0,0,0,0,0,0,0].map(()=>{ const v=rnd()%7; return v<3?0:v-2; }); if(sb.reduce((p,q)=>p+q,0)>6)continue; const s=amSchFold(sb); n7++; if(J(amSch({sch:s,sch7:sb}))!==J(sb)){ ng7++; if(!f7)f7=J(sb); } }
+        o.n7=n7; o.ng7=ng7; o.f7=f7;
+        const W=(sb,s)=>({sch7:sb,sch:s});
+        o.up=S(W([1,1,2,0,0,0,0],[3,2,0,0]));      // 古い版が 朝 を 2→3 に → 写し先（朝 6-9）に +1
+        o.down=S(W([1,1,2,0,0,0,0],[1,2,0,0]));    // 朝 を 2→1 → 写し先から先に引く（朝 1→0）
+        o.zero=S(W([1,1,2,0,0,0,0],[0,2,0,0]));    // 朝 を 0 に → 朝の組（早朝・朝）をまとめて 0
+        o.zero2=S(W([0,0,1,1,0,0,0],[0,0,0,0]));   // 昼 を 0 に → 昼の組（昼前・昼）をまとめて 0
+        o.down2=S(W([2,3,0,0,0,0,0],[2,0,0,0]));   // 朝の組 5 → 古い版が 2 に → 朝 3→0（写し先から先に）、早朝 2 は のこる
+        o.add=S(W([0,0,0,0,0,0,0],[0,0,0,2]));     // 7つが全部0の所に 古い版が 夜 を 2 にした → 夜（18-24）に 2
+        o.only7=S({sch7:[0,2,0,0,1,0,0]});          // sch が無い → 7つのとおり
+        o.bad7=S({sch7:[0,2,0,0,1,0,0],sch:'abc'}); // sch がこわれている → 7つのとおり
+        o.set=(()=>{ const w={}; amSchSet(w,[1,2,0,0,0,3,1]); return J([w.sch7,w.sch]); })();
+        /* 2026-10-14：古い欄 sch に書く まとめの数は 4 まで（5.9 の選びは 0〜4）。合計 5・6・8 の作業も 7つの回数は そのまま（sch7）。5.9 が 見えていた 4 を そのまま保存しても 変わらない／4 から下げたら その数が 合計になる */
+        o.big=[[2,3,0,0,0,0,0],[0,0,0,0,0,4,2],[4,4,0,0,0,0,0],[1,3,0,0,0,0,0]].map(sb=>{ const w={}; amSchSet(w,sb); return [w.sch.join(','),J(amSch(w))===J(sb),J(amSch({sch7:sb,sch:w.sch.slice()}))===J(sb)]; });
+        o.low=[S(W([2,4,0,0,0,0,0],[2,0,0,0])),S(W([0,0,0,0,0,4,2],[0,0,0,3])),S(W([2,3,0,0,0,0,0],[1,0,0,0])),S(W([2,3,0,0,0,0,0],[0,0,0,0])),S(W([4,4,0,0,0,0,0],[4,0,0,0]))];
+        o.idx=[2.9,3,5.99,6,8.9,9,11.9,12,14.9,15,17.9,18,23.9,24,26.9,27,30].map(h=>amBandIdx(h)).join(',');
+        o.txt=amSchText({sch:[2,3,3,2]})+'｜'+amSchText({sch7:[1,1,0,0,0,0,1],sch:[2,0,0,1]})+'｜'+amSchText({sch:[0,0,0,0]});
+        return J(o); })()`));
+      const tb=['[0,2,3,0,3,2,0]','[0,0,1,0,0,0,0]','[0,1,1,0,1,1,0]','[0,4,0,0,0,4,0]','[0,0,0,0,0,0,0]','[0,0,0,0,4,0,0]'];
+      check('89','時間帯は 7つ（5.10）：早朝3-6・朝6-9・昼前9-12・昼12-15・夕方15-18・夜18-24・深夜24-3（切れ目なく 3:00〜27:00）。絵と英語・ネパール語の名前つき。古い4つの帯の回数は「朝→朝 6-9／昼→昼前 9-12／夕→夕方 15-18／夜→夜 18-24」に写す（回数は そのまま）。こわれた値は全部0。机の上の 5×5×5×5 通り：消えない・増えない・まとめて戻せる・sch7 付きは7つのとおり。古い版が sch だけを直した時は、増えた分を写し先に足し、減った分を写し先から先に引く（0 は組ごと 0）。古い欄 sch に書く まとめは 4 まで：合計 5・6・8 の作業も 7つは そのまま・5.9 が見えていた 4 をそのまま保存しても 変わらず、4 から下げたら その数が合計になる',
+        r.bands===J([['早朝',3,6],['朝',6,9],['昼前',9,12],['昼',12,15],['夕方',15,18],['夜',18,24],['深夜',24,27]])
+        &&r.names===J([['🌄','Early morning','बिहान सबेरै'],['🌅','Morning','बिहान'],['☀️','Late morning','मध्याह्न अघि'],['🕛','Midday','दिउँसो'],['🌇','Evening','साँझ'],['🌙','Night','राति'],['🌃','Late night','मध्यरात']])&&r.cont===true
+        &&J(r.tbl)===J(tb)&&r.bad.length===12&&r.bad.every(s=>s==='[0,0,0,0,0,0,0]')
+        &&r.n===625&&r.lost===0&&r.grew===0&&r.back===0&&r.same7===0&&r.n7>300&&r.ng7===0
+        &&r.up==='[1,2,2,0,0,0,0]'&&r.down==='[1,0,2,0,0,0,0]'&&r.zero==='[0,0,2,0,0,0,0]'&&r.zero2==='[0,0,0,0,0,0,0]'&&r.down2==='[2,0,0,0,0,0,0]'&&r.add==='[0,0,0,0,0,2,0]'&&r.only7==='[0,2,0,0,1,0,0]'&&r.bad7==='[0,2,0,0,1,0,0]'
+        &&r.set==='[[1,2,0,0,0,3,1],[3,0,0,4]]'&&J(r.big)===J([['4,0,0,0',true,true],['0,0,0,4',true,true],['4,0,0,0',true,true],['4,0,0,0',true,true]])&&J(r.low)===J(['[2,0,0,0,0,0,0]','[0,0,0,0,0,1,2]','[1,0,0,0,0,0,0]','[0,0,0,0,0,0,0]','[4,4,0,0,0,0,0]'])&&r.idx==='0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,6,6'&&r.txt==='朝2・昼前3・夕方3・夜2回｜早朝1・朝1・深夜1回｜予定なし',
+        `帯 ${r.bands}｜写し ${r.tbl.join(' ')}｜625通り 消えた ${r.lost}・増えた ${r.grew}・戻らない ${r.back}${r.first}｜7つ→まとめ→読む ${r.n7}通り ずれ ${r.ng7}${r.f7}｜古い版が直した時 ${[r.up,r.down,r.zero,r.zero2,r.down2,r.add].join(' ')}｜番号 ${r.idx}｜${r.txt}`); }
+    { // 90：枠の決め（5.10）。7つの帯ぜんぶで、回数ぶんに等分した枠の時刻を、別に書いた計算（帯の始まりと終わりを数字で並べた表）と照合する。状態（これから・そろそろ・おくれ・済）も、帯ごとに確かめる
+      const r=JSON.parse(A.ev(`(()=>{ const o={}, J=JSON.stringify, H=3600000, E=[3,6,9,12,15,18,24,27];
+        let seed=11; const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed>>8; };
+        const model=(sb,days,now)=>{ const out=[], base=new Date(now); base.setHours(0,0,0,0);
+          for(let d=-2;d<=1;d++){ const day=new Date(base); day.setDate(day.getDate()+d); if(days&&days.length&&days.indexOf(day.getDay())<0)continue;
+            for(let i=0;i<7;i++){ const n=sb[i]; if(!n)continue; const a=day.getTime()+E[i]*H, L=(E[i+1]-E[i])*H/n; for(let k=0;k<n;k++)out.push({s:a+k*L,e:a+(k+1)*L}); } }
+          return out; };
+        const base=new Date(); base.setHours(0,0,0,0); let n=0, bad=0, first='';
+        for(let i=0;i<400;i++){ const sb=[0,0,0,0,0,0,0].map(()=>rnd()%5), days=(i%5===0)?[1,2,3]:null, now=base.getTime()+(rnd()%1600+60)*60000-60000, w={sch7:sb,sch:amSchFold(sb),days:days};
+          n++; if(J(amSlots(w,now))!==J(model(sb,days,now))){ bad++; if(!first)first=' '+J(sb)+'@'+new Date(now).toTimeString().slice(0,5); } }
+        o.n=n; o.bad=bad; o.first=first;
+        /* 帯ごとに1回の作業。きのうの同じ帯の まんなかに記録がある作業が、その帯の 10% で これから・60% で そろそろ・終わりの1分後 おくれ（締切＝帯の終わり）。その帯の 30% に記録すると 60% も 終わりの1分後も済 */
+        const tmp='w_t90', st=[];
+        state.areaChecks=state.areaChecks||{}; const had=(tmp in state.areaChecks), keepC=state.areaChecks[tmp];
+        for(let b=0;b<7;b++){ const sb=[0,0,0,0,0,0,0]; sb[b]=1; const w={id:tmp,sch7:sb,sch:amSchFold(sb),days:null}, a=base.getTime()+E[b]*H, L=(E[b+1]-E[b])*H, pm={at:new Date(a-24*H+L*.5).toISOString(),by:'試験'};
+          state.areaChecks[tmp]=[pm]; const s10=amStatus(w,a+L*.1), s60=amStatus(w,a+L*.6), s100=amStatus(w,a+L+60000);
+          state.areaChecks[tmp]=[pm,{at:new Date(a+L*.3).toISOString(),by:'試験'}]; const d60=amStatus(w,a+L*.6), d100=amStatus(w,a+L+60000);
+          st.push([s10.st,s60.st,s100.st,s100.lv,s100.deadline===a+L,d60.st,d100.st].join('/')); }
+        if(had) state.areaChecks[tmp]=keepC; else delete state.areaChecks[tmp];
+        o.st=st;
+        /* 帯が2つ：昼前 2回（9-12 を 1時間半ずつ）＋ 夜 3回（18-24 を 2時間ずつ） */
+        const w2={id:tmp,sch7:[0,0,2,0,0,3,0],sch:amSchFold([0,0,2,0,0,3,0]),days:null}, t0=base.getTime(), sl=amSlots(w2,t0+12*H).filter(x=>x.s>=t0&&x.s<t0+24*H);
+        o.two=sl.map(x=>((x.s-t0)/H)+'-'+((x.e-t0)/H)).join(' ');
+        return J(o); })()`));
+      check('90','枠の決め（5.10）：7つの帯 × 回数 0〜4 × 曜日つき／なしの 400通りを、別に書いた計算（帯の始まりと終わりを数字で並べた表）と照合 → 1つも ちがわない。帯ごとに 1回の作業：10% でこれから・60% でそろそろ・終わりの1分後 おくれ（締切＝帯の終わり）・30% に記録すると済。昼前 2回＝9:00-10:30・10:30-12:00、夜 3回＝18-20・20-22・22-24',
+        r.n===400&&r.bad===0&&r.st.length===7&&r.st.every(s=>s==='todo/soon/fire/1/true/done/done')&&r.two==='9-10.5 10.5-12 18-20 20-22 22-24',
+        `照合 ${r.n}通り ずれ ${r.bad}${r.first}｜帯ごと ${r.st.join(' ・ ')}｜${r.two}`); }
+    { // 91：登録の表・内容の窓（5.10）。見出しと回数の四角が 7つ・絵つき。回数を押すと 7つの回数（sch7）と古い版が読む sch（まとめた数）を一緒に書く。開いただけでは書かない。写したままの作業が残る間だけ お知らせ（「10/13 に 7つに 写しました」）
+      const k91=A.ev('JSON.stringify(state.amWorks===undefined?null:state.amWorks)'), key=A.ev('STORAGE_KEY');
+      const mkw='state.amWorks=[{id:"t91a",name:"試験の点検A",icon:"🧪",kind:"点検",zone:"blue",sub:"",sch:[2,3,3,2],days:null,items:[["確認",""]]},{id:"t91b",name:"試験の点検B",icon:"🧫",kind:"清掃",zone:"red",sub:"",sch:[0,1,0,0],days:null,items:[["確認",""]]},{id:"t91c",name:"試験の点検C",icon:"🧴",kind:"補充",zone:"both",sub:"",sch:[0,0,0,0],days:null,items:[["確認",""]]}];';
+      await sync(); const raw0=A.ev('localStorage.getItem('+J(key)+')'), w0=cloud.writes;
+      const r0=JSON.parse(A.ev(`(()=>{ const o={}, J=JSON.stringify, q=(s,r)=>Array.prototype.slice.call((r||document).querySelectorAll(s));
+        isAdmin=true; ${mkw} renderMapView(); amOpenWorks(); const sh=document.getElementById('am-sheet'), rows=q('.amw-row[data-row]:not(.amw-off)',sh);
+        o.head=q('.amw-head .amw-band',sh).map(e=>e.textContent.replace(/\\s+/g,'')).join('|');
+        o.cells=rows.map(r=>q('.amw-cnt',r).length).join(',');
+        o.labels=q('.amw-cnt',rows[0]).map(e=>e.getAttribute('data-b')).join(',');
+        o.icons=q('.amw-cnt',rows[0]).map(e=>e.getAttribute('data-i')).join('');
+        o.peek=q('.amw-peek .am-seg button',sh).map(e=>e.textContent.replace(/\\s+/g,'')).join('|');
+        o.note=(sh.querySelector('.amw-b7')||{}).textContent||'';
+        o.sc=J(state.amWorks.map(w=>amSch(w))); o.txt=state.amWorks.map(amSchText).join('｜');
+        o.sevens=state.amWorks.filter(w=>('sch7' in w)).length;
+        amSetPeek('asa'); o.peekAsa=q('.amw-row[data-row]:not(.amw-off)',document.getElementById('am-sheet')).length; amSetPeek('shin'); o.peekShin=q('.amw-row[data-row]:not(.amw-off)',document.getElementById('am-sheet')).length; amSetPeek('all');
+        amEditWork('t91b'); const sel=q('#am-sheet select[id^="amw-sch-"]'); o.sel=sel.length; o.selv=sel.map(s=>s.value).join(','); o.edit7=q('#am-sheet .amw-7 label').length; amCloseSheet();
+        return J(o); })()`));
+      await sync(); const writes0=cloud.writes-w0, same0=A.ev('localStorage.getItem('+J(key)+')')===raw0;
+      const r=JSON.parse(A.ev(`(()=>{ const o={}, J=JSON.stringify, q=(s,r)=>Array.prototype.slice.call((r||document).querySelectorAll(s));
+        try{
+          const e={stopPropagation(){}}; amOpenWorks(); amCntTap(e,'t91a',0);   // 早朝を 0→1（古い形から写して見えていた 7つが sch7 になる）
+          const w=state.amWorks.find(x=>x.id==='t91a'); o.after=J([w.sch7,w.sch]); o.others=state.amWorks.filter(x=>x.id!=='t91a'&&('sch7' in x)).length;
+          o.note1=(document.querySelector('#am-sheet .amw-b7')||{}).textContent||'';
+          amCntTap(e,'t91a',0); amCntTap(e,'t91a',0); amCntTap(e,'t91a',0); amCntTap(e,'t91a',0);   // 合わせて 5回押した事になる（0→1→2→3→4→0）
+          o.cyc=J(state.amWorks.find(x=>x.id==='t91a').sch7);
+          amEditWork('t91b'); document.getElementById('amw-sch-6').value='1'; document.getElementById('amw-sch-0').value='2'; amSaveWork('t91b');
+          const c=state.amWorks.find(x=>x.id==='t91b'); o.save=J([c.sch7,c.sch]);
+          /* 時刻で決める作業は sch7 を持たない（保存しても付けない・あれば消す） */
+          state.amWorks.push({id:'t91t',place:'off',name:'試験の時刻',icon:'⏰',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],sch7:[0,0,0,0,0,0,0],days:null,times:['10:00'],lead:30,grace:60,items:[]});
+          amEditWork('t91t'); amSaveWork('t91t'); o.timed=('sch7' in state.amWorks.find(x=>x.id==='t91t'))?'あり':'なし';
+          o.note2=(document.querySelector('#am-sheet .amw-b7')||{}).textContent||'(なし)';
+        } finally { amCloseSheet(); }
+        return J(o); })()`));
+      A.ev('(()=>{ const k='+J(k91)+'; if(k==="null") delete state.amWorks; else state.amWorks=JSON.parse(k); amCloseSheet(); _amPeek="all"; isAdmin=false; try{ applyAdminMode(); }catch(e){} renderMapView(); saveState(); })()'); await sync();
+      check('91','登録の表と内容の窓（5.10）：見出し・回数の四角は 7つ（絵と名前つき）。のぞき窓は「すべて」＋7つ。古い形（2・3・3・2）の作業は 朝2・昼前3・夕方3・夜2回 に写って見える（読むだけ。開いただけ・窓を開いて閉じただけでは 何も書かない）。回数を押す → 7つの回数（sch7）と古い版が読む sch を一緒に書く（早朝 0→1 で sch の朝は 3）。5回押すと 0 に戻る。内容の窓には 7つの選び（古い形から写した値が入る）。保存すると sch7・sch が付く。時刻の作業は sch7 を持たない。写したままの作業が残る間だけ「10/13 に 7つに 写しました」のお知らせ（件数は減り、0件で消える）',
+        r0.head==='🌄早朝3-6|🌅朝6-9|☀️昼前9-12|🕛昼12-15|🌇夕方15-18|🌙夜18-24|🌃深夜24-3'&&r0.cells==='7,7,7'&&r0.labels==='早朝,朝,昼前,昼,夕方,夜,深夜'&&r0.icons==='🌄🌅☀️🕛🌇🌙🌃'
+        &&r0.peek==='すべて3|早朝0|朝1|昼前2|昼0|夕方1|夜1|深夜0'&&r0.peekAsa===1&&r0.peekShin===0
+        &&/7つに 写しました/.test(r0.note)&&/作業 2件/.test(r0.note)&&r0.sc==='[[0,2,3,0,3,2,0],[0,0,1,0,0,0,0],[0,0,0,0,0,0,0]]'&&r0.txt==='朝2・昼前3・夕方3・夜2回｜昼前1回｜予定なし'&&r0.sevens===0
+        &&r0.sel===7&&r0.selv==='0,0,1,0,0,0,0'&&r0.edit7===7&&writes0===0&&same0
+        &&r.after==='[[1,2,3,0,3,2,0],[3,3,3,2]]'&&r.others===0&&/作業 1件/.test(r.note1)&&r.cyc==='[0,2,3,0,3,2,0]'&&r.save==='[[2,0,1,0,0,0,1],[2,1,0,1]]'&&r.timed==='なし'&&r.note2==='(なし)',
+        `見出し ${r0.head}｜写し ${r0.sc}｜${r0.txt}｜のぞき 朝 ${r0.peekAsa}件・深夜 ${r0.peekShin}件｜開いただけで書いた ${writes0} 個｜押した後 ${r.after}｜5回 ${r.cyc}｜保存 ${r.save}｜時刻の作業の sch7 ${r.timed}｜お知らせ ${(r0.note||'').slice(0,26)}→${(r.note1||'').slice(-12)}`); }
+    { // 92：⏰ の札・📊・「？」・くり返しの「1日」の枠（5.10）。時間帯の札は 絵つき（「1日」だけ絵なし）。📊 の見出し・作業ごとのマスは 7つ・マスは 回の始まりの時刻の帯に入る。「？」に 7つの帯の一覧（英語・ネパール語つき）とすぐ下に「いま」の帯
+      const k92=A.ev('JSON.stringify(state.amWorks===undefined?null:state.amWorks)'), l92=A.ev('JSON.stringify(Object.keys(state).filter(k=>/^amLog_/.test(k)).map(k=>[k,state[k]]))');
+      const r=JSON.parse(A.ev(`(()=>{ const o={}, J=JSON.stringify, q=(s,r)=>Array.prototype.slice.call((r||document).querySelectorAll(s));
+        try{
+          isAdmin=true;
+          state.amWorks=[{id:'t92o',place:'off',name:'試験の売場以外（帯）',icon:'📦',kind:'点検',zone:'blue',sub:'',sch:[0,0,1,1],sch7:[0,0,0,0,1,1,0],days:null,items:[['確認','']]},{id:'t92f',name:'試験の売場（帯）',icon:'🧹',kind:'清掃',zone:'blue',sub:'',sch:[1,1,0,1],sch7:[0,1,0,1,0,1,0],days:null,items:[['確認','']]}];
+          setView('off'); renderOffView(); o.chips=q('#off-view .ao-bd').map(e=>(e.querySelector('.ao-bi')||{textContent:''}).textContent+(e.querySelector('.ao-bt')||{textContent:'?'}).textContent).sort().join('|');
+          /* 📊：きょうの記録を1件（メモリの中だけ）。作業 × 時間の表は 7つのマス。マスは 回の始まりの時刻の帯 */
+          const dk='amLog_'+amLogDay(Date.now()); state[dk]=state[dk]||{}; state[dk].t92={w:'t92f',at:new Date().toISOString(),by:'見本 花子',d:'X'};
+          setView('dashboard'); amWho('only',false); amWho('day',0); amWho('mode','day'); amWho('kind','floor');
+          const wm=document.querySelector('#who-view .aw-wm'); o.wmHead=wm?q('.aw-rhead .aw-band',wm).map(e=>e.textContent.replace(/\\s+/g,'')).join('|'):'(表なし)';
+          const row=wm?q('.aw-row:not(.aw-rhead)',wm).filter(r=>/試験の売場（帯）/.test(r.textContent))[0]:null;
+          o.cells=row?q('.aw-cell',row).length:-1; o.marks=row?q('.aw-cell',row).map(c=>c.querySelectorAll('.aw-cx').length).join(''):'';
+          o.ax=q('#who-view .aw-pp-ax span').map(e=>e.textContent).join(','); o.ppGrad=/linear-gradient/.test((document.querySelector('#who-view .aw-pp-bar')||{getAttribute(){return '';}}).getAttribute('style')||'');
+          amWho('mode','week'); o.bars=q('#who-view .aw-bar').length; o.barTxt=q('#who-view .aw-bar').map(e=>e.textContent.replace(/\\s+/g,'').slice(0,8)).join('|');
+          amWho('mode','day'); setView('map');
+          /* 「？」 */
+          amOpenHelp(); const rowsB=q('#am-sheet .am-bands .am-bd-r'), now=q('#am-sheet .am-bands .am-bd-r.now'), h=(new Date().getHours()+24-3)%24+3;
+          o.help=[rowsB.length,now.length,rowsB.indexOf(now[0])===amBandIdx(h),/Early morning ・ बिहान सबेरै/.test(rowsB[0].textContent),/Late night ・ मध्यरात/.test(rowsB[6].textContent),/Now: /.test((document.querySelector('#am-sheet .am-sub')||{}).textContent||'')].join(','); amCloseSheet();
+          /* くり返し：時間帯の回数が無い物は「1日」（絵なし）・あれば最後の枠の帯（夕方 15-18 → 4） */
+          const H=3600000, now2=Date.now(), w1={id:'t92r1',name:'a',sch:[0,0,0,0],days:null,rep:{k:'w',d:[new Date(now2).getDay()]}}, w2={id:'t92r2',name:'b',sch:[0,0,1,0],sch7:[0,0,0,0,1,0,0],days:null,rep:{k:'w',d:[new Date(now2).getDay()]}};
+          const O1=amRepOcc(w1,now2), O2=amRepOcc(w2,now2), f1=amRepSlot(w1,O1), f2=amRepSlot(w2,O2);
+          o.rep=[f1.allday===true,f2.bi,(f2.s-O2.L)/H,(f2.e-O2.L)/H, amOccBand({allday:true}).label, J(amOccBand({allday:true}).ico), amOccChip({allday:true}).indexOf('ao-bi')<0, amOccChip({bi:4}).indexOf('🌇')>=0&&amOccChip({bi:4}).indexOf('夕方')>=0].join(',');
+          const ent=amRepEntry(w2,O2,O2.L+10*H+10*60000,[{t:O2.L+10*H+10*60000,by:'x'}],0); o.recBi=ent.bi;   // 10:10 に記録 → 昼前（2）
+          const ent2=amRepEntry(w2,O2,O2.L+25*H+30*60000,[{t:O2.L+25*H+30*60000,by:'x'}],0); o.recBi2=ent2.bi;   // 翌 1:30 → 深夜（6）。回の中の記録は O2.A〜O2.N の間
+        } finally { Object.keys(state).filter(k=>/^amLog_/.test(k)).forEach(k=>{ if(state[k]&&state[k].t92) delete state[k].t92; }); isAdmin=false; try{ applyAdminMode(); }catch(e){} amCloseSheet(); }
+        return J(o); })()`));
+      A.ev('(()=>{ const k='+J(k92)+'; if(k==="null") delete state.amWorks; else state.amWorks=JSON.parse(k); const L='+l92+'; Object.keys(state).filter(x=>/^amLog_/.test(x)).forEach(x=>{ if(!L.some(p=>p[0]===x)) delete state[x]; }); setView("map"); renderMapView(); })()'); await sync();
+      check('92','⏰・📊・「？」・くり返し（5.10）：⏰ の時間帯の札は 絵つき（🌇夕方・🌙夜）、「1日」だけ絵なし。📊 の作業 × 時間の表は 見出しもマスも 7つ（回の始まりの時刻の帯に入る：朝6-9・昼12-15・夜18-24 → 2番目・4番目・6番目）。人ごとの時間の棒の目盛りは 3・6・9・12・15・18・24。週の表の「時間帯ごとの割合」は 7行。「？」には 7つの帯の一覧（英語・ネパール語つき）と「いま」の帯。くり返しの作業：回数が無い物は「1日」の枠（絵なし）、夕方 1回なら 15:00-18:00 の枠（帯 4）。記録のある回は 記録した時刻の帯（10:10 → 昼前・翌 1:30 → 深夜）',
+        r.chips==='🌇夕方|🌙夜'&&r.wmHead==='🌄早朝3〜6時|🌅朝6〜9時|☀️昼前9〜12時|🕛昼12〜15時|🌇夕方15〜18時|🌙夜18〜24時|🌃深夜24〜3時'&&r.cells===7&&r.marks==='0101010'&&r.ax==='3,6,9,12,15,18,24'&&r.ppGrad===true
+        &&r.bars===7&&/^🌄早朝/.test(r.barTxt)&&r.help==='7,1,true,true,true,true'&&r.rep==='true,4,15,18,1日,"",true,true'&&r.recBi===2&&r.recBi2===6,
+        `札 ${r.chips}｜📊 見出し ${r.wmHead}｜マス ${r.cells}（${r.marks}）｜目盛り ${r.ax}｜割合の行 ${r.bars}｜「？」 ${r.help}｜くり返し ${r.rep}｜記録のある回の帯 ${r.recBi}/${r.recBi2}`); }
+    { // 93：2台（5.10）。5.9 の端末が まざっても、作業の回数が消えない・増えない。5.9 の端末の動きは「sch だけを直す（sch7 を知らない）」で写す（古い amCycle と同じ）
+      const k93=A.ev('JSON.stringify(state.amWorks===undefined?null:state.amWorks)');
+      const old59=(d,id,i,v)=>d.ev('(()=>{ const w=state.amWorks.find(x=>x.id==='+J(id)+'); if(!Array.isArray(w.sch))w.sch=[0,0,0,0]; w.sch['+i+']='+v+'; state.amUsed=true; saveState(); })()');
+      const sc=(d,id)=>d.ev('JSON.stringify(amSch(amWork('+J(id)+')))'), sch=(d,id)=>d.ev('JSON.stringify(amWork('+J(id)+').sch)');
+      A.ev('(()=>{ state.amWorks=[{id:"t93a",name:"試験A",icon:"🧪",kind:"点検",zone:"blue",sub:"",sch:[2,2,0,0],days:null,items:[]},{id:"t93b",name:"試験B",icon:"🧫",kind:"点検",zone:"blue",sub:"",sch:[0,1,0,1],days:null,items:[]},{id:"t93c",name:"試験C",icon:"🧴",kind:"点検",zone:"red",sub:"",sch:[1,0,2,0],days:null,items:[]}]; state.amUsed=true; saveState(); })()'); await sync();
+      const o={}; o.s0=['t93a','t93b','t93c'].map(i=>sc(B,i)).join(' ');   // 古い形（sch だけ）から B にも 7つで見える
+      /* 1：A（5.10）が a の早朝 0→1。B（5.9）が b の夜 1→2、c の朝 1→2 */
+      off(); A.ev('amCycle("t93a",0)'); old59(B,'t93b',3,2); old59(B,'t93c',0,2); on(); await sync();
+      o.s1=[A,B].map(d=>['t93a','t93b','t93c'].map(i=>sc(d,i)).join(' '));
+      /* 2：同じ作業を同時に。A が a の夕方 0→1、B（5.9）が a の昼 2→3 */
+      off(); A.ev('amCycle("t93a",4)'); old59(B,'t93a',1,3); on(); await sync();
+      o.s2=[A,B].map(d=>sc(d,'t93a')); o.sch2=[A,B].map(d=>sch(d,'t93a'));
+      /* 3：A（5.10）が b の名前を直して保存（sch7 が付く）。B（5.9）が c の朝を全部消す（0） */
+      off(); A.ev('(()=>{ isAdmin=true; amEditWork("t93b"); document.getElementById("amw-name").value="試験B（直した）"; amSaveWork("t93b"); amCloseSheet(); isAdmin=false; })()'); old59(B,'t93c',0,0); on(); await sync();
+      o.s3=[A,B].map(d=>['t93b','t93c'].map(i=>sc(d,i)).join(' ')); o.sch3=[A,B].map(d=>sch(d,'t93b')).join(' ');
+      /* 4：5.9 の端末が作業を足す（sch だけ・sch7 なし）→ A にも 7つで見える */
+      B.ev('(()=>{ state.amWorks.push({id:"t93d",name:"試験D",icon:"🧰",kind:"清掃",zone:"blue",sub:"",sch:[1,1,1,1],days:null,items:[]}); state.amUsed=true; saveState(); })()'); await sync();
+      o.s4=[A,B].map(d=>sc(d,'t93d'));
+      /* 5：5.9 の端末（B）が名前だけ直して保存 → A の sch7 が消えない（A の a の中身が そのまま） */
+      B.ev('(()=>{ const w=state.amWorks.find(x=>x.id==="t93a"); w.name="試験A（5.9で直した）"; state.amUsed=true; saveState(); })()'); await sync();
+      o.s5=[A,B].map(d=>sc(d,'t93a'));
+      A.ev('(()=>{ const k='+J(k93)+'; if(k==="null") delete state.amWorks; else state.amWorks=JSON.parse(k); renderMapView(); saveState(); })()'); await sync();
+      check('93','2台（5.10）：5.9 の端末が まざっても、作業の回数が消えない・増えない。古い形の作業は B にも 7つで見える。A が早朝を押す（sch7 と sch）・B（5.9）が sch だけを直す、が別の作業なら 両方残る。同じ作業を 同時に直したら、両方の分が入る（A: 早朝 +1 → 夕方 +1／B: 昼 2→3 で 昼前 +1）。5.9 が全部消した（0）作業は 0。5.9 が足した作業は 7つで見える。5.9 が名前だけ直しても 7つの回数は そのまま。最後に 2台の中身が同じ',
+        o.s0==='[0,2,2,0,0,0,0] [0,0,1,0,0,1,0] [0,1,0,0,2,0,0]'&&o.s1.every(x=>x==='[1,2,2,0,0,0,0] [0,0,1,0,0,2,0] [0,2,0,0,2,0,0]')
+        &&o.s2.every(x=>x==='[1,2,3,0,1,0,0]')&&o.sch2.every(x=>x==='[3,3,1,0]')
+        &&o.s3.every(x=>x==='[0,0,1,0,0,2,0] [0,0,0,0,2,0,0]')&&o.sch3==='[0,1,0,2] [0,1,0,2]'
+        &&o.s4.every(x=>x==='[0,1,1,0,1,1,0]')&&o.s5.every(x=>x==='[1,2,3,0,1,0,0]')&&same(),
+        `はじめ ${o.s0}｜1 ${o.s1[0]}／B ${o.s1[1]}｜2 ${o.s2.join('／')}（sch ${o.sch2.join('／')}）｜3 ${o.s3.join('／')}｜4 ${o.s4.join('／')}｜5 ${o.s5.join('／')}`); }
+    { // 94：小さい直し（5.10。5.8・5.9 の点検から）：下の列が空の時は「いまは ありません」／DF の短い形は 420px まで・押す前のヒント／登録の窓の「くり返し」の欄は 見出し 14px・選ぶ欄 44px／登録の一覧の「週1」の札は 12px 以上
+      const k94=A.ev('JSON.stringify(state.amWorks===undefined?null:state.amWorks)');
+      const r=JSON.parse(A.ev(`(()=>{ const o={}, J=JSON.stringify, q=s=>document.querySelector(s), qa=s=>Array.prototype.slice.call(document.querySelectorAll(s)), g=x=>document.getElementById(x), cs=(el,p)=>el?parseFloat(getComputedStyle(el)[p]):-1;
+        try{
+          applyAdminMode();
+          /* 下の列が空：登録はある（今日の分が無い）。「まだ」ではなく「いまは」 */
+          const dow=(new Date(Date.now()-3*3600000).getDay()+3)%7;
+          state.amWorks=[{id:'t94e',place:'off',name:'試験（今日はない）',icon:'📦',kind:'点検',zone:'blue',sub:'',sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0],days:[dow],items:[]}];
+          renderMapView(); o.low=((q('#amf-col .amf-dn .amf-sb')||{}).textContent||'').replace(/\\s+/g,' ').trim(); o.lowCls=!!q('#amf-col .amf-dn .amf-none');
+          /* DF の短い形：幅 420px までの規則があり、押す前の短いヒント（tr-s）がある */
+          let rule=false; qa('style').forEach(st=>{ const sh=st.sheet; if(!sh)return; Array.prototype.forEach.call(sh.cssRules,r=>{ if(r.media&&/max-width:\\s*420px/.test(r.media.mediaText)&&Array.prototype.some.call(r.cssRules,x=>/\\.ao-df\\{?/.test(x.selectorText||'')&&/min-height:\\s*0/.test(x.cssText)))rule=true; }); }); o.dfRule=rule;
+          const now=new Date(Date.now()-5*60000), hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+          state.amWorks=[{id:'t94t',place:'off',name:'試験の温度',icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[hm],lead:30,grace:60,recheck:30,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]}];
+          setView('off'); amOpenArea('t94t'); o.dfShort=((q('#am-sheet .ao-df .ao-df-h .tr-s')||{}).textContent||'(なし)'); o.dfLong=((q('#am-sheet .ao-df .ao-df-h .tr-l')||{}).textContent||'(なし)'); amCloseSheet();
+          /* 登録の窓の「くり返し」の欄 */
+          state.amWorks=[{id:'t94r',name:'試験の週1',icon:'🧽',kind:'清掃',zone:'blue',sub:'',sch:[0,1,0,0],sch7:[0,0,0,1,0,0,0],days:null,items:[],rep:{k:'w',d:[3]}}];
+          isAdmin=true; applyAdminMode(); amOpenWorks(); o.rpTag=cs(q('#am-sheet .amw-k-rep'),'fontSize'); amEditWork('t94r'); amFormSeg('rk','w');
+          o.repLabel=cs(q('#amw-rep-box label'),'fontSize'); o.repSel=Math.round(g('amw-rep-wd').getBoundingClientRect().height); amCloseSheet();
+        } finally { amCloseSheet(); isAdmin=false; try{ applyAdminMode(); }catch(e){} }
+        return J(o); })()`));
+      A.ev('(()=>{ const k='+J(k94)+'; if(k==="null") delete state.amWorks; else state.amWorks=JSON.parse(k); _amForm=null; renderMapView(); })()');
+      check('94','小さい直し（5.10）：下の列が空（登録はあるが 今日の分が無い）の時は「いまは ありません」（「まだ」ではない）／DF のボタンの短い形は 幅 420px まで（400px から広げた）で、押す前にも短い1行（「DF中は 先に これを 押す」）／登録の窓の「くり返し」の欄は 見出し 14px・選ぶ欄 44px 以上／登録の一覧の「週1（水）」の札は 12px 以上',
+        r.low==='いまは ありません'&&r.lowCls===true&&r.dfRule===true&&r.dfShort==='DF中は 先に これを 押す'&&/押してから 名前を 押す/.test(r.dfLong)&&r.rpTag>=12&&r.repLabel===14&&r.repSel>=44,
+        `下の列 ${r.low}｜420px の規則 ${r.dfRule}｜DF の短いヒント ${r.dfShort}｜週1の札 ${r.rpTag}px｜くり返しの見出し ${r.repLabel}px・選ぶ欄 ${r.repSel}px`); }
+    { // 95：あとの作業（5.10）の判定。元の作業を記録 → ◯分後に出る（🟡）→ 締切を すぎたら 🔥 → やれば済（記録は af:1・元の作業の記録には まざらない）→ 記録した日の 3:00 で消える。1回まで。「始める時に やる事」の1行。登録の窓
+      const r=JSON.parse(A.ev(`(()=>{ const o={}, J=JSON.stringify, H=3600000, keepW=J(state.amWorks===undefined?null:state.amWorks), pre=Object.keys(state).filter(k=>/^amLog_/.test(k)), refs=[], keepAdm=isAdmin;
+        const base=new Date(); base.setDate(base.getDate()-3); base.setHours(0,0,0,0); const T=(h,m)=>base.getTime()+h*H+(m||0)*60000, iso=ms=>new Date(ms).toISOString();
+        const AF={name:'札を『販売中』にする',min:15,grace:5,en:'Switch the sign to On sale',ne:'चिन्ह बिक्रीमा'}, ST={t:'札を『準備中』にする',en:'Set the sign to Preparing',ne:'चिन्ह तयारीमा'};
+        const W=extra=>{ const w=Object.assign({id:'t98a',place:'off',name:'中華まん作成',icon:'🥟',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,items:[['確認','']],after:AF,start:ST},extra||{}); Object.keys(w).forEach(k=>{ if(w[k]===undefined) delete w[k]; }); return w; };
+        const add=(wid,ms,by,fl)=>refs.push(amLogAdd(wid,{at:iso(ms),by:by||''},null,fl||null));
+        const L=now=>amAfterList(now).map(x=>x.k+'@'+amHM(x.s)+'-'+amHM(x.e)+(x.up?'^':'v')+(x.rec?':'+x.rec.by:'')).join(',');
+        try{
+          state.amWorks=[W()];
+          add('t98a',T(14,0),'見本 花子');
+          o.l=[L(T(14,14)),L(T(14,15)),L(T(14,20)),L(T(14,21)),L(T(26,59)),L(T(27,0))];   // 14:00 に記録（15分後・5分の猶予）：14:14 まだ／14:15 🟡／14:20 🟡／14:21 🔥／翌 2:59 🔥／翌 3:00 消える
+          add('t98a',T(26,50),'見本 次郎'); o.l2=[L(T(26,59)),L(T(27,6))];                    // 翌 2:50 の記録：15分後は 3:05（その日の 3:00 の後）＝出ない／3:06 は 全部 消えている
+          add('t98a#af',T(14,22),'見本 太郎',{af:1,ow:'t98a',sa:iso(T(14,0))}); o.d=[L(T(14,30)),L(T(26,59)),L(T(27,0))];   // 14:22 に 見本 太郎 が やった → 済（3:00 まで）。3:00 で消える
+          o.rng=[amLogRange(T(13,0),T(16,0)).filter(x=>x.w==='t98a#af').length, amLogRange(T(13,0),T(16,0)).filter(x=>x.w==='t98a').length, J(amAfRecs(T(13,0),T(16,0)).map(x=>[x.w,x.ow,amHM(x.t),amHM(x.sa),x.by]))];   // 元の作業の記録の読み方に まざらない・あとの作業の記録は別の道で読める
+          add('t98a',T(14,10),'見本 三郎'); o.two=[L(T(14,26)),amAfterList(T(14,26)).length];     // もう1回記録：もう1つ出る（1回まで＝あとの作業の記録からは 出ない：2件のまま）
+          state.amWorks=[W(),{id:'t98f',name:'ホットケース',icon:'🍢',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,items:[],after:{name:'POPを 付ける',min:20,grace:10}}];
+          add('t98f',T(15,0)); o.fl=[amAfterList(T(15,25)).filter(x=>x.w.id==='t98f').map(x=>x.k+'@'+amHM(x.s)+'-'+amHM(x.e)+(x.up?'^':'v')).join(','), amOffList(T(15,25)).filter(x=>x.af).map(x=>x.w.id).join()];   // 場所のある作業の分は 上の列用（up）。amOffList（下の列・⏰）には 入らない
+          const V=a=>{ const x=amAfterOf(W({after:a})); return x; };
+          o.v=[amAfterOf(W({recheck:30,times:['10:00']})),amAfterOf(W({rep:{k:'w',d:[3]}})),V({name:'',min:5}),V({name:'x',min:0}),V({name:'x',min:'abc'}),V(['x',5]),V({name:' x ',min:'15.4'}),V({name:'x',min:9999,grace:9999}),amAfterOf(null),amAfterOf({})];
+          o.st=[J(amStartOf(W())),amStartOf(W({start:{t:'  '}})),amStartHtml({}),/am-start/.test(amStartHtml(W()))&&/準備中/.test(amStartHtml(W()))&&/Set the sign to Preparing/.test(amStartHtml(W()))&&/चिन्ह तयारीमा/.test(amStartHtml(W()))];
+          state.amWorks=[W()]; amOpenArea('t98a'); o.card=[(document.querySelector('#am-sheet .am-start-t')||{}).textContent||'(なし)', /Set the sign/.test((document.querySelector('#am-sheet .am-start')||{}).textContent||'')]; amCloseSheet();
+          state.amWorks=[W({start:undefined})]; amOpenArea('t98a'); o.card0=!document.querySelector('#am-sheet .am-start'); amCloseSheet();
+          /* 登録の窓：読み込み → 直す → 保存 ／ 空にすると 項目ごと消える ／ 再チェックと 一緒は 止める ／ 分が 数字でないと 止める ／ 使わない作業には 何も付かない */
+          isAdmin=true; const g=x=>document.getElementById(x), al=[], oldAl=window.alert; window.alert=m=>al.push(String(m));
+          state.amWorks=[W()]; amEditWork('t98a');
+          o.f0=[g('amw-af-name').value,g('amw-af-min').value,g('amw-af-grace').value,g('amw-af-en').value,g('amw-af-ne').value,g('amw-start').value,g('amw-start-en').value,g('amw-start-ne').value].join('|');
+          g('amw-af-min').value='20'; g('amw-af-grace').value='10'; amSaveWork('t98a'); const w1=JSON.parse(J(state.amWorks[0])); o.f1=[J(w1.after),J(w1.start)];
+          amEditWork('t98a'); g('amw-af-name').value=''; g('amw-start').value=''; amSaveWork('t98a'); const w2=state.amWorks[0]; o.f2=[('after' in w2),('start' in w2)];
+          state.amWorks=[W({after:undefined,start:undefined,times:['10:00'],recheck:30})]; amEditWork('t98a'); g('amw-af-name').value='別の作業'; g('amw-af-min').value='5'; amSaveWork('t98a'); o.f3=[al.length,('after' in state.amWorks[0]),/再チェック/.test(al[al.length-1]||'')];
+          state.amWorks=[W({after:undefined,start:undefined})]; amEditWork('t98a'); g('amw-af-name').value='別の作業'; g('amw-af-min').value='abc'; amSaveWork('t98a'); o.f4=[al.length,('after' in state.amWorks[0]),/整数/.test(al[al.length-1]||'')];
+          state.amWorks=[W({after:undefined,start:undefined})]; amEditWork('t98a'); amSaveWork('t98a'); const w5=state.amWorks[0]; o.f5=[('after' in w5),('start' in w5),al.length];
+          window.alert=oldAl; amCloseSheet();
+        } finally { isAdmin=keepAdm; try{ applyAdminMode(); }catch(e){} amCloseSheet(); refs.forEach(amLogRemove); Object.keys(state).filter(k=>/^amLog_/.test(k)&&pre.indexOf(k)<0).forEach(k=>{ delete state[k]; }); state.amWorks=keepW==='null'?undefined:JSON.parse(keepW); if(state.amWorks===undefined) delete state.amWorks; renderMapView(); }
+        return J(o); })()`));
+      const S='@14:15-14:20v';
+      check('95','あとの作業（5.10）：元の作業を 記録 → 15分後に 1つ出る（14:14 まだ・14:15〜14:20 🟡・14:21 から 🔥・記録した日の 3:00 で消える）。記録の ◯分後が その日の 3:00 の後なら 出ない。あとの作業の記録（af:1・w は 元の作業の id＋#af・元の記録の時刻 sa）は 元の作業の記録の読み方に まざらず、済になる（3:00 まで）。元の記録が 2つなら 2つ出て、1つずつ 済になる（1回まで＝あとの作業の記録からは 出ない）。場所のある作業の分は 上の列用（amOffList に入らない）。再チェックつき・くり返しつき・名前なし・分が 0・数字でない・配列は 使わない（無いのと同じ）。「始める時に やる事」はカードの上に 1行（英語・ネパール語つき）。登録の窓：読み込み・直す・空にすると 項目ごと消える・再チェックと一緒／分が数字でない は 止める・使わない作業には 何も付かない',
+        J(r.l)===J(['','soon'+S,'soon'+S,'fire'+S,'fire'+S,''])&&J(r.l2)===J(['fire'+S,''])&&J(r.d)===J(['done'+S+':見本 太郎','done'+S+':見本 太郎',''])
+        &&r.rng[0]===0&&r.rng[1]===1&&r.rng[2]===J([['t98a#af','t98a','14:22','14:00','見本 太郎']])
+        &&r.two[0]==='done'+S+':見本 太郎,soon@14:25-14:30v'&&r.two[1]===2&&r.fl[0]==='soon@15:20-15:30^'&&r.fl[1]==='t98a,t98a'
+        &&J(r.v)===J([null,null,null,null,null,null,{name:'x',min:15,grace:5,en:'',ne:''},{name:'x',min:720,grace:720,en:'',ne:''},null,null])
+        &&r.st[0]===J({t:'札を『準備中』にする',en:'Set the sign to Preparing',ne:'चिन्ह तयारीमा'})&&r.st[1]===null&&r.st[2]===''&&r.st[3]===true
+        &&r.card[0]==='札を『準備中』にする'&&r.card[1]===true&&r.card0===true
+        &&r.f0==='札を『販売中』にする|15|5|Switch the sign to On sale|चिन्ह बिक्रीमा|札を『準備中』にする|Set the sign to Preparing|चिन्ह तयारीमा'
+        &&r.f1[0]===J({name:'札を『販売中』にする',min:20,grace:10,en:'Switch the sign to On sale',ne:'चिन्ह बिक्रीमा'})&&r.f1[1]===J({t:'札を『準備中』にする',en:'Set the sign to Preparing',ne:'चिन्ह तयारीमा'})
+        &&J(r.f2)===J([false,false])&&r.f3[0]===1&&r.f3[1]===false&&r.f3[2]===true&&r.f4[0]===2&&r.f4[1]===false&&r.f4[2]===true&&J(r.f5)===J([false,false,2]),
+        `判定 ${r.l.join(' ／ ')}｜3:00 ${r.l2.join(' ／ ')}｜済 ${r.d.join(' ／ ')}｜記録 ${r.rng.slice(0,2).join('/')}｜2件 ${r.two[1]}｜場所あり ${r.fl.join(' ／ ')}｜登録の窓 ${r.f1[0]}`); }
+    { // 96：2台（5.10）。元の作業の記録を 別の端末が見て あとの作業を押す／同時に押す／押した人が取り消す／元の記録の取り消し。画面：場所のある作業の分は 上の列・無い作業の分は 下の列と ⏰・カード
+      const k99=A.ev('JSON.stringify(state.amWorks===undefined?null:state.amWorks)');
+      A.ev(`(()=>{ const now=Date.now(), at=new Date(now-3*60000).toISOString(); state.amWorks=[{id:'t99o',place:'off',name:'中華まん作成',icon:'🥟',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,items:[],after:{name:'札を『販売中』にする',min:1,grace:5,en:'Switch the sign to On sale',ne:'चिन्ह बिक्रीमा'}},{id:'t99f',name:'ホットケース',icon:'🍢',kind:'点検',zone:'red',sub:'',sch:[0,0,0,0],days:null,items:[],after:{name:'POPを 付ける',min:1,grace:5}},{id:'t99b',name:'揚げ場',icon:'🍤',kind:'点検',zone:'red',sub:'',sch:[0,0,0,0],days:null,items:[],after:{name:'油を 切る',min:1,grace:1}}]; state.amUsed=true; window.__r99=[amLogAdd('t99o',{at,by:'見本 花子'},null,null),amLogAdd('t99f',{at,by:'見本 花子'},null,null),amLogAdd('t99b',{at:new Date(now-5*60000).toISOString(),by:'見本 花子'},null,null)]; saveState(); })()`); await sync();
+      const it=d=>JSON.parse(d.ev('JSON.stringify(amAfterList(Date.now()).map(x=>[x.w.id,x.src,x.k,x.up,x.rec?x.rec.by:""]))'));
+      const brief=a=>a.map(x=>x[0]+':'+x[2]+(x[3]?'^':'v')+(x[4]?':'+x[4]:'')).join(',');
+      const o={}; const i0=[it(A),it(B)]; o.i0=i0.map(brief);
+      /* 画面（B）：上の列＝場所のある作業の分／下の列・⏰・カード */
+      o.dom=JSON.parse(B.ev(`(()=>{ const q=s=>document.querySelectorAll(s); renderMapView(); const r={up:q('#amf-col .amf-up .amf-af').length, dn:q('#amf-col .amf-dn .amf-af').length, upTxt:(q('#amf-col .amf-up .amf-af .am-wr-n')[0]||{}).textContent||'', dnTxt:(q('#amf-col .amf-dn .amf-af .am-wr-n')[0]||{}).textContent||''};
+        setView('off'); renderOffView(); const ov=document.getElementById('off-view'); r.off=/札を『販売中』にする/.test(ov.textContent)&&!!ov.querySelector('.ao-tg.af')&&/中華まん作成 の あと/.test(ov.textContent); setView('map');
+        const it=amAfterList(Date.now()).find(x=>x.w.id==='t99o'); amOpenAfter('t99o',it.src); const sh=document.getElementById('am-sheet'); r.card=[amSheetName(), (sh.querySelector('.am-cd-n')||{}).textContent, sh.querySelectorAll('.am-nm').length>=2, /あとの 作業/.test(sh.textContent), /Switch the sign to On sale/.test(sh.textContent)]; amCloseSheet();
+        updateMapBadge(); const bd=document.getElementById('tab-map-badge'); r.badge=bd&&bd.style.display!=='none'?bd.textContent:''; return JSON.stringify(r); })()`));
+      /* B が 押す → A でも 済 */
+      const srcO=JSON.parse(A.ev(`JSON.stringify(amAfterList(Date.now()).filter(x=>x.w.id==='t99o').map(x=>x.src))`))[0], srcF=JSON.parse(A.ev(`JSON.stringify(amAfterList(Date.now()).filter(x=>x.w.id==='t99f').map(x=>x.src))`))[0];
+      B.ev(`amRecordAfter('t99o',${srcO},'見本 太郎')`); await sync();
+      o.i1=[it(A),it(B)].map(brief);
+      o.shape=JSON.parse(B.ev(`(()=>{ const rs=[]; Object.keys(state).filter(k=>/^amLog_/.test(k)).forEach(k=>Object.keys(state[k]).forEach(i=>{ const r=state[k][i]; if(r&&r.af) rs.push({w:r.w,af:r.af,ow:r.ow,by:r.by,sa:r.sa===new Date(${srcO}).toISOString(),d:typeof r.d}); })); return JSON.stringify({recs:rs, ac:Object.keys(state.areaChecks||{}).filter(k=>/t99o/.test(k)), last:((state.areaChecks||{}).t99o||[]).length}); })()`));
+      /* 押した B が 取り消す → A では また 出る → もう一度 押す */
+      B.ev('amUndoLast()'); await sync(); o.i2=[it(A),it(B)].map(brief);
+      A.ev(`amRecordAfter('t99o',${srcO},'見本 花子')`); await sync(); o.i3=[it(A),it(B)].map(brief);
+      /* 場所のある作業の分を 2台が 同時に押す（2件とも残る） */
+      off(); A.ev(`amRecordAfter('t99f',${srcF},'見本 花子')`); B.ev(`amRecordAfter('t99f',${srcF},'見本 太郎')`); on(); await sync();
+      o.i4=[it(A),it(B)].map(brief); o.n4=[A,B].map(d=>d.ev(`amAfRecs(Date.now()-3600000,Date.now()+3600000).filter(x=>x.ow==='t99f').length`));
+      /* 元の記録の取り消し → あとの作業も消える */
+      A.ev(`(()=>{ const at=new Date(Date.now()-3*60000).toISOString(); window.__r99.push(amLogAdd('t99o',{at,by:'見本 花子'},null,null)); saveState(); })()`); await sync(); o.i5a=[it(A),it(B)].map(x=>x.length);
+      A.ev(`(()=>{ amLogRemove(window.__r99[window.__r99.length-1]); saveState(); })()`); await sync(); o.i5b=[it(A),it(B)].map(x=>x.length);
+      /* 後片づけ：この試験の作業・記録を消して、元に戻す */
+      A.ev(`(()=>{ Object.keys(state).filter(k=>/^amLog_/.test(k)).forEach(k=>Object.keys(state[k]).forEach(i=>{ const r=state[k][i]; if(r&&/^t99[ofb](#af)?$/.test(String(r.w))) delete state[k][i]; })); const k=${J(k99)}; if(k===null) delete state.amWorks; else state.amWorks=JSON.parse(k); renderMapView(); saveState(); })()`); await sync();
+      check('96','2台（5.10）：A が 元の作業を記録 → B にも あとの作業が 出る（🟡）。画面：場所のある作業の分は 上の列・無い作業の分は 下の列と ⏰（札「◯◯ の あと」）・カード（作業名・名前のボタン・英語）。B が 押す → A でも 済（記録は af:1・w＝元の作業の id＋#af・元の記録の時刻 sa・端末の印 d。直近40件には入らない）。押した B が取り消すと A では また 出る。2台が 同時に押すと 2件とも残り どちらも 済。元の記録を取り消すと あとの作業も消える。最後に 2台の中身が同じ',
+        o.i0[0]==='t99b:fire^,t99f:soon^,t99o:soonv'&&o.i0[1]===o.i0[0]&&o.dom.up===2&&o.dom.dn===1&&/油を 切る/.test(o.dom.upTxt)&&/札を『販売中』にする/.test(o.dom.dnTxt)&&o.dom.off===true&&o.dom.card[0]==='card'&&/札を『販売中』にする/.test(o.dom.card[1])&&o.dom.card[2]===true&&o.dom.card[3]===true&&o.dom.card[4]===true&&o.dom.badge==='1'
+        &&o.i1[0]==='t99b:fire^,t99f:soon^,t99o:donev:見本 太郎'&&o.i1[1]===o.i1[0]&&o.shape.recs.length===1&&o.shape.recs[0].w==='t99o#af'&&o.shape.recs[0].af===1&&o.shape.recs[0].ow==='t99o'&&o.shape.recs[0].by==='見本 太郎'&&o.shape.recs[0].sa===true&&o.shape.recs[0].d==='string'&&o.shape.ac.length===0&&o.shape.last===0
+        &&o.i2[0]==='t99b:fire^,t99f:soon^,t99o:soonv'&&o.i2[1]===o.i2[0]&&o.i3[0]==='t99b:fire^,t99f:soon^,t99o:donev:見本 花子'&&o.i3[1]===o.i3[0]
+        &&/t99f:done\^/.test(o.i4[0])&&o.i4[1]===o.i4[0]&&o.n4[0]===2&&o.n4[1]===2&&J(o.i5a)===J([4,4])&&J(o.i5b)===J([3,3])&&same(),
+        `はじめ ${o.i0[0]}｜画面 上${o.dom.up}・下${o.dom.dn}・赤い数 ${o.dom.badge}・⏰${o.dom.off}｜B が押した ${o.i1[1]}｜取り消し ${o.i2[0]}｜同時 ${o.i4[0]}（${o.n4.join('/')}件）｜元の記録を足す→消す ${o.i5a.join('/')}→${o.i5b.join('/')}｜取り消しの後に押す ${o.i3[0]}｜記録の形 ${J(o.shape)}｜画面 ${J(o.dom)}｜2台の中身が同じ ${same()}`); }
+    check('97','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
+    const srv=await c.readServer(); check('98','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
+    check('99','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
   $('sum').innerHTML=ng?`<span class="ng">× 不合格 ${ng} 個</span>（全 ${R.length} 個）`:`<span class="ok">○ 全部合格</span>（${R.length} 個）`;
