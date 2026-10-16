@@ -289,6 +289,7 @@ html[lang="ne"] .day-tab.active::after{content:'हेर्दै'}
 .check-cell{background:transparent;transition:background .2s}
 .check-cell.done{background:var(--green-lt)}
 .check-cell.skip{background:#f5f5f5;opacity:.5}
+.ff-newtag{display:inline-block;font-size:10px;font-weight:700;color:#1e3a8a;border:1px solid #1e3a8a;background:#fff;border-radius:3px;padding:0 5px;line-height:1.5;white-space:nowrap}   /* 札「新商品」（2026-10-16） */
 
 /* FAB */
 #fab-bot{position:fixed;bottom:80px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:22px;border:none;box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:100;display:none;align-items:center;justify-content:center}
@@ -1544,6 +1545,7 @@ const I18N = {
     'mk.stNow1':'⏳ {0}時 やる',
     'mk.stNowN':'⏳ {0}時 残り{1}',
     'mk.stNext':'📋 次 {0}時',
+    'mk.stLeft':'あと{0}品','mk.stLate':'うち 時間すぎ {0}','mk.stDueDone':'✅ いまの分は済み','mk.stNextAt':'次 {0}','mk.foldDone':'▶ 済んだカードだけたたむ','mk.newTag':'新商品','mk.nowCol':'▼ いま','mk.cellLate':'未',
     'mk.sku':'SKU {0}（先週 {1}）',
     'mk.colName':'商品名',
     'mk.colMake':'作成',
@@ -2066,6 +2068,7 @@ const I18N = {
     'mk.stNow1':'⏳ {0}:00 make now',
     'mk.stNowN':'⏳ {0}:00 {1} left',
     'mk.stNext':'📋 Next {0}:00',
+    'mk.stLeft':'{0} left','mk.stLate':'of which late: {0}','mk.stDueDone':'✅ Done for now','mk.stNextAt':'Next {0}','mk.foldDone':'▶ Fold finished cards only','mk.newTag':'New item','mk.nowCol':'▼ Now','mk.cellLate':'Not yet',
     'mk.sku':'SKU {0} (last wk {1})',
     'mk.colName':'Item',
     'mk.colMake':'Make',
@@ -2554,6 +2557,7 @@ const I18N = {
     'mk.stNow1':'⏳ {0}:00 बनाउनुहोस्',
     'mk.stNowN':'⏳ {0}:00 बाँकी {1}',
     'mk.stNext':'📋 अर्को {0}:00',
+    'mk.stLeft':'{0} बाँकी','mk.stLate':'समय नाघेको: {0}','mk.stDueDone':'✅ अहिलेसम्म सकियो','mk.stNextAt':'अर्को {0}','mk.foldDone':'▶ सकिएका कार्ड मात्र बन्द गर्नुहोस्','mk.newTag':'नयाँ उत्पादन','mk.nowCol':'▼ अहिले','mk.cellLate':'बाँकी',
     'mk.sku':'SKU {0} (गत हप्ता {1})',
     'mk.colName':'सामान',
     'mk.colMake':'बनाउने',
@@ -8774,28 +8778,36 @@ function renderSlotGroupedView(dayIdx){
   let out='';
   slots.forEach(slotH=>{
     let cats='';
-    CATS.forEach(cat=>{
-      if(!S.catOn[cat])return;
-      const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+    CATS.filter(c=>!c.endsWith('新商品')).forEach(cat=>{   // 本体と新商品を1つの見出しにまとめる（新商品は先頭の行・札「新商品」。2026-10-16）
+      const gcats=[cat+'新商品',cat].filter(c=>S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots.includes(slotH));
+      if(!gcats.length)return;
+      const cfg=S.catCfg[gcats[gcats.length-1]];   // 見出しの時刻（完成・廃棄）は本体の設定（本体が無ければ新商品の設定）
       const rows=[];
-      S.PM.filter(p=>p.enabled&&p.category===cat&&slotShows(p,di,slotH)).forEach(p=>{
+      S.PM.filter(p=>p.enabled&&gcats.indexOf(p.category)>=0&&slotShows(p,di,slotH)).forEach(p=>{
         const grandTotal=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH)+getSoldOutTotal(p.id,di,slotH);
         if(grandTotal<=0)return;
         rows.push({p,grandTotal,extra:getInvestExtra(p.id,di,slotH)});
       });
       if(!rows.length)return;
-      const sc=slotSeqColor(cat,slotH), doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah;
+      const sc=slotSeqColor(gcats[gcats.length-1],slotH), doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah;
       const _hasGrp=catHasGroups(cat);
-      const _sortedRows=_hasGrp?[...rows].sort((a,b)=>{const ga=prodGroup(a.p).order,gb=prodGroup(b.p).order;return ga!==gb?ga-gb:((a.p.order??0)-(b.p.order??0));}):rows;
+      const _isNewC=c=>String(c||'').endsWith('新商品');
+      const _sortedRows=[...rows].sort((a,b)=>{   // 新商品が先頭（小分類の見出しの前）。そのあとは今までどおり（小分類のあるカテゴリは小分類→並び順）
+        const la=_isNewC(a.p.category)?0:1, lb=_isNewC(b.p.category)?0:1; if(la!==lb)return la-lb;
+        if(!la)return _hasGrp?((a.p.order??0)-(b.p.order??0)):0;
+        if(!_hasGrp)return 0;
+        const ga=prodGroup(a.p).order,gb=prodGroup(b.p).order;return ga!==gb?ga-gb:((a.p.order??0)-(b.p.order??0)); });
       let _lastGrp=null;
       const rowsHtml=_sortedRows.map(({p,grandTotal,extra})=>{
         const chkKey=`${di}_${slotH}_${p.id}`, checked=!!S.checks[chkKey], skipped=!!(S.skipped&&S.skipped[chkKey]);
         let _grpHdr='';
-        if(_hasGrp){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
+        const _nt=_isNewC(p.category)?`<div style="margin-top:2px">${_ffNewTag()}</div>`:'';   // 札「新商品」
+        const _pah=S.catCfg[p.category]&&S.catCfg[p.category].ah, _pdisp=(_pah!=null&&_pah!==cfg.ah)?`<span style="font-size:10px;color:#64748b;margin-left:6px">${tf('mk.doneDispose',fmtHour(doneH),fmtHour(slotH+PREP_HOURS+_pah))}</span>`:'';   // 本体と新商品で許容時間がちがう時だけ、その行に廃棄の時刻を出す
+        if(_hasGrp&&!_isNewC(p.category)){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
         return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
           <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
           <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">${tf('mk.invest',extra)}</span>`:''} ${gaibuCellBadge(cat,di,slotH)}${thermalBadge(p,true)}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">'+t('mk.skipBadge')+'</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">'+t('mk.leftBadge')+'</span>':''}${(()=>{ let plan=0, pb=''; getSoldOutEvents(p.id,di,slotH).forEach((e,ei,arr)=>{ if(soPlanned(e,arr[ei+1],soNowOn)){ plan+=(e.added||0); pb+=' '+soPlanBadge(e,true); } }); const got=getSoldOutTotal(p.id,di,slotH)-plan;   /* 緑「追加+N」＝予定の時刻を過ぎた分だけ。予定の前の分は橙「+N 作る予定」だけ（同じ数を2回出さない。2026-10-10 検算） */
-            return (got>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">${tf('mk.addBadge',got)}</span>`:'')+pb; })()}</span>
+            return (got>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">${tf('mk.addBadge',got)}</span>`:'')+pb; })()}${_pdisp}${_nt}</span>
           ${skipped?'':soRoHint(p.id,di,slotH)}<button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${di},${slotH})" aria-label="${escapeHtmlP(p.name)} の記録メニュー" style="flex-shrink:0"><span style="font-size:21px;font-weight:800;color:#1d4ed8;line-height:1">${grandTotal}</span></button>
         </div>`;
       }).join('');
@@ -8837,13 +8849,15 @@ function setProdSortMode(mode){
 // ====== カテゴリ折りたたみ & 未完了検知ヘルパー ======
 let _collapsedCats=new Set(JSON.parse(localStorage.getItem('ffv6_collapsed_cats')||'[]'));
 function toggleCatCollapse(cat){
+  if(window._ffFoldKeys&&window._ffFoldKeys.indexOf(cat)<0)return;   // いまの枠までに未チェックがあるカードはたためない（2026-10-16）
   if(_collapsedCats.has(cat))_collapsedCats.delete(cat);
   else _collapsedCats.add(cat);
   try{localStorage.setItem('ffv6_collapsed_cats',JSON.stringify([..._collapsedCats]));}catch(_){}
   renderProdDayContent(currentProdDay);
 }
 function collapseAllCats(){
-  CATS.forEach(c=>{if(S.catOn[c])_collapsedCats.add(c);});
+  // 「済んだカードだけたたむ」：いまの枠までに未チェックがあるカードはたためない（印を付けない）
+  (window._ffFoldKeys||[]).forEach(c=>_collapsedCats.add(c));
   try{localStorage.setItem('ffv6_collapsed_cats',JSON.stringify([..._collapsedCats]));}catch(_){}
   renderProdDayContent(currentProdDay);
 }
@@ -8943,6 +8957,63 @@ function _catStatus(cat,dayIdx){
   return{state:'all_due_done'};
 }
 
+// ===== 見落とし防止（2026-10-16 店長「全部おすすめで」）：カードの「あと何品か」と、マスの状態 =====
+//   見せ方だけ。計算・チェックのキー（${dayIdx}_${slotH}_${p.id}）・保存の形は変えない。
+// 「いま」（時の小数）。今日を見ていない時と、日をまたいだ後（24時以降）は null ＝ 急ぎの印は出さない
+function _ffNowOn(dayIdx){ const n=_soNowOn(dayIdx); return (n!=null&&n<24)?n:null; }
+// そのマスの状態：none（作らない）／done（済み・在庫欠品）／later（まだ時刻が来ていない）／due（いまの枠）／late（時間すぎ＝次の枠の時刻を1時間すぎた）
+//   時刻の境目は _catStatus と同じ（枠の時 ≦ いま ＝ いまの枠、いま ≧ 枠の時+1 ＝ 時間すぎ）
+function _ffCellState(p,dayIdx,h,nowOn){
+  if(!p||getProdCnt(p.id,dayIdx,h)+getInvestExtra(p.id,dayIdx,h)<=0)return 'none';
+  const k=`${dayIdx}_${h}_${p.id}`;
+  if(S.checks[k]||(S.skipped&&S.skipped[k]))return 'done';
+  if(nowOn==null||nowOn<h)return 'later';
+  return nowOn>=h+1?'late':'due';
+}
+// 札「新商品」（白地・濃い青の細い枠と字）。商品名の下に小さく
+function _ffNewTag(){ return `<span class="ff-newtag">${t('mk.newTag')}</span>`; }
+// 作成表のカード。カテゴリ順＝「本体＋新商品」で1枚（key＝本体のカテゴリ）。効率順は今までどおり1カテゴリ1枚。
+//   due＝いまの枠まで（時間すぎ＋いまの枠）の未チェックのマスの数（＝見出しの「あと◯品」）、late＝そのうち時間すぎ。
+//   fold＝たためるか（今日を見ていて due>0 のカードはたためない）
+function _ffCardGroups(dayIdx,nowOn){
+  const eff=_prodSortMode==='efficient';
+  const lists=eff?CATS.map(c=>[c]):CATS.filter(c=>!c.endsWith('新商品')).map(c=>[c+'新商品',c]);
+  const out=[];
+  lists.forEach(list=>{
+    const cats=list.filter(c=>S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots&&S.catCfg[c].slots.length);
+    if(!cats.length)return;
+    const slotSet=new Set(); cats.forEach(c=>S.catCfg[c].slots.forEach(h=>slotSet.add(h)));
+    const g={key:list[list.length-1],cats,slots:[...slotSet].sort((a,b)=>a-b),due:0,late:0,made:0,next:null,today:nowOn!=null};
+    S.PM.forEach(p=>{
+      if(!p||!p.enabled||cats.indexOf(p.category)<0||isPackParent(p)||!prodOnDay(p,dayIdx))return;
+      S.catCfg[p.category].slots.forEach(h=>{
+        const st=_ffCellState(p,dayIdx,h,nowOn);
+        if(st==='late'){ g.due++; g.late++; }
+        else if(st==='done')g.made++;
+        else if(st==='due')g.due++;
+        else if(st==='later'&&nowOn!=null&&(g.next==null||h<g.next))g.next=h;
+      });
+    });
+    g.fold=!(g.today&&g.due>0);
+    out.push(g);
+  });
+  return out;
+}
+// 時刻が変わったら（毎時の0分）描き直す＝たたんでいたカードが、次の時間帯で自動で開く。今日を見ている時だけ。試験で時刻を固定している間は動かさない
+let _ffHourTimer=null;
+function _ffHourTickSet(nowOn){
+  if(_ffHourTimer){ clearTimeout(_ffHourTimer); _ffHourTimer=null; }
+  if(nowOn==null||typeof window._soNowOverride==='number')return;
+  _ffHourTimer=setTimeout(ffHourTick,Math.min(2147483000,Math.max(1000,(Math.floor(nowOn)+1-nowOn)*3600000+1500)));
+}
+function ffHourTick(){
+  _ffHourTimer=null;
+  if(typeof currentTab==='undefined'||currentTab!==3)return;
+  const open=id=>{ const m=document.getElementById(id); return !!m&&m.style.display!=='none'; };
+  if(open('soldOutModal')||open('cellMenuModal')){ _ffHourTimer=setTimeout(ffHourTick,20000); return; }
+  renderProdDayContent(currentProdDay);
+}
+
 function renderProdDayContent(dayIdx){
   const el=document.getElementById('prod-day-content');
   const e=S.ext[dayIdx]||{weather:'晴れ',temp:20,event:'',correction:0};
@@ -8998,58 +9069,39 @@ function renderProdDayContent(dayIdx){
     }
   }
 
-  // ====== 「忘れ」「いま作る」バナー（時刻ラベル中心・条件付き） ======
-  // - 今日表示時のみ動作
-  // - 忘れ（overdue）と いま作る（current）を集約して具体的に列挙
-  // - 1件もなければ自動で非表示
-  const _isToday=_isViewingToday(dayIdx);
-  const _overdueItems=[];
-  const _currentItems=[];
-  if(_isToday){
-    CATS.filter(c=>S.catOn[c]).forEach(cat=>{
-      const st=_catStatus(cat,dayIdx);
-      if(st.state==='overdue'){
-        (st.overdueSlots||[st.slot]).forEach(s=>_overdueItems.push(`${tCat(cat)} ${tf('mk.hourAt',s)}`));
-      } else if(st.state==='current'){
-        _currentItems.push(`${tCat(cat)} ${tf('mk.hourAt',st.slot)}`);
-      }
-    });
-  }
-  if(_overdueItems.length>0||_currentItems.length>0){
-    const isRed=_overdueItems.length>0;
-    const bg=isRed?'#fee2e2':'#fef3c7';
-    const bd=isRed?'#ef4444':'#f59e0b';
-    const tx=isRed?'#991b1b':'#78350f';
-    let bannerLines='';
-    if(_overdueItems.length>0){
-      bannerLines+=`<div>🔴 <b>${t('mk.overdue')}</b>${_overdueItems.join(t('mk.sep'))}</div>`;
-    }
-    if(_currentItems.length>0){
-      bannerLines+=`<div>⏳ <b>${t('mk.nowMake')}</b>${_currentItems.join(t('mk.sep'))}</div>`;
-    }
-    html+=`<div style="position:sticky;top:0;z-index:50;background:${bg};border:2px solid ${bd};border-radius:8px;padding:10px 14px;font-size:14px;color:${tx};margin-bottom:10px;line-height:1.8">
-      ${bannerLines}
-    </div>`;
-  }
-
-  // ====== カテゴリ折りたたみ全操作ボタン ======
-  const _anyCollapsed=CATS.some(c=>S.catOn[c]&&_collapsedCats.has(c));
-  const _allCollapsed=CATS.filter(c=>S.catOn[c]).every(c=>_collapsedCats.has(c));
-  html+=`<div style="display:flex;gap:6px;margin-bottom:8px">
-    <button onclick="${_allCollapsed?'expandAllCats()':'collapseAllCats()'}" style="padding:6px 12px;font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#374151">${_allCollapsed?t('mk.expandAll'):t('mk.collapseAll')}</button>
-    ${(_anyCollapsed&&!_allCollapsed)?`<button onclick="expandAllCats()" style="padding:6px 12px;font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#374151">${t('mk.expandAll')}</button>`:''}
+  // ====== 見落とし防止（2026-10-16 店長「全部おすすめで」）======
+  //   ・上の「忘れてます／いま作る」の帯は無し。中身は、カード見出しの赤「あと◯品」と、行・マスの赤い地へ。
+  //   ・カテゴリ順＝「本体＋新商品」を1枚のカードに（新商品は先頭の行・札「新商品」）。効率順は今までどおりのカード分け。
+  //   ・いまの枠までに未チェックがあるカードは ▼ を出さず、たためない。済んだカードだけたためる。たたんだカードは、次の時間帯になると自動で開く。
+  //   ・カードの並びは今までの CATS の順のまま（保存する並び順の設定は、いまのコードには無い）。
+  const _nowOn=_ffNowOn(dayIdx);
+  const _groups=_ffCardGroups(dayIdx,_nowOn);
+  { let chg=false; _groups.forEach(g=>{ if(!g.fold&&_collapsedCats.delete(g.key))chg=true; });   // 未チェックが出たカードは開く（たたんだ印を外す）
+    if(chg)try{localStorage.setItem('ffv6_collapsed_cats',JSON.stringify([..._collapsedCats]));}catch(_){} }
+  const _foldKeys=_groups.filter(g=>g.fold).map(g=>g.key);
+  window._ffFoldKeys=_foldKeys;
+  const _allFolded=_foldKeys.length>0&&_foldKeys.every(k=>_collapsedCats.has(k));
+  const _anyFolded=_foldKeys.some(k=>_collapsedCats.has(k));
+  if(_foldKeys.length){
+    html+=`<div style="display:flex;gap:6px;margin-bottom:8px">
+    <button onclick="${_allFolded?'expandAllCats()':'collapseAllCats()'}" style="padding:6px 12px;font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#374151">${_allFolded?t('mk.expandAll'):t('mk.foldDone')}</button>
+    ${(_anyFolded&&!_allFolded)?`<button onclick="expandAllCats()" style="padding:6px 12px;font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#374151">${t('mk.expandAll')}</button>`:''}
   </div>`;
+  }
+  _ffHourTickSet(_nowOn);
 
   // Category sections
-  CATS.forEach(cat=>{
-    if(!S.catOn[cat])return;
-    const cfg=S.catCfg[cat];if(!cfg||!cfg.slots.length)return;
-    const prods0=S.PM.filter(p=>p.enabled&&p.category===cat&&!isPackParent(p)&&prodOnDays(p).some(Boolean));   // 本数の商品（親）は作成表に出ない（作るのはパック商品）。販売期間がこの週に1日も無い商品も出さない（2026-10-09）
+  const _merged=_prodSortMode!=='efficient';   // カテゴリ順は「本体＋新商品」で1枚。効率順は今までどおり
+  const _isNewCat=c=>c.endsWith('新商品');
+  _groups.forEach(g=>{
+    const cat=g.key;                       // カードの名前・状態の目印（カテゴリ順＝本体のカテゴリ）
+    const cfg={slots:g.slots};             // 本体と新商品の作成時間帯の和（列になる）
+    const prods0=S.PM.filter(p=>p.enabled&&g.cats.indexOf(p.category)>=0&&!isPackParent(p)&&prodOnDays(p).some(Boolean));   // 本数の商品（親）は作成表に出ない（作るのはパック商品）。販売期間がこの週に1日も無い商品も出さない（2026-10-09）
     const prods=_prodSortMode==='efficient'
       ?[...prods0].sort(compareEfficient)
-      :[...prods0].sort((a,b)=>(a.order??0)-(b.order??0));
+      :[...prods0].sort((a,b)=>((_isNewCat(a.category)?0:1)-(_isNewCat(b.category)?0:1))||((a.order??0)-(b.order??0)));   // 新商品の行はカードの先頭
     // 今週のメニューで休む商品（2026-10-09）：数のマスは出さず、カテゴリの下に灰色の1行「今週は休み：A・B」。全部休みのカテゴリも1行だけ出す
-    const restP=S.PM.filter(p=>p.enabled&&p.category===cat&&!isPackParent(p)&&prodRestThisWeek(p)&&prodDateOnDays(p).some(Boolean)).sort((a,b)=>(a.order??0)-(b.order??0));
+    const restP=S.PM.filter(p=>p.enabled&&g.cats.indexOf(p.category)>=0&&!isPackParent(p)&&prodRestThisWeek(p)&&prodDateOnDays(p).some(Boolean)).sort((a,b)=>(a.order??0)-(b.order??0));
     const restLine=restP.length?`<div class="menu-rest-line" style="margin-top:6px;background:#f1f5f9;color:#64748b;border:1px dashed #cbd5e1;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700;line-height:1.6">💤 ${escapeHtmlP(tf('menu.restLine',restP.map(p=>p.name||'').join(t('mk.sep'))))}</div>`:'';
     if(!prods.length){ if(restLine)html+=`<div class="card"><div class="section-title">${tCat(cat)}</div>${restLine}</div>`; return; }
     // 効率順ではグローバル番号を使う
@@ -9074,38 +9126,24 @@ function renderProdDayContent(dayIdx){
         </div>`;
       }
     }
-    // ====== カテゴリヘッダー：時刻ラベル中心の状態バッジ＋折りたたみトグル ======
-    const _st=_catStatus(cat,dayIdx);
-    const _isCollapsed=_collapsedCats.has(cat);
-    let _badgeBg='#9ca3af',_badgeTxt='—';
-    switch(_st.state){
-      case 'none':
-        _badgeBg='#9ca3af';_badgeTxt='—';
-        break;
-      case 'all_done':
-        _badgeBg='#16a34a';_badgeTxt=t('mk.stAllDone');
-        break;
-      case 'all_due_done':
-        _badgeBg='#16a34a';_badgeTxt=t('mk.stDueOk');
-        break;
-      case 'overdue':
-        _badgeBg='#dc2626';
-        _badgeTxt=_st.remaining===1?tf('mk.stOverdue1',_st.slot):tf('mk.stOverdueN',_st.slot,_st.remaining);
-        break;
-      case 'current':
-        _badgeBg='#f59e0b';
-        _badgeTxt=_st.remaining===1?tf('mk.stNow1',_st.slot):tf('mk.stNowN',_st.slot,_st.remaining);
-        break;
-      case 'future':
-        _badgeBg='#6b7280';
-        _badgeTxt=tf('mk.stNext',_st.slot);
-        break;
+    // ====== カードの見出し：いまの枠までに未チェックがあれば赤「あと◯品」（▼なし・たためない）。済んだカードは緑で、たためる ======
+    const _isCollapsed=g.fold&&_collapsedCats.has(cat);
+    const _pill=(bg,txt,sz)=>`<span style="background:${bg};color:#fff;border-radius:10px;padding:2px 10px;font-size:${sz||12}px;font-weight:700;line-height:1.4">${txt}</span>`;
+    let _stHtml='';
+    if(g.today){
+      if(g.due>0){
+        _stHtml=_pill('#dc2626',tf('mk.stLeft',g.due),14)+(g.late>0?`<span style="background:#fff;color:#b91c1c;border:1px solid #dc2626;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${tf('mk.stLate',g.late)}</span>`:'');
+      }else if(g.next!=null){
+        _stHtml=_pill('#16a34a',t('mk.stDueDone'))+`<span style="font-size:12px;color:#64748b">${tf('mk.stNextAt',fmtHour(g.next))}</span>`;
+      }else if(g.made>0){
+        _stHtml=_pill('#16a34a',t('mk.stAllDone'));
+      }
     }
-    html+=`<div class="section-title" style="cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap" onclick="toggleCatCollapse('${cat}')">
-      <span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>
-      <span>${tCat(cat)}</span>
+    html+=`<div class="section-title" style="${g.fold?'cursor:pointer;':''}display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap"${g.fold?` onclick="toggleCatCollapse('${cat}')"`:''}>
+      ${g.fold?`<span style="font-size:18px;color:#9ca3af;width:14px">${_isCollapsed?'▶':'▼'}</span>`:''}
+      <span style="font-size:16px">${tCat(cat)}</span>
       ${skuHeadBadge(cat)}
-      ${(_st.state==='none'||_st.state==='future')?'':`<span style="background:${_badgeBg};color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;line-height:1.4">${_badgeTxt}</span>`}
+      ${_stHtml}
     </div>`;
     if(_isCollapsed){
       // 折りたたみ時はテーブル本体・効率順ヒント・カテゴリ合計をすべてスキップ
@@ -9116,14 +9154,16 @@ function renderProdDayContent(dayIdx){
     html+=effHint;
     html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
     html+=`<thead><tr><th style="width:110px;text-align:left">${t('mk.colName')}</th>`;
-    const discOn=isDiscountOn(cat,dayIdx);
     cfg.slots.forEach(h=>{
-      const md=getMarkdownTime(cat,h);
+      const hcs=g.cats.filter(c=>S.catCfg[c].slots.includes(h));   // この時刻に作るカテゴリ（本体・新商品）
+      const mds=[...new Set(hcs.filter(c=>isDiscountOn(c,dayIdx)).map(c=>getMarkdownTime(c,h)))];   // 本体と新商品で値引の時刻がちがう時は両方出す
       const doneH=h+PREP_HOURS;
-      html+=`<th style="width:90px;padding:6px 2px">
+      const nowCol=g.today&&Math.floor(_nowOn)===h;   // いまの枠の列見出しは黄色「▼ いま」
+      html+=`<th style="width:90px;padding:6px 2px${nowCol?';background:#fef3c7;color:#92400e':''}">
         <div style="display:flex;flex-direction:column;gap:2px;line-height:1.2;align-items:center">
           <span style="white-space:nowrap"><span style="font-size:10px;color:#64748b">${t('mk.colMake')}</span> <span style="font-size:17px;font-weight:800;color:#1d4ed8">${fmtHour(h)}</span></span>
-          <span style="font-size:10px;color:#64748b;white-space:nowrap">${tf('mk.colDone',fmtHour(doneH))}${discOn?`　${tf('mk.colDisc',fmtHour(md))}`:''}</span>
+          ${nowCol?`<span style="font-size:10px;font-weight:700">${t('mk.nowCol')}</span>`:''}
+          <span style="font-size:10px;color:#64748b;white-space:nowrap">${tf('mk.colDone',fmtHour(doneH))}${mds.length?`　${tf('mk.colDisc',mds.map(x=>fmtHour(x)).join('・'))}`:''}</span>
           ${gaibuBadge(cat,dayIdx,h)}${caseCapBadge(cat,dayIdx,h)}${mainCatOf(cat)==='まちかど厨房'?riceButtons(dayIdx,h):''}
         </div>
       </th>`;
@@ -9133,11 +9173,14 @@ function renderProdDayContent(dayIdx){
     const _circled=(i)=>{const a=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];return a[i]||`(${i+1})`;};
     // サブ分類のあるカテゴリ（まちかど＝小分類/パン種別、ホットFF＝種類）はグループ見出しで分割表示
     const _hasGrp=catHasGroups(cat);
-    const _rowProds=_hasGrp?[...prods].sort((a,b)=>{const ga=prodGroup(a).order,gb=prodGroup(b).order;return ga!==gb?ga-gb:((a.order??0)-(b.order??0));}):prods;
+    const _lead=p=>_merged&&_isNewCat(p.category);   // カテゴリ順では、新商品の行はカードの先頭（小分類の見出しの前）
+    const _rowProds=_hasGrp?[...prods].sort((a,b)=>{const la=_lead(a)?0:1,lb=_lead(b)?0:1; if(la!==lb)return la-lb; if(!la)return (a.order??0)-(b.order??0); const ga=prodGroup(a).order,gb=prodGroup(b).order;return ga!==gb?ga-gb:((a.order??0)-(b.order??0));}):prods;
     const _mkColspan=1+cfg.slots.length;
     let _mkLastGrp=null;
     _rowProds.forEach((p,pi)=>{
-      if(_hasGrp){
+      const cat=p.category, pcfg=S.catCfg[cat], discOn=isDiscountOn(cat,dayIdx);   // 本体と新商品は別のカテゴリ設定（時間帯・値引）なので、行ごとに持つ
+      const rowLate=g.today&&pcfg.slots.some(h=>_ffCellState(p,dayIdx,h,_nowOn)==='late');   // 時間すぎの未チェックがある行は、名前も赤い地
+      if(_hasGrp&&!_lead(p)){
         const _g=prodGroup(p);
         if(_g&&_g.key!==_mkLastGrp){ _mkLastGrp=_g.key;
           html+=`<tr><td colspan="${_mkColspan}" style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:5px 8px;text-align:left;border-top:2px solid #fcd34d">${_g.label}</td></tr>`;
@@ -9147,15 +9190,17 @@ function renderProdDayContent(dayIdx){
       // グローバル番号（カテゴリ横断・1始まり）
       const gIdx=globalOrderMap?.get(p.id);
       const orderBadge=(gIdx!=null)?`<span style="font-size:13px;font-weight:700;color:#1d4ed8;margin-right:4px">${_circled(gIdx)}</span>`:'';
-      const newBadge=isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'';
+      const newBadge=_lead(p)?'':(isNewProduct(p)?`<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">新</span>`:'');
+      const newTag=_lead(p)?`<div style="margin-top:2px">${_ffNewTag()}</div>`:'';   // 札「新商品」（商品名の下に小さく）
       const endingBadge=p.orderEnding?`<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px" title="${t('order.endingHint')}">${t('order.endingBadge')}</span>`:'';
       // 販売期間の外の日（週の途中から並ぶ・途中で終わる）：数のマスは出さず、灰色の1行「10/13（火）から」「10/12（月）で終売」（2026-10-09）
       if(!prodOnDay(p,dayIdx)){
-        html+=`<tr class="date-off"><td style="text-align:left;font-size:12px;color:#94a3b8">${orderBadge}${p.name}</td><td colspan="${cfg.slots.length}" style="text-align:center;font-size:13px;font-weight:700;color:#64748b;background:#f1f5f9;padding:8px 4px">📅 ${escapeHtmlP(prodOffDayText(p,dayIdx))}</td></tr>`;
+        html+=`<tr class="date-off"><td style="text-align:left;font-size:12px;color:#94a3b8">${orderBadge}${p.name}${newTag}</td><td colspan="${cfg.slots.length}" style="text-align:center;font-size:13px;font-weight:700;color:#64748b;background:#f1f5f9;padding:8px 4px">📅 ${escapeHtmlP(prodOffDayText(p,dayIdx))}</td></tr>`;
         return;
       }
-      html+=`<tr><td style="text-align:left;font-size:12px;${p.orderEnding?'background:#fef2f2':''}">${orderBadge}${p.name}${newBadge}${endingBadge}${prodPeriodMarks(p,_ymdOf(dates[0]))}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}</td>`;
+      html+=`<tr><td style="text-align:left;font-size:12px;${rowLate?'background:#fee2e2':(p.orderEnding?'background:#fef2f2':'')}">${orderBadge}${p.name}${newBadge}${endingBadge}${prodPeriodMarks(p,_ymdOf(dates[0]))}${hasExtra?'<span style="font-size:10px;color:#f59e0b;margin-left:4px">📈</span>':''}${newTag}</td>`;
       cfg.slots.forEach(slotH=>{
+        if(!pcfg.slots.includes(slotH)){ html+='<td></td>'; return; }   // この行のカテゴリ（本体／新商品）は、この時刻には作らない
         const cnt=getProdCnt(p.id,dayIdx,slotH);
         const extra=getInvestExtra(p.id,dayIdx,slotH);
         const totalCnt=cnt+extra;
@@ -9202,9 +9247,11 @@ function renderProdDayContent(dayIdx){
     cellExtraStyle+=gaibuCellStyle(cat,dayIdx,slotH);   // 天気・イベント調整が効いているマスは薄い色
         if(extra>0) cellExtraStyle=';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px';
         else if(skipped) cellExtraStyle=';background:#f1f5f9;outline:2px solid #cbd5e1;outline-offset:-2px;border-radius:4px';
+        const lateCell=g.today&&_ffCellState(p,dayIdx,slotH,_nowOn)==='late';   // 時間すぎの未チェック＝赤い地＋「未」（2026-10-16）
+        if(lateCell) cellExtraStyle=';background:#fecaca;outline:2px solid #ef4444;outline-offset:-2px;border-radius:4px';
         const numStyle=skipped?'color:#9ca3af;text-decoration:line-through':(extra>0?'color:#d97706':'');
         // マスは「数字（タップ＝記録メニュー）」と「完了チェック」だけ。完売／余り／在庫欠品は openCellMenu の文字つきボタンで記録
-        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':gaibuCellBadge(cat,dayIdx,slotH,true)+thermalBadge(p,true,true)+withdrawBadge(wd,true)+minDisplayBadge(p,grandTotal)}${isZero?'':`
+        html+=`<td class="check-cell ${checked?'done':''} ${isSkip?'skip':''}" title="${tip.replace(/"/g,'&quot;')}" style="position:relative;padding:4px${cellExtraStyle}">${isZero?'':gaibuCellBadge(cat,dayIdx,slotH,true)+thermalBadge(p,true,true)+withdrawBadge(wd,true)+minDisplayBadge(p,grandTotal)}${isZero?'<span style="color:#94a3b8;font-size:14px;opacity:.45">0</span>':`
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
             <button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${dayIdx},${slotH})" aria-label="${escapeHtmlP(p.name)} ${fmtHour(slotH)} の記録メニュー">
               <span class="prod-count" style="font-size:22px;font-weight:800;line-height:1;${numStyle}">${isSkip?'—':grandTotal}</span>
@@ -9218,6 +9265,7 @@ function renderProdDayContent(dayIdx){
             ${soBadges?`<span style="display:flex;flex-wrap:wrap;justify-content:center;gap:1px">${soBadges}</span>`:''}
             <input type="checkbox" class="pc-chk" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}
               onchange="confirmCreate('${chkKey}','${p.id}',this)" aria-label="作り終わったらチェック">
+            ${lateCell?`<span style="font-size:10px;font-weight:800;color:#b91c1c">${t('mk.cellLate')}</span>`:''}
           </div>`}
         </td>`;
       });
@@ -9230,7 +9278,7 @@ function renderProdDayContent(dayIdx){
     // Category daily total
     let catDayHigh=0;
     prods.forEach(p=>{
-      cfg.slots.forEach(h=>{
+      S.catCfg[p.category].slots.forEach(h=>{
         catDayHigh+=getProdCnt(p.id,dayIdx,h)*p.shopPrice;
       });
     });
