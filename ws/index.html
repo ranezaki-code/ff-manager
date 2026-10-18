@@ -2649,6 +2649,23 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
   #amf-wrap.m5w .amf-shelf .amf-r.amf-first .amf-ri>.am-wr-n{font-size:19px}
   #amf-wrap.m5w .amf-shh{font-size:16px;padding:6px 4px 4px}
 }
+/* ===== 5.14：作業カードの確認の絵（○ できている／✕ できていない）。品出しの3つ ===== */
+.am-iso{display:grid;grid-template-columns:repeat(2,minmax(0,170px));gap:8px;margin:6px 0 2px}
+.am-iso-f{border-radius:10px;overflow:hidden;border:1.5px solid #d6e9dc;line-height:0;background:#f3faf5}
+.am-iso-f.ng{border-color:#f3cfcb;background:#fdf2f1}
+.am-iso-f svg{display:block;width:100%;height:auto}
+/* 5.14：持ち場の切り替え（小さな1行。選んでいる物だけ青） */
+.amf-seg{display:flex;gap:4px;padding:3px;background:#f1f4f8;border-radius:10px;margin:0 0 6px;flex:none;position:sticky;top:0;z-index:2}
+.amf-seg button{font-family:inherit;border:none;cursor:pointer;flex:1 1 0;margin:0;min-height:36px;padding:4px 6px;font-size:14px;font-weight:800;border-radius:8px;background:transparent;color:#475569;white-space:nowrap}
+.amf-seg button.on{background:#1a56b0;color:#fff}
+/* 5.14：地図の 選んでいる所の わく（青・少し光る） */
+.m5 .amf-hi rect{fill:rgba(26,86,176,.10);stroke:#1a56b0;stroke-width:4.5px;filter:drop-shadow(0 0 4px rgba(26,86,176,.55))}
+@media(min-width:640px){
+  .am-items li:has(> .am-iso){display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;align-items:center}
+  .am-items li:has(> .am-iso) > .am-it{grid-column:1 / -1}
+  .am-items li:has(> .am-iso) > .am-iso{grid-template-columns:repeat(2,150px);margin:4px 0}
+  .am-items li:has(> .am-iso) > .am-ng{margin-top:0}
+}   /* 広い画面は 絵の右に NG時アクション（案の絵のとおり）。:has が使えない古いブラウザは 縦に並ぶだけ */
 </style>
 <!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す＋Gist同期を停止（単体URLでは従来通り） -->
 <script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
@@ -3749,7 +3766,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.13'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.14'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -10681,7 +10698,7 @@ function amCellSvg(c, o){
 }
 function amSvgInner(map, cellFn, overFn){
   const f=map.frame;
-  return `<defs><pattern id="am-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#fff"/><rect width="5" height="10" fill="#dfe8f5"/></pattern></defs>
+  return `<defs><pattern id="am-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#fff"/><rect width="5" height="10" fill="#dfe8f5"/></pattern><pattern id="am-fire" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="12" fill="#fdf0ee"/><rect width="4.5" height="12" fill="#f0a9a1"/></pattern></defs>
     ${f&&f.w>0?`<rect x="${f.x+1.5}" y="${f.y+1.5}" width="${f.w-3}" height="${f.h-3}" fill="#fff" stroke="#111827" stroke-width="3"/>`:''}${map.cells.map(cellFn).join('')}${overFn?overFn():''}`;
 }
 let _amDoneOpen = false;
@@ -10780,6 +10797,9 @@ function renderMapView(){
          +shelf('soon','もうすぐ',`${sR.length+sW.length}件`,sR.map(amFOffRow).join('')+sW.map(a=>amFRow(a,sts[a.id],a===top)).join(''));
   if(!col) col+=`<div class="amf-idle">${list.length?'✅ いまは 間に合っています':'この持ち場の作業は、まだ登録されていません。'}</div>`;
   if(dn.length||nn.length) col+=`<button type="button" class="am-grp-b amf-done" onclick="amToggleDone()" aria-expanded="${_amDoneOpen}">${[dn.length?`✓ おわった ${dn.length}件`:'', nn.length?`予定なし ${nn.length}件`:''].filter(Boolean).join('・')}　${_amDoneOpen?'▾':'▸'}</button>`+(_amDoneOpen?dn.concat(nn).map(a=>amFRow(a,sts[a.id],false)).join(''):'');
+  /* 5.14：持ち場の切り替え（すべて／周辺／外）を、点検の列の いちばん上に いつも 小さな1行で（地図の高さ・札の置き方には 関わらない場所。スマホで地図を見ている間は 列と一緒に かくれる。上下に分かれる店では 上＝点検の列の頭）。
+     押した時は 今までと同じ amSetPatrol（覚え方・決め方は同じ）。説明は「？」の中のまま */
+  if(map) col=`<div class="amf-seg" role="group" aria-label="列と地図に出す持ち場">${[['all','すべて'],['blue',`${AM_ZONE.blue.ico} 周辺`],['red',`${AM_ZONE.red.ico} 外`]].map(([k,l])=>`<button type="button" class="${_amPatrol===k?'on':''}" aria-pressed="${_amPatrol===k}" onclick="amSetPatrol('${k}')">${l}</button>`).join('')}</div>`+col;
   if(split) col=amFSplitHtml(col,nFireUp,rows.filter(a=>sts[a.id].st==='soon').length+afUp.filter(o=>o.k==='soon').length,oc);   // 5.9：上＝今までの列／下＝売場以外
   /* ---- 左：地図。マスの色（おくれ＝赤・そろそろ＝黄）は今までどおり。番号の丸と 小さい🔥 は出さない。マスを押すと、今までどおり開く ---- */
   let mapH='';
@@ -10795,7 +10815,9 @@ function renderMapView(){
   }
   /* 「作業」のボタン：列を出す・しまう。しまっている時も「おくれ 何件」が見える。広い画面＝上の行の右はし／スマホ＝画面の下の横長のボタン（形は CSS） */
   const tab=map?`<button type="button" class="amf-tab" id="amf-tab" onclick="amFToggle()" aria-controls="amf-col" aria-expanded="${_amfOpen}"><span class="amf-tab-o"><span aria-hidden="true">📋</span> 作業を 見る</span>${nFire?`<span class="amf-tab-n"><span aria-hidden="true">🔥</span><b>${nFire}</b></span>`:''}<span class="amf-tab-x">作業を しまう <span aria-hidden="true">›</span></span><span class="amf-tab-m"><span aria-hidden="true">🗺</span> 地図を 見る</span></button>`:'';
-  const filt=_amPatrol!=='all'?`<div class="amf-filt"><span>${AM_ZONE[_amPatrol].ico} ${AM_ZONE[_amPatrol].short} だけ 出ています</span><button type="button" onclick="amSetPatrol('all')">すべてに戻す</button></div>`:'';
+  /* 5.14（店長 10/18「この切り替えボタン、？の中に隠れてたから、隠れてないほうがいいと思う。もちろんじゃまにならないように」）：
+     切り替えは 列（点検の列）の いちばん上に出す（下の「seg」）。地図の無い店は 前の「◯◯ だけ 出ています」の帯のまま */
+  const filt=(!map&&_amPatrol!=='all')?`<div class="amf-filt"><span>${AM_ZONE[_amPatrol].ico} ${AM_ZONE[_amPatrol].short} だけ 出ています</span><button type="button" onclick="amSetPatrol('all')">すべてに戻す</button></div>`:'';
   const noMap=(!map&&isAdmin)?`<div class="am-nomapnote">この店舗の売場マップはまだ登録されていません。上の「🗺 マップ登録」から、この店舗のマップを作れます（一覧だけでも、状態の確認と記録はできます）。</div>`:'';
   /* 描き直しても、列の送った位置と、拡大した地図の送った位置を保つ */
   const keep=(()=>{ const c=document.getElementById('amf-col'), m=document.querySelector('#amf-map .am-mapbox'); return {c:c?c.scrollTop:0, x:m?m.scrollLeft:0, y:m?m.scrollTop:0, sb:Array.prototype.map.call(document.querySelectorAll('#amf-col .amf-sb'),e=>e.scrollTop)}; })();
@@ -11002,6 +11024,48 @@ function amRecentNames(now){
    数字の欄（vals）は 作業名のすぐ下（送らなくても見える所）。数字を全部えらぶまで、下の名前の所は「↑ 先に 数字を えらぶ」の1行だけ（低い）＝スマホでも 数字の欄が名前の下にかくれない（テスの点検 目2-3）。
    売場の作業の出す物（HTML）は 5.6 と1字も変えていない */
 let _amCard=null;
+/* ---- 5.14（店長 10/18「例えばここを３Dのような図で表したりできる？」→ 絵の案に「めっちゃいい感じ。」）：作業カードの「確認する所」に、
+   斜め上から見た立体の絵（○ できている／✕ できていない）を2枚ならべる。1回目は品出しの3つだけ。
+   絵は確認の文（items の1つ目）で決める（AM_ISO_BY_TEXT）。保存する物・保存の形は 何も足していない（作業の登録の中身も変えない）。文を直すと、その行の絵は出なくなるだけ。
+   角度と色はオフィスの絵（組織図\office_iso_view.js）と同じ：2:1 の斜め見下ろし・線 #3d4248・上が明るく右手前が暗い面。
+   ほかの作業に広げる時：下の部品（棚・箱・缶・札・空き・囲み）を足し、AM_ISO_SCENES に ○と✕の2場面を足して、AM_ISO_BY_TEXT に確認の文を1行足す ---- */
+const AM_ISO_INK='#3d4248';
+function amIsoP(x,y,z){ return [(x-y),(x+y)/2-(z||0)]; }
+function amIsoPts(a){ return a.map(p=>p.map(v=>v.toFixed(1)).join(',')).join(' '); }
+function amIsoMix(hex,to,t){ const n=parseInt(hex.slice(1),16), f=c=>Math.round(c+(to-c)*t); return `rgb(${f(n>>16)},${f((n>>8)&255)},${f(n&255)})`; }
+function amIsoPoly(a,fill,o){ o=o||{}; return `<polygon points="${amIsoPts(a)}" fill="${fill}" stroke="${o.line||AM_ISO_INK}" stroke-width="${o.w||1.1}" stroke-linejoin="round"${o.dash?` stroke-dasharray="${o.dash}"`:''}/>`; }
+function amIsoBox(x0,y0,x1,y1,z0,z1,c){ const P=amIsoP, t=amIsoMix(c,255,.22), r=amIsoMix(c,0,.16);
+  return amIsoPoly([P(x0,y1,z1),P(x1,y1,z1),P(x1,y1,z0),P(x0,y1,z0)],c)+amIsoPoly([P(x1,y0,z1),P(x1,y1,z1),P(x1,y1,z0),P(x1,y0,z0)],r)+amIsoPoly([P(x0,y0,z1),P(x1,y0,z1),P(x1,y1,z1),P(x0,y1,z1)],t); }
+function amIsoGap(x0,y0,x1,y1,z){ const P=amIsoP; return amIsoPoly([P(x0,y0,z),P(x1,y0,z),P(x1,y1,z),P(x0,y1,z)],'rgba(210,59,47,.10)',{line:'#d23b2f',w:1.6,dash:'4 3'}); }
+function amIsoCan(cx,cy,z0,z1,r,c){ const tp=amIsoP(cx,cy,z1), bt=amIsoP(cx,cy,z0), rx=r*Math.SQRT2, ry=rx/2, f=v=>v.toFixed(1);
+  return `<path d="M${f(bt[0]-rx)},${f(bt[1])} L${f(tp[0]-rx)},${f(tp[1])} L${f(tp[0]+rx)},${f(tp[1])} L${f(bt[0]+rx)},${f(bt[1])} A${f(rx)},${f(ry)} 0 0 1 ${f(bt[0]-rx)},${f(bt[1])} Z" fill="${c}" stroke="${AM_ISO_INK}" stroke-width="1.1"/>`
+    +`<ellipse cx="${f(tp[0])}" cy="${f(tp[1])}" rx="${f(rx)}" ry="${f(ry)}" fill="${amIsoMix(c,255,.35)}" stroke="${AM_ISO_INK}" stroke-width="1.1"/>`; }
+function amIsoCard(x0,x1,y1,z0,z1,missing){ const P=amIsoP, a=[P(x0,y1+.3,z1),P(x1,y1+.3,z1),P(x1,y1+.3,z0),P(x0,y1+.3,z0)];
+  if(missing) return amIsoPoly(a,'rgba(210,59,47,.12)',{line:'#d23b2f',w:1.6,dash:'3 2.5'});
+  return amIsoPoly(a,'#ffffff')+amIsoPoly([P(x0,y1+.3,z1),P(x1,y1+.3,z1),P(x1,y1+.3,z1-1.8),P(x0,y1+.3,z1-1.8)],'#3b6fc4',{w:.6}); }
+function amIsoShelf(w,d){ return amIsoBox(-2,-3,w+2,0,0,34,'#c9ccd1')+amIsoBox(-2,0,w+2,d,0,7,'#e6e7e9'); }
+function amIsoRing(x,y,z,r){ const c=amIsoP(x,y,z); return `<ellipse cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" rx="${r}" ry="${(r*.72).toFixed(1)}" fill="none" stroke="#d23b2f" stroke-width="2.2" stroke-dasharray="5 3.5"/>`; }
+const AM_ISO_BLUE=['#7aa6d8','#8db3df','#6f9ccf','#86aee0'];
+const AM_ISO_SCENES={
+  stock_deep(ok){ let s=amIsoShelf(56,33); if(!ok) s+=amIsoGap(1,1,55,21,7.05);
+    for(let row=0;row<3;row++) for(let c=0;c<4;c++){ const x0=1+c*14, y0=1+row*10.5; if(ok||row===2) s+=amIsoBox(x0,y0,x0+12,y0+9.5,7,15,AM_ISO_BLUE[(c+row)%4]); }
+    if(!ok) s+=amIsoRing(28,11,7,40); return s; },
+  stock_foreign(ok){ let s=amIsoShelf(56,14);
+    for(let c=0;c<4;c++){ const x0=1+c*14; if(!ok&&c===2) s+=amIsoCan(x0+6,7,7,20,4.6,'#e2574c'); else s+=amIsoBox(x0,2,x0+12,12,7,20,AM_ISO_BLUE[c%4]); s+=amIsoCard(x0+1.5,x0+10.5,14,0.8,6.4,!ok&&c===2); }
+    if(!ok) s+=amIsoRing(1+2*14+6,9,10,24); return s; },
+  stock_price(ok){ let s=amIsoShelf(56,14);
+    for(let c=0;c<4;c++){ const x0=1+c*14; s+=amIsoBox(x0,2,x0+12,12,7,20,AM_ISO_BLUE[c%4]); s+=amIsoCard(x0+1.5,x0+10.5,14,0.8,6.4,!ok&&c===1); }
+    if(!ok) s+=amIsoRing(1+14+6,14,3.6,15); return s; }
+};
+const AM_ISO_BY_TEXT={'棚の奥まで補充されている':'stock_deep','売場に無い商品が残っていない':'stock_foreign','プライスカードが取り付けられている':'stock_price'};
+function amIsoSvg(k,ok){
+  const badge=ok?`<g transform="translate(-26,-27) scale(.85)"><circle r="13" fill="#2f9e5b"/><circle r="6.5" fill="none" stroke="#fff" stroke-width="3.2"/></g>`
+                :`<g transform="translate(-26,-27) scale(.85)"><circle r="13" fill="#d23b2f"/><path d="M-5.5,-5.5 L5.5,5.5 M5.5,-5.5 L-5.5,5.5" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></g>`;
+  return `<svg viewBox="-38 -40 100 86" role="img" aria-label="${ok?'できている':'できていない'}"><rect x="-38" y="-40" width="100" height="86" fill="${ok?'#f3faf5':'#fdf2f1'}"/>${AM_ISO_SCENES[k](ok)}${badge}</svg>`;
+}
+/* カードの確認の1行の、絵の2枚（無ければ空の文字＝今までと同じ形） */
+function amIsoFig(t){ const k=Object.prototype.hasOwnProperty.call(AM_ISO_BY_TEXT,String(t||'').trim())?AM_ISO_BY_TEXT[String(t||'').trim()]:null; if(!k||!AM_ISO_SCENES[k]) return '';
+  try{ return `<div class="am-iso"><div class="am-iso-f ok">${amIsoSvg(k,true)}</div><div class="am-iso-f ng">${amIsoSvg(k,false)}</div></div>`; }catch(e){ console.error('iso '+(e&&e.message)); return ''; } }
 function amOpenArea(id, keep){
   const a=amWork(id); if(!a)return; const off=amIsOff(a);
   if(!keep||!_amCard||_amCard.id!==id){
@@ -11052,7 +11116,7 @@ function amOpenArea(id, keep){
   _amSheet(`<div class="am-cd-body"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button>
     ${head}${amStartHtml(a)}${amRepNote(a,s)}${fgHtml}${off?amCardDfHtml(a,os):''}${off?amCardValsHtml(a):''}
     ${a.sub?`<div class="am-sub">${escapeHtml(a.sub)}</div>`:''}
-    ${(a.items||[]).length?`<ol class="am-items">${a.items.map(([t,ng])=>`<li><div class="am-it">${escapeHtml(t)}</div>${ng?`<div class="am-ng"><span>NG時アクション</span>${escapeHtml(ng)}</div>`:''}</li>`).join('')}</ol>`:''}
+    ${(a.items||[]).length?`<ol class="am-items">${a.items.map(([t,ng])=>`<li><div class="am-it">${escapeHtml(t)}</div>${amIsoFig(t)}${ng?`<div class="am-ng"><span>NG時アクション</span>${escapeHtml(ng)}</div>`:''}</li>`).join('')}</ol>`:''}
     <div class="am-hist">予定：${escapeHtml(plan)}${a.kind?`　／　種類：${escapeHtml(a.kind)}`:''}${hist.length?`<br>これまでの記録：${hist.map(h=>`${fmt(h.at)}${h.by?' '+escapeHtml(h.by):''}`).join('　／　')}`:''}</div></div>
     <div class="am-cd-foot${need?' am-cd-foot-need':''}">${footHtml}</div>`, 'card', 'card');
 }
@@ -15624,8 +15688,10 @@ async function start(){
     else if(kind==='zone'){ dash=' stroke-dasharray="'+(5*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; if(c.zone==='none'){ fill='none'; stroke='#c9ced6'; } else { stroke=wk?z.ink:z.stroke; sw=wk?1.4:0.9; op=wk?'':' stroke-opacity=".6"'; } tc=wk?(z.ink||'#555'):'#9aa0a8'; }
     else if(kind==='text'){ fill='none'; stroke='none'; tc='#7b838c'; }
     else if(kind==='pin'){ bold=true; tc=z.color; if(wk){ sw=1.6; } }
-    if(st&&st.st==='fire'){ fill='#f6a79e'; stroke='#c01c12'; sw=3; dash=''; op=''; tc='#450a0a'; }
-    else if(st&&st.st==='soon'){ fill='#fbe18a'; stroke='#c78500'; sw=2.4; dash=''; op=''; tc='#422006'; }
+    /* 5.14（店長 10/18「マップのデザインってまだ古いやつだよね？」→ 案1「案1で」）：地図の色を 5.12 の一覧とそろえる。白い地・遅れ＝赤い斜線・もうすぐ＝薄い青の点線・選んでいる所＝青いわく（CSS）。形・位置・字・札は 今のまま */
+    if(kind==='cell'||kind==='pin'){ fill=wk?'#ffffff':'#f6f8fb'; stroke=wk?'#8d9aae':'#c3ccd8'; sw=wk?1.3:1; op=''; }
+    if(st&&st.st==='fire'){ fill='url(#am-fire)'; stroke='#c8322a'; sw=2.6; dash=''; op=''; tc='#7e1a14'; }
+    else if(st&&st.st==='soon'){ fill='#eaf1fb'; stroke='#1a56b0'; sw=2; dash=' stroke-dasharray="'+(6*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; op=''; tc='#0f3a7a'; }
     var x=c.x,y=c.y,w=c.w,h=c.h, rx=kind==='pin'?Math.min(w,h)/2:2*u;
     var ic=(c.icon&&AM_ICONS[c.icon])?AM_ICONS[c.icon]:null, g='', cx=x+w/2, cy=y+h/2;
     if(lay.mode==='in'){

@@ -252,13 +252,13 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         amWorks().forEach(w=>{ amOpenArea(w.id); out.card.push([w.id,amStatus(w).st,colNo(w.id),cardNo()]); amCloseSheet(); });
         (amMap()?amMap().cells:[]).filter(c=>(c.works||[]).map(amWork).filter(Boolean).length>=2).slice(0,8).forEach(c=>{ amCellTap(c.id); Array.prototype.forEach.call(document.querySelectorAll('#am-sheet .am-pick .am-wr'),e=>{ const id=(/amOpenArea\\('([^']+)'\\)/.exec(e.getAttribute('onclick'))||[])[1]; out.pick.push([id,colNo(id),e.querySelector('.am-no').textContent]); }); amCloseSheet(); });
         amSetPatrol('blue'); const rows=Array.prototype.map.call(document.querySelectorAll('#amf-col .amf-r'),e=>[e.dataset.w,e.querySelector('.am-no').textContent,(amWork(e.dataset.w)||{}).zone]);
-        const red=amWorks().filter(w=>w.zone==='red')[0]; amOpenArea(red.id); out.blue={rows,filt:(document.querySelector('#amf-wrap .amf-filt')||{}).textContent||'',redCard:cardNo(),redSt:amStatus(red).st}; amCloseSheet(); amSetPatrol('all'); out.after=document.querySelectorAll('#amf-col .amf-r').length;
+        const red=amWorks().filter(w=>w.zone==='red')[0]; amOpenArea(red.id); out.blue={rows,filt:(document.querySelector('#amf-wrap .amf-seg')||{}).textContent||'',redCard:cardNo(),redSt:amStatus(red).st}; amCloseSheet(); amSetPatrol('all'); out.after=document.querySelectorAll('#amf-col .amf-r').length;
         return JSON.stringify(out); })()`));
       check('41','カードの丸の数字は、列と同じ数字（地図のマスから開いても同じ）。終わった作業のカードは ✓。マスに作業が2つ以上ある時の 選ぶ窓の数字も、列と同じ',
         r.card.length===r.total&&r.card.every(c=>c[2]?c[3]===c[2]:(c[1]==='done'?c[3]==='✓':c[3]===''))&&r.card.some(c=>/^\d+$/.test(c[3]))&&r.pick.length>=4&&r.pick.every(p=>p[1]?p[2]===p[1]:!/\d/.test(p[2]))&&r.pick.some(p=>/^\d+$/.test(p[2])),
         `カード ${r.card.filter(c=>/^\d+$/.test(c[3])).length} 枚に数字・選ぶ窓 ${r.pick.length} 行`);
-      check('42','持ち場で絞っている間：列の数字は、出ている列の上から 1・2・3。「◯◯ だけ 出ています／すべてに戻す」が出る。列に出ていない作業のカードに 数字は出ない。戻すと 元の列',
-        r.blue.rows.length>=2&&r.blue.rows.every((x,i)=>x[1]===String(i+1)&&(x[2]==='blue'||x[2]==='both'))&&/カウンター周辺 だけ 出ています/.test(r.blue.filt)&&/すべてに戻す/.test(r.blue.filt)&&!/\d/.test(r.blue.redCard)&&r.after>r.blue.rows.length,
+      check('42','持ち場で絞っている間：列の数字は、出ている列の上から 1・2・3。持ち場の切り替え（すべて／周辺／外。5.14 から いつも出る）が出ている。列に出ていない作業のカードに 数字は出ない。戻すと 元の列',
+        r.blue.rows.length>=2&&r.blue.rows.every((x,i)=>x[1]===String(i+1)&&(x[2]==='blue'||x[2]==='both'))&&/すべて/.test(r.blue.filt)&&/周辺/.test(r.blue.filt)&&/外/.test(r.blue.filt)&&!/\d/.test(r.blue.redCard)&&r.after>r.blue.rows.length,
         `絞った列 ${r.blue.rows.map(x=>x[1]).join('・')}／赤ゾーンの作業のカードの丸「${r.blue.redCard}」`); }
     { // 列を出す・しまう：保存しない。しまった後は、描き直し（30秒ごと）・自分の記録・ほかの端末の変更が届いても、勝手に出ない。出ている時は、勝手に しまわれない
       const open=d=>d.ev(`document.getElementById('amf-wrap').classList.contains('amf-open')`), key=A.ev('STORAGE_KEY');
@@ -1480,7 +1480,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.13'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.14'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1593,6 +1593,45 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         c2a.todoN>0&&c2a.todoShown===0&&c2a.todoRow===0&&c2b.todoN===c2b.nW&&c2b.nShelf===0&&c2b.todoShown===0&&/間に合っています/.test(c2b.idle)&&c2b.same,
         `混ぜた時：todo ${c2a.todoN}件のうち 出た行 ${c2a.todoShown}｜全部 todo：棚 ${c2b.nShelf}・出た行 ${c2b.todoShown}・案内「${c2b.idle}」・データ同じ ${c2b.same}`);
       C2.close();
+      /* ---- 5.14（店長 10/18 絵の案に「めっちゃいい感じ。」）：作業カードの確認の絵（○ できている／✕ できていない）。品出しの3つだけ。保存の形は変えない ---- */
+      const K=await mkSolo(768,1024);
+      K.ev(`setView('map')`); await sleep(500);
+      const kjs=id=>`(()=>{ const st0=JSON.stringify(state); try{ amCloseSheet&&amCloseSheet(); }catch(e){} amOpenArea(${JSON.stringify(id)});
+        const its=[].slice.call(document.querySelectorAll('.am-items > li')), fig=its.map(li=>{ const f=li.querySelector('.am-iso'); return f?[f.querySelectorAll('.am-iso-f.ok svg').length,f.querySelectorAll('.am-iso-f.ng svg').length,Math.round(f.getBoundingClientRect().height)]:null; });
+        const order=its.map(li=>[].slice.call(li.children).map(e=>e.className).join('>'));
+        const r={n:its.length, fig, order, same:JSON.stringify(state)===st0}; try{ amCloseSheet&&amCloseSheet(); }catch(e){} return JSON.stringify(r); })()`;
+      const k1=JSON.parse(K.ev(kjs('stock_red'))), k2=JSON.parse(K.ev(kjs('stock_blue'))), k3=JSON.parse(K.ev(kjs('floor_red'))), k4=JSON.parse(K.ev(kjs('toilet')));
+      const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
+      const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
+      check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.14',
+        `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
+      /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
+      const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
+        amOpenArea('stock_red'); const its=[].slice.call(document.querySelectorAll('.am-items > li')); const r=its.map(li=>!!li.querySelector('.am-iso')); try{ amCloseSheet&&amCloseSheet(); }catch(e){} return JSON.stringify(r); } finally { state.amWorks=bk; } })()`));
+      check('96r','（96q の続き）確認の文を直した行は 絵が出ない・ほかの行は 出る・エラーなし',JSON.stringify(k5)==='[false,true,true]',`行ごとの絵 ${JSON.stringify(k5)}`);
+      K.close();
+      /* 5.14：地図の色（店長 10/18「案1で」）。遅れ＝赤い斜線（#am-fire）・もうすぐ＝薄い青・前の色（#f6a79e・#fbe18a）は もう使わない・選んでいる所の わくは 青 */
+      const KM=await mkSolo(768,1024);
+      KM.ev(`setView('map')`); await sleep(700);
+      const km=JSON.parse(KM.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), rs=[].slice.call(svg.querySelectorAll('g.am-cell > rect')).map(r=>(r.getAttribute('fill')||'').toLowerCase());
+        const hi=document.querySelector('#amf-hi rect'), cs=hi?getComputedStyle(hi):null;
+        return JSON.stringify({n:rs.length, fire:rs.filter(f=>f==='url(#am-fire)').length, soon:rs.filter(f=>f==='#eaf1fb').length, old:rs.filter(f=>f==='#f6a79e'||f==='#fbe18a').length, pat:!!svg.querySelector('pattern#am-fire'), hi:cs?cs.stroke:'', cells:amMap().cells.length}); })()`));
+      check('96s','売場マップの色（5.14・案1）：遅れのマスは 赤い斜線（#am-fire）・もうすぐは 薄い青・前の色（#f6a79e・#fbe18a）は 0・選んでいる所の わくは 青（#1a56b0）。マスの数は 59 のまま',
+        km.fire>0&&km.old===0&&km.pat&&/26, 86, 176/.test(km.hi)&&km.cells===59,`マス ${km.cells}・赤い斜線 ${km.fire}・薄い青 ${km.soon}・前の色 ${km.old}・わく ${km.hi}`);
+      KM.close();
+      /* 5.14：持ち場の切り替えを 最初の画面に（店長 10/18「隠れてないほうがいい…じゃまにならないように」）。押すと 今までの amSetPatrol と同じ・データは変わらない */
+      const KS=await mkSolo(390,844);
+      KS.ev(`setView('map')`); await sleep(500);
+      const ks=JSON.parse(KS.ev(`(()=>{ const st0=JSON.stringify(state), p0=_amPatrol, seg=()=>document.querySelector('#map-view .amf-seg'), bs=()=>[].slice.call(seg()?seg().querySelectorAll('button'):[]);
+        const r={n:bs().length, labels:bs().map(b=>b.textContent.trim()), h:seg()?Math.round(seg().getBoundingClientRect().height):0, one:seg()?(seg().scrollWidth<=seg().clientWidth+1):false};
+        bs()[1].click(); const rowsB=[].slice.call(document.querySelectorAll('#amf-col .amf-r:not(.amf-o)')).map(e=>e.dataset.w), okB=rowsB.every(id=>{ const a=amWork(id); return a&&(a.zone==='blue'||a.zone==='both'); });
+        r.blue={p:_amPatrol, on:bs()[1].classList.contains('on'), rows:rowsB.length, okB, ss:sessionStorage.getItem('ws_am_patrol')};
+        bs()[0].click(); r.all={p:_amPatrol, on:bs()[0].classList.contains('on')}; r.same=JSON.stringify(state)===st0; amSetPatrol(p0); return JSON.stringify(r); })()`));
+      check('96t','持ち場の切り替え（5.14）：最初の画面に 3つ（すべて／周辺／外）が 1行で出る（高さ 48px 以下）。「周辺」を押すと カウンター周辺と両方の作業だけになり、端末が覚える（今までと同じ）。「すべて」で戻る。データは変わらない',
+        ks.n===3&&ks.labels[0]==='すべて'&&/周辺/.test(ks.labels[1])&&/外/.test(ks.labels[2])&&ks.h>0&&ks.h<=48&&ks.one&&ks.blue.p==='blue'&&ks.blue.on&&ks.blue.okB&&ks.blue.ss==='blue'&&ks.all.p==='all'&&ks.all.on&&ks.same,
+        `ボタン ${ks.labels.join('／')}・高さ ${ks.h}px・1行 ${ks.one}｜周辺：${ks.blue.rows}行（周辺と両方だけ ${ks.blue.okB}）・覚えた ${ks.blue.ss}｜すべて：${ks.all.p}｜データ同じ ${ks.same}`);
+      KS.close();
     }
     /* ---- 5.13（店長 10/18「全部おすすめで」）：登録の窓の「守り」A〜E と、5.11 の残り N1・N2。
          作り物のデータだけの別の枠（ネット上の保存先は 別の入れ物＝2台の中身・未送信には 関わらない）。保存先は 使わず、画面の中の状態（state）を 見る。
