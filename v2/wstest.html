@@ -1480,7 +1480,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.12'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.13'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1593,6 +1593,167 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         c2a.todoN>0&&c2a.todoShown===0&&c2a.todoRow===0&&c2b.todoN===c2b.nW&&c2b.nShelf===0&&c2b.todoShown===0&&/間に合っています/.test(c2b.idle)&&c2b.same,
         `混ぜた時：todo ${c2a.todoN}件のうち 出た行 ${c2a.todoShown}｜全部 todo：棚 ${c2b.nShelf}・出た行 ${c2b.todoShown}・案内「${c2b.idle}」・データ同じ ${c2b.same}`);
       C2.close();
+    }
+    /* ---- 5.13（店長 10/18「全部おすすめで」）：登録の窓の「守り」A〜E と、5.11 の残り N1・N2。
+         作り物のデータだけの別の枠（ネット上の保存先は 別の入れ物＝2台の中身・未送信には 関わらない）。保存先は 使わず、画面の中の状態（state）を 見る。
+         ?au=<ファイル名> で、A の試験が読む autoupdate.js を 差しかえられる（直す前の版で 新しい試験が 落ちる事の確かめ用） ---- */
+    {
+      const mk2=async(w,h)=>{
+        const c2=new V2.MemoryCloud(), be=c2.device(), store=new V2.Store({backend:be,space:'T9',device:'端末Q',kv:new V2.MemKV(),snapshot:false});
+        const f=document.createElement('iframe'); f.style.cssText='display:block;width:'+w+'px;height:'+h+'px;max-width:none;border:1px solid #cbd5e1;border-radius:8px;background:#fff;margin:8px 0'; document.body.appendChild(f);
+        const WSD=(location.search.match(/[?&]wsdir=([^&]+)/)||[])[1]||'ws';   // ?wsdir=wsr3 で 5.11 r3 の版に つなぎかえる（N1 の r3 の数を 測り直す用）
+        const win=await load(f,WSD+'/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null;
+        await win.__v2go({store,stores,current:'w1',state:J(st)}); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); await sleep(400);
+        return {f,win,ev:s=>win.eval(s),close:()=>{ try{ f.remove(); }catch(_){} }};
+      };
+      const fillIn=(S,id,v)=>S.ev(`(()=>{ const e=document.getElementById(${J(id)}); e.value=${J(v)}; e.dispatchEvent(new Event('input',{bubbles:true})); e.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+      const wkOf=(S,id)=>{ try{ return JSON.parse(S.ev(`JSON.stringify((state.amWorks||amWorks()).find(w=>w.id===${J(id)})||null)`)); }catch(e){ return null; } };
+      const diffKeys=(a,b)=>{ const o=[]; const ks={}; Object.keys(a||{}).concat(Object.keys(b||{})).forEach(k=>{ ks[k]=1; }); Object.keys(ks).forEach(k=>{ if(J(a&&a[k])!==J(b&&b[k])) o.push(k); }); return o; };
+      const SA=await mk2(768,1024);
+      const sv=s=>{ try{ return SA.ev(s); }catch(e){ return '(エラー：'+String(e&&e.message).slice(0,50)+'）'; } }, jp=(s,d)=>{ try{ return JSON.parse(s); }catch(e){ return d||{}; } };   // 直す前の版には 無い関数を 呼んでも 試験が 止まらず、その試験だけが 不合格になる
+      sv(`isAdmin=true; applyAdminMode(); setView('map')`); await sleep(300);
+
+      /* A：窓が開いている間は、自動の読み込み直し（autoupdate.js）を待たせる。窓の側の「待たせる関数」と、autoupdate.js 側の 待ち方（作り物の時計・作り物の iframe で 動かす） */
+      const hold=()=>sv("typeof window.__autoupdateHold==='function'?window.__autoupdateHold():'なし'");
+      const a0=hold(); sv(`amOpenWorks()`); await sleep(80); const a1=hold(); sv(`amEditWork('')`); await sleep(80); const a2=hold();
+      sv(`amCloseSheet()`); const a3=hold(); await sleep(4300); const a4=hold();
+      sv(`amEditWork(''); _amHoldSince=Date.now()-21*60000`); const a5=hold(); sv(`amCloseSheet(); _amHoldSince=0; _amHoldEnd=0`);
+      sv(`_amEm={sel:[],hold:0}`); const a6=hold(); sv(`_amEm=null; _amHoldSince=0; _amHoldEnd=0`); await sleep(50);
+      const AUP=(location.search.match(/[?&]au=([^&]+)/)||[])[1]||'autoupdate.js';
+      let auSrc=''; try{ const x=new XMLHttpRequest(); x.open('GET','../'+AUP+'?t='+Date.now(),false); x.send(); auSrc=(x.status===200||x.status===0)?x.responseText:''; }catch(e){ auSrc=''; }
+      const runAU=(o)=>{
+        let now=1e12, reloads=0, at=null; const timers=[], ss={}; let seq=0;
+        const loc={protocol:'https:',hash:'',pathname:'/x/y.html',reload(){ reloads++; if(at===null) at=Math.round((now-1e12)/1000); }};
+        const doc={lastModified:new Date(now-3600000).toUTCString(),activeElement:null,hidden:false,body:null,readyState:'complete',_h:{},addEventListener(ev,fn){ (this._h[ev]=this._h[ev]||[]).push(fn); },getElementsByTagName(t){ return t==='iframe'?(o.iframes||[]):[]; },createElement(){ return {style:{},setAttribute(){}}; }};
+        const win={addEventListener(){},parent:null}; win.parent=win;
+        const FD={now:()=>now,parse:Date.parse};
+        const fetchF=()=>({then(cb){ cb({ok:true,headers:{get:()=>new Date(now).toUTCString()}}); return {catch(){}}; }});
+        const sto={getItem:k=>(k in ss?ss[k]:null),setItem:(k,v)=>{ ss[k]=String(v); },removeItem:k=>{ delete ss[k]; }};
+        const setT=(fn,ms)=>{ timers.push({t:now+ms,fn,id:++seq}); return seq; }, setI=(fn,ms)=>{ const id=++seq; const rep=()=>{ timers.push({t:now+ms,fn:()=>{ fn(); rep(); },id}); }; rep(); return id; };
+        try{ new Function('window','document','location','sessionStorage','fetch','setTimeout','setInterval','Date',auSrc)(win,doc,loc,sto,fetchF,setT,setI,FD); }catch(e){ return {err:String(e)}; }
+        const adv=(sec)=>{ const end=now+sec*1000; for(;;){ timers.sort((a,b)=>(a.t-b.t)||(a.id-b.id)); const nx=timers[0]; if(!nx||nx.t>end) break; timers.shift(); now=Math.max(now,nx.t); nx.fn(); } now=end; };
+        const t0=now; (o.script||[]).forEach(s=>{ const to=t0+s.at*1000; if(to>now) adv((to-now)/1000); s.fn(win); });
+        adv(o.run||400); return {reloads,at,err:''};
+      };
+      let holdOn=true; const ifr=(fn)=>({contentWindow:{__autoupdateHold:fn}});
+      const u1=runAU({}), u2=runAU({iframes:[ifr(()=>holdOn)],script:[{at:200,fn:()=>{ holdOn=false; }}],run:400});
+      holdOn=true; const u2b=runAU({iframes:[ifr(()=>true)],run:300});   // ずっと 待たせる＝読み込み直さない
+      const u3=runAU({script:[{at:85,fn:w=>{ w.__auNote&&w.__auNote(); }}],run:300});   // 中の画面で 85秒に 打った → 入口は それを見て 15秒 待つ
+      const u4=runAU({iframes:[{contentWindow:{}}],run:300});   // FF の窓のような「待たせる関数が 無い」中の画面：前と同じ
+      const u5=runAU({script:[{at:30,fn:w=>{}}],iframes:[{get contentWindow(){ throw new Error('x'); }}],run:300});   // 中の画面が 読めなくても（別の出どころ など）止まらない
+      check('96j','【A】窓（登録の表・作業の内容・地図で えらぶ・マップ登録）が 開いている間は、自動の読み込み直しを待たせる：閉じた後 4秒は まだ待つ・20分を こえたら 待たない。autoupdate.js は、中の画面の「待たせる関数」を見る・中の画面の打鍵も 入口が見る・FF のような待たせない画面は 前と同じ',
+        a0===false&&a1===true&&a2===true&&a3===true&&a4===false&&a5===false&&a6===true&&!u1.err&&u1.at>=88&&u1.at<=100&&u2.at>=200&&u2.at<=210&&u2b.reloads===0&&u3.at>=98&&u3.at<=115&&u4.at===u1.at&&u5.reloads>=1,
+        `窓の側：なし ${a0}・表 ${a1}・内容 ${a2}・閉じた直後 ${a3}・4秒後 ${a4}・20分こえ ${a5}・地図で えらぶ ${a6}｜autoupdate.js：待たせない画面 ${u1.at}秒・待たせた間 ${u2.at}秒に（それまで 読み込み直しなし）・ずっと待たせる ${u2b.reloads}回・中で打った ${u3.at}秒・待たせる関数が無い画面 ${u4.at}秒・読めない画面 ${u5.reloads}回${u1.err||''}`);
+
+      /* B：入れた物を 確認なしで 捨てない（×・戻る・窓の外）。変更が 無ければ 今までどおり */
+      let cf=[], cfAns=true; SA.win.confirm=(m)=>{ cf.push(String(m)); return cfAns; };
+      sv(`amOpenWorks()`); await sleep(60); sv(`amEditWork('')`); await sleep(80);
+      sv(`amOverlayTap()`); const b1=sv('amSheetName()');   // 変更なし：暗い所で 閉じる（今までどおり）
+      sv(`amEditWork('')`); await sleep(80); sv(`amEditBack()`); const b2=sv('amSheetName()'), b2c=cf.length;   // 変更なし：戻る → 確認なしで 表へ
+      sv(`amEditWork('')`); await sleep(80); fillIn(SA,'amw-name','入れた名前'); const b3d=sv('amFormDirty()');
+      sv(`amOverlayTap()`); const b3=sv('amSheetName()'), b3s=sv(`(document.getElementById('am-snack')||{}).textContent||''`);   // 変更あり：暗い所では 閉じない
+      cfAns=false; sv(`amEditBack()`); const b4=sv('amSheetName()'), b4c=cf.length, b4n=sv(`document.getElementById('amw-name').value`);   // 変更あり：戻る→確認→キャンセル＝続ける（入れた名前は そのまま）
+      cfAns=true; sv(`amEditBack()`); const b5=sv('amSheetName()'), b5c=cf.length;   // 変更あり：戻る→確認→OK＝表へ
+      sv(`amEditWork('toilet')`); await sleep(80); const b6d=sv('amFormDirty()'); sv(`document.getElementById('amw-sch-1').value='4'; document.getElementById('amw-sch-1').dispatchEvent(new Event('change',{bubbles:true}))`); const b6e=sv('amFormDirty()');   // 選ぶ欄（回数）を変えても「変更あり」
+      sv(`amCloseSheet()`);
+      check('96k','【B】「作業の内容」の窓：変更が 無ければ 暗い所の1回で閉じる・戻るは 確認なし。変更が あれば 暗い所では 閉じない（「保存か 戻るで…」と知らせる）・戻る・×は 確認（キャンセルで 続ける／OK で 表へ）・回数の選びを 変えても 変更あり',
+        b1===''&&b2==='works'&&b2c===0&&b3d===true&&b3==='edit'&&/保存|戻る/.test(b3s)&&b4==='edit'&&b4c===1&&b4n==='入れた名前'&&b5==='works'&&b5c===2&&b6d===false&&b6e===true,
+        `変更なし：暗い所→${b1||'閉じた'}・戻る→${b2}（確認 ${b2c}回）｜変更あり：${b3d}・暗い所→${b3}「${b3s}」・戻る→キャンセル ${b4}（確認 ${b4c}回・名前「${b4n}」）→OK ${b5}（確認 ${b5c}回）｜トイレを開いた直後 変更 ${b6d}→回数を変えた後 ${b6e}`);
+      /* 地図で えらぶ：えらび直した後の「やめる」（Esc も同じ）は 確認 */
+      const hasMap=sv('!!amMap()'); let bm={skip:true};
+      if(hasMap){
+        cf=[]; cfAns=false; sv(`amEditWork('toilet')`); await sleep(80); sv(`amEmOpen()`); await sleep(700);
+        const cid=sv(`amMap().cells.filter(c=>!_amEm.sel.includes(c.id))[0].id`); sv(`amEmTap(${J(cid)})`);
+        sv(`amEmCancel()`); const m1=sv('!!_amEm'), m1c=cf.length; cfAns=true; sv(`amEmCancel()`); const m2=sv('!!_amEm'); sv(`amCloseSheet()`);
+        sv(`amEditWork('toilet')`); await sleep(80); sv(`amEmOpen()`); await sleep(700); cf=[]; sv(`amEmCancel()`); const m3=sv('!!_amEm'), m3c=cf.length; sv(`amCloseSheet()`);
+        bm={m1,m1c,m2,m3,m3c,skip:false};
+      }
+      check('96k2','【B】「地図で えらぶ」：えらび直した後の「やめる」は 確認（キャンセルで 続ける／OK で もどる）。えらび直していなければ 確認なし',bm.skip||(bm.m1===true&&bm.m1c===1&&bm.m2===false&&bm.m3===false&&bm.m3c===0),bm.skip?'この店に 地図が 無いので 試していない':`えらび直し→やめる→キャンセル：窓 ${bm.m1}（確認 ${bm.m1c}回）→OK：窓 ${bm.m2}｜そのまま やめる：窓 ${bm.m3}（確認 ${bm.m3c}回）`);
+      cf=[]; cfAns=true;
+
+      /* C：どこにも 出ない作業（回数が ぜんぶ なし）は、窓の上に 黄色の知らせ。保存は 止めない・保存した時にも 黄色で知らせる・表の行にも 出す */
+      sv(`amOpenWorks()`); await sleep(60); sv(`amEditWork('')`); await sleep(80);
+      const nwv=()=>sv(`(()=>{ const e=document.getElementById('amw-nowhere'); return e&&getComputedStyle(e).display!=='none'?e.textContent:''; })()`);
+      const c1=nwv(); sv(`document.getElementById('amw-sch-2').value='1'; document.getElementById('amw-sch-2').dispatchEvent(new Event('change',{bubbles:true}))`); const c2=nwv();
+      sv(`document.getElementById('amw-sch-2').value='0'; document.getElementById('amw-sch-2').dispatchEvent(new Event('change',{bubbles:true}))`); const c3=nwv();
+      fillIn(SA,'amw-name','名前だけの作業'); sv(`amSaveWork('')`); await sleep(150);
+      const cw=sv(`(state.amWorks||[]).find(w=>w.name==='名前だけの作業')?1:0`), csn=sv(`(()=>{ const s=document.getElementById('am-snack'); return {t:s.textContent,warn:s.classList.contains('am-snack-warn'),shown:s.classList.contains('show')}; })()`), crow=sv(`document.querySelectorAll('#am-sheet .amw-k-none').length`);
+      sv(`amEditWork('')`); await sleep(80); fillIn(SA,'amw-name','回数のある作業'); sv(`document.getElementById('amw-sch-1').value='2'; document.getElementById('amw-sch-1').dispatchEvent(new Event('change',{bubbles:true})); amSaveWork('')`); await sleep(150);
+      const csn2=sv(`(()=>{ const s=document.getElementById('am-snack'); return {t:s.textContent,warn:s.classList.contains('am-snack-warn')}; })()`), crow2=sv(`document.querySelectorAll('#am-sheet .amw-k-none').length`);
+      sv(`amEditWork('','off')`); await sleep(80); const c4=nwv(); sv(`_amForm.times=['10:00']; amFormSync()`); const c5=nwv();
+      sv(`amCloseSheet()`);
+      check('96l','【C】どこにも 出ない作業（回数が ぜんぶ「なし」・売場以外で 時刻が 無い）：窓の上に 黄色の「まだ どこにも 出ません」・回数を えらぶと 消える。名前だけで 保存しても 保存は できて、黄色のお知らせ（⚠）と 表の行の黄色い印が 出る。回数のある作業には 出ない',
+        /どこにも 出ません/.test(c1)&&c2===''&&/どこにも 出ません/.test(c3)&&cw===1&&csn.warn&&/どこにも 出ません/.test(csn.t)&&crow===1&&csn2.warn===false&&!/どこにも/.test(csn2.t)&&crow2===1&&/時刻/.test(c4)&&c5==='',
+        `売場の新規：開いた時「${c1.slice(0,16)}」→回数を えらぶと「${c2}」→戻すと「${c3.slice(0,12)}」｜保存：作業 ${cw}件・お知らせ「${csn.t.slice(0,36)}」黄色 ${csn.warn}・表の黄色い印 ${crow}｜回数ありの保存：黄色 ${csn2.warn}・印 ${crow2}｜売場以外：時刻なし「${c4.slice(0,14)}」→時刻を足すと「${c5}」`);
+
+      /* D：保存は 窓を開いてから 直した欄だけを書く（ほかの端末の直しを戻さない）。何も直していなければ 何も書かない。窓を開いている間に 消された作業は 保存の前に知らせる */
+      sv(`window.__sv=0; window.__sv0=window.amSave; window.amSave=function(){ window.__sv++; return window.__sv0.apply(this,arguments); }`);
+      const d0=wkOf(SA,'toilet');
+      sv(`amEditWork('toilet')`); await sleep(80); sv(`amSaveWork('toilet')`); await sleep(100);   // 開いて 何も直さず 保存
+      const d1=wkOf(SA,'toilet'), d1sv=sv('window.__sv'), d1sn=sv(`document.getElementById('am-snack').textContent`);
+      sv(`amEditWork('toilet')`); await sleep(80); fillIn(SA,'amw-name','トイレ（名前だけ直した）'); sv(`amSaveWork('toilet')`); await sleep(100);   // 名前だけ直して保存：ほかは そのまま（古い欄 sch だけの作業に sch7・days を 書き足さない）
+      const d2=wkOf(SA,'toilet'), d2k=diffKeys(d0,d2);
+      /* 窓を開いている間に ほかの端末が 場所と回数を直した（storage の知らせと同じ道：state を 作り直す） */
+      sv(`amEditWork('toilet')`); await sleep(80);
+      sv(`(()=>{ const w=state.amWorks.find(x=>x.id==='toilet'); w.sub='ほかの端末が直した場所'; amSchSet(w,[0,0,3,0,0,0,0]); w.items=[['ほかの端末の確認','']]; })()`);
+      fillIn(SA,'amw-icon','🚽'); sv(`amSaveWork('toilet')`); await sleep(100);
+      const d3=wkOf(SA,'toilet');
+      check('96m','【D】保存は 窓を開いてから 直した欄だけを書く：開いて 何も直さず 保存＝何も書かない・名前だけ直す＝名前だけ変わる（sch7・days を足さない）・窓を開いている間に ほかの端末が直した場所・回数・確認項目を 戻さない（自分が直した絵文字は 書く）',
+        d1sv===0&&J(d1)===J(d0)&&/変更は ありませんでした/.test(d1sn)&&J(d2k)===J(['name'])&&d3.sub==='ほかの端末が直した場所'&&J(d3.sch7)===J([0,0,3,0,0,0,0])&&J(d3.items)===J([['ほかの端末の確認','']])&&d3.icon==='🚽'&&d3.name==='トイレ（名前だけ直した）',
+        `何も直さず：書いた回数 ${d1sv}・同じ ${J(d1)===J(d0)}・お知らせ「${d1sn.slice(0,20)}」｜名前だけ：変わった欄 ${J(d2k)}｜ほかの端末の直しの後：場所「${d3.sub}」・回数 ${J(d3.sch7)}・確認項目 ${J(d3.items)}・絵文字 ${d3.icon}`);
+      /* 窓を開いている間に ほかの端末で 作業が 消された */
+      sv(`amEditWork('atm')`); await sleep(80); fillIn(SA,'amw-sub','消された後に 直した場所');
+      sv(`state.amWorks=state.amWorks.filter(x=>x.id!=='atm'); amRemoteRefresh()`); const dg=sv(`(()=>{ const e=document.getElementById('amw-gone'); return e&&getComputedStyle(e).display!=='none'?e.textContent:''; })()`);
+      cf=[]; cfAns=false; sv(`amSaveWork('atm')`); await sleep(100); const dx=sv(`!(state.amWorks||[]).some(x=>x.id==='atm')`), dxs=sv('amSheetName()'), dxc=cf.length;   // 知らされて「作らない」
+      sv(`amEditWork('copy')`); await sleep(80); fillIn(SA,'amw-sub','作り直す場所'); sv(`state.amWorks=state.amWorks.filter(x=>x.id!=='copy')`); cf=[]; cfAns=true; sv(`amSaveWork('copy')`); await sleep(100);
+      const dr=sv(`(state.amWorks||[]).find(x=>x.id==='copy')||null`), drc=cf.length;   // 知らされて「もう一度 作る」
+      sv('window.amSave=window.__sv0');
+      check('96m2','【D】窓を開いている間に ほかの端末で 作業が 消された：窓の中に 黄色で知らせる・保存の時に もう一度 聞く（キャンセル＝作らず 表へ・OK＝同じ id で もう一度 作る）。今までは 何も起きないのに「保存しました」と出ていた',
+        /削除されました/.test(dg)&&dx===true&&dxs==='works'&&dxc===1&&!!dr&&dr.sub==='作り直す場所'&&drc===1,
+        `知らせ「${dg.slice(0,22)}」｜キャンセル：作らない ${dx}・窓 ${dxs}（確認 ${dxc}回）｜OK：作り直した ${!!dr}・場所「${dr&&dr.sub}」（確認 ${drc}回）`);
+
+      /* E：絵文字の欄の maxlength を外す・選ぶ欄に 今の値が 無い時は 今の値を 足す（黙って 変わらない） */
+      sv(`state.amWorks=amWorks().concat([{id:'wx1',name:'変わった値',icon:'🧑‍🍳',kind:'謎の種類',zone:'none',sub:'',sch:[0,4,0,4],sch7:[0,0,0,5,0,6,0],days:null,items:[['項目','対応','3つめ']]},{id:'wx2',place:'off',name:'数字が4つ',icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['09:00'],lead:30,grace:60,recheck:'30',vals:[{k:'a',label:'1',unit:'℃'},{k:'b',label:'2',unit:'℃'},{k:'c',label:'3',unit:'℃'},{k:'d',label:'4つめ',unit:'℃',min:1.5,max:9.5}],items:[['確認','']]}])`);
+      const wx1=wkOf(SA,'wx1'), wx2=wkOf(SA,'wx2');
+      sv(`amEditWork('wx1')`); await sleep(80);
+      const e1=jp(sv(`JSON.stringify({ml:document.getElementById('amw-icon').maxLength, icon:document.getElementById('amw-icon').value, s3:document.getElementById('amw-sch-3').value, s5:document.getElementById('amw-sch-5').value, kind:document.getElementById('amw-kind').value, zone:document.getElementById('amw-zone').value, dirty:amFormDirty()})`));
+      sv(`amSaveWork('wx1')`); await sleep(80); const e2=wkOf(SA,'wx1');   // 開いて 何も直さず 保存＝黙って 変わらない
+      sv(`amEditWork('wx1')`); await sleep(80); fillIn(SA,'amw-name','変わった値（名前だけ）'); sv(`amSaveWork('wx1')`); await sleep(80); const e3=wkOf(SA,'wx1');   // 名前だけ 直す：種類・巡回・回数・確認項目の3つめは そのまま
+      sv(`amEditWork('wx2')`); await sleep(80);
+      const e4=jp(sv(`JSON.stringify({rc:document.getElementById('amw-recheck').value, rows:document.querySelectorAll('#amw-vals-box .amw-vrow').length, l3:(document.getElementById('amw-vl-3')||{}).value})`));
+      fillIn(SA,'amw-name','数字が4つ（名前だけ）'); sv(`amSaveWork('wx2')`); await sleep(80); const e5=wkOf(SA,'wx2');
+      sv(`amEditWork('')`); await sleep(80); const e6=sv(`document.getElementById('amw-icon').maxLength`); sv(`amCloseSheet()`);
+      check('96n','【E】絵文字の欄に 文字数の上限が無い（つないだ絵文字が 切れない）。選ぶ欄（回数・種類・巡回）に 今の値が 無い時は 足す＝開いて 保存しても 黙って 変わらない・名前だけ直しても 種類・巡回・回数・確認項目の3つめ・数字の4つ目・文字の再チェックは そのまま',
+        e1.ml===-1&&e6===-1&&e1.icon==='🧑‍🍳'&&e1.s3==='5'&&e1.s5==='6'&&e1.kind==='謎の種類'&&e1.zone==='none'&&e1.dirty===false&&J(e2)===J(wx1)&&J(diffKeys(wx1,e3))===J(['name'])&&e4.rc==='30'&&e4.rows===4&&e4.l3==='4つめ'&&J(diffKeys(wx2,e5))===J(['name']),
+        `上限 ${e1.ml}/${e6}・絵文字「${e1.icon}」・回数 ${e1.s3}/${e1.s5}・種類「${e1.kind}」・巡回「${e1.zone}」｜何も直さず保存：同じ ${J(e2)===J(wx1)}｜名前だけ：変わった欄 ${J(diffKeys(wx1,e3))}｜数字が4つの作業：再チェック「${e4.rc}」・数字の行 ${e4.rows}・4つ目「${e4.l3}」・変わった欄 ${J(diffKeys(wx2,e5))}`);
+      SA.close();
+
+      /* N1：幅 360 以下の小さいスマホで、地図の「置けない札」（lost）が 5.11 の r3 の版より ふえない。置けない札が ある時だけ 置く順を かえて やり直す。字は 11px 以上・ATM のはみ出し（96e）は 戻さない。
+         数は 5.11 r3 の版（ws_511_fix\keep0）に、同じ作り物で 同じ大きさ・同じ手順（地図に替えて 描き直す）で 測った 置けない札 */
+      const R3={'320x568':9,'340x568':8,'360x568':4,'330x640':8,'350x640':3,'360x640':2,'330x667':5,'340x667':6,'320x740':3,'340x740':3,'320x800':4,'340x800':4,'320x844':2,'340x844':1,'350x844':1,'360x844':1};
+      const n1=[]; for(const k of Object.keys(R3)){
+        const [w,h]=k.split('x').map(Number); const P=await mk2(w,h);
+        P.ev(`isAdmin=false; applyAdminMode(); setView('map')`); await sleep(450); P.ev(`(()=>{ const t=document.getElementById('amf-tab'), w=document.getElementById('amf-wrap'); if(t&&w&&w.classList.contains('amf-open')) t.click(); })()`); await sleep(500); P.ev(`renderMapView()`); await sleep(300);
+        const r=JSON.parse(P.ev(`(()=>{ const inf=(window.__m5&&window.__m5.info().cells)||[], svg=document.querySelector('#map-view svg.am-svg'), sc=svg?svg.getScreenCTM().a:0, px=[].slice.call(svg?svg.querySelectorAll('text'):[]).map(t=>(parseFloat(t.getAttribute('font-size'))||0)*sc).filter(Boolean).sort((a,b)=>a-b); return JSON.stringify({lost:inf.filter(x=>x.mode==='lost').length,tags:inf.filter(x=>x.mode==='tag').length,min:px.length?Math.round(px[0]*100)/100:0,wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length}); })()`));
+        r.k=k; r.r3=R3[k]; n1.push(r); P.close();
+      }
+      const n1bad=n1.filter(r=>r.lost>r.r3||r.min<11||r.wkSmall>0);
+      check('96o','【N1】幅 320〜360 の小さいスマホ（高さ 568〜844 の 16通り）：地図の「置けない札」が 5.11 の r3 の版より ふえない（5.12 は 8通りで 1〜2個 ふえていた）・字は ぜんぶ 11px 以上',
+        n1.length===16&&n1bad.length===0,`16通り中 だめ ${n1bad.length}：${n1bad.map(r=>r.k+'（置けない '+r.lost+'＞r3 '+r.r3+'・最小 '+r.min+'px）').join(' ')||'なし'}｜置けない札の合計 ${n1.reduce((a,r)=>a+r.lost,0)}（r3 は ${n1.reduce((a,r)=>a+r.r3,0)}）`);
+
+      /* N2：従業員の画面で 幅 700 でも、最後のタブ「依頼タスク」が 切れない（右の予約 152→135px）。右上の「従業員」・同期の 2つと かぶらない。管理者モードは 今までの 152px */
+      const T=await mk2(700,768); const hdrN=`(()=>{ const g=id=>document.getElementById(id), tabs=g('view-tabs'), tr=tabs.getBoundingClientRect(), vb=[].slice.call(tabs.querySelectorAll('button')).filter(b=>{ const r=b.getBoundingClientRect(); return r.width>0&&r.height>0; }), last=vb[vb.length-1].getBoundingClientRect(), a=g('admin-toggle').getBoundingClientRect();
+        tabs.style.scrollBehavior='auto'; tabs.scrollLeft=99999; const e=vb[vb.length-1].getBoundingClientRect().right-tabs.getBoundingClientRect().right; tabs.scrollLeft=0; tabs.style.scrollBehavior='';
+        return JSON.stringify({clip:Math.round((last.right-tr.right)*10)/10,clipEnd:Math.round(e*10)/10,gap:Math.round((a.left-tr.right)*10)/10,mr:getComputedStyle(tabs).marginRight,n:vb.length,txt:vb[vb.length-1].textContent.replace(/\\s+/g,' ').trim()}); })()`;
+      /* タブの 自然な幅（横に送らずに 全部 見える 幅）は、作り物のデータの 印（🔥の数・依頼の数）で 変わる。だから 幅は「自然な幅＋右の予約」で 決める：予約が 135px なら その幅で ちょうど 切れず、152px だと 約17px 切れる */
+      T.f.style.width='621px'; await sleep(350); T.ev(`isAdmin=false; applyAdminMode(); setView('map')`); await sleep(450);
+      const nat=Math.ceil(JSON.parse(T.ev(`JSON.stringify({sw:document.getElementById('view-tabs').scrollWidth})`)).sw), mrE=T.ev(`getComputedStyle(document.getElementById('view-tabs')).marginRight`);
+      const n2=[]; for(const [lab,w] of [['ちょうど（自然な幅＋135）',nat+135+1],['それより 30px せまい',nat+135+1-30],['それより 60px せまい',nat+135+1-60],['広い（＋40）',nat+135+41]]){ T.f.style.width=w+'px'; await sleep(350); T.ev(`isAdmin=false; applyAdminMode(); setView('map')`); await sleep(400); const e=JSON.parse(T.ev(hdrN)); e.w=w; e.lab=lab; n2.push(e); }
+      T.f.style.width=(nat+135+1)+'px'; await sleep(300); T.ev(`isAdmin=true; applyAdminMode(); setView('map')`); await sleep(400); const n2a=JSON.parse(T.ev(hdrN));
+      const n2bad=n2.filter(e=>e.gap<0||e.gap>6||e.clipEnd>0.5||e.n!==4||e.mr!=='135px'), n2fit=n2[0].clip<=0.5&&n2[3].clip<=0.5;
+      check('96p','【N2】従業員の画面で、タブの自然な幅＋右の予約（135px）の幅なら 最後のタブ「依頼タスク」が 切れずに 見える（予約が 152px の前の版は 約17px 切れる）・それより せまくても 横に送れば 最後まで 見える・右上の「従業員」・同期の 2つと かぶらない（すき間 0〜6px）・右の予約は 135px。管理者モードは 今までの 152px',
+        n2.length===4&&n2bad.length===0&&n2fit&&mrE==='135px'&&n2a.mr==='152px'&&n2a.gap>=0&&n2a.clipEnd<=0.5,`自然な幅 ${nat}px・予約 ${mrE}｜従業員 ${n2.map(e=>e.lab+' '+e.w+'px：切れ '+e.clip+'・送ると '+e.clipEnd+'・すき間 '+e.gap).join('｜')}｜管理者（${nat+136}px）：予約 ${n2a.mr}・すき間 ${n2a.gap}・送ると ${n2a.clipEnd}`);
+      T.close();
     }
     check('97','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
     const srv=await c.readServer(); check('98','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');

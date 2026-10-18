@@ -5,6 +5,7 @@
    - 2回続けて「新しい」と出た時だけ読み込み直す（配信の切り替わり途中での行ったり来たりを防ぐ）
    - 同じページの自動の読み込み直しは10分に1回まで（万一の繰り返しを防ぐ）
    - 打鍵・入力から15秒以内（入力欄にカーソルがある時は60秒以内）は待つ。入力途中の値は各ページの入力途中ガードが戻す
+   - 2026-10-18：中の画面（iframe）の打鍵・入力欄も 入口は 見る。中の画面が window.__autoupdateHold（関数）を持ち、それが true を返す間（ワークスケジュールの登録の窓が開いている間 など）は 待つ
    - 更新日時を返さないサーバー（手元の確認用サーバーなど）や file:// では何もしない */
 (function(){
   'use strict';
@@ -17,13 +18,30 @@
   var CHECK_MS = TEST ? 4000 : 5 * 60 * 1000, CONFIRM_MS = TEST ? 3000 : 60 * 1000, LIMIT_MS = 10 * 60 * 1000;
   var firstHit = 0, lastInput = 0, checking = false, waiting = false;
 
-  function note(){ lastInput = Date.now(); }
+  /* 2026-10-18（店長「全部おすすめで」）：中の画面（iframe）の入力も 入口が 見る。窓を開いている間は 待つ（中の画面が window.__autoupdateHold を 持つ時）。
+     今まで 入口の自動の読み込み直しは、中の画面の打鍵も 入力欄の カーソルも 見えず（iframe の中の出来事は 外の document に 届かない）、入力の途中でも 読み込み直していた。
+     待たせる関数を持たない中の画面（FF管理 など）は 今までと同じ（何も しない）。 */
+  function note(){ lastInput = Date.now(); try { if (window.parent && window.parent !== window && typeof window.parent.__auNote === 'function') window.parent.__auNote(); } catch (e) {} }
+  window.__auNote = note;
   ['keydown', 'input', 'compositionstart', 'compositionupdate'].forEach(function(ev){ document.addEventListener(ev, note, true); });
 
+  function innerActive(){
+    var a = document.activeElement, n = 0;
+    try { while (a && a.tagName === 'IFRAME' && a.contentDocument && n++ < 4) a = a.contentDocument.activeElement; } catch (e) {}
+    return a;
+  }
+  function held(){
+    try {
+      if (typeof window.__autoupdateHold === 'function' && window.__autoupdateHold()) return true;
+      var fr = document.getElementsByTagName('iframe');
+      for (var i = 0; i < fr.length; i++) { var w = fr[i].contentWindow; if (w && typeof w.__autoupdateHold === 'function' && w.__autoupdateHold()) return true; }
+    } catch (e) {}
+    return false;
+  }
   function editing(){
-    var a = document.activeElement, idle = Date.now() - lastInput;
+    var a = innerActive(), idle = Date.now() - lastInput;
     var inField = !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable);
-    return idle < 15000 || (inField && idle < 60000);
+    return held() || idle < 15000 || (inField && idle < 60000);
   }
   function ss(k, v){
     try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); }
