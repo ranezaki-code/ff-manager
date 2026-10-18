@@ -2618,6 +2618,31 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
   #amf-wrap.m5:not(.amf-open) .amf-map{width:100%!important;max-width:none!important;height:calc(var(--amf-vh) - var(--amf-mtop,156px) - var(--amf-low))}
   #amf-wrap.m5:not(.amf-open) .am-mapbox{height:100%}
 }
+/* ===== 5.12：最初の画面の列を 棚に分ける（案 C2）。見た目だけ ===== */
+.amf-shelf{border-radius:12px;padding:0 5px 1px;margin:0 0 8px}
+.amf-shelf.fire{background:#fdf0ee}
+.amf-shelf.soon{background:#eaf1fb}
+.amf-shh{display:flex;align-items:baseline;gap:6px;padding:7px 5px 5px;font-size:17px;font-weight:800;line-height:1.3}
+.amf-shelf.fire .amf-shh{color:#c8322a}
+.amf-shelf.soon .amf-shh{color:#1a56b0}
+.amf-shh small{font-size:14px;font-weight:700}
+.amf-shelf .amf-r,.amf-shelf .amf-r.fire,.amf-shelf .amf-r.soon{background:#fff;border-color:transparent;margin-bottom:4px;min-height:58px}
+.amf-shelf.fire .amf-r{box-shadow:inset 5px 0 0 #c8322a}
+.amf-shelf .amf-r.amf-on{border-color:#2563eb;box-shadow:0 0 0 2.5px #2563eb}
+.amf-shelf.fire .amf-r.amf-on{box-shadow:inset 5px 0 0 #c8322a,0 0 0 2.5px #2563eb}
+.amf-shelf .amf-ri>.am-wr-n{font-size:18px}
+.amf-shelf .amf-r.amf-first{min-height:76px}
+.amf-shelf .amf-r.amf-first .amf-ri>.am-wr-n{font-size:21px}
+.amf-shelf .m5-em{display:none!important}
+@media(min-width:621px) and (max-width:899px){
+  #amf-wrap.m5w .amf-shelf .amf-r{min-height:54px;padding:5px 6px}
+  #amf-wrap.m5w .amf-shelf .amf-ri{grid-template-columns:30px 24px minmax(0,1fr) 0;column-gap:6px}
+  #amf-wrap.m5w .amf-shelf .amf-o .amf-ri{grid-template-columns:44px 22px minmax(0,1fr) 0}   /* あとの作業の時刻（19:10 など）は 5.11 と同じ 44px（テス 5.12 点検の指摘1） */
+  #amf-wrap.m5w .amf-shelf .amf-ri>.am-wr-n{font-size:16.5px;line-height:1.28}
+  #amf-wrap.m5w .amf-shelf .amf-r.amf-first{min-height:72px}
+  #amf-wrap.m5w .amf-shelf .amf-r.amf-first .amf-ri>.am-wr-n{font-size:19px}
+  #amf-wrap.m5w .amf-shh{font-size:16px;padding:6px 4px 4px}
+}
 </style>
 <!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す＋Gist同期を停止（単体URLでは従来通り） -->
 <script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
@@ -3723,7 +3748,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.11'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.12'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -10707,7 +10732,7 @@ let _amfOpen=true, _amfSel=null, _amfSelT=null, _amfAt=0;
 /* 列の1行：数字の丸（いま やる順）・絵・作業名・（おくれの時だけ）おくれの印・右はしに「›」（押せる印）。持ち場と「15:00 の 分」は、押して開くカードの中。
    持ち場の札を横に出さないので、作業名は はぶかずに全部出す（床（赤ゾーン）と 床（青ゾーン）を見分けるため） */
 function amFRow(a,s,first){
-  return `<button type="button" class="am-wr amf-r ${s.st}${first?' amf-first':''}" data-w="${escapeHtml(a.id)}" onclick="amOpenArea('${a.id}')"><span class="amf-ri">${amFNoC(a.id,s.st,'n32')}<span class="am-wr-i">${escapeHtml(a.icon||'')}</span><span class="am-wr-n">${escapeHtml(a.name||'')}${amIsRep(a)?` <small class="amf-rp">${amRepTag(a)}</small>`:''}</span>${s.st==='fire'?amStTag(s):''}<span class="am-wr-go" aria-hidden="true">›</span></span></button>`;
+  return `<button type="button" class="am-wr amf-r ${s.st}${first?' amf-first':''}" data-w="${escapeHtml(a.id)}" onclick="amOpenArea('${a.id}')"><span class="amf-ri">${amFNoC(a.id,s.st,'n32')}<span class="am-wr-i">${escapeHtml(a.icon||'')}</span><span class="am-wr-n">${escapeHtml(a.name||'')}${amIsRep(a)?` <small class="amf-rp">${amRepTag(a)}</small>`:''}</span>${(s.st==='fire'&&s.carry)?amStTag(s):''}<span class="am-wr-go" aria-hidden="true">›</span></span></button>`;
 }
 /* ---- 5.9：右の列を上下に分ける（店長 10/13「半分あたりで区切って、上半分は点検、下半分はマップに無いタスク（返品、納品など）」→「おすすめで」）----
    売場以外の作業が1つでも登録されている店だけ。上＝🧹 点検（地図にある作業＝今までの列。番号 1・2・3…・済のたたみ）／下＝⏰ 地図に ない 作業（売場以外。時刻が先頭・番号なし・おくれ → いま → これから。済は下にたたむ）。
@@ -10744,10 +10769,15 @@ function renderMapView(){
   const rows=list.filter(a=>AM_GROUP[sts[a.id].st]>0), dn=list.filter(a=>sts[a.id].st==='done'), nn=list.filter(a=>sts[a.id].st==='none');
   _amfNo={}; rows.forEach((a,i)=>{ _amfNo[a.id]=i+1; }); _amfAt=now;
   const afUp=amAfterList(now).filter(o=>o.up&&o.k!=='done');   // 5.10：元の作業に場所がある「あとの作業」（上の列の いちばん上）。無い時は 何も足さない
-  const nFireUp=rows.filter(a=>sts[a.id].st==='fire').length+afUp.filter(o=>o.k==='fire').length, split=amOffWorks().length>0, oc=split?amOffColData(now):null, nFire=nFireUp+(oc?oc.nF:0), shown=rows.concat(_amDoneOpen?dn.concat(nn):[]);
+  const nFireUp=rows.filter(a=>sts[a.id].st==='fire').length+afUp.filter(o=>o.k==='fire').length, split=amOffWorks().length>0, oc=split?amOffColData(now):null, nFire=nFireUp+(oc?oc.nF:0), vis=rows.filter(a=>sts[a.id].st!=='todo'), shown=vis.concat(_amDoneOpen?dn.concat(nn):[]);
   if(_amfSel&&!shown.some(a=>a.id===_amfSel)) _amfSel=null;
-  let col=afUp.map(amFOffRow).join('')+rows.map(a=>amFRow(a,sts[a.id],a===top)).join('');
-  if(!rows.length) col+=`<div class="amf-idle">${list.length?'✅ いまは 間に合っています':'この持ち場の作業は、まだ登録されていません。'}</div>`;
+  /* 5.12（店長 10/18「Cデザインで、いまやる、もうすぐ、はいいけど、あとでは不要かな。」）：列を 棚に分ける＝「いま やる」（おくれ）・「もうすぐ」。
+     「あとで」（これから＝todo）は 出さない（時刻が来ると 今までの決め方で もうすぐ に上がる）。番号（_amfNo）・並び・つぎ（top）・記録は 今までのまま。保存する物は無い */
+  const shelf=(k,t,sub,h)=>h?`<section class="amf-shelf ${k}"><div class="amf-shh">${t}${sub?` <small>${sub}</small>`:''}</div>${h}</section>`:'';
+  const fR=afUp.filter(o=>o.k==='fire'), sR=afUp.filter(o=>o.k==='soon'), fW=vis.filter(a=>sts[a.id].st==='fire'), sW=vis.filter(a=>sts[a.id].st==='soon');
+  let col=shelf('fire','いま やる',`おくれ ${fR.length+fW.length}件`,fR.map(amFOffRow).join('')+fW.map(a=>amFRow(a,sts[a.id],a===top)).join(''))
+         +shelf('soon','もうすぐ',`${sR.length+sW.length}件`,sR.map(amFOffRow).join('')+sW.map(a=>amFRow(a,sts[a.id],a===top)).join(''));
+  if(!col) col+=`<div class="amf-idle">${list.length?'✅ いまは 間に合っています':'この持ち場の作業は、まだ登録されていません。'}</div>`;
   if(dn.length||nn.length) col+=`<button type="button" class="am-grp-b amf-done" onclick="amToggleDone()" aria-expanded="${_amDoneOpen}">${[dn.length?`✓ おわった ${dn.length}件`:'', nn.length?`予定なし ${nn.length}件`:''].filter(Boolean).join('・')}　${_amDoneOpen?'▾':'▸'}</button>`+(_amDoneOpen?dn.concat(nn).map(a=>amFRow(a,sts[a.id],false)).join(''):'');
   if(split) col=amFSplitHtml(col,nFireUp,rows.filter(a=>sts[a.id].st==='soon').length+afUp.filter(o=>o.k==='soon').length,oc);   // 5.9：上＝今までの列／下＝売場以外
   /* ---- 左：地図。マスの色（おくれ＝赤・そろそろ＝黄）は今までどおり。番号の丸と 小さい🔥 は出さない。マスを押すと、今までどおり開く ---- */

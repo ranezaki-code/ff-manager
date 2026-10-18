@@ -1480,7 +1480,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.11'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.12'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1560,6 +1560,39 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         }
       }
       check('96g','入口の保存の印（点検 r3 の P3）：細い見出しで「未送信 3件」「保存エラー」が 切れずに読める。長い文字は そのまま・短い言い方は data-short に入り、CSS は body.ws-compact の時だけ それを出す（FF管理・カレンダーの時は 出ない）',ok3,d3);
+      /* ---- 5.12（案 C2・店長 10/18「Cデザインで、いまやる、もうすぐ、はいいけど、あとでは不要かな。」）：最初の画面の列を 棚に分ける。見た目だけ。
+           作り物のデータだけの別の枠で、状態（amStatus）の答えを 試験の中だけ 一時的に 決めて（fire・todo・soon を 順に）描き、棚の中身を アプリ自身の並び（amCmp）・番号（_amfNo）と 比べる。最後に 元の amStatus に戻す。保存は しない ---- */
+      const C2=await mkSolo(768,1024);
+      C2.ev(`setView('map')`); await sleep(500);
+      const c2js=pat=>`(()=>{ const st0=JSON.stringify(state); window.__ost=window.__ost||amStatus; const P=${JSON.stringify(pat)};
+        const ws=amWorks().filter(a=>a&&typeof a==='object'&&!amIsOff(a)&&amInPatrol(a)), ix={}; ws.forEach((a,i)=>{ ix[a.id]=i; });
+        amStatus=function(a,now){ const s=window.__ost(a,now); if(!(a&&a.id in ix)) return s; return Object.assign({},s,{st:P[ix[a.id]%P.length],carry:false}); };
+        try{ renderMapView();
+          const now=Date.now(), num=amNums(), sts={}; ws.forEach(a=>{ sts[a.id]=amStatus(a,now); });
+          const list=ws.slice().sort((a,b)=>amCmp(a,b,sts,num)), rows=list.filter(a=>AM_GROUP[sts[a.id].st]>0), no={}; rows.forEach((a,i)=>{ no[a.id]=i+1; });
+          const want=k=>list.filter(a=>sts[a.id].st===k).map(a=>a.id);
+          const col=document.getElementById('amf-col'), sh=k=>col.querySelector('.amf-shelf.'+k), ids=e=>e?[].slice.call(e.querySelectorAll('.amf-r:not(.amf-o)')).map(r=>r.dataset.w):[];
+          const nums=e=>e?[].slice.call(e.querySelectorAll('.amf-r:not(.amf-o)')).map(r=>{ const n=r.querySelector('.am-no'); return [r.dataset.w,(n&&n.textContent||'').trim()]; }):[];
+          const head=k=>{ const e=sh(k); return e?(e.querySelector('.amf-shh')||{}).textContent||'':''; };
+          const todoIds=want('todo'), shownAll=[].slice.call(col.querySelectorAll('.amf-r')).map(r=>r.dataset.w);
+          const fz=e=>{ const n=e&&e.querySelector('.amf-r:not(.amf-o) .am-wr-n'); return n?parseFloat(getComputedStyle(n).fontSize):0; };
+          const idle=col.querySelector('.amf-idle');
+          return JSON.stringify({nW:ws.length, fireW:want('fire'), soonW:want('soon'), todoN:todoIds.length, fireD:ids(sh('fire')), soonD:ids(sh('soon')),
+            numOk:nums(sh('fire')).concat(nums(sh('soon'))).every(([id,t])=>t===String(no[id])), hF:head('fire'), hS:head('soon'), nShelf:col.querySelectorAll('.amf-shelf').length,
+            todoShown:shownAll.filter(id=>todoIds.indexOf(id)>=0).length, todoRow:col.querySelectorAll('.amf-r.todo').length, idle:idle?idle.textContent.trim():'',
+            fzF:fz(sh('fire')), fzS:fz(sh('soon')), red:(()=>{ const r=sh('fire')&&sh('fire').querySelector('.amf-r:not(.amf-first)'); return r?getComputedStyle(r).boxShadow:''; })(),
+            same:JSON.stringify(state)===st0});
+        } finally { amStatus=window.__ost; renderMapView(); } })()`;
+      const c2a=JSON.parse(C2.ev(c2js(['fire','todo','soon'])));
+      const eqA=(a,b)=>a.length===b.length&&a.every((x,i)=>x===b[i]);
+      check('96h','最初の画面の棚（5.12 案 C2）：「いま やる」＝おくれ（fire）だけ、「もうすぐ」＝そろそろ（soon）だけが、アプリの並び（amCmp）と同じ順で入る。番号は 今までの番号（_amfNo）のまま・棚の見出しの件数が合う・字は 16px 以上・おくれの行に 赤い線・データは 変わらない',
+        c2a.nW>=6&&c2a.fireW.length>0&&c2a.soonW.length>0&&eqA(c2a.fireD,c2a.fireW)&&eqA(c2a.soonD,c2a.soonW)&&c2a.numOk&&c2a.nShelf===2&&c2a.hF.indexOf('いま やる')===0&&c2a.hF.indexOf('おくれ '+c2a.fireW.length+'件')>0&&c2a.hS.indexOf('もうすぐ')===0&&c2a.hS.indexOf(c2a.soonW.length+'件')>0&&c2a.fzF>=16&&c2a.fzS>=16&&/inset/.test(c2a.red)&&c2a.same,
+        `作業 ${c2a.nW}・いま やる ${c2a.fireD.length}/${c2a.fireW.length}（順 ${eqA(c2a.fireD,c2a.fireW)}）・もうすぐ ${c2a.soonD.length}/${c2a.soonW.length}（順 ${eqA(c2a.soonD,c2a.soonW)}）・番号 ${c2a.numOk}・見出し「${c2a.hF}」「${c2a.hS}」・字 ${c2a.fzF}/${c2a.fzS}px・赤い線 ${/inset/.test(c2a.red)}・データ同じ ${c2a.same}`);
+      const c2b=JSON.parse(C2.ev(c2js(['todo'])));
+      check('96i','「あとで」（これから＝todo）は 最初の画面の列に 出さない（5.12 案 C2）：fire・todo・soon を 混ぜた時に todo の行は 0・全部 todo の時は 棚が出ず「✅ いまは 間に合っています」・データは 変わらない',
+        c2a.todoN>0&&c2a.todoShown===0&&c2a.todoRow===0&&c2b.todoN===c2b.nW&&c2b.nShelf===0&&c2b.todoShown===0&&/間に合っています/.test(c2b.idle)&&c2b.same,
+        `混ぜた時：todo ${c2a.todoN}件のうち 出た行 ${c2a.todoShown}｜全部 todo：棚 ${c2b.nShelf}・出た行 ${c2b.todoShown}・案内「${c2b.idle}」・データ同じ ${c2b.same}`);
+      C2.close();
     }
     check('97','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
     const srv=await c.readServer(); check('98','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
