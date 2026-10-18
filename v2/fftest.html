@@ -1525,6 +1525,227 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         !o72.err&&!o72.err2&&okBlock&&okAt&&okUndo&&okFuture&&okPast&&okLeft,
         o72.err||o72.err2||`開始前 ${okBlock} ${J(a)}／ちょうど ${okAt} ${J(b)}／取り消し ${okUndo} ${J(c)}／先の日 ${okFuture} ${J(d)}／過ぎた日 ${okPast} ${J(e1)}・${J(e2)}／余った ${okLeft} ${J(f1)}・${J(f2)}`);
     }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 忘れ防止の言葉（2026-10-18 店長「ここが不便。ワードを追加していきたい。あとは自由な文章も今まで通り」）の試験 73。
+    //   保存の形：商品の remind（文字の配列）は変えない。言葉の一覧は、店のデータ S.budget.remindWords に「足すだけ」（{言葉:{n:足した時刻,h:隠す,d:消す}}）。言葉ごとの鍵の入れ物＝配列まるごとの後勝ちにならない。
+    //   見るもの：足す・ほかの商品の札にも出る／2台が同時に別の言葉を足しても両方残る（入れ物がまだ無い所から2台が同時に作る時も。予算を変える保存と同時でも）／隠す・消す（確かめ・商品から消えない）／
+    //   今までの商品の忘れ防止と自由な文はそのまま／英語・ネパール語の画面の言葉。
+    {
+      const o73={};
+      const bagOf=d=>JSON.parse(d.ev('JSON.stringify((S.budget&&S.budget.remindWords)||null)'));
+      const allOf=d=>JSON.parse(d.ev('JSON.stringify(remindWordsAll().map(x=>[x.w,x.h?1:0,x.d?1:0]))'));
+      const remOf2=(d,id)=>d.ev('JSON.stringify((S.PM.find(p=>p.id==='+J(id)+')||{}).remind||null)');
+      const cardHtml=(d,id)=>d.ev('(()=>{ _expandedCards.add('+J(id)+'); const h=renderProductCard(getP('+J(id)+')); _expandedCards.delete('+J(id)+'); return h; })()');
+      const chipsOf=(d,id)=>[...cardHtml(d,id).matchAll(/<button type="button" data-w="([^"]*)" onclick="toggleRemindW[^>]*aria-pressed="(true|false)"/g)].map(x=>(x[2]==='true'?'+':'-')+x[1]);
+      const keys=o=>Object.keys(o||{}).sort();
+      const pre73=JSON.parse(A.ev('JSON.stringify({lang:LANG,target:(S.budget&&S.budget.target)||0,hasBag:!!(S.budget&&S.budget.remindWords),p:S.PM.map(p=>[p.id,p.remind||null])})'));
+      try{
+        // 0) はじめ：一覧は決まりの8つだけ（入れ物なし）。商品の忘れ防止は「ソース＋自由な文」を置く（今までの形）
+        o73.start={n:allOf(A).length,bag:bagOf(A),chipsP2:J(chipsOf(A,'p2'))};
+        A.win.toggleRemind('p1',0); A.win.setRemindFree('p1','からし抜き'); await sync();
+        o73.p1Before=remOf2(A,'p1'); o73.p1Fields=A.ev('JSON.stringify(Object.keys(getP("p1")).sort())');
+        // 1) 2台が同時に、入れ物がまだ無い所から別の言葉を足す＋B は予算（古い端末のつもり）を同時に変える → 言葉は2つとも・予算の変更も残る
+        off(); A.win.remindWordAdd('p2','ストロー'); B.win.remindWordAdd('z1','おろし'); B.ev('S.budget.target=777; saveS(); 1'); on(); await sync();
+        o73.both={A:keys(bagOf(A)),B:keys(bagOf(B)),same:same(),nIsNum:Object.values(bagOf(A)||{}).every(e=>typeof e.n==='number'),targetA:A.ev('S.budget.target'),targetB:B.ev('S.budget.target'),p2:remOf2(B,'p2'),p3:remOf2(A,'z1')};
+        // 2) ほかの商品の札にも出る（押されていない形で。足した順）
+        o73.chipsP1=chipsOf(B,'p1');
+        // 3) 同じ言葉をもう一度足しても増えない。商品には付く（決まりの言葉の並び → 足した言葉 → 自由な文）
+        A.win.remindWordAdd('p1','ストロー'); o73.dup={keys:keys(bagOf(A)),p1:remOf2(A,'p1'),toast:A.ev('(document.getElementById("ff-toast")||{}).textContent||""')};
+        // 4) 隠す（A）と、同時に B が別の言葉を足す → 両方残る。隠した言葉は、ほかの商品の札から消える・付いている商品には残る
+        A.win.toggleRemind('z1',2); await sync();
+        off(); A.win.remindWordHide('ふた','p1'); B.win.remindWordAdd('p2','マヨ'); on(); await sync();
+        o73.hide={bag:keys(bagOf(B)),hideFlag:J(bagOf(B)['ふた']),same:same(),chipsP1:chipsOf(B,'p1'),chipsP3:chipsOf(B,'z1'),p3rem:remOf2(B,'z1')};
+        // 5) 消す：確かめで「いいえ」なら何も変わらず、「はい」で消える（d）。商品からは消えない。札の一覧からは消え、付いている商品には残る
+        A.ev('window.__cf=0; window.__cfRet=false; window.confirm=function(m){ window.__cf++; window.__cfMsg=m; return window.__cfRet; }; 1');
+        const b0=J(bagOf(A)), p3b=remOf2(A,'z1'); A.win.remindWordRemove('おろし','p1'); o73.rmNo={cf:A.ev('window.__cf'),same:J(bagOf(A))===b0,msg:A.ev('window.__cfMsg')};
+        A.ev('window.__cfRet=true; 1'); A.win.remindWordRemove('おろし','p1'); await sync();
+        o73.rmYes={cf:A.ev('window.__cf'),flag:J(bagOf(B)['おろし']&&Object.keys(bagOf(B)['おろし']).sort()),p3:remOf2(B,'z1'),p3same:remOf2(B,'z1')===p3b,chipsP1:chipsOf(B,'p1'),chipsP3:chipsOf(B,'z1'),same:same()};
+        A.ev('window.confirm=function(){ return true; }; 1');
+        // 6) 隠した言葉を出す／消した言葉を同じ言葉でもう一度足す → 戻る
+        A.win.remindWordShow('ふた','p1'); A.win.remindWordAdd('p1','おろし'); await sync();
+        o73.back={bag:keys(bagOf(B)),flags:J(bagOf(B)['おろし']&&Object.keys(bagOf(B)['おろし']).sort()),chipsP1:chipsOf(B,'p1'),same:same()};
+        // 7) 自由な文は今までどおり（商品の欄に出る・書きかえられる）。商品の remind の形は文字の配列のまま。ほかの項目は変わっていない
+        o73.free={html:/value="からし抜き"/.test(cardHtml(A,'p1')),p1:remOf2(A,'p1'),arr:A.ev('Array.isArray(getP("p1").remind)&&getP("p1").remind.every(x=>typeof x==="string")'),fields:A.ev('JSON.stringify(Object.keys(getP("p1")).sort())')===o73.p1Fields};
+        // 8) 英語・ネパール語：見出し・ボタンの言葉（足した言葉はそのまま）
+        const lang={}; ['en','ne','ja'].forEach(L=>{ A.ev(`LANG=${J(L)}; 1`); const h=cardHtml(A,'p1'); lang[L]={ph:(h.match(/id="rw-in-p1"[^>]*placeholder="([^"]*)"/)||[])[1]||'',add:/>(足す|Add|थप्नुहोस्)</.test(h),sauce:chipsOf(A,'p1').filter(x=>/ソース|Sauce|सस/.test(x)).join(''),mine:chipsOf(A,'p1').some(x=>x.slice(1)==='ストロー')}; });
+        o73.lang=lang;
+        o73.i18n=JSON.parse(A.ev('(()=>{ const ks=Object.keys(I18N.ja).filter(k=>/^rm\\.(addPh|add|manage|hide|unhide|remove|hiddenMark|manageNote|removeConfirm|dup|added|hiddenTip)$/.test(k)); return JSON.stringify({n:ks.length,miss:ks.filter(k=>!I18N.en[k]||!I18N.ne[k]).length,same:ks.filter(k=>I18N.en[k]===I18N.ja[k]||I18N.ne[k]===I18N.ja[k]).length}); })()'));
+      }catch(e){ o73.err=String(e&&e.stack||e); }
+      // 後始末：言葉の一覧・予算の目標・商品の忘れ防止をはじめの形に戻す
+      try{
+        A.ev(`LANG=${J(pre73.lang)}; window.confirm=function(){ return true; }; if(!${J(pre73.hasBag)})delete S.budget.remindWords; S.budget.target=${J(pre73.target)}; const was=${J(pre73.p)}; S.PM.forEach(p=>{ const w=was.find(x=>x[0]===p.id); if(w&&w[1])p.remind=w[1]; else delete p.remind; }); saveS(); 1`);
+      }catch(e){ o73.err2=String(e); }
+      await sync();
+      const ws=Object.keys(o73.both&&o73.both.A||{});
+      const okStart=o73.start&&o73.start.n===8&&o73.start.bag===null&&o73.p1Before==='["ソース","からし抜き"]';
+      const okBoth=o73.both&&J(o73.both.A)===J(['おろし','ストロー'])&&J(o73.both.B)===J(['おろし','ストロー'])&&o73.both.same&&o73.both.nIsNum&&o73.both.targetA===777&&o73.both.targetB===777&&o73.both.p2==='["ストロー"]'&&o73.both.p3==='["おろし"]';
+      const okChips=J(o73.chipsP1)===J(['+ソース','-つまようじ','-ふた','-ラベル','-からし','-おしぼり','-スプーン','-はし','-ストロー','-おろし'])||J(o73.chipsP1)===J(['+ソース','-つまようじ','-ふた','-ラベル','-からし','-おしぼり','-スプーン','-はし','-おろし','-ストロー']);
+      const okDup=o73.dup&&J(o73.dup.keys)===J(['おろし','ストロー'])&&o73.dup.p1==='["ソース","ストロー","からし抜き"]'&&o73.dup.toast==='「ストロー」はもうあります';
+      const okHide=o73.hide&&J(o73.hide.bag)===J(['おろし','ふた','マヨ','ストロー'].sort())&&o73.hide.hideFlag==='{"h":1}'&&o73.hide.same&&o73.hide.chipsP1.indexOf('-ふた')<0&&o73.hide.chipsP1.indexOf('+ふた')<0&&o73.hide.chipsP1.indexOf('-マヨ')>=0&&o73.hide.chipsP3.indexOf('+ふた')>=0&&/"ふた"/.test(o73.hide.p3rem);
+      const okRemove=o73.rmNo&&o73.rmNo.cf===1&&o73.rmNo.same&&/「おろし」を言葉の一覧から消しますか/.test(o73.rmNo.msg)&&/商品からは消えません/.test(o73.rmNo.msg)&&o73.rmYes&&o73.rmYes.cf===2&&o73.rmYes.flag==='["d","n"]'&&o73.rmYes.p3same&&/"おろし"/.test(o73.rmYes.p3)&&o73.rmYes.chipsP1.indexOf('-おろし')<0&&o73.rmYes.chipsP3.indexOf('+おろし')>=0&&o73.rmYes.same;
+      const okBack=o73.back&&o73.back.flags==='["n"]'&&o73.back.chipsP1.indexOf('-ふた')>=0&&o73.back.chipsP1.indexOf('+おろし')>=0&&o73.back.same&&J(o73.back.bag)===J(['おろし','マヨ','ストロー'].sort());
+      const okFree=o73.free&&o73.free.html&&o73.free.arr&&o73.free.fields&&/"からし抜き"/.test(o73.free.p1);
+      const lg=o73.lang||{}, okLang=lg.en&&lg.ne&&lg.ja&&lg.en.ph==='+ Add a word (e.g. Straw)'&&lg.en.add&&lg.en.sauce==='+ソース'&&lg.ne.ph==='+ शब्द थप्नुहोस् (जस्तै: स्ट्रा)'&&lg.ne.add&&lg.ja.ph==='＋ 言葉を足す（例：ストロー）'&&lg.ja.add&&lg.ja.mine&&lg.en.mine&&lg.ne.mine&&o73.i18n&&o73.i18n.n===12&&o73.i18n.miss===0&&o73.i18n.same===0;
+      check('73','【忘れ防止の言葉】店長が言葉（ボタン）を足していける：足した言葉はほかの商品にもボタンで出る（店ごとに覚える＝S.budget.remindWords に「足すだけ」。言葉ごとの鍵の入れ物で、商品の remind＝文字の配列は変えない）／2台が同時に別の言葉を足しても両方残る（入れ物が無い所から同時に作る時も・予算を変える保存と同時でも）／'+
+        '同じ言葉は増えない（もうあります）／隠す＝ほかの商品の札から外れる・付いている商品には残る／消す＝確かめを出し「いいえ」なら何も変わらない・「はい」でも商品には残る／隠した言葉を出す・消した言葉を足し直すと戻る／自由な文は今までどおり／英語・ネパール語の見出し・ボタン（足した言葉はそのまま）',
+        !o73.err&&!o73.err2&&okStart&&okBoth&&okChips&&okDup&&okHide&&okRemove&&okBack&&okFree&&okLang,
+        o73.err||o73.err2||`はじめ ${okStart} ${J(o73.start)}・${o73.p1Before}／同時 ${okBoth} ${J(o73.both)}／札 ${okChips} ${J(o73.chipsP1)}／同じ言葉 ${okDup} ${J(o73.dup)}／隠す ${okHide} ${J(o73.hide)}／消す ${okRemove} ${J(o73.rmNo)}・${J(o73.rmYes)}／戻す ${okBack} ${J(o73.back)}／自由な文 ${okFree} ${J(o73.free)}／言語 ${okLang} ${J(lg)}・${J(o73.i18n)}`);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 本数とパック → まとめ売り（2026-10-18 店長「焼鳥以外にもグーコロも1個入り2個入りあった。この設定は汎用性をもたせたい」「別々で取れるけど、別々じゃない商品もあるから、それを前提に」）の試験 74。見た目と言葉だけ：計算・保存の形は変えない。
+    //   単位（本・個・枚）は親の商品の項目 packUnit に足すだけで保存（無い・知らない値＝本）。言葉・札・作成表のマスのメニューが単位の言葉になる（日・英・ネ）。作成数は単位で変わらない。
+    //   前提が2つ：①実績がパックごとに取れる商品は つながずに ふつうの商品（箱に一言）／②1本・1個ずつでしか取れない商品だけ 親子でつなぐ。①なのにつないで、子にも実績が入っている時は、警告を出す（見せるだけ・S は変えない）。
+    {
+      const o74={};
+      const boxTxt=(d,id)=>d.ev('(()=>{ const x=document.createElement("div"); x.innerHTML=packSettingHtml(getP('+J(id)+')); return x.textContent.replace(/\\s+/g," ").trim(); })()');
+      const boxHtml=(d,id)=>d.ev('packSettingHtml(getP('+J(id)+'))');
+      const warnN=(d,id)=>(boxHtml(d,id).match(/data-pk-warn="1"/g)||[]).length;
+      const cnt=d=>d.ev('(()=>{ const o=[]; S.PM.forEach(p=>{ for(let dy=0;dy<7;dy++)((S.catCfg[p.category]||{}).slots||[]).forEach(h=>o.push(p.id+"/"+dy+"/"+h+"="+getProdCnt(p.id,dy,h)+"+"+getInvestExtra(p.id,dy,h))); }); return o.join("|"); })()');
+      const menuTxt=(d,id)=>d.ev('(()=>{ openCellMenu('+J(id)+',0,10); const m=document.getElementById("cellMenuModal"); const t0=m?m.innerText.replace(/\\s+/g," "):""; closeCellMenu(); return t0; })()');
+      const jiNote=d=>d.ev('(()=>{ renderJissekiTable(); return [...document.querySelectorAll(".mob-met")].map(x=>x.textContent.trim()).filter(s=>s).join(" || "); })()');
+      const lang0=A.ev('LANG');
+      try{
+        // 0) つながない商品の箱にも、一言（実績がパックごとに取れる時は つながない）
+        o74.none={txt:boxTxt(A,'p1'),rule:/data-pk-rule="1"/.test(boxHtml(A,'p1'))};
+        // 1) 焼き鳥ふう：p1＝親（実績は1本ずつ）・p2＝2本入り・p3＝3本入り。単位の項目が無い＝本
+        A.ev('document.getElementById("ff-toast")&&(document.getElementById("ff-toast").textContent=""); 1');
+        A.win.setPackOf('p2','p1'); o74.toastLink=A.ev('(document.getElementById("ff-toast")||{}).textContent||""');
+        A.win.setProdField('p2','packSize',2); A.win.setProdField('p2','packShare',60); await sync();
+        o74.c本=cnt(A);
+        o74.hon={unit:A.ev('packUnitOf(getP("p1"))'),field:A.ev('"packUnit" in getP("p1")'),parent:boxTxt(A,'p1'),kid:boxTxt(A,'p2'),menu:menuTxt(A,'p2'),zero:A.ev('tf("zero.rParent",packCountWord(getP("p1")))'),icon:A.ev('packIcon(getP("p1"))'),note:jiNote(A)};
+        // 2) 個にする（親に足すだけ）→ もう1台にも届く。言葉が個になる。作成数は同じ。本に戻すと項目ごと無くなる
+        A.win.setPackUnit('p1','個'); await sync();
+        o74.ko={a:A.ev('getP("p1").packUnit'),b:B.ev('getP("p1").packUnit'),same:same(),parent:boxTxt(B,'p1'),kid:boxTxt(B,'p2'),menu:menuTxt(B,'p2'),zero:B.ev('tf("zero.rParent",packCountWord(getP("p1")))'),icon:B.ev('packIcon(getP("p1"))'),cnt:cnt(A)===o74.c本&&cnt(B)===o74.c本};
+        A.win.setPackUnit('p1','枚'); o74.mai={parent:boxTxt(A,'p1'),kid:boxTxt(A,'p2'),icon:A.ev('packIcon(getP("p1"))'),cnt:cnt(A)===o74.c本};
+        A.win.setPackUnit('p1','本'); await sync(); o74.back={has:A.ev('"packUnit" in getP("p1")'),hasB:B.ev('"packUnit" in getP("p1")'),same:same(),cnt:cnt(A)===o74.c本};
+        // 3) 古い形・変な値：単位が無い／知らない値 → 本（画面の中だけ）
+        o74.odd=JSON.parse(B.ev('(()=>{ const p=getP("p1"), r=[]; [undefined,null,"",5,"x","本","個","枚"].forEach(v=>{ p.packUnit=v; r.push(packUnitOf(p)); }); delete p.packUnit; return JSON.stringify(r); })()'));
+        // 4) 英語・ネパール語：見出し・一言・単位の言葉
+        const lg={}; [['en',''],['ne','']].forEach(([L])=>{ A.ev(`LANG=${J(L)}; 1`); lg[L]={none:boxTxt(A,'p1'),kid:boxTxt(A,'p2'),parent:boxTxt(A,'p1')}; });
+        A.ev('getP("p1").packUnit="枚"; 1'); A.ev('LANG="en"; 1'); lg.enMai=boxTxt(A,'p2'); A.ev('LANG='+J(lang0)+'; delete getP("p1").packUnit; 1');
+        o74.lang=lg;
+        // 5) 警告：子にも実績が入っている時だけ（つないだ時・商品の箱）。見せるだけ＝S は変わらない
+        const sBefore=A.ev('JSON.stringify(S)');
+        o74.warn={kid:warnN(A,'p2'),parent:warnN(A,'p1'),noSave:A.ev('JSON.stringify(S)')===sBefore,kidTxt:/実績が入っています/.test(boxTxt(A,'p2')),parentTxt:/パック商品「からあげクン|パック商品「フライドチキン/.test(boxTxt(A,'p1'))||/パック商品「/.test(boxTxt(A,'p1')),note:/⚠/.test(jiNote(A)),toast:o74.toastLink==='⚠ この商品にも実績が入っています。パックごとに実績が取れるなら、つながずに、ふつうの商品として入れてください'};
+        // 子の実績を（画面の中だけ）空にすると、警告は出ない
+        const bk=A.ev('JSON.stringify({ji:S.ji,wk:Object.keys(S.weeks).map(k=>[k,S.weeks[k].ji])})');
+        A.ev('(()=>{ ["p2"].forEach(id=>{ S.ji[id]={teika:0,nebiki:0,haiki:0}; Object.keys(S.weeks).forEach(k=>{ if(S.weeks[k].ji&&S.weeks[k].ji[id])S.weeks[k].ji[id]={teika:0,nebiki:0,haiki:0}; }); }); return 1; })()');
+        o74.noWarn={kid:warnN(A,'p2'),parent:warnN(A,'p1'),note:/⚠/.test(jiNote(A)),rule:/data-pk-rule="1"/.test(boxHtml(A,'p2'))};
+        A.ev('(()=>{ const b='+J(bk)+'; const o=JSON.parse(b); S.ji=o.ji; o.wk.forEach(([k,j])=>{ if(S.weeks[k])S.weeks[k].ji=j; }); return 1; })()');
+        // 6) 計算の数（作成数）：親子のまま・単位をどれにしても同じ（上の cnt）。つなぐ前の2つ（ふつうの商品2つ）は親子にしても、つながなければ 実績は別々のまま
+      }catch(e){ o74.err=String(e&&e.stack||e); }
+      // 後始末：親子と単位をもとに戻す（保存する）
+      try{
+        A.ev(`LANG=${J(lang0)}; (()=>{ ["p2"].forEach(id=>{ const p=getP(id); delete p.packOf; delete p.packSize; delete p.packShare; }); delete getP("p1").packUnit; saveS(); return 1; })()`);
+      }catch(e){ o74.err2=String(e); }
+      await sync();
+      const hon=o74.hon||{}, ko=o74.ko||{}, mai=o74.mai||{}, lg4=o74.lang||{}, wn=o74.warn||{}, nw=o74.noWarn||{};
+      const HEAD='📦 まとめ売り（1本・1個ずつの実績を、パックに分ける）', RULE='本部の実績が パックごとに 取れる時は、つながずに、ふつうの商品として入れてください';
+      const okNone=o74.none&&o74.none.rule&&o74.none.txt.indexOf(HEAD)===0&&o74.none.txt.indexOf(RULE)>=0&&o74.none.txt.indexOf('本数の商品（親）：')>=0;                                            // 0) つながない商品にも、一言と新しい見出し
+      const okHon=hon.unit==='本'&&hon.field===false&&hon.icon==='🍢'&&hon.parent.indexOf('本数の実績用（親）')>=0&&hon.parent.indexOf('1パック＝2本・取り分 100%')>=0&&
+        hon.kid.indexOf('本数の取り分')>=0&&hon.kid.indexOf('÷ 2本')>=0&&hon.kid.indexOf('週の目標（本）')>=0&&hon.menu.indexOf('🍢 1パック＝2本。週の目標は「')>=0&&hon.menu.indexOf('」の目標（本）× 取り分 100% ÷ 2本')>=0&&hon.zero==='本数の親商品（作るのはパック商品）'&&/1パック＝2本。実績は「.*」に本数で/.test(hon.note);   // 1) 単位なし＝本。今までの焼き鳥の言葉のまま
+      const okKo=ko.a==='個'&&ko.b==='個'&&ko.same&&ko.cnt&&ko.icon==='🟠'&&ko.parent.indexOf('個数の実績用（親）')>=0&&ko.parent.indexOf('1パック＝2個・取り分 100%')>=0&&ko.parent.indexOf('本数')<0&&ko.kid.indexOf('個数の取り分')>=0&&ko.kid.indexOf('÷ 2個')>=0&&ko.kid.indexOf('週の目標（個）')>=0&&
+        ko.menu.indexOf('🟠 1パック＝2個。週の目標は「')>=0&&ko.menu.indexOf('」の目標（個）× 取り分 100% ÷ 2個')>=0&&ko.zero==='個数の親商品（作るのはパック商品）';                          // 2) 個：親に足すだけ・もう1台にも届く・言葉が個・作成数は同じ
+      const okMai=mai.icon==='🟨'&&mai.cnt&&mai.parent.indexOf('枚数の実績用（親）')>=0&&mai.parent.indexOf('1パック＝2枚')>=0&&mai.kid.indexOf('÷ 2枚')>=0;
+      const okBack=o74.back&&o74.back.has===false&&o74.back.hasB===false&&o74.back.same&&o74.back.cnt;                                                                                   // 本に戻すと項目ごと無くなる
+      const okOdd=J(o74.odd)===J(['本','本','本','本','本','本','個','枚']);                                                                                                                    // 3) 古い形・変な値は本
+      const okLang=lg4.en&&lg4.ne&&lg4.en.none.indexOf('Packs')>=0&&lg4.en.none.indexOf('If head office gives results per pack')>=0&&lg4.en.kid.indexOf('pcs')>=0&&lg4.enMai.indexOf('sheets')>=0&&lg4.ne.none.indexOf('प्याकमा बेच्ने')>=0&&lg4.ne.none.indexOf('नजोड्नुहोस्')>=0&&lg4.ne.kid.indexOf('वटा')>=0&&lg4.en.none.indexOf('まとめ売り')<0&&lg4.ne.none.indexOf('まとめ売り')<0;   // 4) 英語・ネパール語
+      const okWarn=wn.kid===1&&wn.parent===1&&wn.noSave&&wn.kidTxt&&wn.parentTxt&&wn.note&&wn.toast&&nw.kid===0&&nw.parent===0&&nw.note===false&&nw.rule;                                   // 5) 警告は、子にも実績がある時だけ（親の箱には子ごとに1つ）。ない時は出ない・一言は出る
+      check('74','【まとめ売り（本数とパック）の汎用化】見た目と言葉だけ（計算・保存の形は変えない）：単位（本・個・枚）は親の商品の packUnit に足すだけで保存（無い・知らない値＝本）／単位なし＝今までの焼き鳥の言葉のまま（本数・1パック＝2本・「🍢」・作成表のマスのメニュー）／個・枚にすると、箱・札・マスのメニュー・実績入力の行の言葉と印が変わる（日・英・ネ）・もう1台にも届く・作成数は単位で変わらない／本に戻すと項目ごと無くなる／'+
+        '見出しは焼き鳥以外でも分かる言葉（📦 まとめ売り）で、つながない商品にも一言（実績がパックごとに取れる時は つながずに ふつうの商品として入れる）／つないだのに子にも実績が入っている時は警告（商品の箱・実績入力の行・つないだ時の案内。見せるだけ）、入っていない時は出ない',
+        !o74.err&&!o74.err2&&okNone&&okHon&&okKo&&okMai&&okBack&&okOdd&&okLang&&okWarn,
+        o74.err||o74.err2||`つながない ${okNone} ${J(o74.none)}／本 ${okHon} ${J(hon)}／個 ${okKo} ${J(ko)}／枚 ${okMai} ${J(mai)}／戻す ${okBack} ${J(o74.back)}／変な値 ${okOdd} ${J(o74.odd)}／言語 ${okLang} ${J(lg4)}／警告 ${okWarn} ${J(wn)}・${J(nw)}`);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 自動の読み込み直しへの「待って」（2026-10-18 店長「全部おすすめで」。ギア WS 5.13 の autoupdate.js が、中の画面の window.__autoupdateHold（関数）が true を返す間は待つ）の試験 75。
+    //   FF は、入力して保存する窓（モーダル）が開いている間だけ true を返す。作成表のチェックだけの時は false。見るだけ（何も保存せず・画面も変えない）。待ちの無い古い autoupdate.js では、関数があるだけで何も起きない。
+    {
+      const o75={};
+      const hold=d=>d.ev('window.__autoupdateHold()');
+      const stateJ=()=>A.ev('JSON.stringify(S)');
+      try{
+        A.ev('showTab(3); 1');
+        o75.type=A.ev('typeof window.__autoupdateHold');
+        o75.base=hold(A);                                                                  // 作成表だけ：false
+        A.win.setCheck('0_6_p1',true); o75.checked=hold(A); A.win.setCheck('0_6_p1',false);   // チェックだけ（確認の窓なし）：付けても外しても false
+        const s0=stateJ(); hold(A); hold(A); hold(A); o75.noChange=stateJ()===s0;           // 見るだけ
+        o75.win={};
+        [['記録メニュー','openCellMenu("p2",0,10)','closeCellMenu()'],['店舗の窓','openStoreManager()','closeStoreManager()'],['完売の窓','openSoldOutModal("p1",0,10)','closeSoldOutModal()']].forEach(([nm,op,cl])=>{
+          try{ A.ev(op+'; 1'); const o=hold(A); A.ev(cl+'; 1'); o75.win[nm]=[o,hold(A)]; }catch(e){ o75.win[nm]=String(e).slice(0,80); } });
+        A.win.toggleRemind('p1',0); A.ev('openRemindModal("0_6_p1","p1",false); 1'); const r1=hold(A); A.ev('remindCancel(); 1'); await sleep(550); o75.remind=[r1,hold(A)]; A.win.toggleRemind('p1',0);   // 忘れ防止の確認の窓
+        o75.after=hold(A);
+      }catch(e){ o75.err=String(e&&e.stack||e); }
+      try{ A.ev('try{ closeCellMenu(); closeStoreManager(); closeSoldOutModal(); }catch(e){} S.checks&&delete S.checks["0_6_p1"]; 1'); }catch(e){ o75.err2=String(e); }
+      await sync();
+      const okWin=o75.win&&Object.keys(o75.win).length===3&&Object.values(o75.win).every(v=>Array.isArray(v)&&v[0]===true&&v[1]===false);
+      check('75','【自動の読み込み直しへの待ち】FF の画面が window.__autoupdateHold（関数）を持つ：入力して保存する窓（記録メニュー・店舗・完売・忘れ防止の確認 など）が開いている間だけ true／閉じると false／作成表のチェックだけの時（付ける・外す）は false／見るだけ（何も保存せず画面も変えない）。待ちの無い古い autoupdate.js では、関数があるだけで何も起きない',
+        !o75.err&&!o75.err2&&o75.type==='function'&&o75.base===false&&o75.checked===false&&o75.noChange&&okWin&&J(o75.remind)===J([true,false])&&o75.after===false,
+        o75.err||o75.err2||`型 ${o75.type}・はじめ ${o75.base}・チェックだけ ${o75.checked}・変化なし ${o75.noChange}／窓 ${J(o75.win)}／忘れ防止 ${J(o75.remind)}・終わり ${o75.after}`);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ③天気・イベント調整「ミルのデータを読み込む」（2026-10-18 店長「ボタン一発でファイル場所出るようにして」）の試験 76。中身は作り物（店の数字は使わない）。
+    //   ファイルを選ぶ窓を前回の場所で開く（showOpenFilePicker に id を付ける）・この週のファイル名（外部要因_<週の開始日>週.json）を大きく出す・ちがう週のファイルは読み込む前に「この週のデータではありません」・
+    //   最初の1回の案内（提出物の中の _data フォルダ・日英ネ。ドライブの場所の文字は入れない）・使えないブラウザ（showOpenFilePicker が無い）は今までの窓（<input type=file>）。読み込んだ後の動き（③の調整に入る中身）は変えない。
+    {
+      const o76={}, W=A.win, BAD76=new RegExp(['マイ','ドライブ'].join('')+'|'+['AI','経営','チーム'].join('')+'|G:|My Drive');   // ドライブの場所の字は、試験のファイルにも書かない（字を分けてつなぐ）
+      const alerts=[]; const alert0=W.alert; W.alert=m=>alerts.push(String(m));
+      const spf0=Object.getOwnPropertyDescriptor(W,'showOpenFilePicker'), spfProto=W.showOpenFilePicker;
+      const fake=ws=>JSON.stringify({week:{start:ws,end:ws},days:[],items:[],ff:[],createdAt:'2026-10-05T00:00:00',updatedAt:'2026-10-05T00:00:00',version:1});
+      const html=()=>A.ev('document.getElementById("gaibu-area").innerHTML');
+      const gb0=A.ev('JSON.stringify(S.gaibu===undefined?null:S.gaibu)'), pk0=W.localStorage.getItem('ffv6_mill_picked'), tab0=A.ev('currentTab');
+      try{
+        A.ev('showTab(2); 1');
+        const ws=A.ev('_gbWeekStartStr()');
+        // 1) この週のファイル名を、ボタンの横に大きく
+        o76.name={ws,exp:A.ev('_gbFileName()'),shown:html().indexOf('外部要因_'+ws+'週.json')>=0,fs:parseFloat(A.ev('getComputedStyle(document.querySelector("[data-gb-file] b")).fontSize')),sameRow:A.ev('!!document.querySelector("[data-gb-load] [data-gb-file]")&&!!document.querySelector("[data-gb-load] button[onclick=\\"gaibuPickFile()\\"]")')};
+        // 2) 開いている週が変わると、名前も変わる（週の始まりは今の FF の週＝火曜。開いている週を画面の中だけ1週ずらす）
+        A.ev('window.__ws0=S.weekStart; S.weekStart="2026-10-13"; renderGaibuTab(); 1'); o76.week2={name:A.ev('_gbFileName()'),shown:html().indexOf('外部要因_2026-10-13週.json')>=0}; A.ev('S.weekStart=window.__ws0; renderGaibuTab(); 1');
+        // 3) ちがう週：名前でわかる時は読み込む前に（中身は読まない）／名前は合っていて中身がちがう時は、読んだあと取り込まずに
+        A.ev('window.__imp=0; window.__oImp=window.gaibuImport; window.gaibuImport=function(){ window.__imp++; return window.__oImp.apply(this,arguments); }; 1');
+        alerts.length=0; W.gaibuReadFile(new W.File([fake('2026-10-13')],'外部要因_2026-10-13週.json')); await sleep(250);
+        o76.wrongName={alert:alerts.slice(),imports:A.ev('window.__imp'),same:A.ev('JSON.stringify(S.gaibu===undefined?null:S.gaibu)')===gb0};
+        alerts.length=0; W.gaibuReadFile(new W.File([fake('2026-10-13')],'外部要因_'+ws+'週.json')); await sleep(250);
+        o76.wrongBody={alert:alerts.slice(),imports:A.ev('window.__imp'),same:A.ev('JSON.stringify(S.gaibu===undefined?null:S.gaibu)')===gb0};
+        // 4) 合う週：取り込む（今までと同じ道）。名前の後ろの _v2 などは、日付が合えば通す
+        alerts.length=0; W.gaibuReadFile(new W.File([fake(ws)],'外部要因_'+ws+'週_v2.json')); await sleep(250);
+        o76.ok={alerts:alerts.slice(),imports:A.ev('window.__imp'),src:A.ev('(_gbCur()&&_gbCur().src&&_gbCur().src.week)||null'),via:A.ev('(_gbCur()&&_gbCur().src&&_gbCur().src.via)||null')};
+        A.ev('window.gaibuImport=window.__oImp; if('+gb0+'===null)delete S.gaibu; else S.gaibu=JSON.parse('+J(gb0)+'); saveS(); 1');
+        // 5) 窓が使える：id 付きで開く（前回の場所）→ 選んだファイルを取り込む → 「最初の1回」の案内が消える
+        W.localStorage.removeItem('ffv6_mill_picked'); let seen=null;
+        W.showOpenFilePicker=function(o){ seen=o; return Promise.resolve([{getFile:()=>Promise.resolve(new W.File([fake(ws)],'外部要因_'+ws+'週.json'))}]); };
+        A.ev('renderGaibuTab(); 1'); const h0=html(); o76.guide={shown:/data-gb-guide="1"/.test(h0),first:h0.indexOf('最初の1回だけ')>=0,dir:h0.indexOf('提出物の中の _data フォルダ')>=0,noDrive:!BAD76.test(h0),copyGone:!/gbCopyPath/.test(h0)&&typeof W.gbCopyPath==='undefined'};
+        alerts.length=0; W.gaibuPickFile(); await sleep(350);
+        o76.picker={id:seen&&seen.id,multiple:seen&&seen.multiple,types:J(seen&&seen.types),src:A.ev('(_gbCur()&&_gbCur().src&&_gbCur().src.week)||null'),alerts:alerts.slice(),picked:W.localStorage.getItem('ffv6_mill_picked'),guideAfter:/data-gb-guide="1"/.test(html())};
+        A.ev('if('+gb0+'===null)delete S.gaibu; else S.gaibu=JSON.parse('+J(gb0)+'); saveS(); 1');
+        // 6) 英語・ネパール語の案内（言葉のまま。ドライブの場所の文字は入らない）
+        W.localStorage.removeItem('ffv6_mill_picked'); const lg0=A.ev('LANG'), lang76={}; ['en','ne','ja'].forEach(L=>{ A.ev('LANG='+J(L)+'; renderGaibuTab(); 1'); const g=A.ev('(document.querySelector("[data-gb-guide]")||{}).textContent||""'); lang76[L]=g.replace(/\s+/g,' ').trim(); }); A.ev('LANG='+J(lg0)+'; renderGaibuTab(); 1'); o76.lang=lang76;
+        // 7) やめた＝何もしない（今までの窓も開かない）／窓が出せなかった＝今までの窓
+        let clicks=0; W.document.getElementById('gaibu-file').click=function(){ clicks++; };
+        W.showOpenFilePicker=()=>Promise.reject({name:'AbortError'}); W.gaibuPickFile(); await sleep(120); o76.abort={clicks};
+        W.showOpenFilePicker=()=>Promise.reject({name:'SecurityError'}); W.gaibuPickFile(); await sleep(120); o76.fail={clicks};
+        W.showOpenFilePicker=function(){ throw new Error('not allowed'); }; W.gaibuPickFile(); o76.sync={clicks};
+        // 8) 使えないブラウザ（showOpenFilePicker が無い。iPad の Safari など）：今までの窓。案内は場所の文字だけ（「次から同じ場所」は言わない）
+        W.showOpenFilePicker=undefined; clicks=0; W.localStorage.removeItem('ffv6_mill_picked'); A.ev('renderGaibuTab(); 1'); const h1=html(); W.gaibuPickFile(); o76.none={clicks,guide:/data-gb-guide="1"/.test(h1),noAgain:h1.indexOf('次からは、同じ場所')<0,dir:h1.indexOf('提出物の中の _data フォルダ')>=0,noDrive:!BAD76.test(h1)};
+      }catch(e){ o76.err=String(e&&e.stack||e); }
+      // 後始末
+      try{
+        if(spf0)Object.defineProperty(W,'showOpenFilePicker',spf0); else delete W.showOpenFilePicker;
+        if(pk0==null)W.localStorage.removeItem('ffv6_mill_picked'); else W.localStorage.setItem('ffv6_mill_picked',pk0);
+        W.alert=alert0; A.ev('if(window.__oImp){ window.gaibuImport=window.__oImp; } if('+gb0+'===null)delete S.gaibu; else S.gaibu=JSON.parse('+J(gb0)+'); saveS(); showTab('+tab0+'); 1');
+      }catch(e){ o76.err2=String(e); }
+      await sync();
+      const nm=o76.name||{}, wk=o76.week2||{}, wn=o76.wrongName||{}, wb=o76.wrongBody||{}, ok=o76.ok||{}, pk=o76.picker||{}, gd=o76.guide||{}, nn=o76.none||{};
+      const okName=nm.exp==='外部要因_'+nm.ws+'週.json'&&nm.shown&&nm.fs>=16&&nm.sameRow&&wk.name==='外部要因_2026-10-13週.json'&&wk.shown;                                                                    // 1・2) 名前を大きく・週で変わる
+      const okWrong=wn.alert&&wn.alert.length===1&&/^この週のデータではありません。/.test(wn.alert[0])&&/10\/13 週のものです。今開いているのは/.test(wn.alert[0])&&wn.imports===0&&wn.same&&
+        wb.alert&&wb.alert.length===1&&/^この週のデータではありません。/.test(wb.alert[0])&&wb.imports===1&&wb.same;                                                                                           // 3) ちがう週は取り込まず知らせる
+      const okOk=ok.alerts&&ok.alerts.length===0&&ok.imports===2&&ok.src===nm.ws&&ok.via==='file';                                                                                                         // 4) 合う週は取り込む
+      const okPick=pk.id==='ff-mill-data'&&pk.multiple===false&&/\.json/.test(pk.types)&&pk.src===nm.ws&&pk.alerts.length===0&&pk.picked==='1'&&pk.guideAfter===false&&gd.shown&&gd.first&&gd.dir&&gd.noDrive&&gd.copyGone;       // 5) 窓は id 付き・取り込む・案内が消える
+      const lg76=o76.lang||{}, okCopy=lg76.ja&&lg76.en&&lg76.ne&&lg76.ja.indexOf('提出物の中の _data フォルダ')>=0&&lg76.ja.indexOf('最初の1回だけ')>=0&&lg76.en.indexOf('_data')>=0&&lg76.en.indexOf('Just the first time')===0&&lg76.ne.indexOf('_data')>=0&&lg76.ne.indexOf('पहिलो पटक')===0&&lg76.en!==lg76.ja&&lg76.ne!==lg76.ja&&!BAD76.test(lg76.ja+lg76.en+lg76.ne);                                                                                                                                                              // 6) 場所のコピー
+      const okFall=o76.abort&&o76.abort.clicks===0&&o76.fail&&o76.fail.clicks===1&&o76.sync&&o76.sync.clicks===2&&nn.clicks===1&&nn.guide&&nn.noAgain&&nn.dir&&nn.noDrive;                                                 // 7・8) やめた＝何もしない／出せない＝今までの窓
+      check('76','【③ ミルのデータの読み込み】ボタンを押すと、ファイルを選ぶ窓が前回の場所で開く（showOpenFilePicker に id を付けて場所を覚えさせる）／この週のファイル名（外部要因_<週の開始日>週.json）をボタンの横に大きく／ちがう週のファイルは、読み込む前に「この週のデータではありません」（名前でも中身でも）・取り込まない／合う週は今までどおり取り込む／最初の1回の案内（提出物の中の _data フォルダ・日英ネ。ドライブの場所の文字は入れない）／やめた時は何もしない・窓が出せない時や使えないブラウザは今までの窓',
+        !o76.err&&!o76.err2&&okName&&okWrong&&okOk&&okPick&&okCopy&&okFall,
+        o76.err||o76.err2||`名前 ${okName} ${J(nm)}・${J(wk)}／ちがう週 ${okWrong} ${J(wn)}・${J(wb)}／合う週 ${okOk} ${J(ok)}／窓 ${okPick} ${J(pk)}・案内 ${J(gd)}／案内 ${okCopy} ${J(o76.lang)}／今までの窓 ${okFall} ${J(o76.abort)}・${J(o76.fail)}・${J(o76.sync)}・${J(nn)}`);
+    }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;

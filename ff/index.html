@@ -1241,7 +1241,7 @@ const I18N = {
     'zero.rSlotsOff':'作る時間帯が全部OFF',
     'zero.rEnded':'終売（終売日 {0}）',
     'zero.rNotyet':'投入前（投入日 {0}）',
-    'zero.rParent':'本数の親商品（作るのはパック商品）',
+    'zero.rParent':'{0}の親商品（作るのはパック商品）',
     'zero.rRest':'今週は休み（今週のメニュー）',
     // 今週のメニュー（2026-10-09）
     'menu.title':'今週のメニュー','menu.summary':'出す {0}・休む {1}','menu.open':'入れ替える','menu.close':'閉じる','menu.week':'{0}〜{1}の週',
@@ -1610,7 +1610,7 @@ const I18N = {
     'cell.extra':'＋追加 <b>{0}</b>個',
     'cell.learn':'完売・余りの記録は、同じ曜日・同じ時間帯で<b>直近4週のうち2週以上続いた時だけ</b>、来週以降の数を自動で増減します（1回だけなら変わりません）',
     'cell.recent':'直近4週：完売 <b>{0}</b>週／余り <b>{1}</b>週　→　{2}',
-    'cell.pack':'🍢 1パック＝{0}本。週の目標は「{1}」の目標（本）× 取り分 {2}% ÷ {3}本',
+    'cell.pack':'{4} 1パック＝{0}{5}。週の目標は「{1}」の目標（{5}）× 取り分 {2}% ÷ {3}{5}',
     'cell.coef':'時間帯別購入率の係数：×{0}',
     'cell.gaibu':'天気・イベント調整：<b>{0}</b>',
     'cell.gaibuWhy':'　理由：{0}',
@@ -1645,6 +1645,22 @@ const I18N = {
     'rm.fromParent':'親商品の設定も出ます',
     'rm.badge':'忘れ防止あり',
     'rm.p.sauce':'ソース','rm.p.pick':'つまようじ','rm.p.lid':'ふた','rm.p.label':'ラベル','rm.p.karashi':'からし','rm.p.towel':'おしぼり','rm.p.spoon':'スプーン','rm.p.chop':'はし',
+    'rm.addPh':'＋ 言葉を足す（例：ストロー）','rm.add':'足す','rm.manage':'✎ 言葉を整える','rm.hide':'隠す','rm.unhide':'出す','rm.remove':'消す','rm.hiddenMark':'隠し中',
+    'rm.manageNote':'言葉は、店ごとに覚えます。隠した言葉は、ほかの商品のボタンに出ません。隠しても消しても、いま商品に付いている言葉は、その商品から消えません。',
+    'rm.removeConfirm':'「{0}」を言葉の一覧から消しますか？\n（いま商品に付いている「{0}」は、商品からは消えません。隠すだけなら「隠す」を使います）','rm.dup':'「{0}」はもうあります','rm.added':'「{0}」を足しました。ほかの商品でも、ボタンに出ます','rm.hiddenTip':'この言葉は、ほかの商品のボタンからは隠してあります',
+    'pk.uHon':'本','pk.uKo':'個','pk.uMai':'枚','pk.cHon':'本数','pk.cKo':'個数','pk.cMai':'枚数',
+    'pk.head':'📦 まとめ売り（1本・1個ずつの実績を、パックに分ける）',
+    'pk.tip':'実績が「1本・1個ずつ」でしか取れない商品（焼き鳥など）を、売場では2本入り・3本入りなどのパックで売る時のための設定。実績は親の商品に1本・1個ずつで入れ、作成数はパック商品（子）に配ります。本部の実績がパックごとに取れる商品（例：グーコロの1個入り・2個入り）は、つながずに、ふつうの商品として入れてください。',
+    'pk.rule':'本部の実績が パックごとに 取れる時は、つながずに、ふつうの商品として入れてください（例：1個入り・2個入り）。実績が 1本・1個ずつ でしか取れない時だけ、ここでつなぎます（例：焼き鳥）。',
+    'pk.parentIs':'この商品は<b>{0}の実績用（親）</b>です。①実績入力は{0}で。作成表・印刷・予算には下のパック商品で出ます。発注・ランキングはこの商品で1行。',
+    'pk.kidChip':'1パック＝{0}{1}・取り分 {2}%','pk.shareSum':'取り分の合計が {0}% です。100% になおして配ります（子の欄で直せます）','pk.shareEven':'取り分が未入力なので均等に配ります（{0}商品で {1}% ずつ）',
+    'pk.parentLbl':'{0}の商品（親）：','pk.none':'（なし：ふつうの商品）','pk.size':'1パック＝','pk.unitLbl':'単位','pk.shareLbl':'{0}の取り分 ','pk.shareTo':'→ 配る時は {0}%','pk.shareHint':'均等',
+    'pk.formula':'この商品の週の目標（パック）＝「{0}」の週の目標（{1}）× 取り分 ÷ {2}{1}。売価・原価はこの商品の欄（1パックの値）を使います。完売・余りの記録はこの商品のマスで。',
+    'pk.noteKid':'{0} 1パック＝{1}{2}。実績は「{3}」に{4}で','pk.noteParent':'{0} {1}で入力（パック：{2}）','pk.titleKid':'{0}の商品「{1}」に{0}で入れます','pk.tipParent':'{0}の実績用（親）。作成表にはパック商品で出ます','pk.tipKid':'パック商品（子）。実績は親に{0}で',
+    'pk.warnKid':'⚠ この商品にも実績が入っています（{0}週ぶん）。つなぐと、この商品の実績は使わず、親「{1}」の{2}から配ります。パックごとに実績が取れる商品なら、つながずに、ふつうの商品として入れてください。（見せているだけです。数は変えていません）',
+    'pk.warnParent':'⚠ パック商品「{0}」にも実績が入っています。つなぐと、その実績は使わず、この親の{1}から配ります。パックごとに実績が取れる商品なら、つながずに、ふつうの商品として入れてください。（見せているだけです。数は変えていません）',
+    'pk.warnShort':'⚠ この商品にも実績あり（使われません）','pk.warnToast':'⚠ この商品にも実績が入っています。パックごとに実績が取れるなら、つながずに、ふつうの商品として入れてください',
+    'gb.fileLbl':'この週のファイル','gb.guideFirst':'最初の1回だけ、ファイルを選ぶ窓で <b>提出物の中の _data フォルダ</b> を選んでください。次からは、同じ場所で開きます。','gb.guideFound':'ファイルは <b>提出物の中の _data フォルダ</b> にあります。',
   },
   en: {
     'app.title':'FF Management',
@@ -1787,7 +1803,7 @@ const I18N = {
     'zero.rSlotsOff':'All make times are OFF',
     'zero.rEnded':'Ended (end date {0})',
     'zero.rNotyet':'Not started (start date {0})',
-    'zero.rParent':'Parent item counted in pieces (the packs are what is made)',
+    'zero.rParent':'Parent item counted in {0} (the packs are what is made)',
     'zero.rRest':'Resting this week (this week\'s menu)',
     'menu.title':'This week\'s menu','menu.summary':'Serve {0} · Rest {1}','menu.open':'Change','menu.close':'Close','menu.week':'Week of {0}–{1}',
     'menu.hint':'Tap to switch Serve ⇄ Rest. A resting item is not made at all this week; its share goes to the other items in the same category (the category total stays the same). Next week starts with this week\'s menu (only tap what changes).',
@@ -2133,7 +2149,7 @@ const I18N = {
     'cell.extra':'+ extra <b>{0}</b>',
     'cell.learn':'Sold-out and left-over records change the numbers from next week <b>only when they repeat in 2 or more of the last 4 weeks</b> on the same day and time slot (once alone changes nothing)',
     'cell.recent':'Last 4 weeks: sold out <b>{0}</b> wk / left over <b>{1}</b> wk　→　{2}',
-    'cell.pack':'🍢 1 pack = {0} pcs. Weekly target = target of "{1}" (pcs) × share {2}% ÷ {3}',
+    'cell.pack':'{4} 1 pack = {0} {5}. Weekly target = target of "{1}" ({5}) × share {2}% ÷ {3}',
     'cell.coef':'Time-slot purchase-rate factor: ×{0}',
     'cell.gaibu':'Weather/event adjustment: <b>{0}</b>',
     'cell.gaibuWhy':'　Reason: {0}',
@@ -2165,6 +2181,22 @@ const I18N = {
     'rm.fromParent':'Parent product settings are also shown',
     'rm.badge':'Has a reminder',
     'rm.p.sauce':'Sauce','rm.p.pick':'Toothpick','rm.p.lid':'Lid','rm.p.label':'Label','rm.p.karashi':'Mustard','rm.p.towel':'Wet towel','rm.p.spoon':'Spoon','rm.p.chop':'Chopsticks',
+    'rm.addPh':'+ Add a word (e.g. Straw)','rm.add':'Add','rm.manage':'✎ Edit words','rm.hide':'Hide','rm.unhide':'Show','rm.remove':'Delete','rm.hiddenMark':'hidden',
+    'rm.manageNote':'Words are remembered per store. A hidden word does not appear as a button on other items. Hiding or deleting a word never removes it from items that already have it.',
+    'rm.removeConfirm':'Delete "{0}" from the word list?\n("{0}" stays on items that already have it. To just hide it, use Hide.)','rm.dup':'"{0}" is already there','rm.added':'Added "{0}". It also shows as a button on other items','rm.hiddenTip':'This word is hidden from the buttons of other items',
+    'pk.uHon':'pcs','pk.uKo':'pcs','pk.uMai':'sheets','pk.cHon':'pieces','pk.cKo':'pieces','pk.cMai':'sheets',
+    'pk.head':'📦 Packs (split one-by-one results into packs)',
+    'pk.tip':'For items whose results can only be taken one at a time (e.g. yakitori) but are sold in packs of 2, 3 … Enter results on the parent item one by one; the made amount is spread to the pack items (children). If head office gives results per pack (e.g. 1-piece and 2-piece packs), do not link them: enter them as ordinary items.',
+    'pk.rule':'If head office gives results per pack, do not link: enter each pack as an ordinary item (e.g. 1-piece pack, 2-piece pack). Link here only when results come one by one (e.g. yakitori).',
+    'pk.parentIs':'This item is the <b>parent for results in {0}</b>. Enter results (①) in {0}. The make table, print and budget show the pack items below. Orders and ranking use this item as one row.',
+    'pk.kidChip':'1 pack = {0} {1} · share {2}%','pk.shareSum':'The shares add up to {0}%. They are scaled to 100% (fix them in each child).','pk.shareEven':'No share entered, so it is split evenly ({0} items, {1}% each)',
+    'pk.parentLbl':'Parent item ({0}): ','pk.none':'(none: ordinary item)','pk.size':'1 pack = ','pk.unitLbl':'Unit','pk.shareLbl':'Share of {0} ','pk.shareTo':'→ used: {0}%','pk.shareHint':'even',
+    'pk.formula':'Weekly target of this item (pack) = weekly target of "{0}" ({1}) × share ÷ {2} {1}. Selling price and cost use this item\'s own fields (per pack). Sold-out and leftover records go on this item\'s cells.',
+    'pk.noteKid':'{0} 1 pack = {1} {2}. Results go to "{3}" in {4}','pk.noteParent':'{0} Enter in {1} (packs: {2})','pk.titleKid':'Enter in {0} on the parent item "{1}"','pk.tipParent':'Parent for results in {0}. The make table shows the pack items','pk.tipKid':'Pack item (child). Results go to the parent in {0}',
+    'pk.warnKid':'⚠ This item also has its own results ({0} week(s)). Once linked they are not used: the numbers are spread from the parent "{1}" in {2}. If head office gives results per pack, do not link; enter it as an ordinary item. (Shown only; no numbers were changed.)',
+    'pk.warnParent':'⚠ The pack item "{0}" also has its own results. Once linked they are not used: numbers are spread from this parent in {1}. If head office gives results per pack, do not link; enter it as an ordinary item. (Shown only; no numbers were changed.)',
+    'pk.warnShort':'⚠ This item also has results (not used)','pk.warnToast':'⚠ This item also has its own results. If head office gives results per pack, do not link; enter it as an ordinary item',
+    'gb.fileLbl':'File for this week','gb.guideFirst':'Just the first time, in the file window choose <b>the _data folder inside the submissions (提出物) folder</b>. After that it opens in the same place.','gb.guideFound':'The file is in <b>the _data folder inside the submissions (提出物) folder</b>.',
   },
   ne: {
     'app.title':'FF व्यवस्थापन',
@@ -2283,7 +2315,7 @@ const I18N = {
     'zero.rSlotsOff':'बनाउने सबै समय OFF',
     'zero.rEnded':'बिक्री बन्द (अन्तिम मिति {0})',
     'zero.rNotyet':'सुरु भएको छैन (सुरु मिति {0})',
-    'zero.rParent':'गन्तीको मूल सामान (बनाउने प्याक हो)',
+    'zero.rParent':'{0}को मूल सामान (बनाउने प्याक हो)',
     'zero.rRest':'यो हप्ता बिदा (यो हप्ताको मेनु)',
     'menu.title':'यो हप्ताको मेनु','menu.summary':'राख्ने {0} · बिदा {1}','menu.open':'फेर्ने','menu.close':'बन्द गर्ने','menu.week':'{0}–{1} को हप्ता',
     'menu.hint':'थिच्दा राख्ने ⇄ बिदा फेरिन्छ। बिदाको सामान यो हप्ता एउटा पनि बनाइँदैन; त्यसको भाग उही श्रेणीका अरू सामानमा जान्छ (श्रेणीको जम्मा उस्तै रहन्छ)। अर्को हप्ताले यो हप्ताको मेनु नै लिन्छ (फेर्ने मात्र थिच्ने)।',
@@ -2624,7 +2656,7 @@ const I18N = {
     'cell.extra':'+ थप <b>{0}</b> वटा',
     'cell.learn':'बिक्री समाप्त र बाँकीको रेकर्डले <b>उही बार, उही समयमा पछिल्लो ४ हप्तामध्ये २ हप्ता वा बढी दोहोरिएमा मात्र</b> अर्को हप्ताको संख्या आफैं बढाउँछ/घटाउँछ (एक पटक मात्र भए बदलिँदैन)',
     'cell.recent':'पछिल्लो ४ हप्ता: समाप्त <b>{0}</b> हप्ता / बाँकी <b>{1}</b> हप्ता　→　{2}',
-    'cell.pack':'🍢 १ प्याक = {0} वटा। हप्ताको लक्ष्य = "{1}" को लक्ष्य × भाग {2}% ÷ {3}',
+    'cell.pack':'{4} १ प्याक = {0} {5}। हप्ताको लक्ष्य = "{1}" को लक्ष्य × भाग {2}% ÷ {3}',
     'cell.coef':'समय अनुसार किन्ने दरको गुणांक: ×{0}',
     'cell.gaibu':'मौसम/कार्यक्रम समायोजन: <b>{0}</b>',
     'cell.gaibuWhy':'　कारण: {0}',
@@ -2656,6 +2688,22 @@ const I18N = {
     'rm.fromParent':'मूल सामानको सेटिङ पनि देखिन्छ',
     'rm.badge':'सम्झना छ',
     'rm.p.sauce':'सस','rm.p.pick':'टुथपिक','rm.p.lid':'ढक्कन','rm.p.label':'लेबल','rm.p.karashi':'तोरीको मसला','rm.p.towel':'भिजेको तौलिया','rm.p.spoon':'चम्चा','rm.p.chop':'चपस्टिक',
+    'rm.addPh':'+ शब्द थप्नुहोस् (जस्तै: स्ट्रा)','rm.add':'थप्नुहोस्','rm.manage':'✎ शब्द मिलाउनुहोस्','rm.hide':'लुकाउनुहोस्','rm.unhide':'देखाउनुहोस्','rm.remove':'मेट्नुहोस्','rm.hiddenMark':'लुकाइएको',
+    'rm.manageNote':'शब्दहरू पसल अनुसार सम्झिन्छ। लुकाइएको शब्द अरू सामानका बटनमा देखिँदैन। लुकाए वा मेटे पनि, सामानमा भइसकेको शब्द त्यहाँबाट हट्दैन।',
+    'rm.removeConfirm':'"{0}" लाई शब्द सूचीबाट मेट्ने?\n(सामानमा भइसकेको "{0}" त्यहीँ रहन्छ। लुकाउन मात्र चाहे "लुकाउनुहोस्" प्रयोग गर्नुहोस्)','rm.dup':'"{0}" पहिले नै छ','rm.added':'"{0}" थपियो। अरू सामानमा पनि बटनमा देखिन्छ','rm.hiddenTip':'यो शब्द अरू सामानका बटनबाट लुकाइएको छ',
+    'pk.uHon':'वटा','pk.uKo':'वटा','pk.uMai':'पाना','pk.cHon':'गन्ती','pk.cKo':'गन्ती','pk.cMai':'पानाको गन्ती',
+    'pk.head':'📦 प्याकमा बेच्ने (एक-एक गरी आएको बिक्रीलाई प्याकमा बाँड्ने)',
+    'pk.tip':'बिक्री एक-एक गरी मात्र आउने सामान (जस्तै याकिटोरी) लाई पसलमा २ वटा, ३ वटाको प्याकमा बेच्दा यो सेटिङ चाहिन्छ। बिक्री मूल सामानमा एक-एक गरी राख्नुहोस्; बनाउने सङ्ख्या प्याक सामान (सन्तान) मा बाँडिन्छ। हेड अफिसले प्याक अनुसार बिक्री दिन्छ भने (जस्तै १ वटाको र २ वटाको प्याक), जोड्नु हुँदैन; साधारण सामान जस्तै राख्नुहोस्।',
+    'pk.rule':'हेड अफिसले प्याक अनुसार बिक्री दिन्छ भने नजोड्नुहोस्; प्रत्येक प्याकलाई साधारण सामान जस्तै राख्नुहोस् (जस्तै १ वटाको प्याक, २ वटाको प्याक)। बिक्री एक-एक गरी मात्र आउँदा (जस्तै याकिटोरी) यहाँ जोड्नुहोस्।',
+    'pk.parentIs':'यो सामान <b>{0} मा बिक्री राख्ने मूल सामान</b> हो। बिक्री (①) {0} मा राख्नुहोस्। बनाउने तालिका, प्रिन्ट र बजेटमा तलका प्याक सामान देखिन्छन्। अर्डर र र्‍याङ्किङमा यो सामान एक लाइन हुन्छ।',
+    'pk.kidChip':'१ प्याक = {0} {1} · भाग {2}%','pk.shareSum':'भागको जोड {0}% छ। १००% मा मिलाएर बाँडिन्छ (सन्तानमा सच्याउन सकिन्छ)।','pk.shareEven':'भाग राखिएको छैन, त्यसैले बराबर बाँडिन्छ ({0} सामान, प्रत्येक {1}%)',
+    'pk.parentLbl':'मूल सामान ({0}): ','pk.none':'(छैन: साधारण सामान)','pk.size':'१ प्याक = ','pk.unitLbl':'एकाइ','pk.shareLbl':'{0} को भाग ','pk.shareTo':'→ प्रयोग: {0}%','pk.shareHint':'बराबर',
+    'pk.formula':'यो सामान (प्याक) को हप्ताको लक्ष्य = "{0}" को हप्ताको लक्ष्य ({1}) × भाग ÷ {2} {1}। बिक्री मूल्य र लागत यही सामानको आफ्नै (प्याकको)। सकिएको र बाँकीको रेकर्ड यही सामानको खानामा।',
+    'pk.noteKid':'{0} १ प्याक = {1} {2}। बिक्री "{3}" मा {4} मा राख्नुहोस्','pk.noteParent':'{0} {1} मा राख्नुहोस् (प्याक: {2})','pk.titleKid':'मूल सामान "{1}" मा {0} मा राख्नुहोस्','pk.tipParent':'{0} मा बिक्री राख्ने मूल सामान। बनाउने तालिकामा प्याक सामान देखिन्छन्','pk.tipKid':'प्याक सामान (सन्तान)। बिक्री मूल सामानमा {0} मा',
+    'pk.warnKid':'⚠ यो सामानमा आफ्नै बिक्री पनि छ ({0} हप्ता)। जोडेपछि त्यो प्रयोग हुँदैन: मूल सामान "{1}" को {2} बाट बाँडिन्छ। हेड अफिसले प्याक अनुसार बिक्री दिन्छ भने नजोड्नुहोस्; साधारण सामान जस्तै राख्नुहोस्। (देखाइएको मात्र हो; सङ्ख्या फेरिएको छैन।)',
+    'pk.warnParent':'⚠ प्याक सामान "{0}" मा पनि आफ्नै बिक्री छ। जोडेपछि त्यो प्रयोग हुँदैन: यो मूल सामानको {1} बाट बाँडिन्छ। हेड अफिसले प्याक अनुसार बिक्री दिन्छ भने नजोड्नुहोस्; साधारण सामान जस्तै राख्नुहोस्। (देखाइएको मात्र हो; सङ्ख्या फेरिएको छैन।)',
+    'pk.warnShort':'⚠ यो सामानमा पनि बिक्री छ (प्रयोग हुँदैन)','pk.warnToast':'⚠ यो सामानमा आफ्नै बिक्री पनि छ। हेड अफिसले प्याक अनुसार बिक्री दिन्छ भने नजोड्नुहोस्; साधारण सामान जस्तै राख्नुहोस्',
+    'gb.fileLbl':'यो हप्ताको फाइल','gb.guideFirst':'पहिलो पटक मात्र, फाइल छान्ने विन्डोमा <b>提出物 (बुझाइएका सामग्री) फोल्डर भित्रको _data फोल्डर</b> छान्नुहोस्। त्यसपछि उही ठाउँमा खुल्छ।','gb.guideFound':'फाइल <b>提出物 (बुझाइएका सामग्री) फोल्डर भित्रको _data फोल्डर</b> मा छ।',
   }
 };
 function t(key){
@@ -4499,6 +4547,7 @@ function setPackOf(pid,val){
   const p=getP(pid); if(!p)return; const prev=p.packOf;
   if(val&&val!==pid&&getP(val)){ p.packOf=val; } else { delete p.packOf; }
   saveS(); renderProductCardInPlace(pid); if(prev&&prev!==p.packOf)renderProductCardInPlace(prev); if(p.packOf)renderProductCardInPlace(p.packOf);
+  if(p.packOf&&packOwnJiWeeks(p)>0)showToast(t('pk.warnToast'),'warn');   // この商品にも実績が入っている：見せるだけ（数は変えない・保存しない。2026-10-18）
 }
 // ---------- 撤退ラインの印（2026-10-06 店長の決定 B：数は減らさず印だけ） ----------
 //   そのマスの「売る範囲の客数」が撤退客数（原価率÷購入率＝1個売るのに要る客数）より少なければ「撤退ライン以下」。
@@ -4635,7 +4684,7 @@ function getZeroMakeList(){
     for(let d=0;d<7&&week===0;d++){ for(const h of cfg.slots){ week+=getProdCntDetail(p.id,d,h).total+getInvestExtra(p.id,d,h); if(week>0)break; } }
     if(week>0)return;
     const reasons=[]; let gray=false;
-    if(isPackParent(p)){ reasons.push({k:'parent',t:t('zero.rParent')}); gray=true; }
+    if(isPackParent(p)){ reasons.push({k:'parent',t:tf('zero.rParent',packCountWord(p))}); gray=true; }
     if(prodRestThisWeek(p)){ reasons.push({k:'rest',t:t('zero.rRest')}); gray=true; }   // 今週のメニューで休み（0 で正しい。2026-10-09）
     const ds=dates.map(dt=>prodDateState(p,dt));
     if(ds.length&&ds.every(s=>s==='ended')){ reasons.push({k:'ended',t:t('zero.rEnded').replace('{0}',p.endDate||'')}); gray=true; }
@@ -5110,7 +5159,7 @@ function openCellMenu(pid,dayIdx,slotH){
     ${rows}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
       ${t('cell.learn')}<br>
-      ${tf('cell.recent',li.so,li.lo,adjTxt)}${skuReasonText(pid)?`<br><span style="color:#3730a3">${skuReasonText(pid)}</span>`:''}${riceAdj(pid,dayIdx,slotH)?`<br><span style="color:#92400e;font-weight:700">${tf('rice.cellLine',riceAdj(pid,dayIdx,slotH)>0?t('rice.more'):t('rice.less'),(riceAdj(pid,dayIdx,slotH)>0?'+':'')+riceAdj(pid,dayIdx,slotH))}</span>`:''}${packParentOf(p)?`<br>${tf('cell.pack',packSizeOf(p),escapeHtmlP(packParentOf(p).name),Math.round(packShareNorm(p)*100),packSizeOf(p))}`:''}${wd.below?`<br><span style="color:#6b21a8;font-weight:700">⤵ ${withdrawText(wd)}</span>`:''}${k!==1?`<br>${tf('cell.coef',k.toFixed(2))}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>${tf('cell.gaibu',_gbFmt(gaibuPct(p.category,dayIdx,slotH)))}${gaibuWhy(p.category,dayIdx,slotH)?tf('cell.gaibuWhy',escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))):''}${t('cell.gaibuTab')}`:''}
+      ${tf('cell.recent',li.so,li.lo,adjTxt)}${skuReasonText(pid)?`<br><span style="color:#3730a3">${skuReasonText(pid)}</span>`:''}${riceAdj(pid,dayIdx,slotH)?`<br><span style="color:#92400e;font-weight:700">${tf('rice.cellLine',riceAdj(pid,dayIdx,slotH)>0?t('rice.more'):t('rice.less'),(riceAdj(pid,dayIdx,slotH)>0?'+':'')+riceAdj(pid,dayIdx,slotH))}</span>`:''}${packParentOf(p)?`<br>${tf('cell.pack',packSizeOf(p),escapeHtmlP(packParentOf(p).name),Math.round(packShareNorm(p)*100),packSizeOf(p),packIcon(packParentOf(p)),packUnitWord(packParentOf(p)))}`:''}${wd.below?`<br><span style="color:#6b21a8;font-weight:700">⤵ ${withdrawText(wd)}</span>`:''}${k!==1?`<br>${tf('cell.coef',k.toFixed(2))}`:''}${gaibuPct(p.category,dayIdx,slotH)?`<br>${tf('cell.gaibu',_gbFmt(gaibuPct(p.category,dayIdx,slotH)))}${gaibuWhy(p.category,dayIdx,slotH)?tf('cell.gaibuWhy',escapeHtmlP(gaibuWhy(p.category,dayIdx,slotH))):''}${t('cell.gaibuTab')}`:''}
     </div>
     <button type="button" onclick="closeCellMenu()" style="width:100%;margin-top:12px;padding:13px;font-size:15px;font-weight:700;border:none;border-radius:10px;background:#f1f5f9;color:#0f172a;cursor:pointer;font-family:inherit">${t('common.close')}</button>
   </div>`;
@@ -5685,9 +5734,9 @@ function renderJissekiTable(){
       const met=_jiMetHtml(p.id);
       const open=_jiOpen.has(p.id);
       const par=packParentOf(p);   // パック商品（子）：実績は親（本数）に入れるので、ここは入力不可
-      const mk=(key,ci,label)=>par?`<div class="ji-in" data-key="jin-${p.id}-${key}" title="本数の商品「${escapeHtmlP(par.name)}」に本数で入れます"><span class="ji-lbl">${label}</span><input type="text" value="—" disabled style="color:#9ca3af;background:#f8fafc"></div>`
+      const mk=(key,ci,label)=>par?`<div class="ji-in" data-key="jin-${p.id}-${key}" title="${escapeHtmlP(tf('pk.titleKid',packCountWord(par),par.name))}"><span class="ji-lbl">${label}</span><input type="text" value="—" disabled style="color:#9ca3af;background:#f8fafc"></div>`
         :`<div class="ji-in" data-key="jin-${p.id}-${key}"><span class="ji-lbl">${label}</span><input type="number" min="0" inputmode="numeric" value="${ji[key]||0}" data-ji-r="${r}" data-ji-c="${ci}" onfocus="this.select()" onkeydown="jiKeyNav(event,${r},${ci})" onchange="setJi('${p.id}','${key}',parseInt(toHalf(this.value))||0)"></div>`;
-      const packNote=par?`<span class="mob-met" style="color:#6b21a8">🍢 1パック＝${packSizeOf(p)}本。実績は「${escapeHtmlP(par.name)}」に本数で</span>`:isPackParent(p)?`<span class="mob-met" style="color:#6b21a8">🍢 本数で入力（パック：${packChildren(p.id).map(c=>escapeHtmlP(c.name)).join('・')}）</span>`:'';
+      const packNote=par?`<span class="mob-met" style="color:#6b21a8">${escapeHtmlP(tf('pk.noteKid',packIcon(par),packSizeOf(p),packUnitWord(par),par.name,packCountWord(par)))}${packOwnJiWeeks(p)>0?` <b style="color:#b45309">${escapeHtmlP(t('pk.warnShort'))}</b>`:''}</span>`:isPackParent(p)?`<span class="mob-met" style="color:#6b21a8">${escapeHtmlP(tf('pk.noteParent',packIcon(p),packCountWord(p),packChildren(p.id).map(c=>c.name).join('・')))}</span>`:'';
       html+=`<div class="ji-name" data-key="jn-${p.id}" onclick="toggleJiDetail('${p.id}')" title="タップで詳細指標を表示"><span class="n">${p.name}</span>${packNote}<span class="mob-met" id="ji-mm-${p.id}">${par?'':`販売率 ${met.sell}　利益率 ${met.profit}`}</span></div>
         ${mk('teika',0,t('jisseki.teikaSales'))}${mk('nebiki',1,t('jisseki.discountSales'))}${mk('haiki',2,t('jisseki.wasteCount'))}
         <div class="ji-met" id="ji-sell-${p.id}">${met.sell}</div><div class="ji-met" id="ji-prof-${p.id}">${met.profit}</div>
@@ -6549,8 +6598,8 @@ function renderProductCard(p){
   let badges='';
   if(p.isNew||isNewCat) badges+=`<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:1px 6px;border-radius:8px;font-weight:700">🆕</span>`;
   if(p.isInvest) badges+=`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:8px;font-weight:700">📈</span>`;
-  if(isPackParent(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="本数の実績用（親）。作成表にはパック商品で出ます">🍢親</span>`;
-  else if(packParentOf(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="パック商品（子）。実績は親に本数で">🍢${packSizeOf(p)}本</span>`;
+  if(isPackParent(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="${escapeHtmlP(tf('pk.tipParent',packCountWord(p)))}">${packIcon(p)}親</span>`;
+  else if(packParentOf(p)) badges+=`<span style="font-size:10px;background:#fdf4ff;color:#6b21a8;padding:1px 6px;border-radius:8px;font-weight:700" title="${escapeHtmlP(tf('pk.tipKid',packCountWord(packParentOf(p))))}">${packIcon(packParentOf(p))}${packSizeOf(p)}${packUnitWord(packParentOf(p))}</span>`;
   badges+=prodPeriodMarks(p,_todayYmdP());   // 販売期間「10/13〜」「〜10/12」（2026-10-09）
   { const rm=remindOf(p); if(rm.length) badges+=`<span style="font-size:10px;background:#fef3c7;color:#b45309;padding:1px 6px;border-radius:8px;font-weight:700" title="${escapeHtmlP(t('rm.badge'))}：${escapeHtmlP(rm.map(remindLabel).join('、'))}">🔔</span>`; }   // 忘れ防止の印（ある商品だけ。2026-10-13）
 
@@ -6881,26 +6930,53 @@ function _advToggle(key,open){ if(open)_advOpen.add(key); else _advOpen.delete(k
 // 値だけ更新してUIは再描画しないキー（フォーカスを維持したい項目）
 const _PROD_FIELDS_SILENT=new Set(['name','cost','stdPrice','shopPrice','disc','markupRate','minCount','batchUnit','timeStart','timeEnd','newDays','minDisplay','startDate','endDate','microwaveMin','fryerMin','fryerCap','steamMin','warmMin','cookCap','mkIngredients','mkContSeason','mkSeals','mkPlateSeason','mkContainer']);
 
-// ②商品設定：本数とパック（親子）の欄。子＝親を選ぶ・1パック＝◯本・取り分％。親＝子の一覧（絵つき）
+// ---------- 本数とパック（親子）の言葉：単位（2026-10-18 店長「グーコロも1個入り2個入りあった。この設定は汎用性をもたせたい」）----------
+//   親の商品に packUnit（'個'・'枚'。無ければ「本」）を足すだけで保存する。計算（packOf・packSize・packShare）は一切変えない＝言葉と印だけ。
+const PACK_UNITS=['本','個','枚'], _PK_U={'本':'pk.uHon','個':'pk.uKo','枚':'pk.uMai'}, _PK_C={'本':'pk.cHon','個':'pk.cKo','枚':'pk.cMai'}, _PK_ICON={'本':'🍢','個':'🟠','枚':'🟨'};
+function packUnitOf(par){ const u=par&&par.packUnit; return PACK_UNITS.indexOf(u)>=0?u:'本'; }
+function packUnitWord(par){ return t(_PK_U[packUnitOf(par)]); }    // 本・個・枚（英・ネは pcs・sheets／वटा・पाना）
+function packCountWord(par){ return t(_PK_C[packUnitOf(par)]); }   // 本数・個数・枚数
+function packIcon(par){ return _PK_ICON[packUnitOf(par)]; }       // 🍢（本）・🟠（個）・🟨（枚）
+function setPackUnit(parId,u){
+  const par=getP(parId); if(!par||PACK_UNITS.indexOf(u)<0)return;
+  if(u==='本')delete par.packUnit; else par.packUnit=u;
+  saveS(); renderProductCardInPlace(parId); packChildren(parId).forEach(c=>renderProductCardInPlace(c.id));
+}
+// 実績（定価・値引・廃棄）が入っている週の数（いまの週＋ほかの週）。見せるだけ（保存しない・数は変えない）。親子につないだ商品に実績が別に入っている時の警告に使う
+function packOwnJiWeeks(c){
+  if(!c)return 0; const has=j=>!!j&&((+j.teika||0)+(+j.nebiki||0)+(+j.haiki||0))>0; let n=0;
+  if(has((S.ji||{})[c.id]))n++;
+  Object.keys(S.weeks||{}).forEach(k=>{ if(k===S.activeWeek)return; const w=S.weeks[k]; if(w&&has((w.ji||{})[c.id]))n++; });
+  return n;
+}
+// ②商品設定：まとめ売り（親子）の欄。子＝親を選ぶ・1パック＝◯本（個・枚）・取り分％。親＝子の一覧（絵つき）。実績がパックごとに取れる商品は、つながずに、ふつうの商品として入れる（一言）
 function packSettingHtml(p){
   const esc=escapeHtmlP;
   const kids=packChildren(p.id), par=packParentOf(p);
-  const box=inner=>`<div style="grid-column:span 2;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:6px;padding:8px 10px">
-      <div style="font-size:11px;color:#6b21a8;font-weight:700;margin-bottom:6px">🍢 本数とパック <span class="info" title="焼き鳥のように、本部の実績が「本数」でしか取れず、売場では2本入り・3本入りで売る商品のための設定。実績は本数の商品（親）に入れ、作成数はパック商品（子）に配ります">ℹ️</span></div>${inner}</div>`;
+  const box=inner=>`<div style="grid-column:span 2;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:6px;padding:8px 10px" data-pack-box="1">
+      <div style="font-size:11px;color:#6b21a8;font-weight:700;margin-bottom:6px">${esc(t('pk.head'))} <span class="info" title="${esc(t('pk.tip'))}">ℹ️</span></div>
+      <div style="font-size:11px;color:#475569;line-height:1.6;margin-bottom:6px" data-pk-rule="1">${esc(t('pk.rule'))}</div>${inner}</div>`;
+  const warn=txt=>`<div data-pk-warn="1" style="font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:6px 8px;margin-top:6px;line-height:1.6">${esc(txt)}</div>`;
+  const unitSel=pr=>`<label style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">${esc(t('pk.unitLbl'))} <select onchange="setPackUnit('${pr.id}',this.value)" style="font-size:13px;padding:4px 6px;border:1px solid var(--border);border-radius:6px">${PACK_UNITS.map(u=>`<option value="${u}" ${packUnitOf(pr)===u?'selected':''}>${esc(t(_PK_U[u]))}</option>`).join('')}</select></label>`;
   if(kids.length){
-    const sum=packShareSum(p.id);
-    return box(`<div style="font-size:12px;color:#334155;line-height:1.7">この商品は<b>本数の実績用（親）</b>です。①実績入力は本数で。作成表・印刷・予算には下のパック商品で出ます。発注・ランキングはこの商品で1行。</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${kids.map(c=>`<span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d8b4fe;border-radius:10px;padding:4px 10px;font-size:12px"><span style="font-size:18px">${'🍢'.repeat(Math.min(5,packSizeOf(c)))}</span><b>${esc(c.name||'(名称未設定)')}</b><span style="color:#64748b">1パック＝${packSizeOf(c)}本・取り分 ${Math.round(packShareNorm(c)*100)}%</span></span>`).join('')}</div>
-      ${sum>0&&Math.round(sum)!==100?`<div style="font-size:11px;color:#b45309;margin-top:6px">取り分の合計が ${Math.round(sum)}% です。100% になおして配ります（子の欄で直せます）</div>`:sum===0?`<div style="font-size:11px;color:#64748b;margin-top:6px">取り分が未入力なので均等に配ります（${kids.length}商品で ${Math.round(100/kids.length)}% ずつ）</div>`:''}`);
+    const sum=packShareSum(p.id), U=packUnitWord(p), C=packCountWord(p), IC=packIcon(p);
+    return box(`<div style="font-size:12px;color:#334155;line-height:1.7">${tf('pk.parentIs',C)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${kids.map(c=>`<span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d8b4fe;border-radius:10px;padding:4px 10px;font-size:12px"><span style="font-size:18px">${IC.repeat(Math.min(5,packSizeOf(c)))}</span><b>${esc(c.name||'(名称未設定)')}</b><span style="color:#64748b">${esc(tf('pk.kidChip',packSizeOf(c),U,Math.round(packShareNorm(c)*100)))}</span></span>`).join('')}</div>
+      <div style="margin-top:6px;font-size:12px">${unitSel(p)}</div>
+      ${kids.filter(c=>packOwnJiWeeks(c)>0).map(c=>warn(tf('pk.warnParent',c.name||'(名称未設定)',C))).join('')}
+      ${sum>0&&Math.round(sum)!==100?`<div style="font-size:11px;color:#b45309;margin-top:6px">${esc(tf('pk.shareSum',Math.round(sum)))}</div>`:sum===0?`<div style="font-size:11px;color:#64748b;margin-top:6px">${esc(tf('pk.shareEven',kids.length,Math.round(100/kids.length)))}</div>`:''}`);
   }
   const cands=(S.PM||[]).filter(x=>x&&x.enabled&&x.id!==p.id&&x.category===p.category&&!x.packOf);
-  const sel=`<select onchange="setPackOf('${p.id}',this.value)" style="max-width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:6px"><option value="">（なし：ふつうの商品）</option>${cands.map(x=>`<option value="${x.id}" ${par&&par.id===x.id?'selected':''}>${esc(x.name||'(名称未設定)')}</option>`).join('')}</select>`;
+  const sel=`<select onchange="setPackOf('${p.id}',this.value)" style="max-width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:6px"><option value="">${esc(t('pk.none'))}</option>${cands.map(x=>`<option value="${x.id}" ${par&&par.id===x.id?'selected':''}>${esc(x.name||'(名称未設定)')}</option>`).join('')}</select>`;
+  const U=par?packUnitWord(par):'', C=par?packCountWord(par):'';
   const detail=par?`<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px;font-size:12px">
-      <label>1パック＝<input type="text" inputmode="numeric" value="${packSizeOf(p)}" style="width:48px;text-align:center" onchange="setProdField('${p.id}','packSize',Math.max(1,parseInt(toHalf(this.value))||1))">本</label>
-      <label>本数の取り分 <input type="text" inputmode="numeric" value="${p.packShare!=null&&p.packShare!==''?p.packShare:''}" placeholder="均等" style="width:52px;text-align:center" onchange="setProdField('${p.id}','packShare',toHalf(this.value).trim()===''?'':Math.max(0,parseFloat(toHalf(this.value))||0))">％ <span style="color:#64748b">→ 配る時は ${Math.round(packShareNorm(p)*100)}%</span></label>
+      <label>${esc(t('pk.size'))}<input type="text" inputmode="numeric" value="${packSizeOf(p)}" style="width:48px;text-align:center" onchange="setProdField('${p.id}','packSize',Math.max(1,parseInt(toHalf(this.value))||1))">${esc(U)}</label>
+      ${unitSel(par)}
+      <label>${esc(tf('pk.shareLbl',C))}<input type="text" inputmode="numeric" value="${p.packShare!=null&&p.packShare!==''?p.packShare:''}" placeholder="${esc(t('pk.shareHint'))}" style="width:52px;text-align:center" onchange="setProdField('${p.id}','packShare',toHalf(this.value).trim()===''?'':Math.max(0,parseFloat(toHalf(this.value))||0))">％ <span style="color:#64748b">${esc(tf('pk.shareTo',Math.round(packShareNorm(p)*100)))}</span></label>
     </div>
-    <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">この商品の週の目標（パック）＝「${esc(par.name)}」の週の目標（本）× 取り分 ÷ ${packSizeOf(p)}本。売価・原価はこの商品の欄（1パックの値）を使います。完売・余りの記録はこの商品のマスで。</div>`:'';
-  return box(`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px"><span>本数の商品（親）：</span>${sel}</div>${detail}`);
+    ${packOwnJiWeeks(p)>0?warn(tf('pk.warnKid',packOwnJiWeeks(p),par.name,C)):''}
+    <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">${esc(tf('pk.formula',par.name,U,packSizeOf(p)))}</div>`:'';
+  return box(`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px"><span>${esc(par?tf('pk.parentLbl',C):tf('pk.parentLbl',t('pk.cHon')))}</span>${sel}</div>${detail}`);
 }
 function setProdField(pid,key,val){
   const p=S.PM.find(x=>x.id===pid);if(!p)return;
@@ -7247,7 +7323,7 @@ function gaibuImport(j,via){
   if(!j||typeof j!=='object'||!j.week||typeof j.week.start!=='string'||!Array.isArray(j.days))return {ok:false,msg:'このファイルは、ミルの外部要因データではないようです。'};
   const ws=_gbWeekStartStr();
   if(!ws||!S.activeWeek)return {ok:false,msg:'週が選ばれていません。'};
-  if(j.week.start!==ws)return {ok:false,msg:`このデータは ${_gbMd(j.week.start)} 週のものです。今開いているのは ${_gbMd(ws)} 週です。\n（読み込みませんでした）`};
+  if(j.week.start!==ws)return {ok:false,msg:`この週のデータではありません。\nこのファイルは ${_gbMd(j.week.start)} 週のものです。今開いているのは ${_gbMd(ws)} 週です。\n（読み込みませんでした）`};
   const st=_gbStore(), dates=_gbDates().map(_gbYmd);
   const num=v=>(v==null||v===''||!isFinite(Number(v)))?null:Number(v);
   const dayOf=d=>(j.days||[]).find(x=>x&&x.date===d)||null;
@@ -7311,9 +7387,32 @@ function _gbAfterImport(res,quiet){
   if(currentTab===3)renderProdDayContent(currentProdDay);
   if(!quiet||res.n)showToast(`ミルのデータを読み込みました（提案 ${res.n}マス${res.kept?`・手で直した ${res.kept}マスはそのまま`:''}）`,'success');
 }
-function gaibuPickFile(){ const f=document.getElementById('gaibu-file'); if(f){ f.value=''; f.click(); } }
+// ===== ③ ミルのデータを読み込む：ファイルを選ぶ窓を前回の場所で開く（2026-10-18 店長「ボタン一発でファイル場所出るようにして」）=====
+//   ブラウザは決まったフォルダを勝手には開けない。showOpenFilePicker に id を付けると、前回選んだ場所を覚えて、その場所で開く（最初の1回だけ手で選ぶ）。
+//   使えないブラウザ（iPad の Safari など）や、窓が出せなかった時は、今までのファイルを選ぶ窓（<input type=file>）。選んだフォルダの印はこのアプリには持たない（ブラウザが覚える）。
+//   この週のファイル名（外部要因_<週の開始日>週.json）を大きく出す。ちがう週のファイルは、読み込む前に知らせる。読み込んだあと（③の調整に入る中身）は変えない。
+function _gbFileName(){ const ws=_gbWeekStartStr(); return ws?'外部要因_'+ws+'週.json':''; }
+function _gbPicked(set){   // 「最初の1回」の案内を出したか（この端末だけの印。v2 でも端末の中に残す）
+  try{ const ls=window.localStorage; if(set){ ls.setItem('ffv6_mill_picked','1'); return true; } return ls.getItem('ffv6_mill_picked')==='1'; }catch(_){ return !!set; }
+}
+function gaibuPickFile(){
+  const f=document.getElementById('gaibu-file');
+  const fallback=()=>{ if(f){ f.value=''; f.click(); } };
+  if(typeof window.showOpenFilePicker!=='function'){ fallback(); return; }
+  let pr; try{ pr=window.showOpenFilePicker({id:'ff-mill-data',multiple:false,types:[{description:'ミルの外部要因データ（.json）',accept:{'application/json':['.json']}}]}); }catch(_){ fallback(); return; }
+  pr.then(hs=>(hs&&hs[0])?hs[0].getFile():null).then(file=>{ if(!file)return; _gbPicked(true); gaibuReadFile(file); renderGaibuTab(); })
+    .catch(e=>{ if(e&&e.name==='AbortError')return; fallback(); });   // やめた時は何もしない。ほかの失敗は今までの窓
+}
 function gaibuFileChosen(inp){
   const f=inp.files&&inp.files[0]; if(!f)return;
+  gaibuReadFile(f);
+  inp.value='';
+}
+// 選んだファイルを読む。ファイル名の週（外部要因_2026-10-20週…）が今開いている週とちがえば、読み込む前に知らせる（中身の週は gaibuImport も見る）
+function gaibuReadFile(f){
+  if(!f)return;
+  const ws=_gbWeekStartStr(), m=/^外部要因_(\d{4}-\d{2}-\d{2})週/.exec(String(f.name||''));
+  if(m&&ws&&m[1]!==ws){ alert(`この週のデータではありません。\nこのファイルは ${_gbMd(m[1])} 週のものです。今開いているのは ${_gbMd(ws)} 週です。\n（読み込みませんでした）`); return; }
   const r=new FileReader();
   r.onload=()=>{
     let j=null;
@@ -7324,7 +7423,6 @@ function gaibuFileChosen(inp){
   };
   r.onerror=()=>alert('ファイルを読めませんでした。');
   r.readAsText(f,'utf-8');
-  inp.value='';
 }
 // 自動：../gaibu/<週の開始日>.json があり、前に取り込んだ物より新しい時だけ取り込む。無い・失敗は何も出さない
 function gaibuAutoLoad(){
@@ -7361,8 +7459,12 @@ function renderGaibuTab(){
   let html=`<div class="card" style="border-left:4px solid var(--accent)">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
       <div style="font-size:13px;line-height:1.6">${stHtml}</div>
-      <button type="button" onclick="gaibuPickFile()" style="padding:9px 14px;min-height:40px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">ミルのデータを読み込む</button>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap" data-gb-load="1">
+        <div data-gb-file="1" style="line-height:1.3"><div style="font-size:11px;color:#475569;font-weight:700">${t('gb.fileLbl')}</div><b style="font-size:19px;color:#0f172a;word-break:break-all">${escapeHtmlP(_gbFileName())}</b></div>
+        <button type="button" onclick="gaibuPickFile()" style="padding:9px 14px;min-height:40px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">ミルのデータを読み込む</button>
+      </div>
     </div>
+    ${_gbPicked()?'':`<div data-gb-guide="1" style="margin-top:8px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;line-height:1.8;color:#1e3a8a">${t(typeof window.showOpenFilePicker==='function'?'gb.guideFirst':'gb.guideFound')}</div>`}
     <div style="font-size:12px;color:var(--gray);margin-top:6px;line-height:1.6">天気やイベントに合わせて、作る数を「日・時間帯ごと」に増やしたり減らしたりできます。0% のマスは今までどおりです。</div>
   </div>`;
   // 以前の方式の補正が残っている間は、いちばん上に出す（折りたたみの中だけだと気づけないため）
@@ -8405,38 +8507,106 @@ function remindOf(p){
   return out;
 }
 function remindLabel(x){ const it=REMIND_PRESETS.find(a=>a[0]===x); return it?t(it[1]):x; }
-// 商品自身の設定を「札（よくある物）」と「自由な文」に分ける
+// ===== 忘れ防止の言葉の一覧（2026-10-18 店長「ここが不便。ワードを追加していきたい。あとは自由な文章も今まで通り」）=====
+//   保存の形：商品の remind（文字の配列）は変えない。言葉の一覧は、店のデータ S.budget.remindWords に「足すだけ」：
+//     { '言葉': { n:足した時刻(ms), h:1＝ボタンから隠す, d:1＝消す } }  ・決まりの8つ（REMIND_PRESETS）は書かなくてよい（隠す・消す時だけ { h:1 } { d:1 } を書く）
+//   言葉ごとの鍵の入れ物なので、2台が別々の言葉を同時に足しても、両方残る（配列まるごとの後勝ちにならない）。
+//   なぜ S.budget の中か：FF の保存（_ffSaveObj）は決まった項目だけを書き出す。新しい最上位の項目は、古い版の端末が保存した時に消されてしまう
+//     （v2 は「無い記録は消す」）。S.budget は古い版も中身ごと保存するので、古い端末とまざっても一覧が消えない（古い端末は、足した言葉のボタンが出ないだけ）。
+//   消した言葉・隠した言葉も、商品に付いていれば付いたまま（商品の remind は触らない）。消した印（d）は残し、「知っている言葉」のまま扱う。
+function _rwBag(create){
+  let b=S.budget; if(!b||typeof b!=='object'||Array.isArray(b)){ if(!create)return null; b=S.budget={}; }
+  const r=b.remindWords;
+  if(r&&typeof r==='object'&&!Array.isArray(r))return r;
+  return create?(b.remindWords={}):null;
+}
+// 知っている言葉（決まりの8つ＋足した言葉。隠した・消したも含む）を並べて返す：[{w,key,builtin,h,d}]。足した言葉は足した順
+function remindWordsAll(){
+  const bag=_rwBag(false)||{}, out=[], seen={}, ent=w=>(bag[w]&&typeof bag[w]==='object')?bag[w]:{};
+  REMIND_PRESETS.forEach(a=>{ const e=ent(a[0]); out.push({w:a[0],key:a[1],builtin:true,h:!!e.h,d:!!e.d}); seen[a[0]]=1; });
+  Object.keys(bag).filter(w=>!seen[w]&&w.trim()).sort((a,b)=>((+ent(a).n||0)-(+ent(b).n||0))||(a<b?-1:a>b?1:0)).forEach(w=>{ const e=ent(w); out.push({w,key:null,builtin:false,h:!!e.h,d:!!e.d}); });
+  return out;
+}
+// 商品自身の設定を「言葉（知っている物）」と「自由な文」に分ける
 function _remindOwn(p){
-  const pk=REMIND_PRESETS.map(a=>a[0]), cur=Array.isArray(p.remind)?p.remind.filter(x=>typeof x==='string'&&x.trim()):[];
-  return {on:new Set(cur.filter(x=>pk.indexOf(x)>=0)),frees:cur.filter(x=>pk.indexOf(x)<0)};
+  const known=remindWordsAll().map(x=>x.w), cur=Array.isArray(p.remind)?p.remind.filter(x=>typeof x==='string'&&x.trim()):[];
+  return {on:new Set(cur.filter(x=>known.indexOf(x)>=0)),frees:cur.filter(x=>known.indexOf(x)<0)};
 }
 function _remindSet(p,on,frees){
-  const arr=REMIND_PRESETS.map(a=>a[0]).filter(k=>on.has(k)).concat(frees);
+  const arr=remindWordsAll().map(x=>x.w).filter(k=>on.has(k)).concat(frees);
   if(arr.length)p.remind=arr; else delete p.remind;   // 空なら項目ごと外す（「無ければ今までどおり」）
 }
-// 商品設定の欄（作った のチェックの時に出す）：よくある物の札（押すだけ）＋自由な文（1行）
+const _rwManage=new Set();   // 「言葉を整える」を開いている商品
+function _rwManageHtml(p){
+  const btn='padding:5px 12px;font-size:12px;border-radius:8px;cursor:pointer;font-weight:700;min-height:32px;';
+  return `<div style="margin:6px 0;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px" data-rw-manage="1">
+      <div style="font-size:11px;color:#92400e;margin-bottom:6px;line-height:1.6">${escapeHtmlP(t('rm.manageNote'))}</div>
+      <div style="display:flex;flex-direction:column;gap:5px">${remindWordsAll().filter(x=>!x.d).map(x=>`<div style="display:flex;align-items:center;gap:8px;font-size:13px;${x.h?'opacity:.7':''}"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${escapeHtmlP(remindLabel(x.w))}${x.h?` <span style="font-size:11px;color:#64748b">（${escapeHtmlP(t('rm.hiddenMark'))}）</span>`:''}</span>
+        <button type="button" data-w="${escapeHtmlP(x.w)}" onclick="${x.h?'remindWordShow':'remindWordHide'}(this.dataset.w,'${p.id}')" style="${btn}border:1.5px solid #d1d5db;background:#fff;color:#475569">${escapeHtmlP(t(x.h?'rm.unhide':'rm.hide'))}</button>
+        <button type="button" data-w="${escapeHtmlP(x.w)}" onclick="remindWordRemove(this.dataset.w,'${p.id}')" style="${btn}border:1.5px solid #fca5a5;background:#fff;color:#b91c1c">${escapeHtmlP(t('rm.remove'))}</button></div>`).join('')}</div>
+    </div>`;
+}
+// 商品設定の欄（作った のチェックの時に出す）：言葉の札（押すだけ）＋言葉を足す＋自由な文（1行）
 function remindSettingHtml(p){
   const o=_remindOwn(p), par=packParentOf(p), pr=(par&&Array.isArray(par.remind))?par.remind.filter(x=>typeof x==='string'&&x.trim()):[];
+  // 出す札：隠していない言葉＋この商品に付いている言葉（隠した・消した言葉でも、付いていれば出す＝外せるように）
+  const shown=remindWordsAll().filter(x=>o.on.has(x.w)||(!x.h&&!x.d));
+  const open=_rwManage.has(p.id);
   return `<div style="grid-column:span 2" data-remind-field="1">
         <label>🔔 ${t('rm.setLabel')} <span class="info" title="${escapeHtmlP(t('rm.setTip'))}">ℹ️</span></label>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">
-          ${REMIND_PRESETS.map((a,i)=>{ const on=o.on.has(a[0]); return `<button type="button" onclick="toggleRemind('${p.id}',${i})" aria-pressed="${on}"
-            style="padding:7px 12px;font-size:12px;border-radius:14px;border:1.5px solid ${on?'#d97706':'#d1d5db'};background:${on?'#f59e0b':'#fff'};color:${on?'#fff':'#6b7280'};cursor:pointer;font-weight:600">${on?'✓ ':''}${escapeHtmlP(t(a[1]))}</button>`; }).join('')}
+          ${shown.map(x=>{ const on=o.on.has(x.w), hid=(x.h||x.d); return `<button type="button" data-w="${escapeHtmlP(x.w)}" onclick="toggleRemindW('${p.id}',this.dataset.w)" aria-pressed="${on}"${hid?` title="${escapeHtmlP(t('rm.hiddenTip'))}"`:''}
+            style="padding:7px 12px;font-size:12px;border-radius:14px;border:1.5px solid ${on?'#d97706':'#d1d5db'};background:${on?'#f59e0b':'#fff'};color:${on?'#fff':'#6b7280'};cursor:pointer;font-weight:600">${on?'✓ ':''}${escapeHtmlP(remindLabel(x.w))}</button>`; }).join('')}
         </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0">
+          <input type="text" id="rw-in-${p.id}" maxlength="20" placeholder="${escapeHtmlP(t('rm.addPh'))}" onkeydown="if(event.key==='Enter'){event.preventDefault();remindWordAdd('${p.id}');}" style="flex:1;min-width:150px">
+          <button type="button" onclick="remindWordAdd('${p.id}')" style="padding:7px 14px;font-size:13px;border-radius:8px;border:none;background:#d97706;color:#fff;cursor:pointer;font-weight:700;min-height:36px">${escapeHtmlP(t('rm.add'))}</button>
+          <button type="button" onclick="toggleRemindManage('${p.id}')" aria-expanded="${open}" style="padding:7px 12px;font-size:12px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#475569;cursor:pointer;font-weight:600;min-height:36px">${escapeHtmlP(t('rm.manage'))}</button>
+        </div>
+        ${open?_rwManageHtml(p):''}
         <input type="text" value="${escapeHtmlP(o.frees.join('、'))}" maxlength="40" placeholder="${escapeHtmlP(t('rm.freePh'))}" onchange="setRemindFree('${p.id}',this.value)">
         <div style="font-size:11px;color:#64748b;margin-top:3px">${t('rm.freeNote')}</div>
         ${pr.length?`<div style="font-size:11px;color:#64748b;margin-top:3px">${t('rm.fromParent')}：${pr.map(x=>escapeHtmlP(remindLabel(x))).join('、')}</div>`:''}
       </div>`;
 }
-function toggleRemind(pid,i){
-  const p=S.PM.find(x=>x.id===pid), it=REMIND_PRESETS[i]; if(!p||!it)return;
-  const o=_remindOwn(p); if(o.on.has(it[0]))o.on.delete(it[0]); else o.on.add(it[0]);
+function toggleRemindW(pid,w){
+  const p=S.PM.find(x=>x.id===pid); if(!p||typeof w!=='string'||!w)return;
+  const o=_remindOwn(p); if(o.on.has(w))o.on.delete(w); else o.on.add(w);
   _remindSet(p,o.on,o.frees); saveS(); renderProductCardInPlace(pid);
 }
+function toggleRemind(pid,i){ const it=remindWordsAll()[i]; if(it)toggleRemindW(pid,it.w); }   // 番号で押す形（決まりの8つは 0〜7 のまま）
 function setRemindFree(pid,v){
   const p=S.PM.find(x=>x.id===pid); if(!p)return;
   const o=_remindOwn(p), s=String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,40);
   _remindSet(p,o.on,s?[s]:[]); saveS();   // 入力欄は描き直さない（フォーカスを奪わない）
+}
+// 開いている商品の欄を描き直す（言葉の一覧が変わった時、ほかの開いている商品の札も合わせる）
+function _rwRefresh(pid){ renderProductCardInPlace(pid); try{ [..._expandedCards].forEach(id=>{ if(id!==pid)renderProductCardInPlace(id); }); }catch(_){ } }
+function toggleRemindManage(pid){ if(_rwManage.has(pid))_rwManage.delete(pid); else _rwManage.add(pid); renderProductCardInPlace(pid); }
+// 言葉を足す：同じ言葉があれば足さない（隠した・消した言葉なら戻す）。足した言葉は、いま開いている商品にも付ける
+function remindWordAdd(pid,text){   // text があればそれを足す（試験用）。無ければ入力欄の字
+  const inp=document.getElementById('rw-in-'+pid), p=S.PM.find(x=>x.id===pid); if(!p)return;
+  const w=String(text!=null?text:(inp?inp.value:'')).replace(/\s+/g,' ').trim().slice(0,20); if(!w)return;
+  const hit=remindWordsAll().find(x=>x.w===w);
+  if(hit&&!hit.h&&!hit.d){ showToast(tf('rm.dup',w),'info'); }
+  else if(hit){ const bag=_rwBag(true); const e=(bag[w]&&typeof bag[w]==='object')?bag[w]:(bag[w]={}); delete e.h; delete e.d; if(hit.builtin&&!Object.keys(e).length)delete bag[w]; showToast(tf('rm.added',w),'success'); }
+  else { _rwBag(true)[w]={n:Date.now()}; showToast(tf('rm.added',w),'success'); }
+  const o=_remindOwn(p); o.on.add(w); o.frees=o.frees.filter(x=>x!==w); _remindSet(p,o.on,o.frees);
+  saveS(); _rwRefresh(pid);
+}
+function remindWordHide(w,pid){
+  if(typeof w!=='string'||!w)return; const bag=_rwBag(true); const e=(bag[w]&&typeof bag[w]==='object')?bag[w]:(bag[w]={}); e.h=1; saveS(); _rwRefresh(pid);
+}
+function remindWordShow(w,pid){
+  const bag=_rwBag(false); if(!bag||!bag[w]||typeof bag[w]!=='object')return; delete bag[w].h;
+  if(REMIND_PRESETS.some(a=>a[0]===w)&&!Object.keys(bag[w]).length)delete bag[w];
+  saveS(); _rwRefresh(pid);
+}
+// 消す前に確かめる（取り消しは、同じ言葉をもう一度足せば戻る）。商品に付いている言葉は、商品からは消えない
+function remindWordRemove(w,pid){
+  if(typeof w!=='string'||!w)return;
+  if(!confirm(tf('rm.removeConfirm',remindLabel(w))))return;
+  const bag=_rwBag(true); const e=(bag[w]&&typeof bag[w]==='object')?bag[w]:(bag[w]={}); e.d=1; delete e.h; saveS(); _rwRefresh(pid);
 }
 // 「作った」のチェックを付けた時の大きい表示。「確認した」を押すまで出たまま。押すとチェックが付く（今までの OK と同じ）
 let _remindCtx=null, _remindT=0;
@@ -13293,6 +13463,15 @@ function applyResearch(){
   renderExtTab();
   showToast('✅ 商圏リサーチを外部ファクトに反映しました！','success');
 }
+
+// --- 自動の読み込み直し（autoupdate.js）に「いま待って」と伝える（2026-10-18 店長「全部おすすめで」。ギア WS 5.13 の autoupdate.js の待ちに答える）---
+//   入口（この画面を iframe で開く外側のページ）の自動の読み込み直しは、中の画面の入力が見えない。中の画面が window.__autoupdateHold（関数）を持ち、true を返す間は待ってもらえる。
+//   true ＝ 入力して保存する窓（モーダル）が開いている間（店舗・取り込みの確認・完売・記録メニュー・忘れ防止の確認・週の追加 など）。作成表のチェックだけの時は false。
+//   この関数は見るだけ（何も保存せず、画面も変えない）。待ちの無い古い autoupdate.js では、呼ばれないだけで何も起きない。
+const _AU_HOLD_IDS=['store-manager-modal','rule-suggest-modal','research-preview-modal','recovery-modal','gd-setup-modal','ff-remind-modal','soldOutModal','dateAskModal','correction-suggest-modal','cellMenuModal','booklet-preview-modal','add-week-modal'];
+window.__autoupdateHold=function(){
+  try{ return _AU_HOLD_IDS.some(id=>{ const m=document.getElementById(id); return !!m&&getComputedStyle(m).display!=='none'; }); }catch(_){ return false; }
+};
 
 // --- トースト通知 ---
 function showToast(msg,type='info'){
