@@ -290,6 +290,10 @@ html[lang="ne"] .day-tab.active::after{content:'हेर्दै'}
 .check-cell.done{background:var(--green-lt)}
 .check-cell.skip{background:#f5f5f5;opacity:.5}
 .ff-newtag{display:inline-block;font-size:10px;font-weight:700;color:#1e3a8a;border:1px solid #1e3a8a;background:#fff;border-radius:3px;padding:0 5px;line-height:1.5;white-space:nowrap}   /* 札「新商品」（2026-10-16） */
+.ff-lock{display:inline-block;font-size:12px;font-weight:700;color:#475569;background:#e8edf3;border-radius:6px;padding:1px 3px;margin:0 -3px;line-height:1.4;text-align:center;max-width:calc(100% + 6px);box-sizing:border-box;word-break:keep-all;overflow-wrap:normal}   /* 「🔒 ◯:◯◯から」（開始の時刻まで押せない印。2026-10-17）。90px の列でも字の途中では折れない（空白でだけ折れる）。先の日は札を出さず、日の上に1行（.ff-lockday）だけ（2026-10-18） */
+.ff-lock.ff-lk-h{margin:0 0 0 6px}   /* 見出しの中の札：左に6pxあける（字との間が0pxだった。2026-10-18） */
+.ff-lockday{font-size:13px;font-weight:700;color:#475569;background:#e8edf3;border-radius:8px;padding:6px 10px;margin:0 0 10px;line-height:1.5}   /* 先の日：「🔒 この日は ◯/◯（◯）の各時刻から押せます」（日の上に1行だけ。2026-10-18） */
+input.ff-locked{opacity:.4;cursor:not-allowed}   /* 押せない間のチェック（大きさは変えない。押すと案内が出る） */
 
 /* FAB */
 #fab-bot{position:fixed;bottom:80px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:22px;border:none;box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:100;display:none;align-items:center;justify-content:center}
@@ -1542,6 +1546,8 @@ const I18N = {
     'mk.stNowN':'⏳ {0}時 残り{1}',
     'mk.stNext':'📋 次 {0}時',
     'mk.stLeft':'あと{0}品','mk.stLate':'うち 時間すぎ {0}','mk.stDueDone':'✅ いまの分は済み','mk.stNextAt':'次 {0}','mk.foldDone':'▶ 済んだカードだけたたむ','mk.newTag':'新商品','mk.nowCol':'▼ いま','mk.cellLate':'未',
+    'mk.lockFrom':'{0}から','mk.lockToast':'{0}になったら押せます','mk.bulkDone':'{0}件にチェックを付けました','mk.lockBulk':'{0}件にチェックを付けました（開始前の{1}件は付けていません）',
+    'mk.lockDay':'この日は {0}の各時刻から押せます',
     'mk.sku':'SKU {0}（先週 {1}）',
     'mk.colName':'商品名',
     'mk.colMake':'作成',
@@ -2065,6 +2071,8 @@ const I18N = {
     'mk.stNowN':'⏳ {0}:00 {1} left',
     'mk.stNext':'📋 Next {0}:00',
     'mk.stLeft':'{0} left','mk.stLate':'of which late: {0}','mk.stDueDone':'✅ Done for now','mk.stNextAt':'Next {0}','mk.foldDone':'▶ Fold finished cards only','mk.newTag':'New item','mk.nowCol':'▼ Now','mk.cellLate':'Not yet',
+    'mk.lockFrom':'from {0}','mk.lockToast':'You can press this at {0}','mk.bulkDone':'Checked {0}','mk.lockBulk':'Checked {0} ({1} not started yet, left unchecked)',
+    'mk.lockDay':'Each slot opens at its start time on {0}',
     'mk.sku':'SKU {0} (last wk {1})',
     'mk.colName':'Item',
     'mk.colMake':'Make',
@@ -2554,6 +2562,8 @@ const I18N = {
     'mk.stNowN':'⏳ {0}:00 बाँकी {1}',
     'mk.stNext':'📋 अर्को {0}:00',
     'mk.stLeft':'{0} बाँकी','mk.stLate':'समय नाघेको: {0}','mk.stDueDone':'✅ अहिलेसम्म सकियो','mk.stNextAt':'अर्को {0}','mk.foldDone':'▶ सकिएका कार्ड मात्र बन्द गर्नुहोस्','mk.newTag':'नयाँ उत्पादन','mk.nowCol':'▼ अहिले','mk.cellLate':'बाँकी',
+    'mk.lockFrom':'{0} देखि','mk.lockToast':'{0} भएपछि थिच्न मिल्छ','mk.bulkDone':'{0} वटामा चिन्ह लगाइयो','mk.lockBulk':'{0} वटामा चिन्ह लगाइयो ({1} वटा सुरु भएको छैन, चिन्ह लगाइएन)',
+    'mk.lockDay':'{0} मा हरेक समयको सुरुदेखि थिच्न मिल्छ',
     'mk.sku':'SKU {0} (गत हप्ता {1})',
     'mk.colName':'सामान',
     'mk.colMake':'बनाउने',
@@ -5115,7 +5125,7 @@ function cellMenuAct(act){
   if(act==='remain')return openSoldOutModal(c.pid,c.dayIdx,c.slotH,{remain:true});   // 「残り◯個」（2026-10-09）
   if(act==='undo')return removeLastSoldOut(c.pid,c.dayIdx,c.slotH);
   if(act==='left'){ const was=!!(S.leftovers&&S.leftovers[c.key]); toggleLeftover(c.key); showToast(was?t('cell.toastLeftUndo'):t('cell.toastLeft'),was?'info':'success'); return; }
-  if(act==='skip'){ const was=!!(S.skipped&&S.skipped[c.key]); toggleSkipped(c.key); showToast(was?t('cell.toastSkipUndo'):t('cell.toastSkip'),was?'info':'success'); return; }
+  if(act==='skip'){ const was=!!(S.skipped&&S.skipped[c.key]); if(toggleSkipped(c.key)===false)return; showToast(was?t('cell.toastSkipUndo'):t('cell.toastSkip'),was?'info':'success'); return; }
 }
 
 // ---------- 投資・新商品の数を置く時間帯 ----------
@@ -8458,6 +8468,7 @@ function remindOk(){ const c=_remindCtx; _remindClose(); if(c)setCheck(c.key,tru
 function remindCancel(){ _remindClose(); }
 // 作成手順（時間帯別）の行のチェック：忘れ防止がある商品だけ大きい表示を通す（無い商品は今までどおり setCheck）
 function schedCheck(key,pid,el){
+  if(ffLockBlock(el,key))return;   // 開始の時刻まではチェックできない（案内を出すだけ・保存しない。2026-10-17）
   const p=getP(pid);
   if(el.checked&&remindOf(p).length){ el.checked=false; openRemindModal(key,pid,!!(p&&/まちかど厨房/.test(p.category||''))); return; }
   setCheck(key,el.checked);
@@ -8466,6 +8477,7 @@ function schedCheck(key,pid,el){
 // 作成後チェック：チェックON時に確認を表示（まちかど厨房は2項目、それ以外は作成登録のみ）
 function confirmCreate(chkKey,pid,el){
   if(!el.checked){ setCheck(chkKey,false); return; }   // 解除時は確認なし
+  if(ffLockBlock(el,chkKey))return;   // 開始の時刻まではチェックできない（案内を出すだけ・保存しない。2026-10-17）
   const p=getP(pid);
   const isMk=p&&/まちかど厨房/.test(p.category||'');
   const msg=isMk?t('mk.confirmMk'):t('mk.confirm');
@@ -8668,6 +8680,7 @@ function renderSlotSchedule(dayIdx,slotH){
   const total=batches.length;
   const pct=total?Math.round(doneCount/total*100):0;
   const allDone=doneCount===total;
+  const _lk=allDone?null:_ffSlotLock(dayIdx,slotH);   // 開始の時刻まで押せない（2026-10-17）
 
   const lines=batches.map((b,idx)=>{
     const{p,qty,batchIdx,totalBatches}=b;
@@ -8675,6 +8688,7 @@ function renderSlotSchedule(dayIdx,slotH){
     const noMethod=!p.prepMethod||p.prepMethod==='none';
     const ckKey=`${dayIdx}_${slotH}_${p.id}_b${batchIdx}`;
     const checked=!!S.checks[ckKey];
+    const _lockRow=!!_lk&&!checked;
     // 並行ヒント
     let hint='';
     if(idx>0){
@@ -8694,8 +8708,8 @@ function renderSlotSchedule(dayIdx,slotH){
     const textDecor=checked?'text-decoration:line-through':'';
     return `<div style="display:flex;flex-direction:column;padding:6px 0;border-bottom:1px dashed #f3f4f6;${rowOpacity};${checked?'background:#ecfdf5':''}">
       <div style="display:flex;align-items:center;gap:6px;font-size:13px">
-        <input type="checkbox" ${checked?'checked':''}
-          onchange="${remindOf(p).length?`schedCheck('${ckKey}','${p.id}',this)`:`setCheck('${ckKey}',this.checked)`}"
+        <input type="checkbox" ${checked?'checked':''}${_lockRow?' class="ff-locked" aria-disabled="true"':''}
+          onchange="schedCheck('${ckKey}','${p.id}',this)"
           style="width:18px;height:18px;cursor:pointer;flex-shrink:0">
         <span style="font-size:14px;font-weight:700;color:#1d4ed8;min-width:24px">${_circled(idx)}</span>
         <span style="font-weight:600;${textDecor}">${p.name}</span>${batchLabel}${newBadge}${endingBadge}${methodBadge}
@@ -8707,7 +8721,7 @@ function renderSlotSchedule(dayIdx,slotH){
   const progColor=allDone?'#047857':pct>=50?'#0369a1':'#666';
   return `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;margin-bottom:8px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap">
-      <div style="font-size:13px;font-weight:700;color:var(--main)">${SLOT_LABELS[slotH]}${t('make.scheduleSlot')}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--main)">${SLOT_LABELS[slotH]}${t('make.scheduleSlot')}${_lk?_ffLockTag(_lk,1):''}</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:${progColor};font-weight:700">${doneCount}/${total} ${allDone?t('make.completed'):`(${pct}%)`}</span>
         <div style="width:70px;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden">
@@ -8774,6 +8788,7 @@ function renderSlotGroupedView(dayIdx){
   let out='';
   slots.forEach(slotH=>{
     let cats='';
+    const _lk=_ffSlotLock(di,slotH); let _lkN=0;   // 開始の時刻まで押せない（2026-10-17）。カードの見出しに1つだけ「🔒 ◯:◯◯から」
     CATS.filter(c=>!c.endsWith('新商品')).forEach(cat=>{   // 本体と新商品を1つの見出しにまとめる（新商品は先頭の行・札「新商品」。2026-10-16）
       const gcats=[cat+'新商品',cat].filter(c=>S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots.includes(slotH));
       if(!gcats.length)return;
@@ -8796,12 +8811,13 @@ function renderSlotGroupedView(dayIdx){
       let _lastGrp=null;
       const rowsHtml=_sortedRows.map(({p,grandTotal,extra})=>{
         const chkKey=`${di}_${slotH}_${p.id}`, checked=!!S.checks[chkKey], skipped=!!(S.skipped&&S.skipped[chkKey]);
+        const _lockRow=!!_lk&&!checked&&!skipped; if(_lockRow)_lkN++;
         let _grpHdr='';
         const _nt=_isNewC(p.category)?`<div style="margin-top:2px">${_ffNewTag()}</div>`:'';   // 札「新商品」
         const _pah=S.catCfg[p.category]&&S.catCfg[p.category].ah, _pdisp=(_pah!=null&&_pah!==cfg.ah)?`<span style="font-size:10px;color:#64748b;margin-left:6px">${tf('mk.doneDispose',fmtHour(doneH),fmtHour(slotH+PREP_HOURS+_pah))}</span>`:'';   // 本体と新商品で許容時間がちがう時だけ、その行に廃棄の時刻を出す
         if(_hasGrp&&!_isNewC(p.category)){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
         return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
-          <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
+          <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''}${_lockRow?' class="ff-locked" aria-disabled="true"':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
           <span style="flex:1;font-size:14px;font-weight:600;${checked?'text-decoration:line-through':''}">${escapeHtmlP(p.name)}${extra>0?`<span style="font-size:10px;color:#d97706;margin-left:5px">${tf('mk.invest',extra)}</span>`:''} ${gaibuCellBadge(cat,di,slotH)}${thermalBadge(p,true)}${skipped?'<span style="font-size:10px;background:#475569;color:#fff;border-radius:6px;padding:0 6px;margin-left:6px">'+t('mk.skipBadge')+'</span>':''}${(S.leftovers&&S.leftovers[chkKey])?'<span style="font-size:10px;background:#ffedd5;color:#9a3412;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">'+t('mk.leftBadge')+'</span>':''}${(()=>{ let plan=0, pb=''; getSoldOutEvents(p.id,di,slotH).forEach((e,ei,arr)=>{ if(soPlanned(e,arr[ei+1],soNowOn)){ plan+=(e.added||0); pb+=' '+soPlanBadge(e,true); } }); const got=getSoldOutTotal(p.id,di,slotH)-plan;   /* 緑「追加+N」＝予定の時刻を過ぎた分だけ。予定の前の分は橙「+N 作る予定」だけ（同じ数を2回出さない。2026-10-10 検算） */
             return (got>0?`<span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700">${tf('mk.addBadge',got)}</span>`:'')+pb; })()}${_pdisp}${_nt}</span>
           ${skipped?'':soRoHint(p.id,di,slotH)}<button type="button" class="pc-num" onclick="openCellMenu('${p.id}',${di},${slotH})" aria-label="${escapeHtmlP(p.name)} の記録メニュー" style="flex-shrink:0"><span style="font-size:21px;font-weight:800;color:#1d4ed8;line-height:1">${grandTotal}</span></button>
@@ -8820,7 +8836,7 @@ function renderSlotGroupedView(dayIdx){
       <div style="padding:0 11px 10px">${prepRows}</div>
     </details>`:'';
     out+=`<div class="card" style="border-left:4px solid var(--main)">
-      <div style="font-size:17px;font-weight:800;color:#92400e;margin-bottom:8px">${tf('mk.slotHead',fmtHour(slotH))} <span style="font-size:12px;font-weight:600;color:#64748b">${tf('mk.slotDone',fmtHour(slotH+PREP_HOURS))}</span></div>
+      <div style="font-size:17px;font-weight:800;color:#92400e;margin-bottom:8px">${tf('mk.slotHead',fmtHour(slotH))} <span style="font-size:12px;font-weight:600;color:#64748b">${tf('mk.slotDone',fmtHour(slotH+PREP_HOURS))}</span>${_lkN?_ffLockTag(_lk,1):''}</div>
       ${cats}
       ${prepHtml}
     </div>`;
@@ -8968,6 +8984,50 @@ function _ffCellState(p,dayIdx,h,nowOn){
 }
 // 札「新商品」（白地・濃い青の細い枠と字）。商品名の下に小さく
 function _ffNewTag(){ return `<span class="ff-newtag">${t('mk.newTag')}</span>`; }
+// ===== 開始の時刻までは「作った」のチェックを付けられない（2026-10-17 店長「その時間の開始時間になるまでチェック入れられないようにしてほしい。前倒しで作成を行うクルーがいるので」「開始時刻ぴったりから押せる形で（前倒しの余裕0分）」）=====
+//   見せ方と、押せるかどうかだけ。計算・チェックのキー・保存の形は変えない（押せない時は何も保存しない）。チェックを外す（取り消す）のはいつでもできる。すでに付いているチェックは、そのまま見せる。
+//   マスの鍵（曜日_時刻_商品ID。効率順は末尾に _b◯）の「時刻」＝その曜日の日付の 0〜23時。夜中の時間帯（0〜5時など）も、その日付の 0時から数える（作成表の日の区切り＝0時。_soNowOn と同じ）。
+//     ・過ぎた日（日付が今日より前）＝全部押せる　・先の日＝全部まだ　・今日＝いまの時刻が 開始の時刻 − FF_LOCK_LEAD_MIN 分 以上なら押せる（境目は _ffCellState の「いまの枠」と同じ）
+//   時計は端末の時刻（_todayYmdP と _soNowH。試験では window._dateTodayOverride と window._soNowOverride で固定）。日付が決められない時（週の始まりが無い・読めない）は止めない。
+//   まちかど厨房の事前準備のチェック（mkc_…）は、時間帯の「前」にやる作業（炊飯の浸水など）なので、この決まりの外。
+const FF_LOCK_LEAD_MIN=0;   // 前倒しの余裕（分）。0＝開始の時刻ぴったりから（店長 2026-10-17）
+function _ffSlotLock(dayIdx,slotH){   // まだ押せない時は {ymd,h}（その日の日付と開始の時）、押せる時は null
+  try{
+    if(!S.weekStart)return null;
+    const ws=String(S.weekStart); if(_ymdOf(parseLocalDate(ws))!==ws)return null;   // 日付として読めない時（0詰めでない・月や日が変）は止めない
+    const d=Number(dayIdx), h=Number(slotH); if(!isFinite(d)||!isFinite(h)||d<0||h<0)return null;
+    const ymd=_addDaysYmd(ws,d), td=_todayYmdP(), ok=/^\d{4}-\d{2}-\d{2}$/;
+    if(!ok.test(ymd)||!ok.test(td))return null;
+    if(ymd<td)return null;
+    if(ymd>td)return {ymd,h};
+    return _soNowH()>=h-FF_LOCK_LEAD_MIN/60?null:{ymd,h};
+  }catch(_){ return null; }
+}
+function _ffKeyLock(key){ const m=String(key==null?'':key).match(/^(\d+)_(\d+)_/); return m?_ffSlotLock(+m[1],+m[2]):null; }
+function _ffLockTxt(lk){ return (lk.ymd===_todayYmdP()?'':_mdOf(lk.ymd)+' ')+lk.h+':00'; }   // 今日は「10:00」、ほかの日は「10/18 10:00」
+// 「🔒 10:00から」の札。今日の まだ の枠だけ（2026-10-18 店長：先の日の札は全部のマスに出さず、日の上に1行だけ＝_ffFutureLine。先の日は ''）。head＝見出しの中の札（左に6px）
+function _ffLockTag(lk,head){
+  if(!lk||lk.ymd!==_todayYmdP())return '';
+  return `<span class="ff-lock${head?' ff-lk-h':''}" data-ff-lock="${lk.ymd} ${lk.h}">🔒 ${tf('mk.lockFrom',lk.h+':00')}</span>`;
+}
+// 先の日（日付が今日より後）を開いている時だけ、日の上に1行：「🔒 この日は 10/19（日）の各時刻から押せます」。マスの箱は薄く・押せないまま、押した時の案内も同じ（_ffLockTxt は日付つき）
+function _ffFutureLine(dayIdx){
+  const lk=_ffSlotLock(dayIdx,0); if(!lk||lk.ymd===_todayYmdP())return '';
+  return `<div class="ff-lockday" data-ff-lockday="${lk.ymd}">🔒 ${tf('mk.lockDay',_mdwOf(lk.ymd))}</div>`;
+}
+// まだ押せない鍵なら、案内を出して true を返す（保存しない）。チェックも在庫欠品の印も、付ける前にこれで止める
+function ffLockNotice(key){
+  const lk=_ffKeyLock(key); if(!lk)return false;
+  showToast(tf('mk.lockToast',_ffLockTxt(lk)),'info');
+  return true;
+}
+// チェックを付けようとした時に呼ぶ。まだ押せないなら、チェックを戻して案内を出し true を返す（呼んだ側はそこで止める。保存しない）。外す時・押せる時は false
+function ffLockBlock(el,key){
+  if(!el||!el.checked)return false;
+  if(!ffLockNotice(key))return false;
+  el.checked=false;
+  return true;
+}
 // 作成表のカード。カテゴリ順＝「本体＋新商品」で1枚（key＝本体のカテゴリ）。効率順は今までどおり1カテゴリ1枚。
 //   due＝いまの枠まで（時間すぎ＋いまの枠）の未チェックのマスの数（＝見出しの「あと◯品」）、late＝そのうち時間すぎ。
 //   fold＝たためるか（今日を見ていて due>0 のカードはたためない）
@@ -8997,10 +9057,18 @@ function _ffCardGroups(dayIdx,nowOn){
 }
 // 時刻が変わったら（毎時の0分）描き直す＝たたんでいたカードが、次の時間帯で自動で開く。今日を見ている時だけ。試験で時刻を固定している間は動かさない
 let _ffHourTimer=null;
-function _ffHourTickSet(nowOn){
+//   2026-10-17：開始の時刻（毎時0分）に「🔒 ◯:◯◯から」が外れるのも、この描き直しで。時間帯別・効率順でも置く。先の日を見ている時は、その日の0時に描き直す（「今日」になる。以後は毎時）。
+//   押せるかどうかは押した時の時計で決めるので（ffLockBlock）、描き直しの前の1〜2秒に押しても、時刻が来ていれば通る。
+function _ffHourTickSet(nowOn,dayIdx){
   if(_ffHourTimer){ clearTimeout(_ffHourTimer); _ffHourTimer=null; }
-  if(nowOn==null||typeof window._soNowOverride==='number')return;
-  _ffHourTimer=setTimeout(ffHourTick,Math.min(2147483000,Math.max(1000,(Math.floor(nowOn)+1-nowOn)*3600000+1500)));
+  if(typeof window._soNowOverride==='number')return;
+  let ms=null;
+  if(nowOn!=null)ms=(Math.floor(nowOn)+1-nowOn)*3600000+1500;
+  else if(dayIdx!=null&&!window._dateTodayOverride){
+    try{ const ymd=_addDaysYmd(String(S.weekStart||''),dayIdx); if(/^\d{4}-\d{2}-\d{2}$/.test(ymd)&&ymd>_todayYmdP())ms=parseLocalDate(ymd).getTime()-Date.now()+1500; }catch(_){ }
+  }
+  if(ms==null)return;
+  _ffHourTimer=setTimeout(ffHourTick,Math.min(2147483000,Math.max(1000,ms)));
 }
 function ffHourTick(){
   _ffHourTimer=null;
@@ -9037,6 +9105,7 @@ function renderProdDayContent(dayIdx){
   </div>`;
 
   // 追加で作るもの（完売の記録で「作る予定」になっている追加分）の一覧。どの並び順でも上に出す
+  html+=_ffFutureLine(dayIdx);   // 先の日：日の上に1行だけ（2026-10-18）
   html+=renderSoldOutPending(dayIdx);
   const soNowOn=_soNowOn(dayIdx);   // マスの「+N 作る予定」の印に使う「今」（この描画で1回だけ出す。2026-10-10）
   // 時間帯別モード：時刻ごとにカテゴリ→商品をまとめて表示（チェックは通常の作成表と共有）
@@ -9044,6 +9113,7 @@ function renderProdDayContent(dayIdx){
     html+=renderSlotGroupedView(dayIdx);
     el.innerHTML=html;
     soRoFill();   // マスの「残り◯で追加」を埋める（2026-10-09）
+    _ffHourTickSet(_ffNowOn(dayIdx),dayIdx);   // 開始の時刻が来たら描き直す（2026-10-17）
     return;
   }
 
@@ -9084,7 +9154,7 @@ function renderProdDayContent(dayIdx){
     ${(_anyFolded&&!_allFolded)?`<button onclick="expandAllCats()" style="padding:6px 12px;font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#374151">${t('mk.expandAll')}</button>`:''}
   </div>`;
   }
-  _ffHourTickSet(_nowOn);
+  _ffHourTickSet(_nowOn,dayIdx);
 
   // Category sections
   const _merged=_prodSortMode!=='efficient';   // カテゴリ順は「本体＋新商品」で1枚。効率順は今までどおり
@@ -9239,6 +9309,7 @@ function renderProdDayContent(dayIdx){
         }).join('');
         // セル背景：投資>0は黄、skipped(在庫切れ)はグレー、0(作らない)は中身を出さず真っ白、それ以外はチェック状態次第
         const isZero=!isSkip&&!skipped&&extra<=0&&grandTotal===0;
+        const _lockCell=(isZero||checked||skipped)?null:_ffSlotLock(dayIdx,slotH);   // 開始の時刻まで押せない＝「🔒 ◯:◯◯から」（付いているチェックはそのまま見せる。2026-10-17）
         let cellExtraStyle='';
     cellExtraStyle+=gaibuCellStyle(cat,dayIdx,slotH);   // 天気・イベント調整が効いているマスは薄い色
         if(extra>0) cellExtraStyle=';background:#fffbeb;outline:2px solid #fcd34d;outline-offset:-2px;border-radius:4px';
@@ -9259,8 +9330,8 @@ function renderProdDayContent(dayIdx){
             ${leftover?`<span style="background:#ffedd5;color:#9a3412;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">${t('mk.leftBadge')}</span>`:''}
             ${learnAdj!==1?`<span style="background:#ede9fe;color:#5b21b6;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700" title="完売/余りの記録から自動調整">${tf('mk.learn',(learnAdj>1?'+':'')+Math.round((learnAdj-1)*100))}</span>`:''}
             ${soBadges?`<span style="display:flex;flex-wrap:wrap;justify-content:center;gap:1px">${soBadges}</span>`:''}
-            <input type="checkbox" class="pc-chk" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}
-              onchange="confirmCreate('${chkKey}','${p.id}',this)" aria-label="作り終わったらチェック">
+            <input type="checkbox" class="pc-chk${_lockCell?' ff-locked':''}" ${checked?'checked':''} ${isSkip||skipped?'disabled':''}${_lockCell?' aria-disabled="true"':''}
+              onchange="confirmCreate('${chkKey}','${p.id}',this)" aria-label="作り終わったらチェック">${_lockCell?_ffLockTag(_lockCell):''}
             ${lateCell?`<span style="font-size:10px;font-weight:800;color:#b91c1c">${t('mk.cellLate')}</span>`:''}
           </div>`}
         </td>`;
@@ -9308,8 +9379,12 @@ function setSkipped(key,val){
   saveS();
   if(currentTab===3) renderProdDayContent(currentProdDay);
 }
+// 2026-10-18 店長：在庫欠品の印も、開始の時刻までは付けられない（案内だけ・保存しない）。外す（取り消す）のはいつでも。戻り値＝印を切りかえたか
 function toggleSkipped(key){
-  setSkipped(key, !(S.skipped&&S.skipped[key]));
+  const on=!(S.skipped&&S.skipped[key]);
+  if(on&&ffLockNotice(key))return false;
+  setSkipped(key,on);
+  return true;
 }
 
 function setCheck(key,val){
@@ -10708,14 +10783,18 @@ function removeLastSoldOut(pid,dayIdx,slotH){
   renderProdDayContent(currentProdDay);
 }
 
+// 一括チェック（今は画面にボタンは無い＝上の「全完了」は廃止。ボタンを戻した時のために決まりだけ入れてある）。
+//   2026-10-17：開始の時刻が来ていない時間帯には付けない（1つずつ押す時と同じ）。付けた件数と付けなかった件数を1行で出し、戻り値（{done,skip}）でも返す。付けなかった物があるだけなら、何も保存しない。
 function checkCurrentSlot(){
-  const now=new Date();
-  const h=now.getHours();
+  const h=Math.floor(_soNowH());
   let slot=6;
   if(h>=17)slot=17;else if(h>=14)slot=14;else if(h>=10)slot=10;
   const prods=S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]?.slots.includes(slot));
-  prods.forEach(p=>{const k=`${currentProdDay}_${slot}_${p.id}`; S.checks[k]=true; _investFixByKey(k);});
-  saveS();renderProdDayContent(currentProdDay);
+  let done=0, skip=0;
+  prods.forEach(p=>{const k=`${currentProdDay}_${slot}_${p.id}`; if(_ffKeyLock(k)){ skip++; return; } S.checks[k]=true; _investFixByKey(k); done++;});
+  if(done){ saveS();renderProdDayContent(currentProdDay); }
+  showToast(skip?tf('mk.lockBulk',done,skip):tf('mk.bulkDone',done),'info');
+  return {done,skip};
 }
 
 // ============================================================

@@ -1276,6 +1276,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const modal=d=>JSON.parse(d.ev('(()=>{ const m=document.getElementById("ff-remind-modal"); if(!m)return JSON.stringify({none:true}); const it=[...m.querySelectorAll("#ff-remind-items > div")]; const ok=document.getElementById("ff-remind-ok"); const r=ok?ok.getBoundingClientRect():null;'+
         ' return JSON.stringify({show:/\\bshow\\b/.test(m.className),disp:getComputedStyle(m).display,items:it.map(x=>x.textContent.trim()),fs:it.length?parseFloat(getComputedStyle(it[0]).fontSize):0,okVis:!!r&&r.bottom<=innerHeight&&r.top>=0&&r.width>60,okFs:ok?parseFloat(getComputedStyle(ok).fontSize):0,empty:m.innerHTML==="",bg:getComputedStyle(m).backgroundColor,hit:document.elementFromPoint(innerWidth/2,innerHeight/2)===m}); })()'));
       try{
+        B.win._dateTodayOverride='2026-10-13';   // 2026-10-17：「開始の時刻まで押せない」（試験71）が入ったので、この試験は「今日」を週のあと（全部の日が過ぎた日）にして行う。終わりに 10/06 へ戻す
         A.ev('delete S.checks['+J(K1)+']; delete S.checks['+J(K2)+']'); await sync();
         // 1) A の商品設定で p1 に 札2つ＋自由な文 → 保存 → B に届く（古い形のデータ＝remind が無い p2 はそのまま）
         A.win.toggleRemind('p1',0); A.win.toggleRemind('p1',1); A.win.setRemindFree('p1','からし抜き'); await sync();
@@ -1314,6 +1315,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         // 10) 英語・ネパール語：rm.* の言葉が3つの言語にある（日本語と同じ文字ではない）
         o70.i18n=JSON.parse(A.ev('(()=>{ const ks=Object.keys(I18N.ja).filter(k=>/^rm\\./.test(k)); return JSON.stringify({n:ks.length,miss:ks.filter(k=>!I18N.en[k]||!I18N.ne[k]).length,same:ks.filter(k=>I18N.en[k]===I18N.ja[k]||I18N.ne[k]===I18N.ja[k]).length}); })()'));
       }catch(e){ o70.err=String(e&&e.stack||e); }
+      B.win._dateTodayOverride='2026-10-06';
       const m1=o70.m1||{}, m1b=o70.m1b||{}, m2=o70.m2||{}, m2b=o70.m2b||{}, m2c=o70.m2c||{}, m3=o70.m3||{}, m4=o70.m4||{}, m4b=o70.m4b||{}, m5=o70.m5||{}, kd=o70.kid||{}, ui=o70.ui||{}, ol=o70.old||{r:[]}, bt=o70.both||[], cl=o70.cleanA||[], i18=o70.i18n||{};
       const want=['ソース','つまようじ','からし抜き'], wantJ=J(want);
       const okSet=o70.remA===wantJ&&o70.remB===wantJ&&o70.rem2==='null'&&o70.same1;                                        // 1) 設定が保存され、もう1台に届く
@@ -1330,6 +1332,199 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       check('70','【忘れ防止】商品設定に「忘れ防止」（よくある物の札＋自由な文。商品のデータに項目 remind を足すだけ）→ A で設定すると B に届く／B で「作った」のチェックを付けると、その商品の忘れ防止が大きく出る（文字 24px 以上・「確認した」は画面の中・何秒たっても出たまま・今までの confirm は出ない・チェックはまだ付かない）／「やめる」ならチェックは付かず何も保存しない／閉じた直後 0.4秒は透明の幕が残り（素早く2回押した2回目が下の物に当たらない）、その間に開き直しても閉じられない／「確認した」でチェックが付き、もう1台にも届く／忘れ防止が無い商品は今までどおり（confirm→チェック）／古い形（remind が文字・null・数字・空・オブジェクト）でも壊れない／親子は子にも親の設定が出る／設定の欄・🔔の印／2台が同時（設定と原価）に変えても両方残る／設定を外すと項目ごと無くなる／英語・ネパール語がそろう',
         !o70.err&&okSet&&okShow&&okCancel&&okOk&&okNone&&okOld&&okKid&&okUi&&okBoth&&okClean&&okLang,
         o70.err||`設定 ${okSet} A:${o70.remA} B:${o70.remB} p2:${o70.rem2}／出る ${okShow} ${J(m1.items)} 文字${m1.fs}px・確認した ${m1.okFs}px 見える ${m1.okVis}・confirm ${o70.cf1}回・チェック ${o70.ck1}・2.6秒後 ${m1b.show}／やめる ${okCancel} 未送信の増え ${o70.pend1}／確認した ${okOk} B:${o70.ck3} A:${o70.ckA}／無い商品 ${okNone} confirm ${o70.cf5}回・チェック ${o70.ck5}／古い形 ${okOld} ${J(ol.r)}／親子 ${okKid} ${J(kd)}／画面 ${okUi} ${J(ui)}／同時 ${okBoth} ${J(bt)}／外す ${okClean} ${J(cl)}／言葉 ${okLang} ${J(i18)}`); }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 開始の時刻まで「作った」のチェックが押せない（2026-10-17 店長の依頼：前倒しで作るクルーがいるので。前倒しの余裕 0分＝開始の時刻ぴったりから）の試験 71。
+    //   時計は固定する（window._dateTodayOverride＝今日の日付、window._soNowOverride＝いまの時刻）。週の始まりは 2026-10-06（火）＝曜日0、曜日3＝10/09。
+    //   マスの鍵（曜日_時刻_商品ID）の「時刻」は、その曜日の日付の 0〜23時（夜中の枠も、その日付の 0時から数える＝作成表の日の区切り）。
+    //   見るもの：決まりの関数（開始の1分前・ちょうど・後／日をまたぐ枠／過ぎた日・先の日・週の外／日付が読めない時）・3つの並びの印と押す所の大きさ・
+    //   押した時（案内だけ・何も保存しない）・時刻が来た時に通る事（描き直しの前でも）と毎時の描き直し・取り消し・付いているチェック・忘れ防止・一括・3つの言語・事前準備は対象外。
+    {
+      const o71={}, W=A.win;
+      const T=(ymd,h)=>{ W._dateTodayOverride=ymd; if(h==null)delete W._soNowOverride; else W._soNowOverride=h; };
+      const DJ='2026-10-09', B1=9+59/60;   // 今日＝10/09（曜日3）、いま＝9:59（10時の枠の1分前）
+      const snapJs=`(()=>{ const host=document.getElementById('prod-day-content'); const key=i=>(((i&&i.getAttribute('onchange'))||'').split("'")[1])||'';
+        const ins=[...host.querySelectorAll('input[type=checkbox]')].filter(i=>/^(confirmCreate|schedCheck)\\(/.test(i.getAttribute('onchange')||'')).map(i=>{ const k=key(i), m=k.split('_'); const r=i.getBoundingClientRect(); return {k,d:+m[0],h:+m[1],checked:i.checked,disabled:i.disabled,locked:i.classList.contains('ff-locked'),aria:i.getAttribute('aria-disabled'),cell:!!i.closest('td.check-cell'),sz:Math.round(r.width)+'x'+Math.round(r.height)}; });
+        const tags=[...host.querySelectorAll('[data-ff-lock]')].map(x=>({v:x.getAttribute('data-ff-lock'),txt:x.textContent.replace(/\\s+/g,' ').trim(),inCell:!!x.closest('td.check-cell'),fs:parseFloat(getComputedStyle(x).fontSize),tdHasChk:!!(x.closest('td')&&x.closest('td').querySelector('input[type=checkbox]:checked'))}));
+        const mk=[...host.querySelectorAll('input[onchange*="mkc_"]')].map(i=>i.classList.contains('ff-locked'));
+        const day=[...host.querySelectorAll('[data-ff-lockday]')].map(x=>({v:x.getAttribute('data-ff-lockday'),txt:x.textContent.replace(/\\s+/g,' ').trim(),fs:parseFloat(getComputedStyle(x).fontSize)}));
+        const cellH=[...host.querySelectorAll('td.check-cell')].map(td=>Math.round(td.getBoundingClientRect().height)); const tb=host.querySelector('table'); const tblH=tb?Math.round(tb.getBoundingClientRect().height):0;
+        const gaps=[...host.querySelectorAll('.ff-lock')].filter(x=>!x.closest('td')).map(x=>{ const pv=x.previousSibling; if(!pv)return null; let r; if(pv.nodeType===3){ const rg=document.createRange(); rg.selectNodeContents(pv); const b=rg.getClientRects(); r=b[b.length-1]; }else r=pv.getBoundingClientRect(); return Math.round((x.getBoundingClientRect().left-r.right)*10)/10; });
+        return JSON.stringify({ins,tags,mk,day,cellH,tblH,gaps}); })()`;
+      const snap=()=>JSON.parse(A.ev(snapJs));
+      const J2=x=>J(x);
+      const render=(day,mode)=>A.ev(`currentProdDay=${day}; _prodSortMode=${J(mode||'default')}; renderProdDayContent(${day}); 1`);
+      const sorted=a=>a.slice().sort();
+      // 手で出した「まだ押せない」：先の日（日付が今日より後）は全部、今日はその時（h）が いま より後
+      const wantLock=(c,today,nowH)=>{ const ymd=A.ev(`_addDaysYmd(S.weekStart,${c.d})`); return !c.checked&&!c.disabled&&(ymd>today||(ymd===today&&c.h>nowH)); };
+      const pre=JSON.parse(A.ev('JSON.stringify({day:currentProdDay,mode:_prodSortMode,tab:currentTab,lang:LANG,slots:S.catCfg["ホットFF"].slots,keys:Object.keys(S.checks),ws:S.weekStart})'));
+      const tap=(k,sel)=>A.ev(`(()=>{ const i=[...document.querySelectorAll('#prod-day-content input[type=checkbox]')].find(i=>(((i.getAttribute('onchange')||'').split("'")[1])||'')===${J(k)}${sel||''}); if(!i)return 'none'; i.click(); return i.checked?'on':'off'; })()`);
+      const toast=()=>A.ev('(document.getElementById("ff-toast")||{}).textContent||""');
+      const stateJ=()=>A.ev('JSON.stringify(S)');
+      try{
+        T('2026-10-06',null); A.ev('showTab(3); 1');
+        // 0) 決まりの関数：（今日・いま・曜日・時・まだ押せない？）
+        const M=[
+          [DJ,B1,3,10,1],[DJ,B1,3,9,0],[DJ,B1,3,6,0],[DJ,B1,3,11,1],[DJ,B1,2,23,0],[DJ,B1,4,6,1],[DJ,B1,6,0,1],[DJ,9.9999,3,10,1],   // 開始の1分前
+          [DJ,10,3,10,0],[DJ,10,3,11,1],[DJ,10+1/60,3,10,0],[DJ,10.0001,3,10,0],                                                        // ちょうど・後
+          ['2026-10-08',23.9999,3,0,1],['2026-10-08',23.9999,2,23,0],['2026-10-09',0,3,0,0],['2026-10-09',0,3,1,1],['2026-10-09',0.5,2,23,0],   // 日をまたぐ枠（夜中の0時の枠は、その日付の 0時から）
+          ['2026-10-09',22.9999,3,23,1],['2026-10-09',23,3,23,0],['2026-10-10',0,3,23,0],['2026-10-12',0,6,0,0],['2026-10-12',0,6,1,1],['2026-10-12',0,5,23,0],   // 23時の枠・週の最後の日
+          ['2026-10-13',0,0,0,0],['2026-10-13',0,6,23,0],['2026-10-20',12,3,10,0],                                                       // 過ぎた日・過ぎた週は全部押せる
+          ['2026-10-05',23.9999,0,0,1],['2026-10-05',23.9999,6,23,1],['2026-09-01',12,3,10,1]                                            // 先の日・先の週は全部まだ
+        ];
+        const bad=[]; M.forEach(r=>{ T(r[0],r[1]); const lk=JSON.parse(A.ev(`JSON.stringify(_ffSlotLock(${r[2]},${r[3]}))`)); if((lk!==null)!==!!r[4])bad.push(r.join('/')+'→'+J(lk)); });
+        T(DJ,B1); o71.shape=JSON.parse(A.ev('JSON.stringify([_ffSlotLock(3,10),_ffSlotLock(3,6),_ffKeyLock("3_10_p1"),_ffKeyLock("3_10_p1_b2"),_ffKeyLock("mkc_3_8_rice_x"),_ffKeyLock("junk"),_ffKeyLock(null),FF_LOCK_LEAD_MIN])'));
+        o71.failOpen=JSON.parse(A.ev('(()=>{ const w=S.weekStart, r=[]; try{ ["","abc",null,undefined,"2026-13-45","2026-10-6"].forEach(v=>{ S.weekStart=v; r.push(_ffSlotLock(3,10)); }); }finally{ S.weekStart=w; } return JSON.stringify(r); })()'));
+        o71.matrix={n:M.length,bad};
+        // 1) 作成表（カテゴリ順）：今日10/09の 9:59。10時・14時・17時の枠は印と薄いチェック、6時の枠は今までどおり
+        T(DJ,B1); render(3,'default'); const s1=snap(); o71.s1=s1;
+        const c1=s1.ins.filter(i=>i.cell), wl1=c1.filter(c=>wantLock(c,DJ,B1)), tg1=s1.tags.filter(x=>x.inCell);
+        o71.d1={cells:c1.length,wantN:wl1.length,tagN:tg1.length,lockedN:c1.filter(c=>c.locked).length,ariaN:c1.filter(c=>c.aria==='true').length,
+          sameSet:J2(sorted(wl1.map(c=>c.k)))===J2(sorted(c1.filter(c=>c.locked).map(c=>c.k))),
+          hours:J2([...new Set(wl1.map(c=>c.h))].sort((a,b)=>a-b)),txt:J2([...new Set(tg1.map(x=>x.txt))].sort()),minFs:Math.min(...tg1.map(x=>x.fs)),
+          sizes:J2([...new Set(c1.map(c=>c.sz))]),openN:c1.filter(c=>!c.locked&&!c.checked&&!c.disabled).length,tagOnChecked:tg1.filter(x=>x.tdHasChk).length,dayLine:s1.day.length};
+        // 2) 押す：開始の1分前は案内だけ・何も保存しない
+        T(DJ,B1); render(3,'default'); const st0=stateJ(), pd0=A.store.status().pending;
+        o71.tapA=tap('3_10_p2'); o71.toastA=toast(); o71.tapSame=stateJ()===st0; o71.tapPend=A.store.status().pending-pd0; o71.tapChecked=A.ev('!!S.checks["3_10_p2"]');
+        // 2b) 開始の時刻ちょうど：描き直す前（画面はまだ「鍵」のまま）でも、押した時の時計で通る → チェックが付く
+        T(DJ,10); o71.tapB=tap('3_10_p2'); o71.afterB=A.ev('!!S.checks["3_10_p2"]'); const sB=snap(); o71.afterBRender=sB.ins.filter(i=>i.k==='3_10_p2').map(i=>[i.checked,i.locked]);
+        o71.slot10Tags=sB.tags.filter(x=>x.inCell&&/ 10$/.test(x.v)).length;
+        // 2c) 取り消しはいつでも（時計を戻して「まだ」にしても、付いているチェックは外せる）。外すとまた鍵になる
+        T(DJ,B1); render(3,'default'); const sC=snap(); o71.keepShown=sC.ins.filter(i=>i.k==='3_10_p2').map(i=>[i.checked,i.locked,i.aria]); o71.keepTags=sC.tags.filter(x=>x.inCell&&x.tdHasChk).length;
+        o71.untap=tap('3_10_p2'); o71.afterUntap=A.ev('!!S.checks["3_10_p2"]'); const sD=snap(); o71.untapRender=sD.ins.filter(i=>i.k==='3_10_p2').map(i=>[i.checked,i.locked]);
+        await sync();
+        // 3) 毎時の描き直し：時刻が 9:59 → 10:00 になって ffHourTick が呼ばれたら、開き直さなくても 10時の枠の印が消える（14時・17時は残る）
+        T(DJ,B1); render(3,'default'); const tk0=snap().tags.filter(x=>x.inCell).map(x=>+x.v.split(' ')[1]);
+        T(DJ,10); A.ev('currentTab=3; ffHourTick(); 1'); const tk1=snap().tags.filter(x=>x.inCell).map(x=>+x.v.split(' ')[1]);
+        o71.tick={before:J2([...new Set(tk0)].sort((a,b)=>a-b)),after:J2([...new Set(tk1)].sort((a,b)=>a-b))};
+        // 3b) 時計を固定していない時（本物の時計）：今日を見ると毎時の描き直しが予約され、先の日を見ると その日の0時に予約される。過ぎた日は予約しない
+        o71.timer=JSON.parse(A.ev(`(()=>{ const ws=S.weekStart, st=window.setTimeout, cap=[], od=window._dateTodayOverride, on=window._soNowOverride; delete window._dateTodayOverride; delete window._soNowOverride;
+          try{ window.setTimeout=function(f,ms){ if(f===ffHourTick)cap.push(ms); return st.apply(window,arguments); };
+            S.weekStart=_addDaysYmd(_ymdOf(new Date()),-1);   /* 曜日1＝本物の今日 */
+            renderProdDayContent(1); const today=cap.slice(); cap.length=0; renderProdDayContent(3); const fut=cap.slice(); cap.length=0; renderProdDayContent(0); const past=cap.slice();
+            return JSON.stringify({today,fut,past}); }
+          finally{ window.setTimeout=st; S.weekStart=ws; if(od!==undefined)window._dateTodayOverride=od; if(on!==undefined)window._soNowOverride=on; if(_ffHourTimer){ clearTimeout(_ffHourTimer); _ffHourTimer=null; } } })()`));
+        // 4) 時間帯別（カードの見出しに印・行のチェックは薄く）／効率順（スロットのカードの見出しと行）
+        T(DJ,B1); render(3,'slot'); const s4=snap(); const rows4=s4.ins, wl4=rows4.filter(c=>wantLock(c,DJ,B1));
+        o71.slotView={rows:rows4.length,wantN:wl4.length,lockedN:rows4.filter(c=>c.locked).length,same:J2(sorted(wl4.map(c=>c.k)))===J2(sorted(rows4.filter(c=>c.locked).map(c=>c.k))),
+          headTags:J2([...new Set(s4.tags.filter(x=>!x.inCell).map(x=>x.v))].sort()),wantHeads:J2([...new Set(wl4.map(c=>DJ+' '+c.h))].sort()),oneEach:s4.tags.length===[...new Set(s4.tags.map(x=>x.v))].length,minFs:Math.min(...s4.tags.map(x=>x.fs)),gaps:J2(s4.gaps),gapMin:Math.min(...s4.gaps),dayLine:s4.day.length};
+        const st4=stateJ(), pd4=A.store.status().pending; const k4=wl4.length?wl4[0].k:''; o71.slotTap=tap(k4); o71.slotTapSame=stateJ()===st4&&A.store.status().pending===pd4; o71.slotToast=toast();
+        render(3,'efficient'); const s5=snap(); const rows5=s5.ins.filter(i=>/_b\d+$/.test(i.k)), wl5=rows5.filter(c=>wantLock(c,DJ,B1));
+        o71.effView={rows:rows5.length,wantN:wl5.length,lockedN:rows5.filter(c=>c.locked).length,same:J2(sorted(wl5.map(c=>c.k)))===J2(sorted(rows5.filter(c=>c.locked).map(c=>c.k))),
+          headTags:J2([...new Set(s5.tags.filter(x=>!x.inCell).map(x=>x.v))].sort()),wantHeads:J2([...new Set(wl5.map(c=>DJ+' '+c.h))].sort()),gaps:J2(s5.gaps),gapMin:Math.min(...s5.gaps),dayLine:s5.day.length};
+        const st5=stateJ(), pd5=A.store.status().pending; const k5=wl5.length?wl5[0].k:''; o71.effTap=tap(k5); o71.effTapSame=stateJ()===st5&&A.store.status().pending===pd5;
+        const kOpen=rows5.filter(c=>!c.locked&&!c.checked)[0]; // 6時の枠（もう押せる）の1行 → 押せば付く（行のチェックとマスのチェックがつながる）
+        o71.effOpen=kOpen?{k:kOpen.k,tap:tap(kOpen.k),batch:A.ev('!!S.checks['+J(kOpen.k)+']'),cell:A.ev('!!S.checks['+J(kOpen.k.replace(/_b\d+$/,''))+']')}:null;
+        if(kOpen){ tap(kOpen.k); }   // 外す（取り消し）
+        o71.effOpenBack=kOpen?[A.ev('!!S.checks['+J(kOpen.k)+']'),A.ev('!!S.checks['+J(kOpen.k.replace(/_b\d+$/,''))+']')]:null;
+        // 5) 先の日（今日＝10/06 の 23:59 に 10/09 を見る）：マスの箱は全部まだ（薄く・押せない）。札は全部のマスには出さず、日の上に1行だけ（3つの並びとも）。案内には日付。マスの高さは過ぎた日と同じ（2026-10-18 店長）
+        T('2026-10-06',23.9999); render(3,'default'); const s6=snap(), c6=s6.ins.filter(i=>i.cell);
+        render(3,'slot'); const s6s=snap(); render(3,'efficient'); const s6e=snap(); render(3,'default');
+        o71.future={cells:c6.length,lockedN:c6.filter(c=>c.locked).length,want:c6.filter(c=>wantLock(c,'2026-10-06',23.9999)).length,ariaN:c6.filter(c=>c.aria==='true').length,tags:s6.tags.length,tagsSlot:s6s.tags.length,tagsEff:s6e.tags.length,
+          day:J2(s6.day),daySlot:s6s.day.length,dayEff:s6e.day.length};
+        const kf=c6.length?c6[0].k:''; const st6=stateJ(); o71.futureTap=tap(kf); o71.futureToast=toast(); o71.futureSame=stateJ()===st6; o71.futureKey=kf;
+        // 5b) 過ぎた日（今日＝10/13）：印は1つも無く、押せる
+        T('2026-10-13',3); render(3,'default'); const s7=snap(); o71.past={tags:s7.tags.length,locked:s7.ins.filter(i=>i.locked).length,aria:s7.ins.filter(i=>i.aria).length,day:s7.day.length};
+        o71.heights={n:s6.cellH.length,same:J2(s6.cellH)===J2(s7.cellH)&&s6.tblH===s7.tblH&&s6.tblH>0,fut:s6.tblH,past:s7.tblH,maxFut:Math.max(...s6.cellH),maxPast:Math.max(...s7.cellH)};   // 先の日のマス・表の高さが、札の無い過ぎた日と同じ（直す前は 表 536 と 377 だった）
+        const kp=(s7.ins.filter(i=>i.cell&&!i.checked&&!i.disabled)[0]||{k:'none'}).k; o71.pastKey=kp; o71.pastTap=tap(kp); o71.pastSet=A.ev('!!S.checks['+J(kp)+']'); tap(kp); o71.pastBack=A.ev('!!S.checks['+J(kp)+']');
+        // 6) すでに付いているチェック：開始前でも、そのまま見せる（印なし・薄くしない）。外せる
+        T(DJ,B1); A.ev('S.checks["3_14_p1"]=true; 1'); render(3,'default'); const s8=snap(); o71.preChecked=s8.ins.filter(i=>i.k==='3_14_p1').map(i=>[i.checked,i.locked,i.aria]); o71.preTags=s8.tags.filter(x=>x.inCell&&x.tdHasChk).length;
+        A.ev('delete S.checks["3_14_p1"]; 1');
+        // 7) 忘れ防止：開始前は窓が出ない／開始の時刻からは今までどおり窓が出る → 「確認した」でチェック
+        A.win.toggleRemind('p1',0); T(DJ,B1); render(3,'default');
+        const remShow=()=>A.ev('(()=>{ const m=document.getElementById("ff-remind-modal"); return !!m&&/\\bshow\\b/.test(m.className); })()');
+        o71.remBefore={tap:tap('3_14_p1'),modal:remShow(),checked:A.ev('!!S.checks["3_14_p1"]')};
+        T(DJ,14); o71.remAt={tap:tap('3_14_p1'),modal:remShow(),checked:A.ev('!!S.checks["3_14_p1"]')};
+        A.ev('remindOk(); 1'); o71.remOk=A.ev('!!S.checks["3_14_p1"]');
+        A.ev('setCheck("3_14_p1",false); 1'); A.win.toggleRemind('p1',0); await sync();
+        // 8) 一括チェック（画面のボタンは廃止済み。関数 checkCurrentSlot に決まりを入れた）：開始前は付けない・付けた件数と付けなかった件数の1行
+        const nSlot=(h)=>+A.ev(`S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]&&S.catCfg[p.category].slots.includes(${h})).length`);
+        T('2026-10-06',10.5); A.ev('currentProdDay=3; 1'); const st9=stateJ(), pd9=A.store.status().pending;
+        o71.bulkFuture=JSON.parse(A.ev('JSON.stringify(checkCurrentSlot())')); o71.bulkFutureToast=toast(); o71.bulkFutureSame=stateJ()===st9&&A.store.status().pending===pd9;
+        T(DJ,5.5); const st9b=stateJ(); o71.nSlot6=nSlot(6); o71.bulkEarly=JSON.parse(A.ev('JSON.stringify(checkCurrentSlot())')); o71.bulkEarlyToast=toast(); o71.bulkEarlySame=stateJ()===st9b;
+        T(DJ,10.5); o71.bulkOk=JSON.parse(A.ev('JSON.stringify(checkCurrentSlot())')); o71.bulkOkToast=toast(); o71.bulkKeys=JSON.parse(A.ev('JSON.stringify(Object.keys(S.checks).filter(k=>/^3_10_/.test(k)))'));
+        o71.nSlot10=nSlot(10);
+        A.ev('Object.keys(S.checks).filter(k=>/^3_10_/.test(k)).forEach(k=>setCheck(k,false)); 1'); await sync();
+        // 9) 3つの言語：札・案内（英語・ネパール語）。事前準備（mkc_）は対象外
+        T(DJ,B1); const lang={};
+        ['en','ne','ja'].forEach(L=>{ A.ev(`LANG=${J(L)}; 1`); render(3,'default'); const s=snap(); const tx=[...new Set(s.tags.filter(x=>x.inCell).map(x=>x.txt))].sort().slice(0,1); tap('3_10_p2'); lang[L]={tag:tx[0]||'',toast:toast()}; });
+        T('2026-10-06',23.9999); const dayLang={}; ['en','ne','ja'].forEach(L=>{ A.ev(`LANG=${J(L)}; 1`); render(3,'default'); const s=snap(); dayLang[L]=(s.day[0]||{}).txt||''; }); o71.dayLang=dayLang;
+        o71.lang=lang; o71.i18n=JSON.parse(A.ev('(()=>{ const ks=["mk.lockFrom","mk.lockToast","mk.bulkDone","mk.lockBulk","mk.lockDay"]; return JSON.stringify({miss:ks.filter(k=>!I18N.ja[k]||!I18N.en[k]||!I18N.ne[k]).length,same:ks.filter(k=>I18N.en[k]===I18N.ja[k]||I18N.ne[k]===I18N.ja[k]).length}); })()'));
+        o71.mk=s1.mk; o71.mkKey=o71.shape[4];
+      }catch(e){ o71.err=String(e&&e.stack||e); }
+      // 後始末：時計・並び・曜日・言語・タブを元に戻す。付けた物は外す
+      try{ A.ev(`LANG=${J(pre.lang)}; _prodSortMode=${J(pre.mode)}; currentProdDay=${pre.day}; if(_ffHourTimer){ clearTimeout(_ffHourTimer); _ffHourTimer=null; } const keep=${J(pre.keys)}; Object.keys(S.checks).filter(k=>keep.indexOf(k)<0).forEach(k=>setCheck(k,false)); showTab(${pre.tab}); 1`); }catch(e){ o71.err2=String(e); }
+      T('2026-10-06',null); A.ev('renderProdDayContent(currentProdDay); 1'); await sync();
+      const D=o71.d1||{}, sv=o71.slotView||{}, ef=o71.effView||{}, fu=o71.future||{}, pa=o71.past||{}, tm=o71.timer||{today:[],fut:[],past:[]}, lg=o71.lang||{};
+      const okFn=o71.matrix&&o71.matrix.bad.length===0&&o71.matrix.n>=29&&J2(o71.shape)===J2([{ymd:DJ,h:10},null,{ymd:DJ,h:10},{ymd:DJ,h:10},null,null,null,0])&&J2(o71.failOpen)===J2([null,null,null,null,null,null]);                       // 0) 開始の1分前・ちょうど・後／日をまたぐ枠／過ぎた日・先の日・週の外／余裕0分／日付が読めない時は止めない／事前準備の鍵は対象外
+      const okMark=D.cells>0&&D.wantN>=3&&D.tagN===D.wantN&&D.lockedN===D.wantN&&D.ariaN===D.wantN&&D.sameSet&&D.hours==='[10,14,17]'&&D.txt==='["🔒 10:00から","🔒 14:00から","🔒 17:00から"]'&&D.minFs>=12&&D.sizes==='["22x22"]'&&D.openN>0&&D.tagOnChecked===0&&D.dayLine===0;   // 1) マスの印：10・14・17時だけ。字は12px以上。押す所は22×22のまま。6時の枠は今までどおり
+      const okTap=o71.tapA==='off'&&o71.toastA==='10:00になったら押せます'&&o71.tapSame&&o71.tapPend===0&&o71.tapChecked===false;                                                                   // 2) 開始の1分前に押す：案内だけ・チェックは戻る・何も保存しない
+      const okAt=o71.tapB==='on'&&o71.afterB===true&&J2(o71.afterBRender)===J2([[true,false]])&&o71.slot10Tags===0;                                                                                     // 2b) ちょうど10:00：描き直す前でも通る→付く・10時の枠の印は消える
+      const okUndo=J2(o71.keepShown)===J2([[true,false,null]])&&o71.keepTags===0&&o71.untap==='off'&&o71.afterUntap===false&&J2(o71.untapRender)===J2([[false,true]]);                                    // 2c) 付いているチェックは「まだ」の時計でもそのまま見え、取り消せる。外すとまた鍵
+      const okTick=o71.tick&&o71.tick.before==='[10,14,17]'&&o71.tick.after==='[14,17]'&&tm.today.length===1&&tm.today[0]>0&&tm.today[0]<=3601500&&tm.fut.length===1&&tm.fut[0]>86400000&&tm.fut[0]<=172800000+1500&&tm.past.length===0;   // 3) 毎時に描き直す（10:00→10時の印が消える）・本物の時計では今日は毎時／先の日はその日の0時／過ぎた日は予約なし
+      const okViews=sv.rows>0&&sv.wantN>=3&&sv.lockedN===sv.wantN&&sv.same&&sv.headTags===sv.wantHeads&&sv.oneEach&&sv.minFs>=12&&sv.gapMin>=4&&sv.gapMin<=8&&sv.dayLine===0&&o71.slotTap==='off'&&o71.slotTapSame&&/になったら押せます$/.test(o71.slotToast||'')&&
+        ef.rows>0&&ef.wantN>=3&&ef.lockedN===ef.wantN&&ef.same&&ef.headTags===ef.wantHeads&&ef.gapMin>=4&&ef.gapMin<=8&&ef.dayLine===0&&o71.effTap==='off'&&o71.effTapSame&&!!o71.effOpen&&o71.effOpen.tap==='on'&&o71.effOpen.batch===true&&o71.effOpen.cell===true&&J2(o71.effOpenBack)===J2([false,false]);   // 4) 時間帯別・効率順：見出しに印・行は薄く・押すと案内だけ／押せる枠は今までどおり（行とマスがつながる）
+      const okFuture=fu.want>0&&fu.lockedN===fu.want&&fu.ariaN===fu.want&&fu.tags===0&&fu.tagsSlot===0&&fu.tagsEff===0&&fu.day===J2([{v:'2026-10-09',txt:'🔒 この日は 10/9（金）の各時刻から押せます',fs:13}])&&fu.daySlot===1&&fu.dayEff===1&&!!o71.heights&&o71.heights.same&&o71.heights.n>0&&o71.futureTap==='off'&&o71.futureSame&&o71.futureToast==='10/9 '+(o71.futureKey.split('_')[1])+':00になったら押せます'&&
+        pa.tags===0&&pa.locked===0&&pa.aria===0&&pa.day===0&&o71.pastTap==='on'&&o71.pastSet===true&&o71.pastBack===false;      // 5) 先の日は全部（日付つき）／過ぎた日は印なしで押せて外せる
+      const okPre=J2(o71.preChecked)===J2([[true,false,null]])&&o71.preTags===0;                                                      // 6) 付いているチェックはそのまま
+      const okRem=o71.remBefore&&o71.remBefore.tap==='off'&&o71.remBefore.modal===false&&o71.remBefore.checked===false&&o71.remAt&&o71.remAt.modal===true&&o71.remAt.checked===false&&o71.remOk===true;   // 7) 忘れ防止：開始前は窓なし・開始からは今までどおり
+      const nS=o71.nSlot10;
+      const okBulk=nS>0&&J2(o71.bulkFuture)===J2({done:0,skip:nS})&&o71.bulkFutureToast==='0件にチェックを付けました（開始前の'+nS+'件は付けていません）'&&o71.bulkFutureSame&&
+        J2(o71.bulkEarly)===J2({done:0,skip:o71.nSlot6})&&o71.bulkEarlySame&&J2(o71.bulkOk)===J2({done:nS,skip:0})&&o71.bulkOkToast===nS+'件にチェックを付けました'&&(o71.bulkKeys||[]).length>=nS;   // 8) 一括：開始前は付けない・件数の1行
+      const okLang=lg.en&&lg.ne&&lg.ja&&lg.en.tag==='🔒 from 10:00'&&lg.en.toast==='You can press this at 10:00'&&lg.ne.tag==='🔒 10:00 देखि'&&lg.ne.toast==='10:00 भएपछि थिच्न मिल्छ'&&lg.ja.tag==='🔒 10:00から'&&lg.ja.toast==='10:00になったら押せます'&&o71.i18n&&o71.i18n.miss===0&&o71.i18n.same===0&&(o71.mk||[]).every(x=>x===false)&&J2(o71.dayLang)===J2({en:'🔒 Each slot opens at its start time on 10/9 (Fri)',ne:'🔒 10/9 (शुक्र) मा हरेक समयको सुरुदेखि थिच्न मिल्छ',ja:'🔒 この日は 10/9（金）の各時刻から押せます'});   // 9) 3つの言語・事前準備は対象外
+      check('71','【開始前は押せない】作成表の「作った」のチェックは、その時間帯の開始の時刻になるまで押せない（前倒しの余裕 0分＝開始の時刻ぴったりから）。時計は固定して見る：'+
+        '決まりの関数＝開始の1分前は押せない・ちょうど／後は押せる・日をまたぐ枠（夜中の0時の枠はその日付の0時から）・過ぎた日と週は全部押せる・先の日と週は全部まだ・日付が読めない時は止めない／'+
+        'マスの印「🔒 ◯:◯◯から」は まだの枠だけ（字 12px 以上・押す所は 22×22 のまま・薄く）／押した時は案内「◯:◯◯になったら押せます」を出すだけでチェックは戻り何も保存しない（未送信も増えない）／'+
+        '開始の時刻ちょうどは、描き直す前でも通ってチェックが付く／毎時0分の描き直しで、開き直さなくても印が消える（本物の時計では、今日＝毎時・先の日＝その日の0時・過ぎた日＝予約なし）／'+
+        '付いているチェックはそのまま見せ（印なし）取り消しはいつでも／時間帯別は見出しに印・効率順はスロットの見出しと行（行とマスがつながる）／先の日（2026-10-18 店長）はマスの札を出さず日の上に1行だけ（3つの並びとも）・マスと表の高さは過ぎた日と同じ・見出しの札は字から左に4〜8pxあく・過ぎた日は印なし／'+
+        '忘れ防止の窓は、開始前は出ず開始からは今までどおり／一括（checkCurrentSlot）は開始前の枠に付けず、付けた件数と付けなかった件数の1行を出す／英語・ネパール語／事前準備（mkc_）は対象外',
+        !o71.err&&!o71.err2&&okFn&&okMark&&okTap&&okAt&&okUndo&&okTick&&okViews&&okFuture&&okPre&&okRem&&okBulk&&okLang,
+        o71.err||o71.err2||`関数 ${okFn} ${o71.matrix&&o71.matrix.n}件・外れ ${J2(o71.matrix&&o71.matrix.bad)}・形 ${J2(o71.shape)}・日付不明 ${J2(o71.failOpen)}／印 ${okMark} ${J2(D)}／押す ${okTap} ${o71.tapA}「${o71.toastA}」同じ ${o71.tapSame}・未送信の増え ${o71.tapPend}／ちょうど ${okAt} ${o71.tapB}・${J2(o71.afterBRender)}・10時の印 ${o71.slot10Tags}／取り消し ${okUndo} ${J2(o71.keepShown)}・${o71.untap}・${J2(o71.untapRender)}／描き直し ${okTick} ${J2(o71.tick)}・予約 ${J2(tm)}／並び ${okViews} 時間帯別 ${J2(sv)}・「${o71.slotToast}」効率順 ${J2(ef)}・${J2(o71.effOpen)}・${J2(o71.effOpenBack)}／先の日 ${okFuture} ${J2(fu)}・高さ ${J2(o71.heights)}・「${o71.futureToast}」過ぎた日 ${J2(pa)}・${o71.pastTap}／付いている ${okPre} ${J2(o71.preChecked)}／忘れ防止 ${okRem} ${J2(o71.remBefore)}・${J2(o71.remAt)}・${o71.remOk}／一括 ${okBulk} ${J2(o71.bulkFuture)}「${o71.bulkFutureToast}」・${J2(o71.bulkEarly)}・${J2(o71.bulkOk)}「${o71.bulkOkToast}」／言語 ${okLang} ${J2(lg)}・${J2(o71.i18n)}・事前準備 ${J2(o71.mk)}`);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 在庫欠品（作れなかった）の印も、開始の時刻までは付けられない（2026-10-18 店長「在庫欠品の印も開始前は止める」）の試験 72。マスの記録メニュー（数字をタップ）の「在庫欠品」で。時計は固定する（試験71と同じ）。
+    //   開始の1分前＝案内「◯:◯◯になったら押せます」を出すだけ・何も保存しない／開始の時刻ちょうどから付く／外す（取り消す）のは「まだ」の時計でもいつでも／先の日は止まる（案内に日付）・過ぎた日は付く／
+    //   「余った」は今までどおり（開始前でも押せる＝対象外）。
+    {
+      const o72={}, W=A.win;
+      const T=(ymd,h)=>{ W._dateTodayOverride=ymd; if(h==null)delete W._soNowOverride; else W._soNowOverride=h; };
+      const DJ='2026-10-09', B1=9+59/60, K='3_10_p2';
+      const stateJ=()=>A.ev('JSON.stringify(S)'), toast=()=>A.ev('(document.getElementById("ff-toast")||{}).textContent||""');
+      const menu=(act)=>A.ev(`(()=>{ openCellMenu('p2',3,10); const m=document.getElementById('cellMenuModal'); const b=m&&m.querySelector('button[data-act=${J(act)}]'); if(!b)return 'nobtn'; b.click(); return m.style.display; })()`);
+      const sk=()=>A.ev(`!!(S.skipped&&S.skipped[${J(K)}])`), lo=()=>A.ev(`!!(S.leftovers&&S.leftovers[${J(K)}])`);
+      const cell=()=>JSON.parse(A.ev(`(()=>{ currentProdDay=3; renderProdDayContent(3); const i=[...document.querySelectorAll('#prod-day-content input[type=checkbox]')].find(i=>(((i.getAttribute('onchange')||'').split("'")[1])||'')===${J(K)}); const td=i&&i.closest('td'); return JSON.stringify({dis:!!(i&&i.disabled),badge:!!(td&&td.textContent.indexOf(t('mk.skipBadge'))>=0),lock:!!(td&&td.querySelector('[data-ff-lock]'))}); })()`));
+      const pre=JSON.parse(A.ev('JSON.stringify({sk:!!(S.skipped&&S.skipped["3_10_p2"]),lo:!!(S.leftovers&&S.leftovers["3_10_p2"]),tab:currentTab,day:currentProdDay,mode:_prodSortMode})'));
+      const words=JSON.parse(A.ev('JSON.stringify([t("cell.toastSkip"),t("cell.toastSkipUndo"),t("cell.toastLeft"),t("cell.toastLeftUndo")])'));
+      try{
+        A.ev('showTab(3); currentProdDay=3; _prodSortMode="default"; 1');
+        // 1) 開始の1分前（9:59）に「在庫欠品」→ 案内だけ・何も保存しない・メニューは閉じる
+        T(DJ,B1); A.ev('renderProdDayContent(3); 1'); const st0=stateJ(), pd0=A.store.status().pending;
+        o72.a={res:menu('skip'),skipped:sk(),same:stateJ()===st0,pend:A.store.status().pending-pd0,toast:toast()};
+        // 2) 開始の時刻ちょうど（10:00）→ 付く（欠品の印・チェックは押せない・札なし）
+        T(DJ,10); o72.b={res:menu('skip'),skipped:sk(),toast:toast(),cell:cell()};
+        // 3) 時計が「まだ」でも、外す（取り消す）のはいつでもできる
+        T(DJ,B1); o72.c={res:menu('skip'),skipped:sk(),toast:toast(),cell:cell()};
+        // 4) 先の日（今日＝10/06 の 23:59 に 10/09 を見る）→ 止まる。案内に日付
+        T('2026-10-06',23.9999); A.ev('renderProdDayContent(3); 1'); const st1=stateJ(), pd1=A.store.status().pending;
+        o72.d={res:menu('skip'),skipped:sk(),same:stateJ()===st1,pend:A.store.status().pending-pd1,toast:toast()};
+        // 5) 過ぎた日（今日＝10/13）→ 付く → 外れる
+        T('2026-10-13',3); o72.e1={res:menu('skip'),skipped:sk()}; o72.e2={res:menu('skip'),skipped:sk()};
+        // 6) 「余った」は開始前でも今までどおり（対象外）：付く → 外れる
+        T(DJ,B1); o72.f1={res:menu('left'),left:lo(),toast:toast()}; o72.f2={res:menu('left'),left:lo(),toast:toast()};
+      }catch(e){ o72.err=String(e&&e.stack||e); }
+      // 後始末
+      try{ A.ev(`if(!${J(pre.sk)}&&S.skipped&&S.skipped[${J(K)}])setSkipped(${J(K)},false); if(!${J(pre.lo)}&&S.leftovers&&S.leftovers[${J(K)}])toggleLeftover(${J(K)}); _prodSortMode=${J(pre.mode)}; currentProdDay=${pre.day}; showTab(${pre.tab}); 1`); }catch(e){ o72.err2=String(e); }
+      T('2026-10-06',null); A.ev('renderProdDayContent(currentProdDay); 1'); await sync();
+      const a=o72.a||{}, b=o72.b||{}, c=o72.c||{}, d=o72.d||{}, e1=o72.e1||{}, e2=o72.e2||{}, f1=o72.f1||{}, f2=o72.f2||{};
+      const okBlock=a.skipped===false&&a.same&&a.pend===0&&a.toast==='10:00になったら押せます'&&a.res==='none';                                                  // 1) 開始前：案内だけ・保存しない
+      const okAt=b.skipped===true&&b.toast===words[0]&&b.cell&&b.cell.dis===true&&b.cell.badge===true&&b.cell.lock===false;                                       // 2) 開始の時刻から付く
+      const okUndo=c.skipped===false&&c.toast===words[1]&&c.cell&&c.cell.badge===false;                                                                           // 3) 取り消しはいつでも
+      const okFuture=d.skipped===false&&d.same&&d.pend===0&&d.toast==='10/9 10:00になったら押せます';                                                           // 4) 先の日は止まる
+      const okPast=e1.skipped===true&&e2.skipped===false;                                                                                                          // 5) 過ぎた日は付く
+      const okLeft=f1.left===true&&f1.toast===words[2]&&f2.left===false&&f2.toast===words[3];                                                                     // 6) 「余った」は対象外
+      check('72','【在庫欠品も開始前は止める】マスの記録メニューの「在庫欠品」も、その時間帯の開始の時刻になるまで付けられない（時計は固定）：開始の1分前は案内「10:00になったら押せます」を出すだけで何も保存しない（未送信も増えない）／開始の時刻ちょうどから付く（欠品の印・チェックは押せない・札なし）／外す（取り消す）のは時計が「まだ」でもいつでも／先の日は止まる（案内に「10/9」）・過ぎた日は付く／「余った」は今までどおり（開始前でも押せる＝対象外）',
+        !o72.err&&!o72.err2&&okBlock&&okAt&&okUndo&&okFuture&&okPast&&okLeft,
+        o72.err||o72.err2||`開始前 ${okBlock} ${J(a)}／ちょうど ${okAt} ${J(b)}／取り消し ${okUndo} ${J(c)}／先の日 ${okFuture} ${J(d)}／過ぎた日 ${okPast} ${J(e1)}・${J(e2)}／余った ${okLeft} ${J(f1)}・${J(f2)}`);
+    }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
