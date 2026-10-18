@@ -2561,6 +2561,63 @@ body.admin-mode #view-tabs #tab-db,body.admin-mode #view-tabs #tab-list{display:
   .date-main{font-size:16px}
   #header h1{font-size:14px}
 }
+/* 5.11：入口（v2）の中で開いた時、WS の濃い青の帯（題・従業員・同期）は 1行ぶんの高さを使わない。題は消し、「従業員」と同期のしるしは 下の タブの行の右はしへ（ページ幅 621px 以上）。狭い画面では 細い1行 */
+html.embedded-in-hub #header{padding:2px 10px;min-height:0;gap:8px;justify-content:flex-end;background:#fff}
+html.embedded-in-hub #header h1{display:none}
+html.embedded-in-hub #admin-toggle{background:#eef2f7;color:var(--main);border-color:#cbd5e1;min-height:40px}
+html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!important;box-shadow:none!important;min-height:40px;box-sizing:border-box}
+@media(min-width:621px){
+  html.embedded-in-hub #top-stack{position:sticky}
+  html.embedded-in-hub #header{position:absolute;top:0;right:0;width:152px;height:61px;box-sizing:border-box;box-shadow:inset 0 -1px 0 var(--border);z-index:3;background:transparent;padding:0 12px;align-items:center;flex-wrap:nowrap;pointer-events:none}
+  html.embedded-in-hub #header>*{pointer-events:auto}
+  html.embedded-in-hub #view-tabs{margin-right:152px}   /* 5.11 直し（点検 r3 の P2）：右はしの 2つ（管理者・同期）の下に タブが もぐらない。タブの行そのものを 152px せまくして、タブが 多い時（管理者モード）は 行の中で 横に送る。前の「右の余白（padding）」では、タブが 2つの下に もぐるのを 止められなかった */
+}
+/* ===== 5.11：売場マップ（本物の売場図のまま大きく）。見本 ws_map_mock5 と同じ ===== */
+/* map-mock5.css (gear 2026-10-15): WS 5.11 mock. The map drawing stays the same map (same cells). Only size, position and text/line weight change.
+   621px+: grid. map = everything left of the list; list column fixed (clamp). map box height = down to the bottom of the screen.
+   621-899px: list stays as a narrow column (220-260px). No rail, no hide button. */
+.amf-M{--m5-colw:clamp(420px,40vw,480px)}
+#amf-wrap.m5 .am-zoombtn,#amf-wrap.m5 .am-maptools{display:none!important}
+#amf-wrap.m5 .amf-map{transition:none!important}
+#amf-wrap.m5 .am-mapbox{padding:0;overflow:hidden;box-sizing:border-box}
+#amf-wrap.m5 .am-mapbox .am-svg{display:block;width:100%;height:100%;max-width:none}
+.m5 .amf-hi rect{fill:rgba(37,99,235,.14);stroke:#1d4ed8;stroke-width:5px}
+@media(min-width:621px){
+  #amf-wrap.m5w{display:grid;box-sizing:border-box;grid-template-columns:minmax(0,1fr) var(--m5-colw);grid-template-rows:auto auto auto minmax(0,1fr);column-gap:12px;
+    padding:0 12px calc(6px + var(--amf-foot,0px));height:calc(var(--amf-vh,100vh) - var(--amf-mtop,150px))}
+  #amf-wrap.m5w .am-adminbar{grid-column:2;grid-row:1;margin:0 0 4px}
+  #amf-wrap.m5w .amf-filt{grid-column:2;grid-row:2;margin-bottom:4px}
+  #amf-wrap.m5w .amf-top{position:static;grid-column:2;grid-row:3;margin:0 0 6px;padding:0;background:transparent;min-height:48px}
+  #amf-wrap.m5w .amf-tab,#amf-wrap.m5w.amf-open .amf-tab{display:none}
+  #amf-wrap.m5w .amf-g{display:contents}
+  #amf-wrap.m5w .amf-map,#amf-wrap.m5w.amf-open .amf-map{grid-column:1;grid-row:1/5;position:relative;display:block;width:auto!important;max-width:none!important;height:100%;min-width:0;min-height:0;transition:none}
+  #amf-wrap.m5w .am-mapbox{height:100%;width:100%;max-height:none}
+  #amf-wrap.m5w .amf-col,#amf-wrap.m5w.amf-open .amf-col{display:block;grid-column:2;grid-row:4;width:auto;max-width:none;max-height:none;height:auto;min-height:0;overflow-y:auto;margin:0;padding:3px}
+  #amf-wrap.m5w .amf-col.amf-split,#amf-wrap.m5w.amf-open .amf-col.amf-split{display:flex;flex-direction:column;overflow:hidden;padding:0;height:auto;max-height:none}
+}
+@media(min-width:621px) and (max-width:899px){
+  .amf-M{--m5-colw:clamp(220px,32vw,260px)}
+  #amf-wrap.m5w{column-gap:8px;padding-left:8px;padding-right:8px}
+  #amf-wrap.m5w .amf-rule{font-size:14px;padding:5px 8px;line-height:1.25}
+  #amf-wrap.m5w .amf-r{padding:4px 6px 4px 6px;min-height:52px;margin-bottom:4px}
+  #amf-wrap.m5w .amf-ri,#amf-wrap.m5w .amf-o .amf-ri{grid-template-columns:30px 24px minmax(0,1fr) 26px;grid-template-areas:"no ic nm em";column-gap:6px}
+  #amf-wrap.m5w .amf-ri>.am-st,#amf-wrap.m5w .amf-ri>.am-wr-go{display:none}
+  #amf-wrap.m5w .amf-ri>.am-wr-n{font-size:15px;line-height:1.25}
+  #amf-wrap.m5w .amf-ri>.am-wr-i{font-size:20px}
+  #amf-wrap.m5w .amf-time{font-size:14px}
+  #amf-wrap.m5w .amf-o .amf-ri{grid-template-columns:44px 22px minmax(0,1fr) 26px}
+  #amf-wrap.m5w .m5-em{grid-area:em;justify-self:end;font-size:18px;line-height:1}
+  #amf-wrap.m5w .amf-sh{padding:2px 4px 4px}
+  #amf-wrap.m5w .amf-shs{display:none}
+}
+.m5-em{display:none}
+#amf-wrap:not(.amf-M) .m5-em{display:none!important}
+@media(min-width:621px) and (max-width:899px){ .m5-em{display:inline} }
+/* phone (~620px): the same as 5.10 (list first / map by the bottom button); only the map box fills its height */
+@media(max-width:620px){
+  #amf-wrap.m5:not(.amf-open) .amf-map{width:100%!important;max-width:none!important;height:calc(var(--amf-vh) - var(--amf-mtop,156px) - var(--amf-low))}
+  #amf-wrap.m5:not(.amf-open) .am-mapbox{height:100%}
+}
 </style>
 <!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す＋Gist同期を停止（単体URLでは従来通り） -->
 <script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
@@ -3661,7 +3718,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.10'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.11'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -15301,6 +15358,200 @@ async function start(){
     setTimeout(() => alert('共有リンクからクラウド同期を設定しました。\n\nこの端末で編集した内容は自動でクラウドに同期されます。'), 300);
   }
 }
+/* ===== 5.11（2026-10-15）：売場マップ（本物の売場図のまま大きく）。見本 ws_map_mock5 の map-mock5.js と同じ中身。上の描く関数を包む（マスの形・位置は変えない。保存する物は無い） ===== */
+/* map-mock5.js (gear 2026-10-15): WS 5.11 mock. Draws the SAME map (same cells, same x/y/w/h) as 5.10, only larger and more readable.
+   - viewBox = used area (frame + the dog-run zone) fitted to the box, preserveAspectRatio meet (explicit numbers, same result as meet)
+   - cell text is placed by px: >=11px for cells with work (inside the cell, horizontal or vertical, shortened if needed, else a tag outside joined by a thin line)
+   - cells without work: thin and light, text only if it fits
+   - no zoom, no lens, no rail. Nothing is saved. */
+(function(){
+  'use strict';
+  if(window.__m5Init) return; window.__m5Init=true;
+  var baseRender=renderMapView, baseCell=amCellSvg, basePlace=amFPlace, baseToggle=amFToggle;
+  var mq=window.matchMedia('(min-width:621px)');
+  var S={s:0,vx:0,vy:0,vw:0,vh:0,lay:null,info:null,key:null,layK:''};
+  /* shorter labels (display only; the data is not changed). first = the one used for a tag when the cell is too small */
+  var ALT={ice1:['冷凍アイス①'],wayo:['和洋菓子'],reizo:['冷蔵\nケース'],wagashi:['和菓子'],dessert1:['デザート①'],dessert2:['デザート②'],
+    orig:['オリジナル菓子'],machi:['まちかど厨房'],gomi:['ゴミ箱\nレンジ'],season:['シーズン\nエンド①'],coffee:['コーヒー\nマシン'],cup:['カフェ\nカップ'],ice2:['冷凍\nアイス②']};
+  /* 字の幅の見積り（em）。全角＝1。半角の英数字は 太字で 実際に使う字体の幅（大文字 0.67〜1.0・小文字と数字 0.67・細い字 i j l f r t は 0.58）。
+     前は 半角を 全部 0.58 と見積もっていたので、「ATM」（実際は 2.38em）が 1.74em と見積もられて マスから 3px はみ出した（点検 r3 の P6）。見積りは 前より 小さくならない */
+  var LW={A:.78,B:.78,C:.78,D:.78,E:.72,F:.67,G:.83,H:.83,J:.67,K:.83,L:.67,M:.94,N:.83,O:.83,P:.72,Q:.83,R:.78,S:.72,T:.72,U:.83,V:.78,W:1,X:.78,Y:.78,Z:.72,m:1,w:.94};
+  function cw(ch){ var c=ch.charCodeAt(0); if(c>=0x250) return 1.0; if(LW[ch]) return LW[ch]; return (((c>=97&&c<=122)||(c>=48&&c<=57))&&'ijlfrt'.indexOf(ch)<0)?0.67:0.58; }
+  function tw(t,fs){ var w=0; for(var i=0;i<t.length;i++) w+=cw(t.charAt(i)); return w*fs; }
+  function esc(t){ return (typeof escapeHtml==='function')?escapeHtml(t):String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function hasWorks(c){ try{ return (c.works||[]).map(amWork).filter(function(w){ return w&&!amIsOff(w); }).length>0; }catch(e){ return false; } }
+  function variants(c){
+    var lab=String(c.label||''), j=lab.replace(/\n/g,''), v=[lab.split('\n')];
+    if(lab.indexOf('\n')>=0) v.push([j]);
+    var n=j.length;
+    (ALT[c.id]||[]).forEach(function(a){ v.push(a.split('\n')); });
+    function cut(i){ while(i<n&&(j.charAt(i)==='ー'||j.charAt(i)==='・'||(cw(j.charAt(i))<1&&cw(j.charAt(i-1))<1)||'①②③'.indexOf(j.charAt(i))>=0)) i++; return i; }
+    if(n>=6){ var h=cut(Math.ceil(n/2)); if(h<n) v.push([j.slice(0,h),j.slice(h)]); }
+    if(n>=8){ var t=cut(Math.ceil(n/3)), t2=cut(Math.ceil(2*n/3)); if(t<t2&&t2<n) v.push([j.slice(0,t),j.slice(t,t2),j.slice(t2)]); }
+    return v;
+  }
+  /* text block in px. returns {o:'h'|'v', lines, fs} or null. W,H = inner size of the cell in px */
+  function fit(lines,fs,W,H){
+    var n=lines.length, mx=0, i; for(i=0;i<n;i++) mx=Math.max(mx,tw(lines[i],fs));
+    if(mx<=W&&n*fs*1.18<=H) return {o:'h',lines:lines,fs:fs,bw:mx,bh:n*fs*1.18};
+    if(n*fs*1.12<=W&&mx<=H) return {o:'v',lines:lines,fs:fs,bw:n*fs*1.12,bh:mx};
+    return null;
+  }
+  function fitInside(c,vars,s,sizes){
+    var W=c.w*s-2.5, H=c.h*s-2.5, vi, si, r;
+    for(vi=0;vi<vars.length;vi++) for(si=0;si<sizes.length;si++){ r=fit(vars[vi],sizes[si],W,H); if(r) return r; }
+    return null;
+  }
+  function overlap(a,b){ return a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h; }
+  function buildLayout(map){
+    var s=S.s, cells=map.cells, L={}, rects=[], placed=[], info=[], u=1/s;
+    var vis={l:S.vx+1.5*u,t:S.vy+1.5*u,r:S.vx+S.vw-1.5*u,b:S.vy+S.vh-1.5*u};
+    cells.forEach(function(c){ rects.push({x:c.x-0.6*u,y:c.y-0.6*u,w:c.w+1.2*u,h:c.h+1.2*u,id:c.id}); });
+    var pend=[];
+    cells.forEach(function(c){
+      var wk=hasWorks(c), lab=String(c.label||'');
+      if(!lab){ L[c.id]={mode:'none',wk:wk}; return; }
+      var vars=variants(c), r=fitInside(c,vars,s,wk?[14,13,12,11.3]:[12,11.3]);
+      if(r){ L[c.id]={mode:'in',wk:wk,r:r}; info.push({id:c.id,mode:'in',wk:wk,fs:r.fs,o:r.o,t:r.lines.join('/')}); return; }
+      if(!wk){ L[c.id]={mode:'none',wk:wk}; return; }
+      var alt=ALT[c.id], txt=(alt?alt[0]:lab).replace(/\n/g,'');
+      L[c.id]={mode:'tag',wk:wk,txt:txt}; pend.push(c);
+    });
+    /* place tags: nearest free spot (beside the cell, then the free aisles, then the side gutters) */
+    pend.sort(function(a,b){ return (a.y+a.h/2)-(b.y+b.h/2); });
+    pend.forEach(function(c){
+      var lay=L[c.id], best=null, fsList=[12,11.3], fi, oi, k;
+      var ccx=c.x+c.w/2, ccy=c.y+c.h/2;
+      for(fi=0;fi<fsList.length&&!best;fi++){
+        var fs=fsList[fi], len=tw(lay.txt,fs);
+        ['h','v'].forEach(function(o){
+          var bw=(o==='h'?len+5:fs*1.2+1)*u, bh=(o==='h'?fs*1.25+1:len+5)*u, step=5*u, gap=2.5*u, cand=[];
+          var xs=[c.x-gap-bw,c.x+c.w+gap], ys=[c.y-gap-bh,c.y+c.h+gap];
+          for(k=-90;k<=90;k++){
+            xs.forEach(function(x){ cand.push([x,ccy-bh/2+k*step]); });
+            ys.forEach(function(y){ cand.push([ccx-bw/2+k*step,y]); });
+            cand.push([vis.l,ccy-bh/2+k*step]); cand.push([vis.r-bw,ccy-bh/2+k*step]);
+          }
+          cand.forEach(function(p){
+            var b={x:p[0],y:p[1],w:bw,h:bh};
+            if(b.x<vis.l||b.y<vis.t||b.x+b.w>vis.r||b.y+b.h>vis.b) return;
+            var cost=Math.abs(b.x+bw/2-ccx)+Math.abs(b.y+bh/2-ccy)+(o==='v'?6*u:0);
+            if(best&&cost>=best.cost) return;
+            var i, bad=false;
+            for(i=0;i<rects.length&&!bad;i++) if(overlap(b,rects[i])) bad=true;
+            for(i=0;i<placed.length&&!bad;i++) if(overlap({x:b.x-1.5*u,y:b.y-1.5*u,w:b.w+3*u,h:b.h+3*u},placed[i])) bad=true;
+            if(!bad) best={cost:cost,b:b,o:o,fs:fs};
+          });
+        });
+      }
+      if(best){ lay.tag=best; placed.push(best.b); info.push({id:c.id,mode:'tag',wk:true,fs:best.fs,o:best.o,t:lay.txt}); }
+      else{ lay.mode='lost'; info.push({id:c.id,mode:'lost',wk:true,fs:0,t:lay.txt}); }
+    });
+    S.info=info; return L;
+  }
+  function textEl(x,y,fs,t,fill,cls,vert,extra){
+    var s=S.s;
+    return '<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="'+(fs/s).toFixed(2)+'" text-anchor="middle" dominant-baseline="central"'+(vert?' writing-mode="vertical-rl"':'')+' fill="'+fill+'" class="am-lbl '+cls+'"'+(extra||'')+'>'+esc(t)+'</text>';
+  }
+  function layKey(map){ var k=[S.s.toFixed(5),S.vx.toFixed(2),S.vy.toFixed(2),S.vw.toFixed(2),S.vh.toFixed(2)], b=''; map.cells.forEach(function(c){ b+=(hasWorks(c)?'1':'0'); k.push(c.id,c.x,c.y,c.w,c.h,c.label||''); }); return k.join(',')+'|'+b; }
+  function cellM5(c,o){
+    var s=S.s, u=1/s, z=AM_ZONE[c.zone]||AM_ZONE.none, kind=c.kind||'cell', st=o.s||null, wk=!!o.tap;
+    if(S.key===null) S.key=layKey(amMap());   // 札の置き場所は、大きさ・マス・作業の有無が同じ間は 前の描きの物を使う（描き直しのたびに 作り直さない＝開いた直後の0.5秒の守りの間に 重い計算を入れない）
+    if(!S.lay||S.layK!==S.key){ S.lay=buildLayout(amMap()); S.layK=S.key; }
+    var lay=S.lay[c.id]||{mode:'none'};
+    var fill=z.fill, stroke=z.stroke, sw=0.9, dash='', tc='#3f4349', op='', bold=false;
+    if(wk){ stroke=z.ink; sw=1.6; tc='#0f172a'; bold=true; }
+    else { op=' stroke-opacity=".55"'; tc='#7b838c'; }
+    if(kind==='door'){ fill='url(#am-hatch)'; stroke='#1f4e8c'; sw=2; dash=' stroke-dasharray="'+(6*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; tc='#1f4e8c'; op=''; bold=true; }
+    else if(kind==='zone'){ dash=' stroke-dasharray="'+(5*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; if(c.zone==='none'){ fill='none'; stroke='#c9ced6'; } else { stroke=wk?z.ink:z.stroke; sw=wk?1.4:0.9; op=wk?'':' stroke-opacity=".6"'; } tc=wk?(z.ink||'#555'):'#9aa0a8'; }
+    else if(kind==='text'){ fill='none'; stroke='none'; tc='#7b838c'; }
+    else if(kind==='pin'){ bold=true; tc=z.color; if(wk){ sw=1.6; } }
+    if(st&&st.st==='fire'){ fill='#f6a79e'; stroke='#c01c12'; sw=3; dash=''; op=''; tc='#450a0a'; }
+    else if(st&&st.st==='soon'){ fill='#fbe18a'; stroke='#c78500'; sw=2.4; dash=''; op=''; tc='#422006'; }
+    var x=c.x,y=c.y,w=c.w,h=c.h, rx=kind==='pin'?Math.min(w,h)/2:2*u;
+    var ic=(c.icon&&AM_ICONS[c.icon])?AM_ICONS[c.icon]:null, g='', cx=x+w/2, cy=y+h/2;
+    if(lay.mode==='in'){
+      var r=lay.r, fs=r.fs, pitchV=fs*1.12, lh=fs*1.18;
+      var leftH=(h*s-2.5)-r.bh, isz=Math.min(18,w*s*0.55), showIc=ic&&r.o==='h'&&(leftH>=isz+4)&&isz>=14&&!(st&&st.st==='none');
+      var top=cy-(r.bh+(showIc?(isz+3):0)/1)*u/2;
+      if(showIc) g+='<g transform="translate('+(cx-isz*u/2).toFixed(1)+','+top.toFixed(1)+') scale('+(isz*u/24).toFixed(4)+')" fill="none" stroke="'+((st&&st.st==='fire')?'#b42318':z.ink)+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+ic.d+'</g>';
+      var base=top+(showIc?(isz+3)*u:0);
+      if(r.o==='h'){ r.lines.forEach(function(t,i){ g+=textEl(cx,base+(lh*(i+0.5))*u,fs,t,tc,bold?'am-b':'',false); }); }
+      else{ var n=r.lines.length; r.lines.forEach(function(t,i){ var colx=cx+((n-1)/2-i)*pitchV*u; g+=textEl(colx,cy,fs,t,tc,bold?'am-b':'',true); }); }
+    } else if(lay.mode==='tag'&&lay.tag){
+      var tg=lay.tag, b=tg.b, bx=b.x+b.w/2, by=b.y+b.h/2;
+      var px=Math.max(x,Math.min(x+w,bx)), py=Math.max(y,Math.min(y+h,by)), qx=Math.max(b.x,Math.min(b.x+b.w,px)), qy=Math.max(b.y,Math.min(b.y+b.h,py));
+      g+='<line x1="'+px.toFixed(1)+'" y1="'+py.toFixed(1)+'" x2="'+qx.toFixed(1)+'" y2="'+qy.toFixed(1)+'" stroke="#475569" stroke-width="'+(1*u).toFixed(2)+'"/><circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="'+(1.8*u).toFixed(2)+'" fill="#475569"/>';
+      g+='<rect x="'+b.x.toFixed(1)+'" y="'+b.y.toFixed(1)+'" width="'+b.w.toFixed(1)+'" height="'+b.h.toFixed(1)+'" rx="'+(2*u).toFixed(1)+'" fill="#fff" fill-opacity=".92" stroke="#94a3b8" stroke-width="'+(0.8*u).toFixed(2)+'"/>';
+      g+=textEl(bx,by,tg.fs,lay.txt,'#0f172a','am-b',tg.o==='v');
+    }
+    var cls='am-cell'+(o.tap?' am-tap':'')+(o.dim?' am-dim':'');
+    var hit=(kind==='text'||fill==='none')?'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="#fff" fill-opacity="0.01"/>':'';
+    return '<g class="'+cls+'"'+(o.tap?' onclick="amCellTap(\''+c.id+'\')"':'')+'>'+hit+'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+rx.toFixed(2)+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+(sw*u).toFixed(2)+'"'+dash+op+'/>'+g+'</g>';
+  }
+  window.amCellSvg=function(c,o){
+    o=o||{};
+    if(o.edit||!('tap' in o)||!(S.s>0)) return baseCell(c,o);
+    try{ return cellM5(c,o); }catch(e){ console.error('m5 cell '+(e&&e.message)); return baseCell(c,o); }
+  };
+  /* ---- geometry: fit the used area to the map box ---- */
+  function post(){
+    var w=document.getElementById('amf-wrap'); if(!w||!w.classList.contains('amf-M')) return false;
+    var wide=mq.matches; w.classList.add('m5'); w.classList.toggle('m5w',wide);
+    var box=w.querySelector('.am-mapbox'), svg=box&&box.querySelector('svg.am-svg'), map=amMap(); if(!svg||!map) return false;
+    if(wide) amFPlace();
+    var r=box.getBoundingClientRect(); if(!(r.width>40&&r.height>40)) return false;
+    var f=map.frame||{x:0,y:0,w:map.w,h:map.h}, minx=f.x, maxx=f.x+f.w;
+    map.cells.forEach(function(c){ minx=Math.min(minx,c.x); maxx=Math.max(maxx,c.x+c.w); });
+    var uw=maxx-minx, pad=2, s=Math.min((r.width-2*pad)/uw,(r.height-2*pad)/f.h);
+    S.rw=r.width; S.rh=r.height; var vw=r.width/s, vh=r.height/s, vx=minx+uw/2-vw/2, vy=f.y+f.h/2-vh/2;
+    var ch=Math.abs(s-S.s)>S.s*0.003||Math.abs(vx-S.vx)>1||Math.abs(vy-S.vy)>1;
+    S.s=s; S.vx=vx; S.vy=vy; S.vw=vw; S.vh=vh;
+    svg.setAttribute('viewBox',vx.toFixed(2)+' '+vy.toFixed(2)+' '+vw.toFixed(2)+' '+vh.toFixed(2));
+    svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+    var fr=svg.querySelector('rect[stroke="#111827"]'); if(fr) fr.setAttribute('stroke-width',(2.2/s).toFixed(2));
+    return ch;
+  }
+  /* narrow list (tablet): fire / soon marks next to the short name */
+  function marks(){
+    var w=document.getElementById('amf-wrap'); if(!w||!w.classList.contains('amf-M')) return;   // 地図の無い店では 出さない
+    [].forEach.call(w.querySelectorAll('.amf-col .amf-r'),function(r){
+      if(r.querySelector('.m5-em')) return;
+      var e=r.classList.contains('fire')?'🔥':(r.classList.contains('soon')?'🟡':''); if(!e) return;
+      var ri=r.querySelector('.amf-ri'); if(ri) ri.insertAdjacentHTML('beforeend','<span class="m5-em" aria-hidden="true">'+e+'</span>');
+    });
+  }
+  window.renderMapView=function(){
+    S.key=null;
+    baseRender.apply(this,arguments);
+    try{
+      var tries=0; while(post()&&tries++<3){ S.key=null; baseRender.apply(this,arguments); }
+      post(); marks(); amFHi(); amSnackPlace();
+    }catch(e){ console.error('m5 '+(e&&e.message)); }
+  };
+  window.amFPlace=function(){
+    var w=document.getElementById('amf-wrap');
+    if(!mq.matches||!w||!w.classList.contains('m5w')) return basePlace();
+    var ts=document.getElementById('top-stack'), r=w.getBoundingClientRect(), rs=document.documentElement.style;
+    if(!(r.width||r.height)) return;
+    rs.setProperty('--amf-top',(ts?Math.round(ts.getBoundingClientRect().height):0)+'px');
+    rs.setProperty('--amf-mtop',Math.ceil(r.top+(window.scrollY||window.pageYOffset||0))+'px');
+  };
+  /* 5.11 直し（点検 r3 の P1）：スマホで「作業を 見る」の画面から「地図を 見る」に替えた時、地図は それまで かくれていて 寸法が 測れていない（S.s が 0 か 古い）。
+     amFToggle は class を替えるだけで 描き直さないので、字が 3.5〜4.4px のまま（「拡大する」も 出ない）で、次の描き直し（最大30秒後）まで 直らなかった。
+     地図が 見えるようになった時に 1回だけ 測り直し、大きさが 変わっていれば 描き直す（30秒ごとの描き直しと 同じ関数）。広い画面（地図が いつも 見えている）と、列に替える時は 何もしない。
+     守り（AM_HOLD_MS・AM_GUARD_MS・_amfHold）・保存・状態の決め方には さわらない（保存する物は無い） */
+  window.amFToggle=function(){
+    var r=baseToggle.apply(this,arguments);
+    try{ if(!_amfOpen&&!mq.matches&&post()) renderMapView(); }catch(e){ console.error('m5 toggle '+(e&&e.message)); }
+    return r;
+  };
+  window.__m5={info:function(){ return {s:S.s,rw:S.rw,rh:S.rh,vb:[S.vx,S.vy,S.vw,S.vh],cells:S.info}; },S:S};
+  var rt=null; function again(){ clearTimeout(rt); rt=setTimeout(function(){ if(document.getElementById('amf-wrap')) renderMapView(); },60); }
+  window.addEventListener('resize',again); mq.addEventListener('change',again);
+  if(document.getElementById('amf-wrap')) renderMapView();
+})();
+
 start();
 </script>
 </body>

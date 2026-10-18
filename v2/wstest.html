@@ -1473,6 +1473,94 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         &&o.i2[0]==='t99b:fire^,t99f:soon^,t99o:soonv'&&o.i2[1]===o.i2[0]&&o.i3[0]==='t99b:fire^,t99f:soon^,t99o:donev:見本 花子'&&o.i3[1]===o.i3[0]
         &&/t99f:done\^/.test(o.i4[0])&&o.i4[1]===o.i4[0]&&o.n4[0]===2&&o.n4[1]===2&&J(o.i5a)===J([4,4])&&J(o.i5b)===J([3,3])&&same(),
         `はじめ ${o.i0[0]}｜画面 上${o.dom.up}・下${o.dom.dn}・赤い数 ${o.dom.badge}・⏰${o.dom.off}｜B が押した ${o.i1[1]}｜取り消し ${o.i2[0]}｜同時 ${o.i4[0]}（${o.n4.join('/')}件）｜元の記録を足す→消す ${o.i5a.join('/')}→${o.i5b.join('/')}｜取り消しの後に押す ${o.i3[0]}｜記録の形 ${J(o.shape)}｜画面 ${J(o.dom)}｜2台の中身が同じ ${same()}`); }
+    /* ---- 5.11：売場マップを大きく（本物の売場図のまま）。形と位置は 5.10 と同じ・作業のあるマスの字は 11px 以上・FF と カレンダーの時は 見出しをたたまない ---- */
+    {
+      const dj=s=>{ let h=5381; for(let i=0;i<s.length;i++) h=((h*33)+s.charCodeAt(i))>>>0; return h; };
+      const o=JSON.parse(A.ev(`(()=>{ renderMapView(); const map=amMap(), g=[].slice.call(document.querySelectorAll('#map-view svg g.am-cell')), drawn=g.map(e=>{ const r=[].slice.call(e.querySelectorAll('rect')).filter(x=>!x.getAttribute('fill-opacity'))[0]; return r?[r.getAttribute('x'),r.getAttribute('y'),r.getAttribute('width'),r.getAttribute('height')].join(','):'none'; });
+        const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
+        return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
+      check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.11'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
+      const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
+      check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
+        t.n>0&&t.min>=11&&t.wkSmall===0&&t.wkN>0,`字 ${t.n}個・いちばん小さい ${t.min}px・作業のあるマス ${t.wkN}（11px未満 ${t.wkSmall}・置けなかった札 ${t.lost}）・縮尺 ${t.scale}`);
+      /* 入口（v2/index.html）の読み取りだけ（入口そのものは 開かない＝本物の保存先に つながない）。FF管理・カレンダーの時の上の形は 1字も変えない＝「<style> の中で 5.11 のたたみの部分を除いた物」が 5.10 の物と同じ */
+      let sh=null; try{ const x=new XMLHttpRequest(); x.open('GET','index.html?t='+Date.now(),false); x.send(); sh=(x.status===200||x.status===0)?x.responseText:null; }catch(e){ sh=null; }
+      let oks=false, d96c='入口の文字を読めなかった';
+      if(sh){
+        const txt=sh.replace(/\r\n/g,'\n'), m=txt.match(/<style>\n([\s\S]*?)\n<\/style>\n<script src="https:\/\/www\.gstatic/); const css=m?m[1]:'', at=css.indexOf('/* 5.11：ワークスケジュールを開いている時だけ');
+        const base=at>0?css.slice(0,at-1):css, blk=at>0?css.slice(at):'', sels=blk.split('\n').filter(l=>/\{/.test(l)&&!/^\s*@media|^\s*\/\*/.test(l)).map(l=>l.trim()), allWs=sels.length>0&&sels.every(l=>/^body\.ws-compact/.test(l));
+        const tog=/function showSystem\(sys\)\{\n  activeSys=sys;\n  document\.body\.classList\.toggle\('ws-compact',sys==='ws'\);/.test(txt), cnt=(txt.match(/ws-compact/g)||[]).length;
+        oks=at>0&&dj(base)===227124069&&allWs&&tog&&!/classList\.add\('ws-compact'\)/.test(txt);
+        d96c=`たたむ部分を除いた <style> の並び ${dj(base)}（5.10 は 227124069）・たたむ規則 ${sels.length}本（ぜんぶ body.ws-compact から）・showSystem の切りかえ ${tog}・ws-compact の字 ${cnt}か所`;
+      }
+      check('96c','入口の上の見出し（5.11）：ワークスケジュールを開いている時だけ 1行にたたむ（body.ws-compact の規則だけ）。FF管理・カレンダーを開いた時は 印が付かず、<style> の ほかの部分は 5.10 と 1字も同じ',oks,d96c);
+    }
+    /* ---- 5.11 の仕上げ（点検 r3 の直し）。2台の試験とは別に、作り物のデータだけの別の枠を 1つずつ 開いて確かめる（ネット上の保存先は 別の入れ物＝2台の中身・未送信には 関わらない）。
+         P1 スマホで「作業を 見る」→「地図を 見る」に替えた直後の字／P6 字が マスからはみ出さない（1024×768）／P2 管理者モードで 右上の2つが タブに かぶらない／P3 入口の短い言い方 ---- */
+    {
+      const mkSolo=async(w,h)=>{
+        const c2=new V2.MemoryCloud(), be=c2.device(), store=new V2.Store({backend:be,space:'T9',device:'端末P',kv:new V2.MemKV(),snapshot:false});
+        const f=document.createElement('iframe'); f.style.cssText='display:block;width:'+w+'px;height:'+h+'px;max-width:none;border:1px solid #cbd5e1;border-radius:8px;background:#fff;margin:8px 0'; document.body.appendChild(f);
+        const win=await load(f,'ws/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null;
+        await win.__v2go({store,stores,current:'w1',state:J(st)}); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); await sleep(400);
+        return {f,win,ev:s=>win.eval(s),close:()=>{ try{ f.remove(); }catch(_){} }};
+      };
+      /* P1：幅 390 の枠。最初は列が出ていて 地図は かくれている（まだ 測っていない）。下のボタンを押して 地図に替える。大きさを変える合図（resize）は 開いた後に 1回も送らない */
+      const P=await mkSolo(390,844);
+      P.ev(`window.__rs=0; window.addEventListener('resize',()=>{ window.__rs++; }); setView('map')`); await sleep(500);
+      const p1pre=JSON.parse(P.ev(`JSON.stringify({open:document.getElementById('amf-wrap').classList.contains('amf-open'), s:(window.__m5&&window.__m5.S.s)||0})`));
+      P.ev(`document.getElementById('amf-tab').click()`); await sleep(300);
+      const p1=JSON.parse(P.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), ctm=svg&&svg.getScreenCTM(), sc=ctm?ctm.a:0, tx=svg?[].slice.call(svg.querySelectorAll('text')):[], px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*sc).filter(Boolean).sort((a,b)=>a-b), z=document.querySelector('.am-zoombtn'), cells=(window.__m5&&window.__m5.info().cells)||[];
+        return JSON.stringify({open:document.getElementById('amf-wrap').classList.contains('amf-open'), n:px.length, min:px.length?Math.round(px[0]*100)/100:0, sc:sc, s:window.__m5?window.__m5.S.s:0, rs:window.__rs, zoomHidden:!z||getComputedStyle(z).display==='none', wkSmall:cells.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, lost:cells.filter(x=>x.mode==='lost').length}); })()`));
+      check('96d','スマホ幅（390）で「作業を 見る」の画面から「地図を 見る」に替えた直後（大きさを変える合図は 送らない）：地図の字は ぜんぶ 画面で 11px 以上・作業のあるマスで 11px 未満は 0・「拡大する」は出ない（点検 r3 の P1。前は 3.5〜4.4px で、次の描き直し（最大30秒後）まで 直らなかった）',
+        p1pre.open===true&&p1.open===false&&p1.n>20&&p1.min>=11&&p1.wkSmall===0&&p1.rs===0&&p1.zoomHidden&&p1.s>0,
+        `前：列が出ている=${p1pre.open}・縮尺 ${p1pre.s}｜直後：地図が出ている=${!p1.open}・字 ${p1.n}個・いちばん小さい ${p1.min}px・縮尺 ${(+p1.sc).toFixed(3)}・大きさを変える合図 ${p1.rs}回・置けなかった札 ${p1.lost}`);
+      /* 列に戻して もう1回 地図に替えても 同じ（描き直しで 字が 小さくならない） */
+      P.ev(`document.getElementById('amf-tab').click()`); await sleep(250); P.ev(`document.getElementById('amf-tab').click()`); await sleep(300);
+      const p1b=JSON.parse(P.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), sc=svg?svg.getScreenCTM().a:0, px=[].slice.call(svg?svg.querySelectorAll('text'):[]).map(t=>(parseFloat(t.getAttribute('font-size'))||0)*sc).filter(Boolean).sort((a,b)=>a-b); return JSON.stringify({open:document.getElementById('amf-wrap').classList.contains('amf-open'), min:px.length?Math.round(px[0]*100)/100:0, rs:window.__rs}); })()`));
+      check('96d2','（96d の続き）列に戻して もう1回 地図に替えても、字は 11px 以上のまま・大きさを変える合図は 0回',p1b.open===false&&p1b.min>=11&&p1b.rs===0,`字の最小 ${p1b.min}px・合図 ${p1b.rs}回`);
+      P.close();
+      /* P6：幅 1024×768 の枠。字（札に出した字は 札）が 自分の枠から 1.5px 以上 はみ出す物は 0 */
+      const Q=await mkSolo(1024,768);
+      Q.ev(`setView('map')`); await sleep(600);
+      const p6=JSON.parse(Q.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), out=[]; [].slice.call(svg.querySelectorAll('g.am-cell')).forEach(g=>{ const rs=[].slice.call(g.querySelectorAll('rect')), tagR=rs.filter(e=>e.getAttribute('fill-opacity')==='.92')[0], cellR=rs.filter(e=>!e.getAttribute('fill-opacity'))[0], own=tagR||cellR; if(!own) return; const o=own.getBoundingClientRect();
+          [].slice.call(g.querySelectorAll('text')).forEach(t=>{ const b=t.getBoundingClientRect(); out.push([t.textContent.replace(/\\s+/g,''), Math.max(o.left-b.left,b.right-o.right,o.top-b.top,b.bottom-o.bottom)]); }); });
+        out.sort((a,b)=>b[1]-a[1]); const inf=(window.__m5&&window.__m5.info().cells)||[];
+        return JSON.stringify({n:out.length, over:out.filter(x=>x[1]>1.5).map(x=>x[0]+':'+x[1].toFixed(1)), worst:out.slice(0,2).map(x=>x[0]+':'+x[1].toFixed(1)), lost:inf.filter(x=>x.mode==='lost').length}); })()`));
+      check('96e','地図の字が マスから はみ出さない（点検 r3 の P6）：幅 1024×768 で、字が 自分の枠（マス・札）から 1.5px 以上 はみ出す物は 0（前は「ATM」が 約3px）・置けなかった札は 0',
+        p6.n>30&&p6.over.length===0&&p6.lost===0,`字 ${p6.n}個・はみ出し 1.5px 以上 ${p6.over.length}個 ${p6.over.join(',')}・いちばん大きい ${p6.worst.join(' ')}・置けなかった札 ${p6.lost}`);
+      /* P2：同じ 枠（高さ 768）の幅を 変えながら、管理者モード・従業員で、右上の 2つ（管理者／同期）が タブに かぶらないか。タブを いちばん右まで送っても かぶらない・最後の タブが 右上の 2つの手前まで 出る・右上の 管理者ボタンが 押せる（上に別の物が かぶっていない） */
+      const hdrJs=`(()=>{ const g=id=>document.getElementById(id), tabs=g('view-tabs'), tr=tabs.getBoundingClientRect(), hs=['admin-toggle','sync-indicator'].map(g).filter(e=>{ const r=e.getBoundingClientRect(); return r.width>0&&r.height>0; });
+        const vb=[].slice.call(document.querySelectorAll('#view-tabs button')).filter(b=>{ const r=b.getBoundingClientRect(); return r.width>0&&r.height>0; });
+        const ovl=()=>{ let n=0; vb.forEach(b=>{ const r=b.getBoundingClientRect(), vl=Math.max(r.left,tr.left), vr=Math.min(r.right,tr.right), vt=Math.max(r.top,tr.top), vm=Math.min(r.bottom,tr.bottom); if(vr<=vl||vm<=vt) return; hs.forEach(h=>{ const hr=h.getBoundingClientRect(); if(Math.min(vr,hr.right)-Math.max(vl,hr.left)>1&&Math.min(vm,hr.bottom)-Math.max(vt,hr.top)>1) n++; }); }); return n; };
+        const o0=ovl(); tabs.style.scrollBehavior="auto"; tabs.scrollLeft=99999; const o1=ovl(), last=vb[vb.length-1].getBoundingClientRect(), a=g('admin-toggle').getBoundingClientRect(), hit=document.elementFromPoint(a.left+a.width/2,a.top+a.height/2);
+        const lastIn=last.right<=tr.right+1; tabs.scrollLeft=0; tabs.style.scrollBehavior="";
+        return JSON.stringify({n:vb.length,o0,o1,lastIn,hit:hit===g('admin-toggle')||g('admin-toggle').contains(hit),ts:Math.round(g('top-stack').getBoundingClientRect().height)}); })()`;
+      const p2=[]; for(const w of [640,700,768,820,900,990]){ for(const adm of [true,false]){ Q.f.style.width=w+'px'; await sleep(400); Q.ev(`isAdmin=${adm}; applyAdminMode(); setView('map')`); await sleep(450); const r=JSON.parse(Q.ev(hdrJs)); r.w=w; r.adm=adm; p2.push(r); } }
+      const bad2=p2.filter(r=>r.o0!==0||r.o1!==0||!r.lastIn||!r.hit||r.n!==(r.adm?6:4));
+      check('96f','管理者モード・従業員で、右上の 2つ（管理者／同期）が タブに かぶらない（点検 r3 の P2。幅 640〜990 の 6通り×2）：タブの見えている所と かさならない・タブを いちばん右まで送ると 最後のタブが 2つの手前に出る・管理者ボタンが 押せる・タブの数（管理者 6・従業員 4）',
+        p2.length===12&&bad2.length===0,`12通り中 ずれ ${bad2.length}：${bad2.map(r=>r.w+(r.adm?'管':'従')+'(かさなり '+r.o0+'/'+r.o1+(r.lastIn?'':'・最後のタブが出ない')+(r.hit?'':'・押せない')+')').join(' ')||'なし'}｜上の帯の高さ ${p2.map(r=>r.ts).filter((x,i,a)=>a.indexOf(x)===i).join('/')}px`);
+      Q.close();
+      /* P3：入口の保存の印の短い言い方（細い見出しで 件数とエラーが 読めるように）。入口は 開かない（本物の保存先に つながない）。入口の文字から renderStatus だけを取り出して、にせの部品で 動かす。長い文字は 前と同じ・短い言い方は data-short に入る。CSS は body.ws-compact の時だけ短い言い方を出す */
+      let shp=null; try{ const x=new XMLHttpRequest(); x.open('GET','index.html?t='+Date.now()+'p3',false); x.send(); shp=(x.status===200||x.status===0)?x.responseText.replace(/\r\n/g,'\n'):null; }catch(e){ shp=null; }
+      let ok3=false, d3='入口の文字を読めなかった';
+      if(shp){
+        const m=shp.match(/function renderStatus\(s\)\{[\s\S]*?\n\}/);
+        if(m){
+          const els={}, $=id=>els[id]||(els[id]={className:'',textContent:'',attrs:{},setAttribute(k,v){ this.attrs[k]=String(v); },removeAttribute(k){ delete this.attrs[k]; }});
+          const run=new Function('$',m[0]+'; return renderStatus;')($);
+          const cases=[[{state:'off',pending:3},'ネットなし・未送信 3件（つながると送ります）','未送信 3件'],[{state:'off',pending:0},'ネットなし（見るだけ）','ネットなし'],[{state:'err',pending:0,error:'保存できません（x）'},'保存できません（x）','保存エラー'],[{state:'err',pending:0,error:'受信できません（y）'},'受信できません（y）','受信エラー'],
+            [{state:'saving',pending:2},'保存中… 2件','保存中 2件'],[{state:'saving',pending:0},'保存中…','保存中'],[{state:'ok',pending:0},'保存済み',null]];
+          const res=cases.map(([s,full,short])=>{ run(s); return $('sync-text').textContent===full&&$('sync').attrs['data-short']===(short===null?undefined:short); });
+          const lines=shp.split('\n').filter(l=>/data-short/.test(l)&&/\{/.test(l)&&!/^\s*\/\//.test(l)).map(l=>l.trim()), allWs=lines.length>=3&&lines.every(l=>/^body\.ws-compact /.test(l));
+          ok3=res.every(Boolean)&&allWs&&/body\.ws-compact \.sync\[data-short\]::after\{content:attr\(data-short\)/.test(shp)&&!/ws-compact \.sync\.has span\.txt/.test(shp);
+          d3=`7つの状態（未送信・ネットなし・保存エラー・受信エラー・保存中×2・保存済み）のうち 合う物 ${res.filter(Boolean).length}／7（長い文字は 前と同じ・短い言い方が data-short）・短い言い方を使う CSS ${lines.length}本（ぜんぶ body.ws-compact から）`;
+        }
+      }
+      check('96g','入口の保存の印（点検 r3 の P3）：細い見出しで「未送信 3件」「保存エラー」が 切れずに読める。長い文字は そのまま・短い言い方は data-short に入り、CSS は body.ws-compact の時だけ それを出す（FF管理・カレンダーの時は 出ない）',ok3,d3);
+    }
     check('97','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
     const srv=await c.readServer(); check('98','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');
     check('99','記録の名前に、従業員の名前が入っていない',!Object.keys(srv).some(k=>/見本|試験/.test(k)),Object.keys(srv).filter(k=>k.indexOf('g:')===0).length+' 人ぶん');

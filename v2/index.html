@@ -106,6 +106,36 @@ main{flex:1;position:relative;background:#fff;overflow:hidden}
   .h-row{grid-template-columns:76px 56px 1fr}
   .h-row .btn{grid-column:1 / -1}
 }
+/* 5.11：ワークスケジュールを開いている時だけ、店名の行・タブ・保存の印を 1行（高さ40px。押す所は 40px 以上）にたたむ（FF管理・カレンダーの時は この印が付かず、上の形は今までと同じ） */
+body.ws-compact{flex-direction:row;flex-wrap:wrap;align-content:flex-start;align-items:center}
+body.ws-compact header{display:contents}
+body.ws-compact .store-switcher{order:0;margin-left:8px;min-width:0;flex:0 1 auto}
+body.ws-compact .trial,body.ws-compact .spacer{display:none}
+body.ws-compact nav.tabs{order:1;flex:1 1 0;min-width:0;height:40px;border-bottom:none;padding:0 4px;align-items:stretch}
+body.ws-compact .tab{padding:0 12px;font-size:13px;height:40px;border-bottom-width:2px}
+body.ws-compact .tab .emoji{font-size:15px}
+body.ws-compact .tab-note{display:none}
+body.ws-compact .store-trigger{font-size:13px;padding:0 10px;min-height:40px;border-radius:8px;gap:5px;max-width:100%}
+body.ws-compact #store-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.ws-compact .sync{order:2;padding:0 10px;min-height:40px;font-size:12px}
+body.ws-compact .sync[data-short] span.txt{display:none}
+body.ws-compact .sync[data-short]::after{content:attr(data-short);white-space:nowrap;font-weight:700}
+body.ws-compact #settings-btn{order:3;width:40px;height:40px;font-size:16px;margin:0 8px 0 4px;border-radius:8px}
+body.ws-compact main{order:4;flex:0 0 100%;width:100%;height:calc(100% - 40px);align-self:flex-start;border-top:1px solid var(--border)}
+body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
+@media (max-width:520px){
+  body.ws-compact .store-switcher{margin-left:4px;max-width:104px}
+  body.ws-compact .store-trigger{font-size:12px;padding:0 6px;gap:3px}
+  body.ws-compact .store-trigger .chev{font-size:9px}
+  body.ws-compact nav.tabs{padding:0}
+  body.ws-compact .tab{font-size:0;padding:0 6px;gap:0;min-width:40px;flex:1 1 0;justify-content:center}
+  body.ws-compact .tab .emoji{font-size:19px}
+  body.ws-compact .sync{padding:0 8px;gap:5px;min-width:40px;justify-content:center}
+  body.ws-compact .sync span.txt{display:none}
+  body.ws-compact .sync[data-short]::after{font-size:11px}
+  body.ws-compact .sync[data-short]:not(.has):not(.err)::after{display:none}
+  body.ws-compact #settings-btn{margin:0 4px 0 2px}
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -220,6 +250,7 @@ function renameStore(id,n){ const list=stores(); const s=list.find(x=>x.id===id)
 function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1&v='+BUILD;}
 function showSystem(sys){
   activeSys=sys;
+  document.body.classList.toggle('ws-compact',sys==='ws');   // 5.11：ワークスケジュールの時だけ、上の見出しを1行にたたむ
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.sys===sys));
   Object.values(frames).forEach(f=>f.classList.remove('active'));
   if(!curStore){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='店舗がまだありません。<br>左上の「▼」から「＋ 店舗を追加」を押すか、⚙️ →「いまのアプリのデータを写す」で写してください。'; return; }
@@ -248,6 +279,9 @@ function renderStatus(s){
   $('sync-text').textContent = s.state==='err' ? (s.error||'保存できません')
     : s.state==='off' ? (s.pending?`ネットなし・未送信 ${s.pending}件（つながると送ります）`:'ネットなし（見るだけ）')
     : s.state==='saving' ? `保存中…${s.pending?` ${s.pending}件`:''}` : '保存済み';
+  // 5.11（点検 r3 の P3）：ワークスケジュールの細い見出し（body.ws-compact）だけが読む 短い言い方。上の文字は そのまま（FF管理・カレンダーの見た目には 出ない）
+  const sh = s.state==='err' ? (/受信/.test(s.error||'')?'受信エラー':'保存エラー') : s.state==='off' ? (s.pending?`未送信 ${s.pending}件`:'ネットなし') : s.state==='saving' ? `保存中${s.pending?` ${s.pending}件`:''}` : '';
+  if(sh) el.setAttribute('data-short',sh); else el.removeAttribute('data-short');
 }
 
 // ---------- 起動 ----------
