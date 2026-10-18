@@ -1746,6 +1746,120 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         !o76.err&&!o76.err2&&okName&&okWrong&&okOk&&okPick&&okCopy&&okFall,
         o76.err||o76.err2||`名前 ${okName} ${J(nm)}・${J(wk)}／ちがう週 ${okWrong} ${J(wn)}・${J(wb)}／合う週 ${okOk} ${J(ok)}／窓 ${okPick} ${J(pk)}・案内 ${J(gd)}／案内 ${okCopy} ${J(o76.lang)}／今までの窓 ${okFall} ${J(o76.abort)}・${J(o76.fail)}・${J(o76.sync)}・${J(nn)}`);
     }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 今日の日付を見まちがえない（2026-10-19 店長「作ってよい」。課題12：ALIOT の作成の登録の日付をまちがえる事がある。ALIOT 側は直せないので、FF の作成表の側で）の試験 77。時計は固定（window._dateTodayOverride）。
+    //   ④作成表は、アプリを開く時、今日の曜日で開く（開いている週が今日を含む時だけ）／上に大きく「今日 10/9（金）」／今日ではない日を見ている時は赤い帯「今日ではありません：◯を見ています」（日・英・ネ）／
+    //   0時をまたぐと毎時の描き直しで帯が変わる／印刷の日付を大きく（CSS だけ）／見るだけ＝S・作成表の中身は変わらない。
+    {
+      const o77={}, W=A.win;
+      const T=ymd=>{ W._dateTodayOverride=ymd; };
+      const band=()=>JSON.parse(A.ev('JSON.stringify((function(){ var b=document.getElementById("today-band"); var l=b&&b.querySelector("[data-today-line]"), w=b&&b.querySelector("[data-today-warn]"); var tb=document.getElementById("prod-day-tabs"); return {line:l?l.textContent.trim():null,warn:w?w.textContent.replace(/\\s+/g," ").trim():null,lineFs:l?parseFloat(getComputedStyle(l).fontSize):0,warnFs:w?parseFloat(getComputedStyle(w).fontSize):0,warnBg:w?getComputedStyle(w).backgroundColor:null,warnCol:w?getComputedStyle(w).color:null,above:!!b&&!!tb&&b.getBoundingClientRect().bottom<=tb.getBoundingClientRect().top+1}; })())'));
+      const pre77=JSON.parse(A.ev('JSON.stringify({day:currentProdDay,tab:currentTab,lang:LANG,ui:sessionStorage.getItem("ffv6_ui"),ws:S.weekStart})'));
+      try{
+        // 0) 今日の曜日の番号（開いている週の中。外なら -1。日付が読めない時も -1）
+        o77.idx=[['2026-10-06',0],['2026-10-09',3],['2026-10-12',6],['2026-10-13',-1],['2026-10-05',-1],['2026-09-01',-1]].map(([d,w])=>{ T(d); return [A.ev('_ffTodayIdx()'),w]; });
+        o77.badWs=A.ev('(()=>{ const w=S.weekStart; S.weekStart="abc"; const r=_ffTodayIdx(); S.weekStart=w; return r; })()');
+        // 1) 開く：今日の曜日で。週が今日を含まない時は今までどおり
+        T('2026-10-09'); A.ev('currentProdDay=0; _ffOpenOnToday(); 1'); o77.open1=A.ev('currentProdDay');
+        T('2026-10-20'); A.ev('currentProdDay=5; _ffOpenOnToday(); 1'); o77.open2=A.ev('currentProdDay');
+        // アプリを開く道（showApp）：前に見ていた曜日（セッションの控え）が別の曜日でも、今日で開く
+        T('2026-10-09'); A.ev(`sessionStorage.setItem('ffv6_ui',JSON.stringify({tab:3,jsub:'input',jsum:'all',prodDay:5,y:0,expanded:[],adv:[],catEdit:[],jiOpen:[]})); showApp(); 1`);
+        o77.showApp={day:A.ev('currentProdDay'),tab:A.ev('currentTab'),active:A.ev('(document.querySelector("#prod-day-tabs .day-tab.active")||{}).textContent.replace(/\\s+/g,"")')};
+        // 2) 今日を見ている時：大きい「今日」・帯なし／ちがう日：赤い帯
+        T('2026-10-09'); A.ev('selectProdDay(3); 1'); o77.today=band();
+        A.ev('selectProdDay(5); 1'); o77.other=band();
+        T('2026-10-20'); A.ev('selectProdDay(0); 1'); o77.outWeek=band();       // 週が今日を含まない：どの日を見ても帯
+        // 3) 0時をまたぐ：今日を見ていた画面が、毎時の描き直しで「今日ではありません」に変わる
+        T('2026-10-09'); A.ev('showTab(3); selectProdDay(3); 1'); o77.m0=band(); T('2026-10-10'); A.ev('ffHourTick(); 1'); o77.m1=band();
+        // 4) 英語・ネパール語
+        const lg={}; ['en','ne'].forEach(L=>{ T('2026-10-09'); A.ev(`LANG=${J(L)}; selectProdDay(5); 1`); lg[L]=band(); }); A.ev(`LANG=${J(pre77.lang)}; 1`); o77.lang=lg;
+        o77.i18n=JSON.parse(A.ev('JSON.stringify(["td.now","td.notToday"].map(k=>[!!I18N.ja[k],!!I18N.en[k],!!I18N.ne[k],I18N.en[k]!==I18N.ja[k],I18N.ne[k]!==I18N.ja[k]]))'));
+        // 5) 見るだけ：S は変わらない・作成表の中身は帯の有る無しで1字も変わらない・保存もしない
+        T('2026-10-09'); const s0=A.ev('JSON.stringify(S)'), pd0=A.store.status().pending;
+        A.ev('selectProdDay(3); renderTodayBand(); renderProdDayContent(3); selectProdDay(5); 1'); o77.noSave={same:A.ev('JSON.stringify(S)')===s0,pend:A.store.status().pending-pd0};
+        o77.content=A.ev('(()=>{ const h0=renderTodayBand; renderTodayBand=function(){}; renderProdDayContent(3); const a=document.getElementById("prod-day-content").innerHTML; renderTodayBand=h0; renderProdDayContent(3); const b=document.getElementById("prod-day-content").innerHTML; return a===b&&a.length>1000; })()');
+        // 6) 印刷の日付を大きく（CSS だけ。日付の文字は今までどおり）
+        o77.print=JSON.parse(A.ev('(()=>{ const css=Array.from(document.querySelectorAll("style")).map(s=>s.textContent).join("\\n"); let body=null; const d0=doPrint; doPrint=function(h){ body=h; }; try{ currentProdDay=3; printMakePlan(); }finally{ doPrint=d0; } return JSON.stringify({pc:/\\.pdate\\{font-size:24px;font-weight:800/.test(PRINT_CSS),old:/\\.pdate\\{font-size:13px/.test(PRINT_CSS),screen:(css.match(/\\.pdate\\{font-size:24px/g)||[]).length,oldScreen:/\\.pdate\\{font-size:13px/.test(css),date:body?(body.match(/class="pdate">([^<]*)</)||[])[1]:null}); })()'));
+        // 7) スマホ：曜日タブが横にはみ出す時、いま見ている日のタブが見える所まで送る（「月」で開いて見えなくならないように。タブの幅をせまくして見る）
+        T('2026-10-09'); o77.tabScroll=JSON.parse(A.ev('(()=>{ const el=document.getElementById("prod-day-tabs"); const w0=el.style.width, m0=el.style.maxWidth; el.style.width="260px"; el.style.maxWidth="260px"; try{ selectProdDay(6); const a=el.querySelector(".day-tab.active"), ar=a.getBoundingClientRect(), er=el.getBoundingClientRect(); return JSON.stringify({over:el.scrollWidth>el.clientWidth+1,vis:ar.left>=er.left-1&&ar.right<=er.right+1,sl:Math.round(el.scrollLeft)}); } finally{ el.style.width=w0; el.style.maxWidth=m0; } })()'));
+      }catch(e){ o77.err=String(e&&e.stack||e); }
+      try{ A.ev(`LANG=${J(pre77.lang)}; currentProdDay=${pre77.day}; ${pre77.ui==null?'sessionStorage.removeItem("ffv6_ui")':'sessionStorage.setItem("ffv6_ui",'+J(pre77.ui)+')'}; showTab(${pre77.tab}); 1`); }catch(e){ o77.err2=String(e); }
+      T('2026-10-06'); A.ev('renderProdDayTabs(); 1'); await sync();
+      const ix=o77.idx||[], td=o77.today||{}, ot=o77.other||{}, ow=o77.outWeek||{}, m0=o77.m0||{}, m1=o77.m1||{}, lg7=o77.lang||{}, pr=o77.print||{}, sa=o77.showApp||{};
+      const okIdx=ix.length===6&&ix.every(x=>x[0]===x[1])&&o77.badWs===-1;                                                                                                           // 0) 今日の曜日の番号
+      const okOpen=o77.open1===3&&o77.open2===5&&sa.day===3&&sa.tab===3&&/金/.test(sa.active||'')&&/10\/9/.test(sa.active||'');                                                  // 1) 今日で開く（週の外なら今までどおり）
+      const okBand=td.line==='今日 10/9（金）'&&td.warn===null&&td.lineFs>=24&&td.above&&ot.line==='今日 10/9（金）'&&ot.warn==='⚠ 今日ではありません：10/11（日）を見ています（今日は 10/9（金））'&&ot.warnBg==='rgb(220, 38, 38)'&&ot.warnCol==='rgb(255, 255, 255)'&&ot.warnFs>=16&&
+        ow.line==='今日 10/20（火）'&&/^⚠ 今日ではありません：10\/6（火）を見ています（今日は 10\/20（火））$/.test(ow.warn||'');            // 2) 大きい今日・赤い帯
+      const okMid=m0.warn===null&&m0.line==='今日 10/9（金）'&&m1.line==='今日 10/10（土）'&&m1.warn==='⚠ 今日ではありません：10/9（金）を見ています（今日は 10/10（土））';                    // 3) 0時をまたぐ
+      const okLang=lg7.en&&lg7.ne&&lg7.en.line==='Today 10/9 (Fri)'&&lg7.en.warn==='⚠ This is not today: you are viewing 10/11 (Sun) (today is 10/9 (Fri))'&&lg7.ne.line==='आज 10/9 (शुक्र)'&&/^⚠ आज होइन: तपाईं 10\/11 \(आइत\) हेर्दै हुनुहुन्छ/.test(lg7.ne.warn||'')&&(o77.i18n||[]).every(r=>r.every(Boolean));   // 4) 英・ネ
+      const okNoChange=o77.noSave&&o77.noSave.same&&o77.noSave.pend===0&&o77.content===true;                                                                                    // 5) 見るだけ
+      const okPrint=pr.pc&&!pr.old&&pr.screen===1&&!pr.oldScreen&&pr.date==='2026年10月9日（金）';                                                                                 // 6) 印刷の日付
+      const ts=o77.tabScroll||{}, okTab=ts.over===true&&ts.vis===true&&ts.sl>0;                                                                                              // 7) スマホでタブがはみ出す時
+      check('77','【今日の日付を見まちがえない】④作成表は、アプリを開く時、今日の曜日で開く（前に見ていた曜日が別でも。開いている週が今日を含まない時は今までどおり）／上に大きく「今日 10/9（金）」／今日ではない日を見ている時は赤い帯「今日ではありません：10/11（日）を見ています（今日は 10/9（金））」（週が今日を含まなくても）／'+
+        '0時をまたぐと毎時の描き直しで帯が変わる／日・英・ネ／印刷の日付を大きく（24px。CSS だけ。日付の文字は今までどおり）／見るだけ（S・作成表の中身は変わらない・保存しない）／スマホで曜日タブがはみ出す時は、いま見ている日のタブが見える所まで送る',
+        !o77.err&&!o77.err2&&okIdx&&okOpen&&okBand&&okMid&&okLang&&okNoChange&&okPrint&&okTab,
+        o77.err||o77.err2||`番号 ${okIdx} ${J(ix)}・${o77.badWs}／開く ${okOpen} ${o77.open1}・${o77.open2}・${J(sa)}／帯 ${okBand} ${J(td)}・${J(ot)}・${J(ow)}／0時 ${okMid} ${J(m0)}・${J(m1)}／言語 ${okLang} ${J(lg7)}・${J(o77.i18n)}／見るだけ ${okNoChange} ${J(o77.noSave)}・${o77.content}／印刷 ${okPrint} ${J(pr)}／タブ ${okTab} ${J(ts)}`);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 今日の日付が、夜をまたいでも古いままにならない（2026-10-19 テスの見つけ物：0時をまたぐ時、上の「今日」と帯は「今日／明日を見ている」時しか自動で新しくならなかった。過ぎた日・あさって以降を見たままだと、何か押すまで古い日付。2晩目は今日を見ていても止まる。画面に戻った時も新しくならない）の試験 78。
+    //   画面に戻った時（visibilitychange）と1分ごとの予約で、日付が変わった時だけ、上の「今日」と帯・曜日タブの「今日」の印を新しくする。見ている日は変えない・作成表の中身・入力中の欄・開いているカードは描き直さない・同じ日の間は何もしない。
+    {
+      const o78={}, W=A.win;
+      const T=ymd=>{ W._dateTodayOverride=ymd; };
+      const band=()=>JSON.parse(A.ev('JSON.stringify((function(){ var b=document.getElementById("today-band"); var l=b&&b.querySelector("[data-today-line]"), w=b&&b.querySelector("[data-today-warn]"); var d=document.querySelector("#prod-day-tabs .day-tab.today"); return {line:l?l.textContent.trim():null,warn:w?w.textContent.replace(/\\s+/g," ").trim():null,dot:d?d.textContent.replace(/\\s+/g,""):null,cur:currentProdDay}; })())'));
+      const nToday=()=>+A.ev('document.querySelectorAll("#prod-day-tabs .day-tab.today").length');   // 曜日タブの「今日」の印の数（週に今日があれば1つ）
+      const pre78=JSON.parse(A.ev('JSON.stringify({day:currentProdDay,tab:currentTab,vis:document.visibilityState})'));
+      try{
+        A.ev('showTab(3); 1');
+        // 0) 予約：1分ごと・日付が変わった時に呼ぶ関数。画面に戻った時（visibilitychange）にも同じ関数
+        o78.timer=JSON.parse(A.ev('(()=>{ const si=window.setInterval, cap=[]; window.setInterval=function(f,ms){ cap.push([f===_ffTodayCheck,ms]); return si.apply(window,arguments); }; try{ const old=_ffTodayTimer; _ffTodayTickSet(); return JSON.stringify({cap,replaced:!!old&&old!==_ffTodayTimer,has:!!_ffTodayTimer}); } finally{ window.setInterval=si; } })()'));
+        o78.vis=A.ev('document.visibilityState');
+        // 1) 過ぎた日（火 10/7）を見たまま、夜を2回またぐ：画面に戻った時（visibilitychange）／1分ごとの予約（関数をそのまま呼ぶ）で、今日が新しくなる。見ている日は変わらない
+        T('2026-10-09'); A.ev('selectProdDay(1); 1'); o78.n0=band();
+        T('2026-10-10'); A.ev('document.dispatchEvent(new Event("visibilitychange")); 1'); o78.n1=band();       // 1晩目：画面に戻った時
+        T('2026-10-11'); A.ev('_ffTodayCheck(); 1'); o78.n2=band();                                            // 2晩目：1分ごとの予約（同じ関数）
+        T('2026-10-20'); A.ev('_ffTodayCheck(); 1'); o78.n3=band();                                            // 何晩もあと：週が今日を含まなくなっても、今日が正しい（曜日タブの「今日」の印は無い）
+        // 2) あさって以降（日 10/11）を見たままでも同じ
+        T('2026-10-09'); A.ev('selectProdDay(5); 1'); o78.f0=band(); T('2026-10-10'); A.ev('_ffTodayCheck(); 1'); o78.f1=band();
+        // 3) 今日を見ていても、2晩目は止まっていた：今日（10/9）を見る → 1晩目の毎時の描き直し → 2晩目に画面へ戻る
+        T('2026-10-09'); A.ev('selectProdDay(3); 1'); o78.t0=band(); T('2026-10-10'); A.ev('ffHourTick(); 1'); o78.t1=band(); T('2026-10-11'); A.ev('document.dispatchEvent(new Event("visibilitychange")); 1'); o78.t2=band();
+        // 3b) 今日を見たまま1晩目：毎時の描き直し（ffHourTick）が上の「今日」を先に新しくした後でも、1分ごとの予約（_ffTodayCheck）が曜日タブの「今日」の印を新しくする（2026-10-19 テスの小さい見つけ物。帯だけ新しくなって「日付は同じ」と見られ、タブの印が古い日のまま残っていた）。2晩目も同じ
+        T('2026-10-09'); A.ev('selectProdDay(3); 1'); o78.h0=band(); o78.h0n=nToday();
+        T('2026-10-10'); A.ev('ffHourTick(); 1'); o78.h1=band();                                               // 1晩目：毎時の描き直し。上の「今日」はここで新しくなる
+        A.ev('_ffTodayCheck(); 1'); o78.h2=band(); o78.h2n=nToday();                                           //          1分ごとの予約：曜日タブの印もここで新しくなる
+        A.ev('_ffTodayCheck(); 1'); o78.h2b=band(); o78.h2bn=nToday();                                         //          もう一度：変わらない
+        T('2026-10-11'); A.ev('ffHourTick(); 1'); A.ev('_ffTodayCheck(); 1'); o78.h3=band(); o78.h3n=nToday();   // 2晩目も同じ
+        // 4) 同じ日の間は何もしない・日付が変わった時だけ描き直す（描き直しの回数）。入力中の欄・開いているカード・作成表の中身は飛ばさない
+        T('2026-10-09'); A.ev('selectProdDay(3); 1');
+        A.ev('window.__rc=0; window.__rt0=window.renderProdDayTabs; window.renderProdDayTabs=function(){ window.__rc++; return window.__rt0.apply(this,arguments); }; window.__rp0=window.renderProdDayContent; window.__rpc=0; window.renderProdDayContent=function(){ window.__rpc++; return window.__rp0.apply(this,arguments); }; 1');
+        A.ev('(()=>{ const i=document.createElement("input"); i.id="__tmp78"; i.type="text"; document.body.appendChild(i); i.focus(); i.value="あいう"; _expandedCards.add("p2"); 1; })()');
+        const html0=A.ev('document.getElementById("prod-day-content").innerHTML'), cards0=A.ev('JSON.stringify([..._expandedCards].sort())'), s0=A.ev('JSON.stringify(S)'), pd0=A.store.status().pending;
+        A.ev('_ffTodayCheck(); _ffTodayCheck(); _ffTodayCheck(); 1'); const c1=A.ev('window.__rc');                     // 同じ日：0回
+        T('2026-10-10'); A.ev('_ffTodayCheck(); 1'); const c2=A.ev('window.__rc'); A.ev('_ffTodayCheck(); _ffTodayCheck(); 1'); const c3=A.ev('window.__rc');   // 日が変わった1回目だけ：1回
+        o78.count={same:c1,changed:c2,again:c3,content:A.ev('window.__rpc'),inputKept:A.ev('document.activeElement&&document.activeElement.id==="__tmp78"&&document.getElementById("__tmp78").value==="あいう"'),htmlSame:A.ev('document.getElementById("prod-day-content").innerHTML')===html0,cardsSame:A.ev('JSON.stringify([..._expandedCards].sort())')===cards0,noSave:A.ev('JSON.stringify(S)')===s0&&A.store.status().pending===pd0,cur:A.ev('currentProdDay')};
+        A.ev('window.renderProdDayTabs=window.__rt0; window.renderProdDayContent=window.__rp0; document.getElementById("__tmp78").remove(); _expandedCards.delete("p2"); 1');
+      }catch(e){ o78.err=String(e&&e.stack||e); }
+      try{ A.ev(`window.renderProdDayTabs=window.__rt0||window.renderProdDayTabs; window.renderProdDayContent=window.__rp0||window.renderProdDayContent; var q=document.getElementById("__tmp78"); if(q)q.remove(); currentProdDay=${pre78.day}; showTab(${pre78.tab}); 1`); }catch(e){ o78.err2=String(e); }
+      T('2026-10-06'); A.ev('renderProdDayTabs(); 1'); await sync();
+      const n0=o78.n0||{}, n1=o78.n1||{}, n2=o78.n2||{}, n3=o78.n3||{}, f0=o78.f0||{}, f1=o78.f1||{}, t0=o78.t0||{}, t1=o78.t1||{}, t2=o78.t2||{}, h0=o78.h0||{}, h1=o78.h1||{}, h2=o78.h2||{}, h2b=o78.h2b||{}, h3=o78.h3||{}, ct=o78.count||{}, tm=o78.timer||{};
+      const okTimer=tm.has&&tm.replaced&&J(tm.cap)===J([[true,60000]])&&o78.vis==='visible';                                                                                                   // 0) 1分ごとの予約・同じ関数
+      const okPast=n0.line==='今日 10/9（金）'&&n0.warn==='⚠ 今日ではありません：10/7（水）を見ています（今日は 10/9（金））'&&n0.dot==='金10/9'&&
+        n1.line==='今日 10/10（土）'&&n1.warn==='⚠ 今日ではありません：10/7（水）を見ています（今日は 10/10（土））'&&n1.dot==='土10/10'&&n1.cur===1&&
+        n2.line==='今日 10/11（日）'&&n2.warn==='⚠ 今日ではありません：10/7（水）を見ています（今日は 10/11（日））'&&n2.dot==='日10/11'&&n2.cur===1&&
+        n3.line==='今日 10/20（火）'&&/10\/7（水）を見ています（今日は 10\/20（火））/.test(n3.warn||'')&&n3.dot===null&&n3.cur===1;                                                                      // 1) 過ぎた日を見たまま・2晩・何晩も
+      const okFuture=f0.line==='今日 10/9（金）'&&f0.warn==='⚠ 今日ではありません：10/11（日）を見ています（今日は 10/9（金））'&&f1.line==='今日 10/10（土）'&&f1.warn==='⚠ 今日ではありません：10/11（日）を見ています（今日は 10/10（土））'&&f1.cur===5;   // 2) あさって以降
+      const okToday=t0.line==='今日 10/9（金）'&&t0.warn===null&&t1.line==='今日 10/10（土）'&&t1.warn==='⚠ 今日ではありません：10/9（金）を見ています（今日は 10/10（土））'&&t2.line==='今日 10/11（日）'&&t2.warn==='⚠ 今日ではありません：10/9（金）を見ています（今日は 10/11（日））'&&t2.cur===3&&t2.dot==='日10/11';   // 3) 今日を見ていても2晩目（曜日タブの印も）
+      const okHour=h0.line==='今日 10/9（金）'&&h0.warn===null&&h0.dot==='金10/9'&&o78.h0n===1&&
+        h1.line==='今日 10/10（土）'&&h1.warn==='⚠ 今日ではありません：10/9（金）を見ています（今日は 10/10（土））'&&
+        h2.line==='今日 10/10（土）'&&h2.dot==='土10/10'&&o78.h2n===1&&h2.cur===3&&h2b.dot==='土10/10'&&o78.h2bn===1&&h2b.cur===3&&
+        h3.line==='今日 10/11（日）'&&h3.dot==='日10/11'&&o78.h3n===1&&h3.cur===3;                                      // 3b) 毎時の描き直しの後でも、曜日タブの「今日」の印が新しくなる（1つだけ・見ている日は変わらない）
+      const okCount=ct.same===0&&ct.changed===1&&ct.again===1&&ct.content===0&&ct.inputKept===true&&ct.htmlSame&&ct.cardsSame&&ct.noSave&&ct.cur===3;                                           // 4) 同じ日は何もしない・変わった1回だけ・飛ばさない
+      check('78','【今日の日付が夜をまたいでも古いままにならない】日付が変わった時に、上の「今日」と帯・曜日タブの「今日」の印が新しくなる：過ぎた日・あさって以降を見たままでも／今日を見ていても2晩目でも／画面に戻った時（visibilitychange）と1分ごとの予約（同じ関数 _ffTodayCheck）で／何晩またいでも週が今日を含まなくなっても。'+
+        '今日を見たまま1晩目、毎時の描き直し（ffHourTick）が上の「今日」を先に新しくした後でも、曜日タブの「今日」の印が新しくなる（印は1つだけ）。'+
+        '見ている日は変えない／同じ日の間は何もしない・日が変わった1回だけ描き直す（作成表の中身・入力中の欄・開いているカードは飛ばさない・保存しない）',
+        !o78.err&&!o78.err2&&okTimer&&okPast&&okFuture&&okToday&&okHour&&okCount,
+        o78.err||o78.err2||`予約 ${okTimer} ${J(tm)}・${o78.vis}／過ぎた日 ${okPast} ${J(n0)}・${J(n1)}・${J(n2)}・${J(n3)}／あさって以降 ${okFuture} ${J(f0)}・${J(f1)}／今日を見て2晩目 ${okToday} ${J(t0)}・${J(t1)}・${J(t2)}／毎時の描き直しの後でも曜日タブの印 ${okHour} ${J(h0)}${o78.h0n}・${J(h1)}・${J(h2)}${o78.h2n}・${J(h2b)}${o78.h2bn}・${J(h3)}${o78.h3n}／描き直し ${okCount} ${J(ct)}`);
+    }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;

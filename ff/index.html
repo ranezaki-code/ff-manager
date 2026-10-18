@@ -390,7 +390,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   .phead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:16px}
   .ptime{font-size:22px;font-weight:800;line-height:1}
   .pdone{font-size:12px;color:#444;margin-top:3px}
-  .pdate{font-size:13px;font-weight:700;text-align:right}
+  .pdate{font-size:24px;font-weight:800;line-height:1.1;text-align:right}   /* 日付を大きく（2026-10-19。ALIOT の登録の日付まちがえ防止） */
   .pstore{font-size:12px;color:#444;text-align:right;margin-top:2px}
   .pcat{margin-bottom:8px;break-inside:avoid}
   .pcat-head{display:flex;align-items:center;gap:9px;margin-bottom:2px;flex-wrap:wrap}
@@ -771,6 +771,7 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
 
     <!-- Tab 3: 作成表 -->
     <div class="tab-panel" id="tab3">
+      <div id="today-band" style="margin:0 0 8px"></div><!-- 今日の日付（大きく）と、今日ではない日を見ている時の赤い帯（renderTodayBand。2026-10-19） -->
       <div class="day-tabs" id="prod-day-tabs"></div>
       <div id="week-menu-band" style="margin:8px 0 0"></div><!-- 今週のメニュー（出す⇄休む。renderWeekMenuBand。2026-10-09） -->
       <div id="zero-make-band" style="display:none;margin:8px 0 0"></div><!-- 週に作成0の商品の帯（0件なら出さない。renderZeroMakeBand） -->
@@ -1661,6 +1662,7 @@ const I18N = {
     'pk.warnParent':'⚠ パック商品「{0}」にも実績が入っています。つなぐと、その実績は使わず、この親の{1}から配ります。パックごとに実績が取れる商品なら、つながずに、ふつうの商品として入れてください。（見せているだけです。数は変えていません）',
     'pk.warnShort':'⚠ この商品にも実績あり（使われません）','pk.warnToast':'⚠ この商品にも実績が入っています。パックごとに実績が取れるなら、つながずに、ふつうの商品として入れてください',
     'gb.fileLbl':'この週のファイル','gb.guideFirst':'最初の1回だけ、ファイルを選ぶ窓で <b>提出物の中の _data フォルダ</b> を選んでください。次からは、同じ場所で開きます。','gb.guideFound':'ファイルは <b>提出物の中の _data フォルダ</b> にあります。',
+    'td.now':'今日 {0}','td.notToday':'今日ではありません：{0}を見ています（今日は {1}）',
   },
   en: {
     'app.title':'FF Management',
@@ -2197,6 +2199,7 @@ const I18N = {
     'pk.warnParent':'⚠ The pack item "{0}" also has its own results. Once linked they are not used: numbers are spread from this parent in {1}. If head office gives results per pack, do not link; enter it as an ordinary item. (Shown only; no numbers were changed.)',
     'pk.warnShort':'⚠ This item also has results (not used)','pk.warnToast':'⚠ This item also has its own results. If head office gives results per pack, do not link; enter it as an ordinary item',
     'gb.fileLbl':'File for this week','gb.guideFirst':'Just the first time, in the file window choose <b>the _data folder inside the submissions (提出物) folder</b>. After that it opens in the same place.','gb.guideFound':'The file is in <b>the _data folder inside the submissions (提出物) folder</b>.',
+    'td.now':'Today {0}','td.notToday':'This is not today: you are viewing {0} (today is {1})',
   },
   ne: {
     'app.title':'FF व्यवस्थापन',
@@ -2704,6 +2707,7 @@ const I18N = {
     'pk.warnParent':'⚠ प्याक सामान "{0}" मा पनि आफ्नै बिक्री छ। जोडेपछि त्यो प्रयोग हुँदैन: यो मूल सामानको {1} बाट बाँडिन्छ। हेड अफिसले प्याक अनुसार बिक्री दिन्छ भने नजोड्नुहोस्; साधारण सामान जस्तै राख्नुहोस्। (देखाइएको मात्र हो; सङ्ख्या फेरिएको छैन।)',
     'pk.warnShort':'⚠ यो सामानमा पनि बिक्री छ (प्रयोग हुँदैन)','pk.warnToast':'⚠ यो सामानमा आफ्नै बिक्री पनि छ। हेड अफिसले प्याक अनुसार बिक्री दिन्छ भने नजोड्नुहोस्; साधारण सामान जस्तै राख्नुहोस्',
     'gb.fileLbl':'यो हप्ताको फाइल','gb.guideFirst':'पहिलो पटक मात्र, फाइल छान्ने विन्डोमा <b>提出物 (बुझाइएका सामग्री) फोल्डर भित्रको _data फोल्डर</b> छान्नुहोस्। त्यसपछि उही ठाउँमा खुल्छ।','gb.guideFound':'फाइल <b>提出物 (बुझाइएका सामग्री) फोल्डर भित्रको _data फोल्डर</b> मा छ।',
+    'td.now':'आज {0}','td.notToday':'आज होइन: तपाईं {0} हेर्दै हुनुहुन्छ (आज {1} हो)',
   }
 };
 function t(key){
@@ -3950,6 +3954,7 @@ function showApp(){
   if(ls)ls.value=LANG;
   applyI18nStatic();
   _uiRestoreState();   // 作り直し前に開いていたカード等を復元してから描画
+  _ffOpenOnToday();    // ④作成表は、今日の曜日で開く（開いている週が今日を含む時だけ。2026-10-19）
   renderAll();
   _uiRestoreView();    // 作り直し前に開いていたタブ・位置へ戻す
   gaibuAutoLoad();     // ミルの外部要因データ（../gaibu/<週の開始日>.json）があれば取り込む。無ければ何もしない
@@ -8160,13 +8165,57 @@ function getWeekDates(){
   return DAYS.map((_,i)=>{const d=new Date(base);d.setDate(d.getDate()+i);return d;});
 }
 
+// ===== 今日の日付を見まちがえない（2026-10-19 店長「作ってよい」。課題12：ALIOT の作成の登録の日付をまちがえる事がある。ALIOT 側は直せないので、FF の作成表の側で）=====
+//   ・④作成表は、アプリを開く時、今日の曜日で開く（開いている週が今日を含む時だけ。含まない時は今までどおり＝前に見ていた日／週の初めの曜日）
+//   ・④の上に大きく「今日 10/19（月）」。今日ではない日を見ている時は、その下に赤い帯「今日ではありません：10/21（水）を見ています」
+//   ・印刷の日付も大きく（PRINT_CSS の .pdate）
+//   見るだけ：計算・チェック・保存の形・作成表の中身は変えない。「今日」は _todayYmdP()（試験では window._dateTodayOverride で固定）。0時をまたぐと、毎時の描き直し（ffHourTick）で帯が変わる
+function _ffTodayIdx(){   // 開いている週の中の、今日の曜日の番号（0〜6）。今日がこの週に無い時は -1
+  try{
+    const ws=String(S.weekStart||''), td=_todayYmdP(), ok=/^\d{4}-\d{2}-\d{2}$/;
+    if(!ok.test(ws)||!ok.test(td))return -1;
+    const n=Math.round((parseLocalDate(td)-parseLocalDate(ws))/86400000);
+    return (n>=0&&n<7)?n:-1;
+  }catch(_){ return -1; }
+}
+function _ffOpenOnToday(){ const i=_ffTodayIdx(); if(i>=0)currentProdDay=i; }
+function _ffTodayBandHtml(){
+  const td=_todayYmdP(); if(!/^\d{4}-\d{2}-\d{2}$/.test(td))return '';
+  const e=escapeHtmlP;
+  let html=`<div data-today-line="${td}" style="font-size:28px;font-weight:800;line-height:1.25;color:#0f172a;padding:6px 14px;background:#fff;border:2px solid #1e3a8a;border-radius:12px">${e(tf('td.now',_mdwOf(td)))}</div>`;
+  let vw=''; try{ const ws=String(S.weekStart||''); if(/^\d{4}-\d{2}-\d{2}$/.test(ws))vw=_addDaysYmd(ws,currentProdDay||0); }catch(_){ }
+  if(/^\d{4}-\d{2}-\d{2}$/.test(vw)&&vw!==td)html+=`<div data-today-warn="${vw}" role="alert" style="margin-top:6px;background:#dc2626;color:#fff;border-radius:10px;padding:10px 14px;font-size:17px;font-weight:800;line-height:1.5">⚠ ${e(tf('td.notToday',_mdwOf(vw),_mdwOf(td)))}</div>`;
+  return html;
+}
+let _ffTodayShown=null, _ffTodayTimer=null;   // 曜日タブの「今日」の印を描いた日付（renderProdDayTabs の中だけで新しくする）／1分ごとの予約
+function renderTodayBand(){ const el=document.getElementById('today-band'); if(el)el.innerHTML=_ffTodayBandHtml(); }
+// 日付が変わった時だけ、上の「今日」と帯・曜日タブの「今日」の印を新しくする（見ている日は変えない・作成表の中身や開いているカード・入力中の欄は描き直さない・同じ日の間は何もしない）。
+//   タブレットは開いたまま夜をまたぐ。毎時の描き直し（ffHourTick）は「今日／明日を見ている」時だけで、過ぎた日・あさって以降を見たまま／2晩目は止まるため、画面に戻った時と1分ごとにも見る（2026-10-19 テスの見つけ物）
+function _ffTodayCheck(){
+  try{
+    if(_ffTodayShown==null||_todayYmdP()===_ffTodayShown)return;   // 曜日タブをまだ描いていない／タブの「今日」の印が今日の日付のまま（帯だけが毎時の描き直しで新しくなっていても、タブの印は別に見る）
+    if(!document.getElementById('prod-day-tabs'))return;
+    renderProdDayTabs();   // 帯（renderTodayBand）と曜日タブの「今日」の印
+  }catch(_){ }
+}
+function _ffTodayTickSet(){ if(_ffTodayTimer)clearInterval(_ffTodayTimer); _ffTodayTimer=setInterval(_ffTodayCheck,60000); }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')_ffTodayCheck(); });
+window.addEventListener('pageshow',_ffTodayCheck);
+_ffTodayTickSet();
+// 曜日タブが横に長く、いま見ている日のタブがはみ出す時（スマホ）は、そのタブが見える所まで送る（「月」で開いた時に見えなくならないように）
+function _ffTabScroll(){
+  const el=document.getElementById('prod-day-tabs'); if(!el)return; const a=el.querySelector('.day-tab.active'); if(!a||!(el.scrollWidth>el.clientWidth+1))return;   // 画面に出ていない（④を開く前）時・はみ出さない時は何もしない
+  const ar=a.getBoundingClientRect(), er=el.getBoundingClientRect(); if(ar.left>=er.left-1&&ar.right<=er.right+1)return;   // もう見えているなら動かさない（手で送った位置を取りあげない）
+  el.scrollLeft=Math.max(0,a.offsetLeft-(el.clientWidth-a.offsetWidth)/2);
+}
 function renderProdDayTabs(){
+  renderTodayBand();   // 今日の日付と、今日ではない日の帯（2026-10-19）
   const dates=getWeekDates();
-  const today=new Date();
-  const todayStr=today.toDateString();
+  const todayYmd=_todayYmdP();   // 「今日」の印も、上の「今日」と同じ日で決める（2026-10-19）
+  _ffTodayShown=todayYmd;        // タブの印を描いた日付（毎時の描き直しが帯だけ新しくしても、タブの印の古さは _ffTodayCheck が見つける）
   const tabsHTML=DAYS.map((d,i)=>{
     const dt=dates[i];
-    const isToday=dt.toDateString()===todayStr;
+    const isToday=_ymdOf(dt)===todayYmd;
     const dayCorr=S.ext[i]?.correction||0;
     const isSpecial=dayCorr>=10;
     const todayDot=isToday?`<span style="display:block;width:6px;height:6px;background:var(--orange);border-radius:50%;margin:2px auto 0"></span>`:'';
@@ -8176,6 +8225,7 @@ function renderProdDayTabs(){
     </div>`;
   }).join('');
   document.getElementById('prod-day-tabs').innerHTML=tabsHTML+`<div class="day-tab-bar" style="flex:1;align-self:flex-end"></div>`;
+  _ffTabScroll();   // いま見ている日のタブが見える所まで送る（2026-10-19）
   renderWeekMenuBand();   // 今週のメニュー（曜日タブの下。2026-10-09）
   renderZeroMakeBand();   // 週に作成0の商品の帯（曜日タブの下）
 }
@@ -8355,7 +8405,7 @@ body{color:#000;font-family:'Yu Gothic','Hiragino Sans','Meiryo',sans-serif}
 .phead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:12px}
 .ptime{font-size:22px;font-weight:800;line-height:1}
 .pdone{font-size:12px;color:#444;margin-top:3px}
-.pdate{font-size:13px;font-weight:700;text-align:right}
+.pdate{font-size:24px;font-weight:800;line-height:1.1;text-align:right}
 .pstore{font-size:12px;color:#444;text-align:right;margin-top:2px}
 .pcat{margin-bottom:8px;break-inside:avoid}
 .pcat-head{display:flex;align-items:center;gap:9px;margin-bottom:2px;flex-wrap:wrap}
@@ -9249,6 +9299,7 @@ function ffHourTick(){
 }
 
 function renderProdDayContent(dayIdx){
+  renderTodayBand(); _ffTabScroll();   // 毎時の描き直しでも、今日の日付・帯を新しくする（0時をまたいだ時など）。④を開いた時にタブを見える所へ（2026-10-19）
   const el=document.getElementById('prod-day-content');
   const e=S.ext[dayIdx]||{weather:'晴れ',temp:20,event:'',correction:0};
   const wt=getWeekTotal();
