@@ -1487,7 +1487,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.18'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.19'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1611,7 +1611,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.18',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.19',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -2370,8 +2370,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.after=jp(E(P,`JSON.stringify([amAfterList(${(r11.t||at(9))+9*MIN}).length,amAfterList(${(r11.t||at(9))+11*MIN}).map(x=>[x.af.name,x.k])])`),[]);
           P.ev('amCloseSheet()');
         } finally { unwarp(P); P.ev(`isAdmin=false; if(window.__ft1) amFireTop=window.__ft1; amCloseSheet();`); }
-        checkL('96x','【見本から足す・足す前】見本の 一覧（3つ）→ 中身を 見る（2＝16行・5・11）。見ている間は 登録も ネット上も 何も 変わらない（店の本物の登録に 勝手に 足さない）。管理者でなければ 足せない',[
-            ['1:o.list[0]===3',o.list[0]===3],
+        checkL('96x','【見本から足す・足す前】見本の 一覧（4つ。5.19 で「店の作業 ぜんぶ」を 足した）→ 中身を 見る（2＝16行・5・11）。見ている間は 登録も ネット上も 何も 変わらない（店の本物の登録に 勝手に 足さない）。管理者でなければ 足せない',[
+            ['1:o.list[0]===4（5.19 で「店の作業 ぜんぶ」が 1つ 増えた）',o.list[0]===4],
             ['2:/見本から 足す/.test(o.list[1])',/見本から 足す/.test(o.list[1])],
             ['3:o.list[2]===\'tpl\'',o.list[2]==='tpl'],
             ['4:o.p1[0]===16',o.p1[0]===16],
@@ -3008,7 +3008,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same2=[wsj(O5)===wsj(P),wsj(O4)===wsj(P)];
         } finally { for(const d of [P,O5,O4]){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
         checkL7('97l','【古い版（5.14・5.15）の端末と まざる】新しい画面で 足した作業が 古い画面にも 同じ中身で 届く（保存の形は 同じ）・古い画面で 開いて 保存しても 変わらない・同じ作業の 別の欄（説明・名前・締切）を 3台が 同時に 直しても 全部 残る・新しい画面の ＋ と 古い画面の □ は 同じ書き方（sch7 と sch）で 3台が そろう',[
-            ['1:版',o.v[0]==='5.18'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
+            ['1:版',o.v[0]==='5.19'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
             ['2:はじめ そろう',J(o.seed)===J([true,true])],
             ['3:作業が 届く',J(o.arrive)===J([true,true,true,true])],
             ['4:開いて保存＝変わらない',J(o.noop)===J([true,true,true])],
@@ -3234,6 +3234,270 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             ['1:12px 以上',small.length===0],['2:うすくない',thin.length===0],['3:読める 濃さ',pale.length===0],['4:日本語が 主役',big.length===0],
             ['5:見た',o.rows.length>=12&&has(/Task setup/)&&has(/Add a task/)&&has(/Save/)&&has(/What/)]],
           `見た ${o.rows.length}か所｜小さい ${J(small.slice(0,4))}｜うすい ${J(thin.slice(0,4))}｜差が 小さい ${J(pale.slice(0,4))}｜日本語より 大きい ${J(big.slice(0,4))}｜例 ${J(o.rows.slice(0,3))}`);
+      });
+    }
+    /* ---- 5.18（店長 10/20「重複してるのもあると思いますが、してないやつをワークスケジュールに登録してほしいんだけど、可能？」→「詳細な設定はこっちでやるから、とりあえず追加だけしてほしい」・「他のデータに支障ない？」）：
+         見本「店の作業 ぜんぶ」（49件）。同じ名前は 外れる・似た名前は 札だけ・足す前は 何も 書かない・2回 入らない・足した作業の形は 今の 見本と 同じ（新しい 鍵なし）・
+         ほかの データ（作業・記録・地図・設定・番号）は 1字も 変わらない・時刻と回数が 空の 作業は 🔥・きのうの抜け・📊・おくれの音に 入らない・60件ほどを 一度に 足しても 保存と 同期が 止まらない・
+         2台／切れていた端末／古い版（5.14・5.18）と まざっても 作業が 消えない。作り物のデータだけの 別の枠（ネット上の保存先は 別の入れ物） ---- */
+    {
+      const mk8=async(cl,name,dir,seed,size)=>{
+        const be=cl.device(), store=new V2.Store({backend:be,space:'T8',device:name,kv:new V2.MemKV(),snapshot:false});
+        const sz=size||[768,900], f=document.createElement('iframe'); f.style.cssText=`display:block;width:${sz[0]}px;height:${sz[1]}px;max-width:none;border:1px solid #cbd5e1;border-radius:8px;background:#fff;margin:8px 0`; document.body.appendChild(f);
+        const win=await load(f,(dir||'ws')+'/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null;
+        await win.__v2go(Object.assign({store,stores,current:'w1'},seed?{state:J(seed)}:{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); await sleep(300);
+        return {f,win,be,store,name,ev:s=>win.eval(s),close:()=>{ try{ f.remove(); }catch(_){} }};
+      };
+      const sync8=async(devs)=>{ for(let i=0;i<3;i++){ for(const d of devs){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(350); };
+      const E8=(d,s)=>{ try{ return d.ev(s); }catch(e){ return '(エラー：'+String(e&&e.message).slice(0,60)+'）'; } };   // 直す前の版に 無い関数を 呼んでも、その試験だけが 不合格になる
+      const jp8=(s,d)=>{ try{ return JSON.parse(s); }catch(e){ return d; } };
+      const qn8=(d,sel)=>Number(E8(d,`document.querySelectorAll(${J(sel)}).length`))||0, qt8=(d,sel)=>String(E8(d,`(document.querySelector(${J(sel)})||{}).textContent||''`)).replace(/\s+/g,' ');
+      const qa8=(d,sel)=>jp8(E8(d,`JSON.stringify(Array.from(document.querySelectorAll(${J(sel)})).map(e=>(e.textContent||'').replace(/\\s+/g,' ').trim()))`),[]);
+      const tryB8=async(no,fn)=>{ try{ await fn(); }catch(e){ check(no+'-止','（この 試験は 途中で 止まった＝関数が 無い・エラー）',false,String(e&&e.stack||e).slice(0,400)); } };
+      const checkL8=(no,what,conds,detail)=>{ const bad=conds.filter(c=>!c[1]).map(c=>c[0]); check(no,what,bad.length===0,(bad.length?'【不合格の項目：'+bad.join(' ｜ ')+'】 ':'')+detail); };
+      const wl8=d=>jp8(E8(d,'JSON.stringify(amWorks())'),[]), wsj8=d=>E8(d,'JSON.stringify(state.amWorks===undefined?null:state.amWorks)');
+      const a18=d=>wl8(d).filter(w=>w&&/^a18_/.test(w.tpl||''));
+      const noW8=d=>E8(d,`JSON.stringify(Object.keys(state).filter(k=>k!=='amWorks'&&k!=='_modifiedAt').sort().reduce((o,k)=>{ o[k]=state[k]; return o; },{}))`);   // 作業の登録の 外の ぜんぶ（記録・地図・設定・タスク…）
+      const ALLOW8=['id','tpl','place','name','icon','kind','zone','sub','sch','days','items','en','ne'];
+      const errN8=()=>(window.__clErrs?window.__clErrs().length:0);
+      /* 店で 使っている 形：初期の作業（番号 seq を 保存ずみ）＋ 店で 入れた 同じ名前の 作業 4つ（全角/半角・空白の ちがい・売場マップの 作業も）＋ 直した地図・役割の説明・きのうと きょうの 記録 */
+      const SAMEW=[
+        {id:'w_s1',place:'off',name:'トイレ清掃',icon:'🚻',kind:'清掃',zone:'blue',sub:'店で 入れた',sch:[0,0,0,0],days:null,times:['22:00'],lead:30,grace:60,items:[['便器','こする']]},
+        {id:'w_s2',place:'off',name:'ﾎｯﾄFF作成',icon:'🔥',kind:'その他',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['10:00','16:00'],lead:30,grace:60,items:[]},
+        {id:'w_s3',place:'off',name:'温度 チェック',icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['09:00'],lead:30,grace:60,items:[],vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}]},
+        {id:'w_s4',name:'前陳（全売場）',icon:'📦',kind:'前陳',zone:'both',sub:'',sch:[1,1,1,1],sch7:[0,1,1,0,1,1,0],items:[]}];
+      const seedUse=d=>Number(d.ev(`(()=>{ const W=JSON.parse(JSON.stringify(DEFAULT_WORKS)).map((w,i)=>Object.assign(w,{seq:(i+1)*1000})).concat(${J(SAMEW)});
+        state.amWorks=W; const m=JSON.parse(JSON.stringify(OMACHI_MAP)); m.cells.find(c=>c.id==='wc1').label='トイレ①（店で 直した）'; m.cells.find(c=>c.id==='pinfr').works=['floor_red','w_s4']; state.amMap=m;
+        state.amRoles={blue:'店で 書いた 説明（青）'};
+        const day=amLogDayMs(amLogDay(Date.now())), iso=t=>new Date(t).toISOString(), y=day-86400000+13*3600000, n=Date.now()-3600000;
+        state.areaChecks={toilet:[{at:iso(y),by:'見本 花子'}],trash:[{at:iso(n),by:'見本 太郎'}]};
+        amLogAdd('toilet',{at:iso(y),by:'見本 花子'},null,null); amLogAdd('trash',{at:iso(n),by:'見本 太郎'},null,null);
+        amSave(); return W.length; })()`));
+
+      /* ===== 97u：見本「店の作業 ぜんぶ」を 見るだけ（初めの 登録のままの 店）。49件・4つの 分類・似た名前の 札・大町だけの 札・英語/ネパール語。見ている間は 何も 書かない ===== */
+      await tryB8('97u',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk8(cl,'端末P8u','ws',st), o={};
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); await sleep(150);
+        try{
+          const w0=wsj8(P), cw0=cl.writes;
+          P.ev(`amTplOpen('')`); await sleep(120);
+          o.list=[qn8(P,'#am-sheet .tpl-card'),qt8(P,'#am-sheet .tpl-card'),qt8(P,'#am-sheet .tpl-card .tpl-open')];
+          P.ev(`amTplOpen('all')`); await sleep(150);
+          o.a=[qn8(P,'#am-sheet .tpl-row'),qn8(P,'#am-sheet .tpl-row input:checked'),qn8(P,'#am-sheet .tpl-row input:disabled'),qt8(P,'#tpl-go'),qt8(P,'#am-sheet .tpl-sum'),qt8(P,'#am-sheet .am-title')];
+          o.grp=qa8(P,'#am-sheet .tpl-grp');
+          o.ri=jp8(E8(P,`JSON.stringify(Array.from(document.querySelectorAll('#am-sheet .tpl-row')).map(r=>({n:((r.querySelector('b')||{}).textContent||'').trim(), sim:((r.querySelector('.tpl-sim')||{}).textContent||''), om:!!r.querySelector('.tpl-om'), tg:Array.from(r.querySelectorAll('.tpl-tg')).map(x=>x.textContent), tr:((r.querySelector('.tpl-tr')||{}).textContent||''), on:!!(r.querySelector('input')||{}).checked})))`),[]);
+          const rf=nm=>o.ri.find(r=>r.n.endsWith(' '+nm))||{sim:'(行が無い)',tr:'',tg:[]};
+          o.sim=o.ri.filter(r=>r.sim).length; o.om=o.ri.filter(r=>r.om).map(r=>r.n); o.map=o.ri.filter(r=>r.tg.indexOf('🗺 売場マップ')>=0).length; o.off=o.ri.filter(r=>r.tg.indexOf('⏰ 売場以外')>=0).length;
+          o.tr=o.ri.every(r=>/^\S.* ・ \S/.test(r.tr)); o.trT=rf('トイレ清掃').tr;
+          o.s=[rf('トイレ点検').sim,rf('シンク清掃').sim,rf('補充（FF・マチカフェ消耗品）').sim,rf('品出し（たばこ）').sim,rf('前陳（全売場）').sim,rf('ゆうパック出荷').sim];
+          /* ✓ を 外す・入れる（書かない） */
+          P.ev(`amTplToggle('a18_s17',false)`); await sleep(80); o.t1=[qn8(P,'#am-sheet .tpl-row input:checked'),qt8(P,'#tpl-go')];
+          P.ev(`amTplToggle('a18_s17',true)`); await sleep(80); o.t2=qn8(P,'#am-sheet .tpl-row input:checked');
+          o.noWrite=[wsj8(P)===w0,w0==='null',cl.writes===cw0];
+          /* 管理者で なければ 足せない／確かめの 窓で「キャンセル」なら 何も 書かない */
+          P.ev(`isAdmin=false`); o.na=[E8(P,`amTplAdd('all')`),wsj8(P)===w0]; P.ev(`isAdmin=true`);
+          P.ev(`window.__cm=''; window.confirm=function(m){ window.__cm=m; return false; }`); o.cancel=[E8(P,`amTplAdd('all')`),wsj8(P)===w0,String(E8(P,'window.__cm'))]; P.ev(`window.confirm=function(){ return true; }`);
+          await sync8([P]); o.noWrite2=[wsj8(P)===w0,cl.writes===cw0];
+          /* 名前の 見くらべ（同じ名前の 鍵・似た名前） */
+          const PAIRS=[['トイレ清掃','トイレ',true],['シンク清掃','コーヒーマシン',false],['補充（FF・マチカフェ消耗品）','前陳：ファストフーズ・まちかど厨房',false],['品出し（たばこ）','タバコ',true],['品出し','品出し（赤ゾーン）',true],['前陳（FFセルフ・厨房）','前陳：その他（赤ゾーン）',false],['フィルター・吸込口・換気扇清掃','カウンター内',false],['トイレ清掃','清掃：トイレ',true],['店内・店頭清掃','清掃：店外',false],['店内・店頭ゴミ袋の点検・交換','ゴミ箱・上台周辺',true],['前陳（全売場）','前陳：米飯・日配・ベーカリー',true],['トイレ清掃','トイレ 清掃',false],['コーヒーマシン周辺点検・清掃','清掃：床',false]];
+          o.pairs=PAIRS.map(p=>E8(P,`amTplSimPair(${J(p[0])},${J(p[1])})`)===p[2]);
+          o.same=jp8(E8(P,`JSON.stringify([amTplNm('トイレ　清掃')===amTplNm('トイレ清掃'), amTplNm('ﾎｯﾄFF作成')===amTplNm('ホットFF作成'), amTplNm(' 温度 チェック ')===amTplNm('温度チェック'), amTplNm('トイレ')===amTplNm('トイレ清掃'), amTplNm('たばこ')===amTplNm('タバコ')])`),[]);
+          P.ev('amCloseSheet()');
+        } finally { P.ev(`window.confirm=function(){ return true; }; amCloseSheet();`); }
+        checkL8('97u','【見本「店の作業 ぜんぶ」・見るだけ】見本の 一覧の いちばん上に「店の作業 ぜんぶ」（49件）。中身は 4つの 分類（7・12・18・12）・売場マップ 13／売場以外 36・まちかど厨房と 厨房の 作業 6つに「🍳 大町だけ」・全部の 行に 英語と ネパール語。初めの 登録のままの 店では 同じ名前は 0（49件 ぜんぶ ✓）・似た名前の 札は 23行（トイレ点検＝「トイレ」・品出し（たばこ）＝「タバコ」・シンク清掃は 札なし・マチカフェ消耗品は「消耗品」だけ）。✓ を 外す／入れる・管理者でない・確かめの窓で キャンセル の どれでも 登録も ネット上も 何も 変わらない。名前の 見くらべ（全角/半角・空白は 同じ名前・トイレと トイレ清掃は 別の名前で 似ている など）',[
+            ['1:一覧に 4つ・いちばん上が ぜんぶ',o.list[0]===4&&/^全\s?店の作業 ぜんぶ/.test(o.list[1])&&/中身を 見る（49件）/.test(o.list[2])],
+            ['2:49行・✓49・押せない0',o.a[0]===49&&o.a[1]===49&&o.a[2]===0],
+            ['3:ボタン「この 49件」',/この 49件を 登録に 足す/.test(o.a[3])],
+            ['4:まとめの数',/登録ずみ 0件/.test(o.a[4])&&/似た名前 23件/.test(o.a[4])],
+            ['5:題',/店の作業 ぜんぶ/.test(o.a[5])],
+            ['6:分類 4つ',J(o.grp)===J(['発注・在庫管理7件','売場・商品管理12件','清掃・設備18件','レジ・事務・管理12件'])],
+            ['7:出す所 13／36',o.map===13&&o.off===36],
+            ['8:大町だけ 6',o.om.length===6&&o.om.every(n=>/厨房/.test(n))],
+            ['9:英語・ネパール語',o.tr===true&&/Clean toilet/.test(o.trT)&&/शौचालय/.test(o.trT)],
+            ['10:似た名前 23行',o.sim===23],
+            ['11:似た名前の 中身',/「トイレ」/.test(o.s[0])&&o.s[1]===''&&/「消耗品」/.test(o.s[2])&&!/まちかど/.test(o.s[2])&&/タバコ/.test(o.s[3])&&/ほか 2件/.test(o.s[4])&&o.s[5]===''],
+            ['12:✓を外す・入れる',J(o.t1)===J([48,'この 48件を 登録に 足す'])&&o.t2===49],
+            ['13:見るだけで 書かない',J(o.noWrite)===J([true,true,true])&&J(o.noWrite2)===J([true,true])],
+            ['14:管理者でない',o.na[0]===0&&o.na[1]===true],
+            ['15:キャンセル',o.cancel[0]===0&&o.cancel[1]===true&&/49件を 登録に 足します/.test(o.cancel[2])&&/どこにも 出ません/.test(o.cancel[2])],
+            ['16:似た名前の 見くらべ',o.pairs.every(x=>x===true)],
+            ['17:同じ名前の 鍵',J(o.same)===J([true,true,true,false,false])]],
+          `一覧 ${J(o.list)}｜行 ${J(o.a)}｜分類 ${J(o.grp)}｜マップ ${o.map}・以外 ${o.off}・大町だけ ${J(o.om)}｜似た ${o.sim}行 ${J(o.s)}｜✓ ${J(o.t1)}→${o.t2}｜書かない ${J(o.noWrite)}${J(o.noWrite2)}｜管理者でない ${J(o.na)}｜キャンセル ${J(o.cancel).slice(0,140)}｜見くらべ ${J(o.pairs)}・同じ ${J(o.same)}`);
+        P.close();
+      });
+
+      /* ===== 97v：同じ名前は 外れる・似た名前は えらべる・足す・2回 入らない（店で 使っている 形の 店） ===== */
+      await tryB8('97v',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk8(cl,'端末P8v','ws',st), o={};
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); o.n0=seedUse(P); await sync8([P]);
+        try{
+          const W0=wl8(P), cw0=cl.writes;
+          P.ev(`amTplOpen('all')`); await sleep(150);
+          o.a=[qn8(P,'#am-sheet .tpl-row.has'),qn8(P,'#am-sheet .tpl-row input:checked'),qn8(P,'#am-sheet .tpl-row.has input:disabled'),qt8(P,'#tpl-go'),qt8(P,'#am-sheet .tpl-sum')];
+          o.hasN=qa8(P,'#am-sheet .tpl-row.has b'); o.hasT=qa8(P,'#am-sheet .tpl-row.has .tpl-ok');
+          o.toi=String(E8(P,`(()=>{ const r=document.getElementById('tpl-a18_s03'); const l=r&&r.closest('.tpl-row'); return l?((l.querySelector('.tpl-sim')||{}).textContent||'')+'|'+r.checked+'|'+r.disabled:''; })()`));
+          P.ev(`amTplToggle('a18_s03',false); amTplToggle('a18_u03',false)`); await sleep(100);
+          o.b=[qn8(P,'#am-sheet .tpl-row input:checked'),qt8(P,'#tpl-go')]; o.nw=[cl.writes===cw0,J(wl8(P))===J(W0)];
+          o.add1=E8(P,`amTplAdd('all')`); await sync8([P]);
+          const W1=wl8(P), A1=W1.slice(W0.length), kinds=jp8(E8(P,'JSON.stringify(AM_KINDS)'),[]), DEF=jp8(E8(P,'JSON.stringify(amTplAllDef().works)'),[]);
+          o.n1=[W0.length,W1.length,A1.length,J(W1.slice(0,W0.length))===J(W0)];
+          o.shape=A1.every(w=>Object.keys(w).every(k=>ALLOW8.indexOf(k)>=0)&&/^w_[0-9a-z]{6,10}$/.test(w.id)&&J(w.sch)==='[0,0,0,0]'&&w.days===null&&J(w.items)==='[]'&&!('times' in w)&&!('sch7' in w)&&!('seq' in w)&&!('pri' in w)&&!!w.en&&!!w.ne&&!!w.name&&!!w.icon&&kinds.indexOf(w.kind)>=0&&['blue','red','both'].indexOf(w.zone)>=0&&(w.place==='off'||!('place' in w)));
+          o.asDef=A1.every(w=>{ const d=DEF.find(x=>x.tpl===w.tpl); if(!d) return false; const c=Object.assign({},w); delete c.id; return J(c)===J(d); });
+          o.uniq=new Set(A1.map(w=>w.id)).size===A1.length&&new Set(A1.map(w=>w.tpl)).size===A1.length;
+          o.notIn=['a18_s02','a18_u08','a18_r05','a18_u06','a18_s03','a18_u03'].filter(t=>A1.some(w=>w.tpl===t));
+          o.sameKept=['w_s1','w_s2','w_s3','w_s4'].every(id=>J(W1.find(w=>w.id===id))===J(W0.find(w=>w.id===id)));
+          o.snack=qt8(P,'#am-snack'); o.sheet=E8(P,'amSheetName()');
+          P.ev(`amTplOpen('all')`); await sleep(150);
+          o.c=[qn8(P,'#am-sheet .tpl-row.has'),qn8(P,'#am-sheet .tpl-row input:checked'),qt8(P,'#tpl-go')];
+          o.add2=E8(P,`amTplAdd('all')`); await sync8([P]); const cw2=cl.writes, w2=wsj8(P);
+          o.add3=E8(P,`amTplAdd('all')`); await sync8([P]); o.nw3=[cl.writes===cw2,wsj8(P)===w2];
+          P.ev(`amTplOpen('all')`); await sleep(120); o.d=[qn8(P,'#am-sheet .tpl-row.has'),E8(P,`document.getElementById('tpl-go').disabled`),qt8(P,'#tpl-go')];
+          P.ev(`amTplOpen('')`); await sleep(100); o.card=qt8(P,'#am-sheet .tpl-card');
+          o.tot=[a18(P).length,wl8(P).length-W0.length];
+        } finally { P.ev('amCloseSheet()'); }
+        checkL8('97v','【見本「ぜんぶ」・同じ名前は 外れる】店に 同じ名前の 作業が 4つ（トイレ清掃／半角の ﾎｯﾄFF作成／空白入りの 温度 チェック／売場マップの 前陳（全売場））ある時：その 4行は「✅ 登録ずみ（同じ名前）」で 押せない・✓ なし。似た名前（トイレ点検＝トイレ・トイレ清掃）は ✓ が 付いた まま。2行 外して 足す＝43件（いまの 作業は 1字も 変わらず、後ろに 足すだけ。形は 今の 見本と 同じ＝新しい 鍵なし・時刻なし・回数 0・確認 空・id は w_＋時刻）。もう一度 開くと 47行が 登録ずみ・残り 2件 → 足す → もう一度 足しても 0件（書かない）。ぜんぶ 入ると「足す 物は ありません」・一覧の札「✅ 登録ずみ」',[
+            ['1:同じ名前 4行',o.a[0]===4&&o.a[2]===4&&J(o.hasN.map(s=>s.replace(/^\S+ /,'')).sort())===J(['トイレ清掃','ホットFF作成','前陳（全売場）','温度チェック'].sort())&&o.hasT.every(t=>/同じ名前/.test(t))],
+            ['2:✓45・ボタン',o.a[1]===45&&/この 45件を 登録に 足す/.test(o.a[3])&&/登録ずみ 4件/.test(o.a[4])],
+            ['3:似た名前は ✓ のまま',/「トイレ」/.test(o.toi)&&/「トイレ清掃」/.test(o.toi)&&/\|true\|false$/.test(o.toi)],
+            ['4:2行 外す（書かない）',J(o.b)===J([43,'この 43件を 登録に 足す'])&&J(o.nw)===J([true,true])],
+            ['5:43件 足す・前は そのまま',o.add1===43&&J(o.n1)===J([21,64,43,true])],
+            ['6:形は 今の 見本と 同じ',o.shape===true&&o.asDef===true&&o.uniq===true],
+            ['7:外した物・同じ名前は 入らない',o.notIn.length===0&&o.sameKept===true],
+            ['8:足した後',/43件 登録に 足しました/.test(o.snack)&&o.sheet==='works'],
+            ['9:もう一度＝残り2件',J(o.c)===J([47,2,'この 2件を 登録に 足す'])],
+            ['10:2件→0件（書かない）',o.add2===2&&o.add3===0&&J(o.nw3)===J([true,true])],
+            ['11:ぜんぶ 入った',o.d[0]===49&&o.d[1]===true&&/足す 物は ありません/.test(o.d[2])&&/✅ 登録ずみ/.test(o.card)&&J(o.tot)===J([45,45])]],
+          `同じ名前 ${J(o.a)} ${J(o.hasN)}｜トイレ点検 ${o.toi}｜外す ${J(o.b)} ${J(o.nw)}｜足す ${o.add1} ${J(o.n1)}｜形 ${o.shape}・見本どおり ${o.asDef}・重ならない ${o.uniq}｜入らない物 ${J(o.notIn)}・同じ名前の作業 ${o.sameKept}｜「${o.snack.slice(0,50)}」${o.sheet}｜もう一度 ${J(o.c)}｜${o.add2}→${o.add3} ${J(o.nw3)}｜ぜんぶ ${J(o.d)}「${o.card.slice(0,40)}」${J(o.tot)}`);
+        P.close();
+      });
+
+      /* ===== 97w：ほかの データに 支障が ない（店長 10/20「他のデータに支障ない？」）。足す 前と 後で、作業の登録の 外は 1字も 変わらない・今の 作業と 番号と 並びは そのまま（足した物は 後ろ）・
+               ネット上で 変わる 記録は 作業の登録の 1件だけ・時刻と回数が 空の 作業は 🔥・きのうの抜け・📊・⏰・おくれの音・クルーの 列に 入らない ===== */
+      await tryB8('97w',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk8(cl,'端末P8w','ws',st), o={}, e0=errN8();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seedUse(P); await sync8([P]);
+        const crew=()=>jp8(E8(P,`(()=>{ isAdmin=false; applyAdminMode(); amCloseSheet(); _amDoneOpen=false; setView('map'); renderMapView(); const v=document.getElementById('map-view'), b=v&&v.querySelector('.amf-done'); const h1=v?v.innerHTML:''; setView('off'); const h2=(document.getElementById('off-view')||{}).innerHTML||''; isAdmin=true; applyAdminMode(); setView('dashboard'); const h3=(document.getElementById('who-view')||{}).innerHTML||''; const t3=(document.getElementById('who-view')||{}).innerText||''; setView('map'); return JSON.stringify({h1,h2,h3,t3,fold:b?b.textContent.replace(/\\s+/g,' '):''}); })()`),{});
+        const snap=()=>({ noW:noW8(P), W:wl8(P), ord:jp8(E8(P,'JSON.stringify(amOrdered().map(w=>w.id))'),[]), seq:jp8(E8(P,'JSON.stringify(amWorks().map(w=>[w.id,w.seq===undefined?null:w.seq]))'),[]),
+          fire:jp8(E8(P,'JSON.stringify(amFireKeys(Date.now()).sort())'),null), yd:jp8(E8(P,'(_yd.t=0, JSON.stringify(amYdData().items.map(x=>x.id)))'),null),
+          occ:jp8(E8(P,`(()=>{ const now=Date.now(), day=amLogDayMs(amLogDay(now)), ids=[]; [day-86400000,day].forEach(d=>{ amDayOcc(d,amOccCtx(d,d,now)).forEach(x=>ids.push(x.w.id)); }); return JSON.stringify(ids); })()`),null),
+          offl:jp8(E8(P,'JSON.stringify(amOffList(Date.now()).map(x=>x.w.id))'),null),
+          docs:(()=>{ const m={}; Object.keys(cl.docs).forEach(k=>{ if(/~r~/.test(k)) m[k]=J(cl.docs[k]&&cl.docs[k].d); }); return m; })() });
+        try{
+          P.ev(`window.__bp=0; window.__bp0=amSndBeep; amSndBeep=function(){ window.__bp++; return true; }; _snd.prev=null; _snd.last=0; amSndTick();`);
+          const C0=crew(), S0=snap(); o.sz0=Number(E8(P,'new TextEncoder().encode(JSON.stringify(state.amWorks)).length'));
+          o.add=E8(P,`amTplAdd('all')`); await sync8([P]);
+          P.ev(`amCloseSheet(); amSndTick();`); o.bp=E8(P,'window.__bp');
+          const S1=snap(), C1=crew(), NEW=a18(P), nid=NEW.map(w=>w.id), uniqN=NEW.map(w=>w.name).filter(n=>!S0.W.some(w=>String(w.name).indexOf(n)>=0));
+          o.sz1=Number(E8(P,'new TextEncoder().encode(JSON.stringify(state.amWorks)).length'));
+          o.noW=S1.noW===S0.noW;
+          o.works=[S1.W.length-S0.W.length,J(S1.W.slice(0,S0.W.length))===J(S0.W),S1.W.slice(S0.W.length).every(w=>/^a18_/.test(w.tpl||''))];
+          o.ord=[J(S1.ord.slice(0,S0.ord.length))===J(S0.ord),S1.ord.length-S0.ord.length,S1.ord.slice(S0.ord.length).every(id=>nid.indexOf(id)>=0)];
+          o.seq=J(S1.seq.slice(0,S0.seq.length))===J(S0.seq)&&S1.seq.slice(S0.seq.length).every(x=>x[1]===null);
+          o.fire=[J(S1.fire)===J(S0.fire),(S0.fire||[]).length];
+          o.yd=[J(S1.yd)===J(S0.yd),(S0.yd||[]).length];
+          o.occ=[J(S1.occ)===J(S0.occ),(S0.occ||[]).length,(S1.occ||[]).filter(id=>nid.indexOf(id)>=0).length];
+          o.offl=[J(S1.offl)===J(S0.offl),(S1.offl||[]).filter(id=>nid.indexOf(id)>=0).length];
+          o.docs=Object.keys(S1.docs).filter(k=>S1.docs[k]!==S0.docs[k]).map(k=>decodeURIComponent(k.split('~').pop()));
+          o.lost=Object.keys(cl.docs).filter(k=>/~l~/.test(k)).reduce((n,k)=>n+(((cl.docs[k]||{}).e)||[]).filter(x=>x.lost).length,0);
+          o.crew=[nid.filter(id=>(C1.h1||'').indexOf(id)>=0).length,nid.filter(id=>(C1.h2||'').indexOf(id)>=0).length,nid.filter(id=>(C1.h3||'').indexOf(id)>=0).length,uniqN.filter(n=>(C1.t3||'').indexOf(n)>=0).length,uniqN.length];
+          o.fold=[C0.fold,C1.fold];
+          o.errs=errN8()-e0;
+        } finally { P.ev(`if(window.__bp0) amSndBeep=window.__bp0; isAdmin=false; applyAdminMode(); setView('map'); amCloseSheet();`); }
+        checkL8('97w','【見本「ぜんぶ」・ほかの データに 支障が ない】店で 使っている 形の 店で 45件 足す 前と 後：作業の登録の 外（記録・きのうと きょうの 日ごとの記録・地図・役割の説明・タスク・従業員 ほか）は 1字も 同じ／今の 作業 21件は 1字も 同じで、足した物は 後ろだけ／番号（seq）と やる順の 並びは そのまま（足した 売場マップの 作業は 後ろ）／ネット上で 変わった 記録は「売場マップの作業」の 1件だけ・負けた 入力 0／🔥・きのうの抜け・📊（日ごとの 回）・⏰ 売場以外・おくれの音・クルーの 列と ⏰ と 📊 の 画面に 足した 作業は 出ない（売場マップの 作業は、たたんだ「予定なし」の 数にだけ 入る）',[
+            ['1:45件',o.add===45&&o.works[0]===45&&o.works[2]===true],
+            ['2:作業の登録の 外は 同じ',o.noW===true],
+            ['3:今の作業は 同じ',o.works[1]===true],
+            ['4:番号と 並び',o.ord[0]===true&&o.ord[1]===12&&o.ord[2]===true&&o.seq===true],
+            ['5:🔥 同じ',o.fire[0]===true],
+            ['6:きのうの抜け 同じ',o.yd[0]===true&&o.yd[1]>0],
+            ['7:📊（日ごとの回）同じ',o.occ[0]===true&&o.occ[1]>0&&o.occ[2]===0],
+            ['8:⏰ 同じ',o.offl[0]===true&&o.offl[1]===0],
+            ['9:おくれの音 鳴らない',o.bp===0],
+            ['10:ネット上は 作業の登録 1件',J(o.docs)===J(['s:amWorks'])&&o.lost===0],
+            ['11:画面に 出ない',o.crew[0]===0&&o.crew[1]===0&&o.crew[2]===0&&o.crew[3]===0&&o.crew[4]>=20],
+            ['12:エラー 0',o.errs===0]],
+          `足した ${o.add}・作業 ${J(o.works)}｜外 同じ ${o.noW}｜並び ${J(o.ord)}・seq ${o.seq}｜🔥 ${J(o.fire)}・きのう ${J(o.yd)}・📊 ${J(o.occ)}・⏰ ${J(o.offl)}・音 ${o.bp}｜ネット上で 変わった 記録 ${J(o.docs)}・負け ${o.lost}｜画面（列・⏰・📊・📊の名前／名前の数）${J(o.crew)}｜たたみ ${J(o.fold)}｜作業の登録の 大きさ ${o.sz0}→${o.sz1} バイト｜エラー ${o.errs}`);
+        P.close();
+      });
+
+      /* ===== 97x：60件ほどを 一度に 足しても、保存と 同期が 止まらない（記録の 大きさ・かかった 時間を 測る）。初めの 登録のままの 店（seq なし）で 紙の16行と ぜんぶ 49件を 続けて 足す＝65件 ===== */
+      await tryB8('97x',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk8(cl,'端末P8x','ws',st), Q=await mk8(cl,'端末Q8x','ws'), o={}, e0=errN8();
+        await sync8([P,Q]); P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); await sleep(100);
+        try{
+          const W0=wl8(P), ord0=jp8(E8(P,'JSON.stringify(amOrdered().map(w=>w.id))'),[]), cw0=cl.writes;
+          o.b0=Number(E8(P,'new TextEncoder().encode(JSON.stringify(amWorks())).length'));
+          let t=performance.now(); o.n1=E8(P,`amTplAdd('p1')`); o.tP1=Math.round(performance.now()-t);
+          t=performance.now(); o.n2=E8(P,`amTplAdd('all')`); o.tAll=Math.round(performance.now()-t);
+          t=performance.now(); await P.store.settle(20000); o.tSettle=Math.round(performance.now()-t);
+          t=performance.now(); let k=0; for(;k<300;k++){ if(wl8(Q).length===wl8(P).length) break; await sleep(50); } o.tArrive=Math.round(performance.now()-t);
+          await sync8([P,Q]);
+          const W1=wl8(P); o.b1=Number(E8(P,'new TextEncoder().encode(JSON.stringify(amWorks())).length'));
+          const dk=Object.keys(cl.docs).filter(x=>/~r~/.test(x)&&/amWorks/.test(x)); o.doc=dk.map(x=>new TextEncoder().encode(String((cl.docs[x]||{}).d||'')).length);
+          o.pend=[P.store.status().pending,Q.store.status().pending,P.store.status().state,Q.store.status().state]; o.eq=wsj8(P)===wsj8(Q);
+          o.cnt=[W0.length,W1.length,a18(P).length,W1.filter(w=>/^p1_/.test(w.tpl||'')).length];
+          o.pre=J(W1.slice(0,W0.length))===J(W0);
+          const ord1=jp8(E8(P,'JSON.stringify(amOrdered().map(w=>w.id))'),[]); o.ord=[J(ord1.slice(0,ord0.length))===J(ord0),ord1.length-ord0.length];
+          o.writes=cl.writes-cw0;
+          t=performance.now(); P.ev('amOpenWorks()'); o.tList=Math.round(performance.now()-t); await sleep(100); o.cards=qn8(P,'#am-sheet .rg-card'); P.ev('amCloseSheet()');
+          /* 足した後も ふつうに 保存できる：Q で 今の作業の 回数を 1つ 直す → P に 届く */
+          Q.ev(`isAdmin=true; amStep(null,'trash',1,1)`); await sync8([P,Q]); o.after=[wsj8(P)===wsj8(Q),J((wl8(P).find(w=>w.id==='trash')||{}).sch7)];
+          o.errs=errN8()-e0;
+        } finally { P.ev('amCloseSheet()'); Q.ev('isAdmin=false; amCloseSheet()'); }
+        checkL8('97x','【60件ほどを 一度に 足す】初めの 登録のままの 店（seq なし）で 紙の16行と ぜんぶ 49件を 続けて 足す（65件・保存を 待たずに）→ 保存が 終わり（未送信 0）・2台目に 全部 届き・2台の 中身が 同じ。今の作業 17件は そのまま 前に・やる順の 並びも そのまま（足した 売場マップの 作業は 後ろに 13）。作業の登録の 記録の 大きさは ネット上の 1件の 上限（1MB）より 十分 小さい。足した後も ふつうに 保存できる（2台目で 回数を 直す → 届く）',[
+            ['1:65件',o.n1===16&&o.n2===49&&J(o.cnt)===J([17,82,49,16])],
+            ['2:保存が 終わる',o.pend[0]===0&&o.pend[1]===0&&o.pend[2]==='ok'&&o.pend[3]==='ok'],
+            ['3:2台目に 届く',o.eq===true&&o.tArrive<15000],
+            ['4:今の作業・並び そのまま',o.pre===true&&o.ord[0]===true&&o.ord[1]===13],
+            ['5:大きさ',o.doc.length===1&&o.doc[0]<200000&&o.b1<200000],
+            ['6:足した後も 保存できる',o.after[0]===true&&o.after[1]!=='undefined'&&o.after[1]!==undefined],
+            ['7:エラー 0',o.errs===0]],
+          `件数 ${J(o.cnt)}（足した ${o.n1}+${o.n2}）｜時間 ms：紙16行 ${o.tP1}・ぜんぶ ${o.tAll}・保存が終わる ${o.tSettle}・2台目に届く ${o.tArrive}・登録の表を開く ${o.tList}（カード ${o.cards}）｜未送信 ${J(o.pend)}・同じ ${o.eq}｜大きさ バイト：作業の登録 ${o.b0}→${o.b1}・ネット上の記録 ${J(o.doc)}｜書いた文書 ${o.writes}｜前 ${o.pre}・並び ${J(o.ord)}｜足した後 ${J(o.after)}｜エラー ${o.errs}`);
+        P.close(); Q.close();
+      });
+
+      /* ===== 97y：2台が 同時に 開いている・切れていた 端末が あとから 保存する・古い版（5.14・5.18）の 端末が まざる → だれの 作業も 消えない ===== */
+      await tryB8('97y',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk8(cl,'端末P8y','ws',st), Q=await mk8(cl,'端末Q8y','ws'), O4=await mk8(cl,'端末O8y4','wsold'), O7=await mk8(cl,'端末O8y7','wsold517'), D=[P,Q,O4,O7], o={}, e0=errN8();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seedUse(P); await sync8(D);
+        try{
+          o.v=D.map(d=>String(E8(d,'APP_VERSION'))); o.seed=D.map(d=>wsj8(d)===wsj8(P));
+          const W0=wl8(P), sch=(d,id)=>J((wl8(d).find(w=>w.id===id)||{}).sch7||null);
+          /* A：Q が 切れている 間に、今の作業の 回数を 直し・自分の 作業を 1つ 足す。P は つながった まま「ぜんぶ」から 40件 足す（5行 外す）。Q が あとから つながる */
+          Q.be.setOnline(false);
+          Q.ev(`isAdmin=true; amStep(null,'trash',1,1); state.amWorks.push({id:'w_q8',place:'off',name:'Qで 足した 作業',icon:'🧪',kind:'その他',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['13:00'],lead:30,grace:60,items:[]}); amSave();`);
+          o.qT=sch(Q,'trash');
+          P.ev(`amTplOpen('all'); ['a18_h01','a18_u01','a18_s07','a18_r02','a18_r12'].forEach(t=>amTplToggle(t,false));`); await sleep(100);
+          o.addA=E8(P,`amTplAdd('all')`); await sync8([P,O4,O7]);
+          Q.be.setOnline(true); await sync8(D); await sync8(D);
+          const WA=wl8(P);
+          o.A=[D.map(d=>wsj8(d)===wsj8(P)),WA.some(w=>w.id==='w_q8'),sch(P,'trash')===o.qT,a18(P).length,W0.every(w=>WA.some(x=>x.id===w.id))];
+          /* B：P（5.19）が 切れている 間に 残りの 5件を 足す。その間に Q（5.19）・O4（5.14）・O7（5.18）が それぞれ 今の作業の 回数を 直す。P が あとから つながる */
+          P.be.setOnline(false);
+          o.addB=E8(P,`amTplAdd('all')`);
+          Q.ev(`amStep(null,'coffee',2,1)`); O4.ev(`isAdmin=true; amCycle('toilet',4)`); O7.ev(`isAdmin=true; amStep(null,'counter',3,1)`);
+          o.bT=[sch(Q,'coffee'),sch(O4,'toilet'),sch(O7,'counter')];
+          await sync8([Q,O4,O7]);
+          P.be.setOnline(true); await sync8(D); await sync8(D);
+          const WB=wl8(P);
+          o.B=[D.map(d=>wsj8(d)===wsj8(P)),a18(P).length,[sch(P,'coffee'),sch(P,'toilet'),sch(P,'counter')].map((x,i)=>x===o.bT[i]),WB.some(w=>w.id==='w_q8'),W0.every(w=>WB.some(x=>x.id===w.id)),WB.length];
+          o.lost=Object.keys(cl.docs).filter(k=>/~l~/.test(k)).reduce((n,k)=>n+(((cl.docs[k]||{}).e)||[]).filter(x=>x.lost).length,0);
+          /* 古い版の 画面：登録の表が 開ける（足した 作業も 並ぶ）・5.17 の 見本の 一覧は 3つの まま */
+          O7.ev(`amOpenWorks()`); await sleep(150); o.o7=[qn8(O7,'#am-sheet .rg-card'),E8(O7,'amSheetName()')]; O7.ev(`amTplOpen('')`); await sleep(100); o.o7t=qn8(O7,'#am-sheet .tpl-card'); O7.ev('amCloseSheet()');
+          O4.ev(`amOpenWorks()`); await sleep(150); o.o4=[E8(O4,'amSheetName()'),String(E8(O4,`(document.getElementById('am-sheet')||{}).textContent||''`)).indexOf('ゆうパック出荷')>=0]; O4.ev('amCloseSheet()');
+          o.errs=errN8()-e0;
+        } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
+        checkL8('97y','【見本「ぜんぶ」・2台と 古い版】A：Q（5.19）が 切れている 間に 回数を 直し 自分の 作業を 足す・P は つながった まま 40件 足す → Q が あとから つながっても、P の 40件・Q の 作業と 回数・今の 作業 21件が 全部 残り、4台（5.19×2・5.14・5.18）の 中身が 同じ。B：P が 切れている 間に 残り 5件を 足し、その間に Q・5.14・5.17 が それぞれ 回数を 直す → P が あとから つながっても 全部 残る（45件・3台の 回数・Q の 作業）。負けた 入力 0。古い版でも 登録の表が 開ける（5.18 は 見本の 一覧が 3つの まま）',[
+            ['1:版',o.v[0]==='5.19'&&o.v[1]==='5.19'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
+            ['2:A 4台 同じ',o.A[0].every(x=>x===true)],
+            ['3:A 全部 残る',o.addA===40&&o.A[1]===true&&o.A[2]===true&&o.A[3]===40&&o.A[4]===true],
+            ['4:B 4台 同じ',o.B[0].every(x=>x===true)],
+            ['5:B 全部 残る',o.addB===5&&o.B[1]===45&&o.B[2].every(x=>x===true)&&o.B[3]===true&&o.B[4]===true&&o.B[5]===21+1+45],
+            ['6:負けた 入力 0',o.lost===0],
+            ['7:古い版の 画面',o.o7[0]>=67&&o.o7[1]==='works'&&o.o7t===3&&o.o4[0]==='works'&&o.o4[1]===true],
+            ['8:エラー 0',o.errs===0]],
+          `版 ${J(o.v)}・はじめ ${J(o.seed)}｜A 足した ${o.addA}・同じ ${J(o.A[0])}・Qの作業 ${o.A[1]}・Qの回数 ${o.A[2]}（${o.qT}）・ぜんぶ ${o.A[3]}・前の作業 ${o.A[4]}｜B 足した ${o.addB}・同じ ${J(o.B[0])}・ぜんぶ ${o.B[1]}・回数 ${J(o.B[2])}（${J(o.bT)}）・Q ${o.B[3]}・前 ${o.B[4]}・全部で ${o.B[5]}｜負け ${o.lost}｜5.18 ${J(o.o7)} 見本 ${o.o7t}・5.14 ${J(o.o4)}｜エラー ${o.errs}`);
+        for(const d of D) d.close();
       });
     }
     check('97','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);

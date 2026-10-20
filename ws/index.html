@@ -2742,6 +2742,18 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .tpl-b{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:15px}
 .tpl-b small{font-size:13px;color:#475569;line-height:1.5}
 .tpl-b .tpl-tr{color:#7586a0}
+/* 5.18：見本「店の作業 ぜんぶ」（分類の 見出し・種類と 出す所の 札・大町だけの 札・似た名前・数の まとめ） */
+.tpl-grp{display:flex;align-items:baseline;gap:8px;margin:12px 0 2px;padding:6px 4px;background:#fff;font-size:16px;font-weight:800;color:#1e3a8a;border-bottom:2px solid #c7d2fe}
+.tpl-grp small{font-size:13px;font-weight:700;color:#64748b}
+.tpl-tags{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;margin:1px 0}
+.tpl-tg{font-size:12px;font-weight:700;color:#334155;background:#eef2f7;border-radius:999px;padding:1px 8px;line-height:1.6}
+.tpl-tg.tpl-om{color:#7c2d12;background:#ffedd5}
+.tpl-b .tpl-sim{color:#92400e;background:#fef3c7;border-radius:6px;padding:1px 6px;font-weight:700}
+.tpl-row.sim{border-color:#f0cf7c}
+.tpl-sum{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.tpl-sum span{font-size:13px;font-weight:800;border-radius:999px;padding:2px 10px;line-height:1.6}
+.tpl-sum .s-has{color:#15803d;background:#dcf3e3}
+.tpl-sum .s-sim{color:#92400e;background:#fef3c7}
 /* きのうの抜け：最初の画面の細い1行（0件の日は 出ない） */
 #amf-wrap.m5w .amf-yd{grid-column:2;grid-row:2;margin:0 0 4px}   /* 広い画面：右の列の いちばん上（決まりの文の 上）の 空いている段 */
 .amf-yd{flex:0 0 auto;display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 6px;padding:6px 12px;border:1px solid #eddcae;border-radius:10px;background:#fffbee;color:#5c3d00;font-family:inherit;font-size:15px;font-weight:600;text-align:left;cursor:pointer;line-height:1.3}   /* 5.16：ふちを 細く・色を うすく（気づける黄色は 残す。数は 太いまま・字の色は 濃いまま） */
@@ -4043,7 +4055,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.18'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.19'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -11435,12 +11447,129 @@ function amTplDefs(){
       after:{name:'奥の 見直し（もう一度、棚の奥まで）',min:10,grace:10,en:'Second look: check the back of the shelf again',ne:'दोस्रो पटक: दराजको पछाडि फेरि हेर्नुहोस्'},
       en:'Disposal: check to the back of the shelf',ne:'फाल्ने: दराजको पछाडिसम्म जाँच'}) ];
   return [
+    amTplAllDef(),   // 5.18：店の作業 ぜんぶ（店長の 一覧・いちばん上）
     {key:'p1',no:'2',title:'チェック漏れ：紙のチェック表①の 16行',lead:'信濃大町駅前店の 紙の チェック表①（点検・清掃・補充・返品・値引き・納品の 26行）の うち、いまの 初期の 登録に 無い 16行を、売場以外の 作業として 足します。点検8行と 補充2行は もう あります。新村の 紙が 同じとは かぎらないので、新村では 中身を 見て 確かめてから 足します。',works:A},
     {key:'i5',no:'5',title:'レジの アラートリストを 確かめる',lead:'レジの 画面の 右下あたりに 出る アラートリストを、朝と 夕方に 確かめる 作業です（回数は あとで 登録の表の □ で 直せます）。',works:B},
     {key:'i11',no:'11',title:'廃棄：棚の 奥まで 確かめる',lead:'棚の 奥・下の段まで 見て、期限切れを 外した 数を 残します（0 でも 数を えらびます）。記録の 10分後に「奥の 見直し」が もう一度 出ます。',works:C}
   ];
 }
 function amTplHas(w){ const nm=String(w.name||'').trim(); return amWorks().some(x=>x&&typeof x==='object'&&(x.tpl===w.tpl||(amIsOff(x)&&String(x.name||'').trim()===nm))); }
+/* ===== 5.18（2026-10-20・店長「重複してるのもあると思いますが、してないやつをワークスケジュールに登録してほしいんだけど、可能？」→「詳細な設定はこっちでやるから、とりあえず追加だけしてほしいって感じ。」）：見本「店の作業 ぜんぶ」 =====
+   店長の 一覧（4つの 分類・49件）を、名前の まま 見本に した。持たせるのは 名前・絵・種類・出す所（売場マップ／売場以外。迷う物は 売場以外）・英語/ネパール語の 短い名前（仮の訳）だけ。
+   時刻・回数・確認項目は 空（sch は ぜんぶ 0・times なし・items 空）＝足した 直後は どこにも 出ない（🔥・きのうの抜け・📊・おくれの音にも 入らない）。店長が 登録の表の ✏️ で 決める。
+   ・同じ名前（空白・全角/半角の ちがいは 同じと みる）の 作業が もう あれば「登録ずみ」で 外す（押せない）。同じ tpl が あっても 外す（2回 入らない）。
+   ・似た名前（例「トイレ」と「トイレ清掃」）は「似た名前が 登録ずみ」と 出すだけ（✓ は 付いた まま。外すかは 店長が えらぶ）。自動で 外すのは 同じ名前だけ。
+   ・まちかど厨房の 作業（厨房の 床・什器・陳列ケースを ふくむ）には「🍳 大町だけ」の 小さい札（新村は 厨房の 対象外）。札だけで、外しは しない。
+   ・保存の形は 今の 見本と 同じ（新しい 鍵は 足さない。分類は 見本の 中だけに 持ち、作業には 書かない）。足す前は 何も 書かない。足す時だけ 確かめの 窓を 出す（件数が 多いので）。
+   ・[id, 名前, 絵, 種類, 出す所（off＝売場以外／map＝売場マップ）, 巡回（売場マップの時。売場以外は 今の 見本と 同じ blue）, 英語, ネパール語] */
+const AM_TPL_ALL=[
+  ['発注・在庫管理',[
+    ['h01','一括発注（12時締め）','📝','その他','off','','Bulk order (12:00 cutoff)','एकमुष्ट अर्डर (१२ बजेसम्म)'],
+    ['h02','消耗品発注','📦','その他','off','','Order store supplies','पसलका सामग्री अर्डर'],
+    ['h03','ゆうパック出荷','📮','その他','off','','Yu-Pack parcel shipping','यु-प्याक पार्सल पठाउने'],
+    ['h04','オープンケース廃棄・登録','🗑','点検','off','','Open case: remove expired, register','खुला केस: म्याद सकिएको हटाउने, दर्ता'],
+    ['h05','FF販売許容確認・廃棄・登録','🍗','点検','off','','FF: check sell-by, remove, register','FF: बिक्री समय जाँच, हटाउने, दर्ता'],
+    ['h06','各時間帯の値引き・廃棄・登録','🏷','その他','off','','Markdowns, disposal, register (each time slot)','हरेक समयमा छुट, फाल्ने, दर्ता'],
+    ['h07','フライヤー油の酸価チェック','🍟','点検','off','','Fryer oil acid check','फ्राइयर तेलको अम्ल जाँच']]],
+  ['売場・商品管理',[
+    ['u01','品出し','📥','品出し','map','both','Stocking shelves','सामान राख्ने'],
+    ['u02','品出し（たばこ）','🚬','品出し','map','blue','Stocking: tobacco','सामान राख्ने: चुरोट'],
+    ['u03','補充（カウンター消耗品）','🛍','補充','map','blue','Refill: counter supplies','भर्ने: काउन्टरका सामग्री'],
+    ['u04','補充（FF・マチカフェ消耗品）','🥤','補充','map','blue','Refill: FF & MACHI café supplies','भर्ने: FF र माचि क्याफे सामग्री'],
+    ['u05','前陳（FFセルフ・厨房）','🍗','前陳','map','both','Face-up: FF self case & kitchen','अगाडि मिलाउने: FF सेल्फ र किचन'],
+    ['u06','前陳（全売場）','📦','前陳','map','both','Face-up: whole sales floor','अगाडि मिलाउने: पूरै पसल'],
+    ['u07','品出し・前陳（米飯・オープンケース・デザート・ベーカリー）','🍙','品出し','map','both','Stock & face-up: rice, open case, desserts, bakery','सामान राख्ने र मिलाउने: भात, खुला केस, मिठाई, बेकरी'],
+    ['u08','ホットFF作成','🔥','その他','off','','Make hot FF','तातो FF बनाउने'],
+    ['u09','まちかど厨房作成','🍳','その他','off','','Make MACHIKADO kitchen food','माचिकादो किचनको खाना बनाउने'],
+    ['u10','コーヒーマシン周辺点検・清掃','☕','点検','map','blue','Coffee machine area: check & clean','कफी मेसिन वरिपरि: जाँच र सफाई'],
+    ['u11','FFセルフ什器点検・清掃','🧽','点検','map','both','FF self case: check & clean','FF सेल्फ केस: जाँच र सफाई'],
+    ['u12','ホットのお湯補充','♨️','補充','map','blue','Refill hot water','तातो पानी भर्ने']]],
+  ['清掃・設備',[
+    ['s01','厨房床・厨房什器の清掃','🧹','清掃','off','','Clean kitchen floor & equipment','किचनको भुइँ र उपकरण सफाई'],
+    ['s02','トイレ清掃','🚻','清掃','off','','Clean toilet','शौचालय सफाई'],
+    ['s03','トイレ点検','🚻','点検','map','red','Check toilet','शौचालय जाँच'],
+    ['s04','店内・店頭ゴミ袋の点検・交換','🗑','点検','map','blue','Trash bags (inside & front): check, replace','फोहोरको झोला (भित्र र अगाडि): जाँच, फेर्ने'],
+    ['s05','店内・店頭ゴミ箱の点検・交換','🗑','点検','map','blue','Trash bins (inside & front): check, replace','फोहोरको भाँडो (भित्र र अगाडि): जाँच, फेर्ने'],
+    ['s06','店内・店頭ゴミ箱の清掃','🧽','清掃','off','','Clean trash bins (inside & front)','फोहोरको भाँडो सफाई (भित्र र अगाडि)'],
+    ['s07','店内・店頭清掃','🧹','清掃','off','','Clean inside & store front','पसल भित्र र अगाडि सफाई'],
+    ['s08','ガラス・窓清掃','✨','清掃','off','','Clean glass & windows','सिसा र झ्याल सफाई'],
+    ['s09','フィルター・吸込口・換気扇清掃','🌀','清掃','off','','Clean filters, vents, fans','फिल्टर, हावा जाने ठाउँ, पंखा सफाई'],
+    ['s10','冷凍機器清掃','❄️','清掃','off','','Clean freezers','फ्रिजर सफाई'],
+    ['s11','フライヤー清掃','🍟','清掃','off','','Clean fryer','फ्राइयर सफाई'],
+    ['s12','厨房陳列ケース清掃','🍳','清掃','off','','Clean kitchen display case','किचन डिस्प्ले केस सफाई'],
+    ['s13','店外マット・店内マット清掃','🚪','清掃','off','','Clean outside & inside mats','बाहिर र भित्रको म्याट सफाई'],
+    ['s14','店舗周辺清掃','🚗','清掃','off','','Clean around the store','पसल वरिपरि सफाई'],
+    ['s15','犬走り清掃','🧹','清掃','off','','Clean the walkway along the walls','भित्ता छेउको बाटो सफाई'],
+    ['s16','ゴミ・段ボール置場清掃','📦','清掃','off','','Clean trash & cardboard area','फोहोर र कार्टुन राख्ने ठाउँ सफाई'],
+    ['s17','シンク清掃','🚰','清掃','off','','Clean sink','सिङ्क सफाई'],
+    ['s18','ダスタークロスがけ','🧹','清掃','off','','Dust mop the floor','भुइँमा डस्टर लगाउने']]],
+  ['レジ・事務・管理',[
+    ['r01','レジ点検（現金・現金外金券カウント）','💴','点検','off','','Register check (count cash & vouchers)','रजिस्टर जाँच (नगद र कुपन गन्ने)'],
+    ['r02','精算','🧾','その他','off','','Settlement','हिसाब मिलान'],
+    ['r03','コピー機精算・用紙補充','🖨','補充','off','','Copier: settle & add paper','कपी मेसिन: हिसाब र कागज भर्ने'],
+    ['r04','送金','🏦','その他','off','','Send money (deposit)','पैसा पठाउने'],
+    ['r05','温度チェック','🌡','点検','off','','Temperature check','तापक्रम जाँच'],
+    ['r06','温度チェック・廃棄・登録','🌡','点検','off','','Temperature check, disposal, register','तापक्रम जाँच, फाल्ने, दर्ता'],
+    ['r07','店舗周辺の巡回','🚶','点検','off','','Patrol around the store','पसल वरिपरि घुम्ने'],
+    ['r08','防犯ビデオの稼働・録画確認','📹','点検','off','','Security camera: running & recording','सुरक्षा क्यामेरा: चलिरहेको र रेकर्ड जाँच'],
+    ['r09','まちかど厨房の準備','🍳','その他','off','','MACHIKADO kitchen: prepare','माचिकादो किचन: तयारी'],
+    ['r10','まちかど厨房清掃・準備','🍳','清掃','off','','MACHIKADO kitchen: clean & prepare','माचिकादो किचन: सफाई र तयारी'],
+    ['r11','まちかど厨房作業日報の確認','📋','点検','off','','MACHIKADO kitchen: check daily report','माचिकादो किचन: दैनिक रिपोर्ट जाँच'],
+    ['r12','半製品賞味管理入力チェック','⏱','点検','off','','Semi-finished goods: check expiry input','अर्ध-तयार सामान: म्याद प्रविष्टि जाँच']]]
+];
+const AM_TPL_OMACHI=/まちかど厨房|厨房床|厨房什器|厨房陳列/;   // 「🍳 大町だけ」の札を 付ける 名前（札だけ。外しは しない）
+function amTplAllDef(){
+  const groups=AM_TPL_ALL.map(g=>({t:g[0], works:g[1].map(r=>{ const o={tpl:'a18_'+r[0]}; if(r[4]==='off') o.place='off';
+    return Object.assign(o,{name:r[1], icon:r[2], kind:r[3], zone:r[4]==='off'?'blue':r[5], sub:'', sch:[0,0,0,0], days:null, items:[], en:r[6], ne:r[7]}); })}));
+  const works=[].concat.apply([],groups.map(g=>g.works));
+  return {key:'all', no:'全', title:'店の作業 ぜんぶ（店長の 一覧）', lead:`店長の 一覧 ${works.length}件（${groups.map(g=>g.t).join('／')}）を、名前の まま 足します。時刻・回数は 空で 入ります（足した 直後は どこにも 出ません）。`,
+    works, groups, has:amTplAllHas, ask:true};
+}
+/* 名前の 見くらべ（5.18）。amTplNm＝「同じ名前」の 鍵（全角/半角・大文字/小文字・空白の ちがいを 消すだけ）。
+   amTplSeg／amTplSimSeg＝「似た名前」：作業の 言葉（清掃・点検・補充・前陳・品出し など）と 区切り（・（）：／ と「の」「を」など）で 切った 言葉どうしに、
+   漢字 2字 以上の 同じ 所か、カタカナ・英字の 言葉 まるごと（例 トイレ・ゴミ・タバコ・コピー）が ある時。ひらがなは カタカナに そろえる（たばこ＝タバコ）。
+   片方が 作業の 言葉だけ（例「品出し」「前陳（全売場）」）の 時は、同じ 作業の 言葉が あれば 似ている。読むだけで 何も 書かない。 */
+function amTplNm(s){ return String(s==null?'':s).normalize('NFKC').replace(/\s+/g,'').toLowerCase(); }
+const AM_TPL_GEN=['確かめる','チェック','品出し','清掃','点検','補充','前陳','交換','登録','確認','作成','作業','周辺','準備','管理','入力'];
+const AM_TPL_WIDE=['その他','全売場','全部','ぜんぶ','すべて'];
+function amTplSeg(s){
+  let t=String(s==null?'':s).normalize('NFKC').toLowerCase(); const gen=[];
+  AM_TPL_GEN.forEach(g=>{ if(t.indexOf(g)>=0){ gen.push(g); t=t.split(g).join('|'); } });
+  AM_TPL_WIDE.forEach(g=>{ t=t.split(g).join('|'); });
+  t=t.replace(/[\s・･\/／()（）\[\]【】「」『』:：、,，。.．〜~＋+＝=!！?？#＃&＆'"‘’“”]/g,'|').replace(/[のをにはがでへや]/g,'|');
+  const all=t.split('|').map(x=>x.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60))).filter(x=>x.length>=1);
+  return {seg:all.filter(x=>x.length>=2), thin:!all.length, gen};   // thin＝作業の 言葉の ほかに 何も 無い（1字の「床」なども 中身と みる）
+}
+function amTplRuns(x){ return x.match(/[ァ-ヺー]+|[a-z]+/g)||[]; }
+function amTplCommon(a,b){
+  for(let L=Math.min(a.length,b.length);L>=2;L--) for(let i=0;i+L<=a.length;i++){ const s=a.substr(i,L); if(b.indexOf(s)<0) continue;
+    if((s.match(/[㐀-鿿]/g)||[]).length>=2) return s;
+    if(/^(?:[ァ-ヺー]+|[a-z]+)$/.test(s)&&(amTplRuns(a).indexOf(s)>=0||amTplRuns(b).indexOf(s)>=0)) return s; }
+  return '';
+}
+function amTplSimSeg(A,B){
+  for(const a of A.seg) for(const b of B.seg){ if(amTplCommon(a,b)) return true; }
+  return (A.thin||B.thin)&&A.gen.some(g=>B.gen.indexOf(g)>=0);
+}
+function amTplSimPair(a,b){ return amTplNm(a)!==amTplNm(b)&&amTplSimSeg(amTplSeg(a),amTplSeg(b)); }
+/* 見本「ぜんぶ」の「登録ずみ」：同じ tpl か、同じ名前（売場マップ・売場以外の どちらでも）の 作業が ある */
+function amTplAllHas(w){ const k=amTplNm(w.name); return amWorks().some(x=>x&&typeof x==='object'&&(x.tpl===w.tpl||(k!==''&&amTplNm(x.name)===k))); }
+function amTplIs(d,w){ return (d&&typeof d.has==='function')?d.has(w):amTplHas(w); }
+/* 似た名前の 登録ずみの 作業の 名前（同じ名前は のぞく） */
+function amTplSimNames(w,exS){ const A=amTplSeg(w.name), k=amTplNm(w.name), out=[]; exS.forEach(e=>{ if(e.k===k||out.indexOf(e.n)>=0) return; if(amTplSimSeg(A,e.s)) out.push(e.n); }); return out; }
+/* 見本「ぜんぶ」の 中身（分類ごとの 見出し＋行）。数＝足す 件数・同じ名前・似た名前 */
+function amTplAllRows(d){
+  const exS=amWorks().filter(x=>x&&typeof x==='object'&&String(x.name||'').trim()).map(x=>({n:String(x.name).trim(), k:amTplNm(x.name), s:amTplSeg(x.name)}));
+  let n=0, nHas=0, nSim=0;
+  const row=w=>{ const has=amTplIs(d,w), sim=has?[]:amTplSimNames(w,exS), on=!has&&!_tpl.off[w.tpl]; if(has) nHas++; else if(sim.length) nSim++; if(on) n++;
+    const om=AM_TPL_OMACHI.test(w.name);
+    return `<label class="tpl-row${has?' has':''}${sim.length?' sim':''}"><input type="checkbox" id="tpl-${w.tpl}" data-t="${w.tpl}" ${has?'disabled':(on?'checked':'')} onchange="amTplToggle(this.dataset.t,this.checked)"><span class="tpl-b"><b>${escapeHtml(w.icon)} ${escapeHtml(w.name)}</b>
+      <span class="tpl-tags"><span class="tpl-tg">${escapeHtml(w.kind)}</span><span class="tpl-tg">${w.place==='off'?'⏰ 売場以外':'🗺 売場マップ'}</span>${om?'<span class="tpl-tg tpl-om">🍳 大町だけ</span>':''}${has?'<span class="tpl-ok">✅ 登録ずみ（同じ名前）</span>':''}</span>
+      ${sim.length?`<small class="tpl-sim">≈ 似た名前が 登録ずみ：${sim.slice(0,2).map(s=>'「'+escapeHtml(s)+'」').join('')}${sim.length>2?` ほか ${sim.length-2}件`:''}</small>`:''}<small class="tpl-tr">${escapeHtml(w.en||'')} ・ ${escapeHtml(w.ne||'')}</small></span></label>`; };
+  const rows=d.groups.map(g=>`<div class="tpl-grp">${escapeHtml(g.t)}<small>${g.works.length}件</small></div>`+g.works.map(row).join('')).join('');
+  const sum=`<div class="tpl-sum"><span class="s-has">✅ 同じ名前が 登録ずみ ${nHas}件（外しました）</span><span class="s-sim">≈ 似た名前 ${nSim}件（✓ は 付いた まま）</span></div>`;
+  return {rows, n, nHas, nSim, sum};
+}
 let _tpl={key:'',off:{}};   // 開いている見本・外した行（tpl の名前→true）
 function amTplWhen(w){
   const fm=v=>{ v=((v%1440)+1440)%1440; return Math.floor(v/60)+':'+String(v%60).padStart(2,'0'); }, dd=(Array.isArray(w.days)&&w.days.length&&w.days.length<7)?'　'+w.days.map(i=>AM_REP_DOW[i]).join('・')+'曜':'';
@@ -11458,7 +11587,7 @@ function amTplOpen(key){
   if(!key){
     _tpl.key=''; _tpl.off={};
     _amSheet(`${head('🧩 見本から 足す')}<div class="rg-body"><div class="am-sub">見本を えらぶと、足す 作業の 中身が 見えます。「足す」を 押すまで、登録は 何も 変わりません。足した 作業は 登録の表の「✏️ 内容」で 直せます。同じ 見本は 2回 入りません。</div>
-      ${defs.map(d=>{ const n=d.works.length, have=d.works.filter(amTplHas).length;
+      ${defs.map(d=>{ const n=d.works.length, have=d.works.filter(w=>amTplIs(d,w)).length;
         return `<div class="tpl-card"><div class="tpl-h"><span class="tpl-no">${d.no}</span><b>${escapeHtml(d.title)}</b>${have===n?'<span class="tpl-ok">✅ 登録ずみ</span>':(have?`<span class="tpl-ok">一部 登録ずみ（${have}/${n}）</span>`:'')}</div><div class="tpl-l">${escapeHtml(d.lead)}</div>
           <button type="button" class="btn-secondary tpl-open" data-k="${d.key}" onclick="amTplOpen(this.dataset.k)">中身を 見る（${n}件）</button></div>`; }).join('')}</div>
       <div class="rg-foot"><button type="button" class="rg-back" onclick="amOpenWorks()">← 登録の表へ</button></div>`, 'wide', 'tpl');
@@ -11467,12 +11596,19 @@ function amTplOpen(key){
   const d=defs.find(x=>x.key===key); if(!d) return;
   const keep=(amSheetName()==='tpl'&&_tpl.key===key)?(document.querySelector('#am-sheet .rg-body')||{}).scrollTop:0;   // ✓ を 外した時の 描き直しで 位置が 戻らない（同じ見本の 描き直しの時だけ）
   if(_tpl.key!==key){ _tpl.key=key; _tpl.off={}; }
-  const rows=d.works.map(w=>{ const has=amTplHas(w), on=!has&&!_tpl.off[w.tpl];
+  let rows, n, sub;
+  if(d.groups){   // 5.18：見本「店の作業 ぜんぶ」＝分類ごとの 見出し・同じ名前は 外す・似た名前の 札・大町だけの 札（amTplAllRows）
+    const r=amTplAllRows(d); rows=r.rows; n=r.n;
+    sub=`<b>名前・絵・種類・出す所・英語/ネパール語の 名前だけ 入ります。</b>時刻・回数・確認項目は 空（足した 直後は どこにも 出ません）。足したあと 登録の表の ✏️ で 決めます。いらない 行は ✓ を 外します。${r.sum}`;
+  } else {
+    rows=d.works.map(w=>{ const has=amTplHas(w), on=!has&&!_tpl.off[w.tpl];
     const its=(w.items||[]).map(x=>escapeHtml(x[0])).join('／'), vs=(w.vals||[]).map(v=>`${escapeHtml(v.label)}（${escapeHtml(v.unit||'')}）`).join('・');
     return `<label class="tpl-row${has?' has':''}"><input type="checkbox" id="tpl-${w.tpl}" data-t="${w.tpl}" ${has?'disabled':(on?'checked':'')} onchange="amTplToggle(this.dataset.t,this.checked)"><span class="tpl-b"><b>${escapeHtml(w.icon)} ${escapeHtml(w.name)}</b>${has?'<span class="tpl-ok">✅ 登録ずみ</span>':''}<small>いつ：${escapeHtml(amTplWhen(w))}</small>
       ${w.sub?`<small>説明：${escapeHtml(w.sub)}</small>`:''}<small>確認：${its}</small>${vs?`<small>数字を 残す：${vs}</small>`:''}${w.after?`<small>あとの作業：${w.after.min}分後に「${escapeHtml(w.after.name)}」</small>`:''}<small class="tpl-tr">${escapeHtml(w.en||'')} ・ ${escapeHtml(w.ne||'')}</small></span></label>`; }).join('');
-  const n=d.works.filter(w=>!amTplHas(w)&&!_tpl.off[w.tpl]).length;
-  _amSheet(`${head(`🧩 ${d.no}　${escapeHtml(d.title)}`)}<div class="rg-body"><div class="am-sub">${escapeHtml(d.lead)}<br><b>これから 足す 作業の 中身です。</b>${d.works.length>1?'いらない 行は ✓ を 外します。':''}「足す」を 押すと 登録に 入ります（登録の表の「✏️ 内容」で 直せます）。</div>
+    n=d.works.filter(w=>!amTplHas(w)&&!_tpl.off[w.tpl]).length;
+    sub=`${escapeHtml(d.lead)}<br><b>これから 足す 作業の 中身です。</b>${d.works.length>1?'いらない 行は ✓ を 外します。':''}「足す」を 押すと 登録に 入ります（登録の表の「✏️ 内容」で 直せます）。`;
+  }
+  _amSheet(`${head(`🧩 ${d.no}　${escapeHtml(d.title)}`)}<div class="rg-body"><div class="am-sub">${sub}</div>
     <div class="tpl-list">${rows}</div></div>
     <div class="rg-foot"><button type="button" class="rg-back" onclick="amTplOpen('')">← 一覧へ</button><button type="button" class="rg-save" id="tpl-go" onclick="amTplAdd('${key}')"${n?'':' disabled'}>${n?`この ${n}件を 登録に 足す`:'足す 物は ありません'}</button></div>`, 'wide', 'tpl');
   skin();
@@ -11483,8 +11619,9 @@ function amTplToggle(t,on){ if(on) delete _tpl.off[t]; else _tpl.off[t]=true; am
 function amTplAdd(key){
   if(!isAdmin) return 0;
   const d=amTplDefs().find(x=>x.key===key); if(!d) return 0;
-  const todo=d.works.filter(w=>!amTplHas(w)&&!_tpl.off[w.tpl]);
+  const todo=d.works.filter(w=>!amTplIs(d,w)&&!_tpl.off[w.tpl]);   // 5.18：見本ごとの「登録ずみ」（ぜんぶ＝同じ名前も。ほかの 見本は 今までどおり amTplHas）
   if(!todo.length){ amSnack('足す 物は ありません（もう 登録ずみです）',false); amTplOpen(key); return 0; }
+  if(d.ask&&!confirm(`${todo.length}件を 登録に 足します。\n時刻・回数は 空の まま 入るので、足した 直後は どこにも 出ません（登録の表の ✏️ で 決めます）。\n\n［OK］足す\n［キャンセル］やめる（何も 変わりません）`)) return 0;   // 5.18：件数が 多い 見本だけ 確かめる
   const list=amWorksEdit(), t0=Date.now();
   todo.forEach((w,i)=>{ list.push(Object.assign({id:'w_'+(t0+i).toString(36)},JSON.parse(JSON.stringify(w)))); });
   _amSeqUndo=null; _tpl.key=''; _tpl.off={};
