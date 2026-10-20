@@ -746,14 +746,14 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const lstD=(d,id,t)=>JSON.parse(d.ev(`JSON.stringify(amOffList(${t}).filter(x=>x.w.id===${J(id)}).map(x=>[x.k,x.lock?1:0,x.re||0]))`));
       const lst=(id,t)=>JSON.parse(A.ev(`JSON.stringify(amOffList(${t}).filter(x=>x.w.id===${J(id)}).map(x=>[x.k,x.lock?1:0,x.re||0]))`));
       const at=h=>{ const d=new Date(); d.setHours(h,0,0,0); return d.getTime(); };
-      const mkW=(id,name,tm)=>({id,place:'off',name,icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[tm],lead:30,grace:60,recheck:30,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]});   // 時刻 11:55・15:55・19:55・21:55・22:55 の 1日1回の作業（30分前から押せる・60分後が締切）。次の回は あした
+      const mkW=(id,name,tm)=>({id,place:'off',name,icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[tm],lead:30,grace:60,recheck:30,reN:2,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]});   // 時刻 11:55・15:55・19:55・21:55・22:55 の 1日1回の作業（30分前から押せる・60分後が締切）。次の回は あした
       const keepW=A.ev('JSON.stringify(Array.isArray(state.amWorks)?state.amWorks:null)'), ids=['w_df1','w_df2','w_df3','w_df4','w_df5'];
       /* ほかの試験が足した 売場以外の作業（1時間ごとの作業）が 帯・いま やることに混ざらないよう、この試験の間だけ 5つだけにする（終わったら 元に戻す） */
       A.ev(`isAdmin=false; amCloseSheet(); window.__ft1=amFireTop; amFireTop=function(){ return null; }; state.amWorks=${J([mkW('w_df1','DF再チェックの試験','11:55'),mkW('w_df2','DF2回の試験','15:55'),mkW('w_df3','DF取り消しの試験','19:55'),mkW('w_df4','DF2台の試験','21:55'),mkW('w_df5','DF2台同時の試験','22:55')])}; amSave(); setView('off');`);
       try{
         /* (a) 12:00 に カード：数字の欄の下に「DF中（30分後に もう一度）」。押すと 点灯 → 名前を押す → 記録に df:1 */
         goto(A,at(12)); const T0=Number(A.ev('Date.now()'));
-        A.ev(`amOpenArea('w_df1'); amCardPick('a',7);`);
+        A.ev(`amOpenArea('w_df1'); amCardPick('a',4);`);   // 5.15：7℃ は 範囲の外＝押さなくても 自動で点灯する（新しい試験 96u）。「押すと 点灯」の場面は 範囲の中（4℃）で
         o.btn0=q('#am-sheet .ao-df'); o.t0=txt('#am-sheet .ao-df-t'); o.on0=q('#am-sheet .ao-df.on'); o.tr0=q('#am-sheet .ao-df .am-tr');
         A.ev('amCardDf()'); o.on1=q('#am-sheet .ao-df.on'); o.pressed=A.ev(`document.querySelector('#am-sheet .ao-df').getAttribute('aria-pressed')`);
         A.ev(`amRecord('w_df1','見本 花子')`); o.sn=txt('#am-snack');
@@ -801,7 +801,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       }
       check('72','DF 再チェック（5.8）：カードの数字の欄の下に「DF中（30分後に もう一度）」→ 押して 名前を押すと 記録に df:1（直近40件の記録は at・by のまま）。記録の 30分後に、⏰ の「いま やること」と売場マップの帯に もう一度 出る（それまでは「これから」に ロックの行・90分たつと 🔥）。再チェックの記録（re:1）で消える。再チェックでまた DF中 → もう1回だけ出る（2回目の再チェックには DF中のボタンは無く「2回まで」の1行。3回目は出ない）。取り消せば 再チェックの枠も消える。2台：A の DF中 → B に 再チェックの枠が届き B が記録 → 両方残る。2台がほぼ同時に（先がふつう・あとが DF中）でも DF中の印は落ちない',
         o.btn0===1&&/DF中（30分後に もう一度）/.test(o.t0)&&o.on0===0&&o.tr0===1&&o.on1===1&&o.pressed==='true'
-        &&o.r1.length===1&&o.r1[0].df===1&&o.r1[0].re===0&&!!o.r1[0].v&&o.r1[0].v.a===7&&/DF中 → \d+:\d+ に もう一度 出ます/.test(o.sn)&&J(JSON.parse(o.ac))===J(['at,by'])
+        &&o.r1.length===1&&o.r1[0].df===1&&o.r1[0].re===0&&!!o.r1[0].v&&o.r1[0].v.a===4&&/DF中 → \d+:\d+ に もう一度 出ます/.test(o.sn)&&J(JSON.parse(o.ac))===J(['at,by'])
         &&J(o.sA)===J(['done',false,1,30])&&J(o.l1)===J([['done',0,0],['todo',1,1]])&&J(o.l29)===J([['done',0,0],['todo',1,1]])&&J(o.l31)===J([['done',0,0],['soon',0,1]])&&J(o.l89)===J([['done',0,0],['soon',0,1]])&&J(o.l91)===J([['done',0,0],['fire',0,1]])
         &&o.bar1===''&&/ao-x-do soon/.test(o.bar31)&&/🔁/.test(o.bar31)
         &&o.cardRe===1&&/再チェック/.test(o.cardTxt)&&/🔁/.test(o.barDo)&&/再チェック/.test(o.head)&&o.btnRe===1&&o.noteRe===0
@@ -817,8 +817,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const out={}, base=new Date(); base.setHours(0,0,0,0); base.setDate(base.getDate()-3);
         const at=(h,m)=>base.getTime()+h*3600000+(m||0)*60000, iso=ms=>new Date(ms).toISOString(), dayMs=base.getTime();
         const wasAdmin=isAdmin, keys0=Object.keys(state).filter(k=>k.indexOf('amLog_')===0);
-        const W={id:'w_dfn',place:'off',name:'夜のDF試験',icon:'🌙',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['23:00'],lead:30,grace:60,recheck:30,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]};
-        const W2={id:'w_dfe',place:'off',name:'次の回のDF試験',icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['10:00','11:00'],lead:30,grace:60,recheck:30,items:[]};
+        const W={id:'w_dfn',place:'off',name:'夜のDF試験',icon:'🌙',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['23:00'],lead:30,grace:60,recheck:30,reN:2,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]};
+        const W2={id:'w_dfe',place:'off',name:'次の回のDF試験',icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['10:00','11:00'],lead:30,grace:60,recheck:30,reN:2,items:[]};
         amWorksEdit().push(W,W2);
         let refs=[]; const add=(wid,ms,fl)=>{ refs.push(amLogAdd(wid,{at:iso(ms),by:'見本 花子'},null,fl)); }, clear=()=>{ refs.forEach(r=>amLogRemove(r)); refs=[]; };
         const st=(w,ms)=>{ const s=amOffStatus(w,ms); return s.st+(s.lock?'*':'')+(s.slot&&s.slot.re?'R'+s.slot.re:'')+'@'+(s.slot?amHM(s.slot.s):'-'); };
@@ -1480,7 +1480,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.14'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.15'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1604,7 +1604,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.14',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.15',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -1793,6 +1793,652 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       check('96p','【N2】従業員の画面で、タブの自然な幅＋右の予約（135px）の幅なら 最後のタブ「依頼タスク」が 切れずに 見える（予約が 152px の前の版は 約17px 切れる）・それより せまくても 横に送れば 最後まで 見える・右上の「従業員」・同期の 2つと かぶらない（すき間 0〜6px）・右の予約は 135px。管理者モードは 今までの 152px',
         n2.length===4&&n2bad.length===0&&n2fit&&mrE==='135px'&&n2a.mr==='152px'&&n2a.gap>=0&&n2a.clipEnd<=0.5,`自然な幅 ${nat}px・予約 ${mrE}｜従業員 ${n2.map(e=>e.lab+' '+e.w+'px：切れ '+e.clip+'・送ると '+e.clipEnd+'・すき間 '+e.gap).join('｜')}｜管理者（${nat+136}px）：予約 ${n2a.mr}・すき間 ${n2a.gap}・送ると ${n2a.clipEnd}`);
       T.close();
+    }
+    /* ---- 5.15（店長 10/19「厨房の表」「DFは30分後に1回のみ…何回にするか設定」「温度の数字が OK の外なら自動で再チェック」「作ってよい」）：
+         DF の再チェックを広げる（回数 reN・数字が OK の範囲の外なら自動）／厨房の表（ボタンは 表が入っている店だけ・入れるのは 管理者の設定の中だけ）／見本から足す（2・5・11）／おくれの音／きのうの抜け。
+         作り物のデータだけの別の枠（ネット上の保存先は 別の入れ物＝2台の中身・未送信には 関わらない）。保存先は 画面の中の state と、ネット上（作り物）の記録の名前で 見る ---- */
+    {
+      const MIN=60000, pad2=n=>(n<10?'0':'')+n;
+      const mk3=async(cl,name,dir,seed,fw,fh)=>{
+        const be=cl.device(), store=new V2.Store({backend:be,space:'T5',device:name,kv:new V2.MemKV(),snapshot:false});
+        const f=document.createElement('iframe'); f.style.cssText='display:block;width:'+(fw||768)+'px;height:'+(fh||900)+'px;max-width:none;border:1px solid #cbd5e1;border-radius:8px;background:#fff;margin:8px 0'; document.body.appendChild(f);
+        const win=await load(f,(dir||'ws')+'/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null;
+        await win.__v2go(Object.assign({store,stores,current:'w1'},seed?{state:J(seed)}:{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); await sleep(300);
+        return {f,win,be,store,name,ev:s=>win.eval(s),close:()=>{ try{ f.remove(); }catch(_){} }};
+      };
+      const sync3=async(devs)=>{ for(let i=0;i<3;i++){ for(const d of devs){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(350); };
+      const warp=(d,off)=>d.ev(`(()=>{ if(!window.__rd0) window.__rd0=window.Date; const RD=window.__rd0, off=${off}; function FD(){ const a=Array.prototype.slice.call(arguments); if(!new.target) return new RD(RD.now()+off).toString(); if(a.length===0) return Reflect.construct(RD,[RD.now()+off],new.target); return Reflect.construct(RD,a,new.target); } FD.prototype=RD.prototype; Object.setPrototypeOf(FD,RD); FD.now=function(){ return RD.now()+off; }; window.Date=FD; })()`);
+      const unwarp=d=>d.ev('(()=>{ if(window.__rd0){ window.Date=window.__rd0; window.__rd0=null; } })()');
+      const goto=(d,t)=>{ unwarp(d); const n=Number(d.ev('Date.now()')); warp(d,t-n); };
+      const at=h=>{ const d=new Date(); d.setHours(h,0,0,0); return d.getTime(); };
+      const E=(d,s)=>{ try{ return d.ev(s); }catch(e){ return '(エラー：'+String(e&&e.message).slice(0,60)+'）'; } };   // 直す前の版に 無い関数を 呼んでも、その試験だけが 不合格になる
+      const jp=(s,d)=>{ try{ return JSON.parse(s); }catch(e){ return d; } };
+      const qn=(d,sel)=>Number(E(d,`document.querySelectorAll(${J(sel)}).length`))||0, qt=(d,sel)=>String(E(d,`(document.querySelector(${J(sel)})||{}).textContent||''`)).replace(/\s+/g,' ');
+      const recsD=(d,id,t0)=>jp(E(d,`JSON.stringify(amLogRange(${t0-864e5},${t0+10*864e5}).filter(r=>r.w===${J(id)}).map(r=>({by:r.by,df:r.df||0,re:r.re||0,ng:r.ng||0,v:r.v,t:r.t})))`),[]);
+      const rawD=(d,id)=>jp(E(d,`JSON.stringify(amLogKeys().reduce((a,k)=>a.concat(Object.keys(state[k]).map(i=>state[k][i]).filter(r=>r&&r.w===${J(id)})),[]))`),[]);
+      const lstD=(d,id,t)=>jp(E(d,`JSON.stringify(amOffList(${t}).filter(x=>x.w.id===${J(id)}).map(x=>[x.k,x.lock?1:0,x.re||0]))`),[]);
+      const tryB=async(no,fn)=>{ try{ await fn(); }catch(e){ check(no+'-止','（この 試験は 途中で 止まった＝関数が 無い・エラー）',false,String(e&&e.stack||e).slice(0,400)); } };   // 1つの 試験が 止まっても 次の 試験は 動かす（直す前の版で 新しい試験が 1つずつ 落ちる事の 確かめ用）
+      const checkL=(no,what,conds,detail)=>{ const bad=conds.filter(c=>!c[1]).map(c=>c[0]); check(no,what,bad.length===0,(bad.length?'【不合格の項目：'+bad.join(' ｜ ')+'】 ':'')+detail); };   // 条件ごとに 名前を付けて、落ちた時に どの条件かを 出す
+      const reMax=l=>l.reduce((m,x)=>Math.max(m,x[2]),0);
+      const mkW=(id,name,tm,extra)=>Object.assign({id,place:'off',name,icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[tm],lead:30,grace:60,recheck:30,vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}],items:[]},extra||{});
+
+      /* ===== 96u：DF の再チェック（回数 reN・数字が OK の範囲の外なら 自動）。reN の無い 前からの作業は 今までどおり 2回まで ===== */
+      await tryB('96u',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pq','ws',st), o={};
+        const WS=[mkW('w_q1','前からの作業（reN なし）','11:55'),mkW('w_q2','1回までの作業','13:55',{reN:1}),mkW('w_q3','3回までの作業','15:55',{reN:3}),mkW('w_q4','範囲の中の作業','17:55',{reN:1}),mkW('w_q5','旧い版が記録する作業','19:55'),mkW('w_q6','DF中を押す作業','21:55',{reN:2}),mkW('w_q7','2回までの作業','08:55',{reN:2})];
+        P.ev(`isAdmin=false; amCloseSheet(); window.__ft1=amFireTop; amFireTop=function(){ return null; }; state.amWorks=${J(WS)}; amSave(); setView('off');`);
+        try{
+          /* 回数の読み方 */
+          o.mx=jp(E(P,`JSON.stringify([undefined,null,'',0,-1,'x',1,2,3,5,9,2.7].map(n=>amReMax(n===undefined?{}:{reN:n})))`),[]);
+          /* S1：前からの作業（reN なし）。12:00 に 9℃（OK は 5℃ まで）を えらぶ → 「DF中」を 押さなくても 自動 */
+          goto(P,at(12)); const T0=Number(P.ev('Date.now()'));
+          P.ev(`amOpenArea('w_q1'); amCardPick('a',9);`);
+          o.a_btn=qn(P,'#am-sheet .ao-df.auto.on'); o.a_t=qt(P,'#am-sheet .ao-df-t'); o.a_click=E(P,`document.querySelector('#am-sheet .ao-df').getAttribute('onclick')`); o.a_pr=E(P,`document.querySelector('#am-sheet .ao-df').getAttribute('aria-pressed')`); o.a_tr=qt(P,'#am-sheet .ao-df .am-tr');
+          P.ev(`amRecord('w_q1','見本 花子')`); o.a_sn=qt(P,'#am-snack');
+          o.a_raw=rawD(P,'w_q1'); o.a_rows=recsD(P,'w_q1',T0); const rt1=o.a_rows[0]?o.a_rows[0].t:T0;
+          o.a_l=lstD(P,'w_q1',rt1+31*MIN); o.a_l29=lstD(P,'w_q1',rt1+29*MIN);
+          /* 30分後：前からの作業（reN なし）は 1回まで → 再チェックの カードに「1回までです」・DF のボタンは 出ない・また 8℃ でも 枠は ふえない・お知らせに ⚠ */
+          goto(P,rt1+31*MIN); P.ev(`amOpenArea('w_q1'); amCardPick('a',8);`); o.a_btn2=qn(P,'#am-sheet .ao-df'); o.a_head2=qt(P,'#am-sheet .am-cd-m'); o.a_note=qt(P,'#am-sheet .ao-dfn'); P.ev(`amRecord('w_q1','見本 太郎')`); o.a_sn3=qt(P,'#am-snack');
+          o.a_rows3=recsD(P,'w_q1',T0); const rt1b=o.a_rows3[1]?o.a_rows3[1].t:rt1; o.a_l2=lstD(P,'w_q1',rt1b+31*MIN); o.a_l3=lstD(P,'w_q1',rt1b+200*MIN);
+          P.ev('amCloseSheet()');
+          /* S1b：2回まで（reN:2）。9:00 に 9℃ → 再チェックで また 9℃（まだ 自動で点灯）→ 3回目の 9℃ は 枠が ふえず「2回までです」・お知らせに ⚠ */
+          goto(P,at(9)); const G0=Number(P.ev('Date.now()')); let tg=G0; const gl=[];
+          for(let i=0;i<3;i++){ P.ev(`amOpenArea('w_q7'); amCardPick('a',9);`); if(i===1) o.g_btn=qn(P,'#am-sheet .ao-df.auto.on'); if(i===2) o.g_note=qt(P,'#am-sheet .ao-dfn'); P.ev(`amRecord('w_q7','見本 花子')`); if(i===2) o.g_sn=qt(P,'#am-snack'); const rr=recsD(P,'w_q7',G0), last=rr[rr.length-1]; if(!last) break; tg=last.t; gl.push(reMax(lstD(P,'w_q7',tg+31*MIN))); P.ev('amCloseSheet()'); goto(P,tg+31*MIN); }
+          o.g_ls=gl; o.g_rows=recsD(P,'w_q7',G0).length;
+          /* S2：1回まで（reN:1）。14:00 に 9℃ → 30分後の 再チェックで また 9℃ → それ以上は 出ない。カードに「1回までです」 */
+          goto(P,at(14)); const U0=Number(P.ev('Date.now()'));
+          P.ev(`amOpenArea('w_q2'); amCardPick('a',9); amRecord('w_q2','見本 花子')`); const ru=recsD(P,'w_q2',U0)[0]; const rt2=ru?ru.t:U0;
+          goto(P,rt2+31*MIN); P.ev(`amOpenArea('w_q2'); amCardPick('a',9);`); o.b_note=qt(P,'#am-sheet .ao-dfn'); o.b_btn=qn(P,'#am-sheet .ao-df');
+          P.ev(`amRecord('w_q2','見本 太郎')`); o.b_sn=qt(P,'#am-snack'); o.b_l=lstD(P,'w_q2',rt2+31*MIN); const rb=recsD(P,'w_q2',U0); const rt2b=rb[1]?rb[1].t:rt2; o.b_l2=lstD(P,'w_q2',rt2b+200*MIN); o.b_rows=rb.map(r=>[r.df,r.re,r.ng]);
+          P.ev('amCloseSheet()');
+          /* S3：3回まで（reN:3） */
+          goto(P,at(16)); const V0=Number(P.ev('Date.now()')); let tt=V0; const ls=[];
+          for(let i=0;i<4;i++){ P.ev(`amOpenArea('w_q3'); amCardPick('a',9);`); if(i===3) o.c_note=qt(P,'#am-sheet .ao-dfn'); P.ev(`amRecord('w_q3','見本 花子')`); const rr=recsD(P,'w_q3',V0), last=rr[rr.length-1]; if(!last) break; tt=last.t; ls.push(reMax(lstD(P,'w_q3',tt+31*MIN))); P.ev('amCloseSheet()'); goto(P,tt+31*MIN); }
+          o.c_ls=ls; o.c_rows=recsD(P,'w_q3',V0).length;
+          /* S4：範囲の中（3℃）は 自動で出ない・「DF中」の ボタンは ふつうの形（押せる） */
+          goto(P,at(18)); const X0=Number(P.ev('Date.now()'));
+          P.ev(`amOpenArea('w_q4'); amCardPick('a',3);`); o.d_auto=qn(P,'#am-sheet .ao-df.auto'); o.d_on=qn(P,'#am-sheet .ao-df.on'); o.d_click=E(P,`document.querySelector('#am-sheet .ao-df').getAttribute('onclick')`); o.d_t=qt(P,'#am-sheet .ao-df-t');
+          P.ev(`amRecord('w_q4','見本 花子')`); const rx=recsD(P,'w_q4',X0)[0]||{}; o.d_row=[rx.df,rx.re,rx.ng]; o.d_l=lstD(P,'w_q4',(rx.t||X0)+31*MIN); o.d_sn=qt(P,'#am-snack');
+          /* S5：古い版の端末が 記録した（印の無い）9℃ の記録も、新しい版では 自動の再チェックの もとになる */
+          goto(P,at(20)); const Y0=Number(P.ev('Date.now()'));
+          P.ev(`(()=>{ const rec={at:new Date().toISOString(), by:'旧版'}; amLogAdd('w_q5',rec,{a:9},null); amSave(); })()`); const ry=recsD(P,'w_q5',Y0)[0]||{}; o.e_raw=rawD(P,'w_q5').map(r=>[r.df||0,r.re||0,JSON.stringify(r.v)]); o.e_row=[ry.df,ry.ng]; o.e_l=lstD(P,'w_q5',(ry.t||Y0)+31*MIN);
+          o.e_tag=E(P,`(()=>{ const r=amLogRange(${Y0-864e5},${Y0+864e5}).filter(x=>x.w==='w_q5')[0]; return amOffDfTag(r,amWork('w_q5')); })()`);
+          /* S6：範囲の中でも「DF中」を 押せば 今までどおり df:1 が 記録に入る（reN:2） */
+          goto(P,at(22)); const Z0=Number(P.ev('Date.now()'));
+          P.ev(`amOpenArea('w_q6'); amCardPick('a',3); amCardDf(); amRecord('w_q6','見本 花子')`); const rz=recsD(P,'w_q6',Z0)[0]||{}; o.f_raw=rawD(P,'w_q6').map(r=>r.df||0); o.f_row=[rz.df,rz.ng]; o.f_l=lstD(P,'w_q6',(rz.t||Z0)+31*MIN); o.f_tag=E(P,`(()=>{ const r=amLogRange(${Z0-864e5},${Z0+864e5}).filter(x=>x.w==='w_q6')[0]; return amOffDfTag(r,amWork('w_q6')); })()`);
+          /* カードの「予定」の1行 */
+          P.ev('amCloseSheet()'); P.ev(`amOpenArea('w_q2')`); o.plan=qt(P,'#am-sheet .am-hist'); P.ev('amCloseSheet()');
+        } finally { unwarp(P); P.ev(`amFireTop=window.__ft1; amCloseSheet();`); }
+        checkL('96u','【DF 回数・自動】reN の読み方（無い・0・負・文字＝1回／1〜5 はそのまま・9 は 5・2.7 は 2）。数字が OK の範囲の外（9℃・OK は 5℃ まで）なら「DF中」を 押さなくても 自動：カードに 押せない「範囲の外 → 30分後に もう一度（自動）」が 点灯・記録には 印を 足さず（df なし）読む時に df・ng を付ける・30分後に もう一度の枠。reN の無い 前からの作業は 1回まで（店長 10/19。5.8〜5.14 は 2回だった。2回以上は 作業ごとに えらぶ＝reN:2 は 2回まで）',[
+            ['1:J(o.mx)===J([1,1,1,1,1,1,1,2,3,5,5,2])',J(o.mx)===J([1,1,1,1,1,1,1,2,3,5,5,2])],
+            ['2:o.a_btn===1',o.a_btn===1],
+            ['3:/範囲の外 → 30分後に もう一度（自動）/.test(o.a_t)',/範囲の外 → 30分後に もう一度（自動）/.test(o.a_t)],
+            ['4:o.a_click===null',o.a_click===null],
+            ['5:o.a_pr===\'true\'',o.a_pr==='true'],
+            ['6:/Out of range/.test(o.a_tr)',/Out of range/.test(o.a_tr)],
+            ['7:/दायरा बाहिर/.test(o.a_tr)',/दायरा बाहिर/.test(o.a_tr)],
+            ['8:/範囲の外 → \\d+:\\d+ に もう一度 出ます/.test(o.a_sn)',/範囲の外 → \d+:\d+ に もう一度 出ます/.test(o.a_sn)],
+            ['9:o.a_raw.length===1',o.a_raw.length===1],
+            ['10:o.a_raw[0].df===undefined',o.a_raw[0].df===undefined],
+            ['11:o.a_rows.length===1',o.a_rows.length===1],
+            ['12:o.a_rows[0].df===0',o.a_rows[0].df===0],
+            ['13:o.a_rows[0].ng===0',o.a_rows[0].ng===0],
+            ['14:J(o.a_l.map(x=>x[0]+\':\'+x[2]))===J([\'soon:1\'])',J(o.a_l.filter(x=>x[2]).map(x=>x[0]+':'+x[2]))===J(['soon:1'])],
+            ['15:o.a_l29.every(x=>x[2]===0||x[1]===1)',o.a_l29.every(x=>x[2]===0||x[1]===1)],
+            ['16:o.a_btn2===0',o.a_btn2===0],
+            ['17:/再チェック/.test(o.a_head2)',/再チェック/.test(o.a_head2)],
+            ['18:reMax(o.a_l2)===1',reMax(o.a_l2)===1],
+            ['19:/1回までです/.test(o.a_note)',/1回までです/.test(o.a_note)],
+            ['20:/Re-check is limited to 1 time\./.test(o.a_note)',/Re-check is limited to 1 time\./.test(o.a_note)],
+            ['21:/まだ 範囲の外です/.test(o.a_sn3)',/まだ 範囲の外です/.test(o.a_sn3)],
+            ['22:o.a_rows3.length===2',o.a_rows3.length===2],
+            ['23:reMax(o.a_l3)===1',reMax(o.a_l3)===1],
+            ['24:J(o.g_ls)===J([1,2,2])',J(o.g_ls)===J([1,2,2])],
+            ['25:o.g_rows===3',o.g_rows===3],
+            ['26:o.g_btn===1',o.g_btn===1],
+            ['27:/2回までです/.test(o.g_note)',/2回までです/.test(o.g_note)],
+            ['28:/Re-check is limited to 2 times\./.test(o.g_note)',/Re-check is limited to 2 times\./.test(o.g_note)],
+            ['29:/まだ 範囲の外です/.test(o.g_sn)',/まだ 範囲の外です/.test(o.g_sn)]],
+          `reN の読み ${J(o.mx)}｜自動：点灯 ${o.a_btn}・onclick ${o.a_click}・「${(o.a_t||'').slice(0,28)}」・お知らせ「${(o.a_sn||'').slice(0,40)}」・記録の df ${o.a_raw[0]&&o.a_raw[0].df}（読んでも 印は 足さない ＝${o.a_rows[0]&&o.a_rows[0].df}）・30分後 ${J(o.a_l)}｜前からの作業の 再チェック：枠の最大 ${reMax(o.a_l2)}・カード「${o.a_note.slice(0,16)}」ボタン ${o.a_btn2}・お知らせ「${(o.a_sn3||'').slice(0,34)}」・記録 ${o.a_rows3.length}・reN:2：枠 ${J(o.g_ls)}・記録 ${o.g_rows}・2回目の点灯 ${o.g_btn}・カード「${(o.g_note||'').slice(0,14)}」`);
+        checkL('96u2','【DF 回数】reN:1＝再チェックは 1回まで（2回目の 9℃ でも それ以上の枠は 出ない・カードに「1回までです」と 英語・ネパール語・DF のボタンは 出ない・お知らせに ⚠）／reN:3＝3回まで（4回目は 出ない）／範囲の中（3℃）は 自動で出ない（ボタンは ふつうの形で 押せる）・古い版の端末が 記録した 印の無い 9℃ の記録も 自動の もとになる（札は「範囲の外」）／範囲の中でも「DF中」を 押せば 今までどおり df:1 が 記録に 入る（札は「DF中」）／カードの予定に「◯回まで」',[
+            ['1:/1回までです/.test(o.b_note)',/1回までです/.test(o.b_note)],
+            ['2:/Re-check is limited to 1 time\\./.test(o.b_note)',/Re-check is limited to 1 time\./.test(o.b_note)],
+            ['3:/पुनः जाँच 1 पटकसम्म/.test(o.b_note)',/पुनः जाँच 1 पटकसम्म/.test(o.b_note)],
+            ['4:o.b_btn===0',o.b_btn===0],
+            ['5:/⚠ まだ 範囲の外です/.test(o.b_sn)',/⚠ まだ 範囲の外です/.test(o.b_sn)],
+            ['6:reMax(o.b_l)===1',reMax(o.b_l)===1],
+            ['7:reMax(o.b_l2)===1',reMax(o.b_l2)===1],
+            ['8:J(o.b_rows)===J([[0,0,0],[0,1,0]])',J(o.b_rows)===J([[0,0,0],[0,1,0]])],
+            ['9:J(o.c_ls)===J([1,2,3,3])',J(o.c_ls)===J([1,2,3,3])],
+            ['10:o.c_rows===4',o.c_rows===4],
+            ['11:/3回までです/.test(o.c_note)',/3回までです/.test(o.c_note)],
+            ['12:o.d_auto===0',o.d_auto===0],
+            ['13:o.d_on===0',o.d_on===0],
+            ['14:/amCardDf\\(\\)/.test(String(o.d_click))',/amCardDf\(\)/.test(String(o.d_click))],
+            ['15:/DF中（30分後に もう一度）/.test(o.d_t)',/DF中（30分後に もう一度）/.test(o.d_t)],
+            ['16:J(o.d_row)===J([0,0,0])',J(o.d_row)===J([0,0,0])],
+            ['17:reMax(o.d_l)===0',reMax(o.d_l)===0],
+            ['18:!/もう一度 出ます/.test(o.d_sn)',!/もう一度 出ます/.test(o.d_sn)],
+            ['19:J(o.e_raw)===J([[0,0,\'{"a":9}\']])',J(o.e_raw)===J([[0,0,'{"a":9}']])],
+            ['20:J(o.e_row)===J([0,0])',J(o.e_row)===J([0,0])],
+            ['21:reMax(o.e_l)===1',reMax(o.e_l)===1],
+            ['22:/範囲の外/.test(o.e_tag)',/範囲の外/.test(o.e_tag)],
+            ['23:J(o.f_raw)===J([1])',J(o.f_raw)===J([1])],
+            ['24:J(o.f_row)===J([1,0])',J(o.f_row)===J([1,0])],
+            ['25:reMax(o.f_l)===1',reMax(o.f_l)===1],
+            ['26:/DF中/.test(o.f_tag)',/DF中/.test(o.f_tag)],
+            ['27:!/範囲の外/.test(o.f_tag)',!/範囲の外/.test(o.f_tag)],
+            ['28:/（1回まで）/.test(o.plan),',/（1回まで）/.test(o.plan),]],
+          `reN:1：カード「${o.b_note.slice(0,24)}」ボタン ${o.b_btn}・お知らせ「${(o.b_sn||'').slice(0,30)}」・枠の最大 ${reMax(o.b_l)}/${reMax(o.b_l2)}・記録 ${J(o.b_rows)}｜reN:3：枠の数 ${J(o.c_ls)}・カード「${o.c_note.slice(0,14)}」｜範囲の中：自動 ${o.d_auto}・点灯 ${o.d_on}・記録 ${J(o.d_row)}・枠 ${reMax(o.d_l)}｜旧い版の記録：raw ${J(o.e_raw)}・読む時 ${J(o.e_row)}・枠 ${reMax(o.e_l)}・札「${(o.e_tag||'').replace(/<[^>]+>/g,'')}」｜DF中：raw ${J(o.f_raw)}・読む時 ${J(o.f_row)}・枠 ${reMax(o.f_l)}・札「${(o.f_tag||'').replace(/<[^>]+>/g,'')}」｜予定「${(o.plan||'').slice(0,60)}」`);
+        P.close();
+      });
+      /* ===== 96v：登録の窓の「何回まで」。前からの作業は 開いて 保存しても reN を 足さない（書く欄が 変わらない）／新しい作業の はじめは 1回／消す時は 分と一緒に消える ===== */
+      await tryB('96v',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pr','ws',st), o={};
+        P.ev(`state.amWorks=${J([mkW('w_r1','前からの作業','10:00'),mkW('w_r2','回数を決めた作業','12:00',{reN:3}),mkW('w_r3','前からの作業 その2','14:00')])}; amSave(); isAdmin=true; applyAdminMode(); setView('map'); amOpenWorks();`); await sleep(120);
+        const w=id=>jp(E(P,`JSON.stringify(amWorks().find(x=>x.id===${J(id)})||null)`),null), val=id=>E(P,`(document.getElementById(${J(id)})||{}).value`), setV=(id,v)=>P.ev(`(()=>{ const e=document.getElementById(${J(id)}); e.value=${J(v)}; e.dispatchEvent(new Event('input',{bubbles:true})); e.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+        /* 新しい作業の窓 */
+        P.ev(`amEditWork('','off')`); await sleep(120); o.newSel=qn(P,'#amw-rcn'); o.newVal=val('amw-rcn'); o.newOpts=jp(E(P,`JSON.stringify([].map.call(document.querySelectorAll('#amw-rcn option'),x=>x.value))`),[]); o.newLbl=qt(P,'#amw-rc-l'); o.newNote=qt(P,'#amw-rc-n');
+        P.ev(`amFormSeg('rk','w')`); o.hid=E(P,`getComputedStyle(document.getElementById('amw-rc-b')).display`); P.ev(`amFormSeg('rk','d')`);
+        P.ev(`(()=>{ document.getElementById('amw-name').value='新しい温度の作業'; _amForm.times=['09:00']; amFormSync(); })()`); setV('amw-recheck','30'); P.ev(`amSaveWork('')`); await sleep(120);
+        const nw=jp(E(P,`JSON.stringify(amWorks().find(x=>x.name==='新しい温度の作業')||null)`),null); o.nw=nw&&[nw.recheck,nw.reN];
+        /* 前からの作業：開く → 2回まで と出る → 何も直さず 保存 → 書く欄は 変わらない（reN を 足さない） */
+        const before=J(w('w_r1')); const wr0=Number(E(P,`(()=>{ let n=0; const o=localStorage.setItem; return 0; })()`));
+        P.ev(`amEditWork('w_r1')`); await sleep(120); o.legSel=val('amw-rcn'); o.legMin=val('amw-recheck'); P.ev(`amSaveWork('w_r1')`); await sleep(120); o.legSame=J(w('w_r1'))===before; o.legKeys=Object.keys(w('w_r1')).includes('reN');
+        /* 分だけ 直す → reN は 足さない／回数を 3 に → reN:3 */
+        P.ev(`amEditWork('w_r1')`); await sleep(120); setV('amw-recheck','45'); P.ev(`amSaveWork('w_r1')`); await sleep(120); o.minOnly=[w('w_r1').recheck,'reN' in w('w_r1')];
+        P.ev(`amEditWork('w_r1')`); await sleep(120); setV('amw-rcn','3'); P.ev(`amSaveWork('w_r1')`); await sleep(120); o.cnt3=[w('w_r1').recheck,w('w_r1').reN];
+        /* 2 に 戻す＝前からの値と同じでも 今は 3 なので 書く／1 にする */
+        P.ev(`amEditWork('w_r1')`); await sleep(120); setV('amw-rcn','1'); P.ev(`amSaveWork('w_r1')`); await sleep(120); o.cnt1=w('w_r1').reN;
+        /* 前からの作業（reN なし）で「2回まで」を えらぶ → reN:2 を 書く（1回が 前からの値なので、2 は 変更） */
+        P.ev(`amEditWork('w_r3')`); await sleep(120); o.r3Sel=val('amw-rcn'); setV('amw-rcn','2'); P.ev(`amSaveWork('w_r3')`); await sleep(120); o.r3=w('w_r3').reN;
+        /* 回数を決めた作業：開くと 3 が出る・分を 空にして 保存 → recheck も reN も 消える */
+        P.ev(`amEditWork('w_r2')`); await sleep(120); o.r2Sel=val('amw-rcn'); setV('amw-recheck',''); P.ev(`amSaveWork('w_r2')`); await sleep(120); const r2=w('w_r2'); o.r2Gone=[('recheck' in r2),('reN' in r2)];
+        /* 窓を開いた時の 変更の検出：回数だけ 変えても「変更あり」（窓の外を押しても 閉じない） */
+        P.ev(`amEditWork('w_r1')`); await sleep(120); o.dirty0=E(P,'amFormDirty()'); setV('amw-rcn','5'); o.dirty1=E(P,'amFormDirty()'); P.ev('amCloseSheet()');
+        checkL('96v','【DF 登録の窓】「何回まで」の 選び（1〜5）が 分の 入力の となりに ある（新しい作業は はじめ 1回／前からの作業は 今までの 2回／回数を 決めた作業は その回数）。毎日でない（週1・月1）時は 分と一緒に かくれる。保存：新しい作業は reN も 書く／前からの作業は 開いて 何も直さず 保存しても 書く欄は 変わらず reN も 足さない・分だけ直しても 足さない・回数を 変えた時だけ 書く／分を 空にすると recheck も reN も 消える／回数の変更も「変更あり」と 見える',[
+            ['1:o.newSel===1',o.newSel===1],
+            ['2:o.newVal===\'1\'',o.newVal==='1'],
+            ['3:J(o.newOpts)===J([\'1\',\'2\',\'3\',\'4\',\'5\'])',J(o.newOpts)===J(['1','2','3','4','5'])],
+            ['4:/数字が OK の範囲の外/.test(o.newLbl)',/数字が OK の範囲の外/.test(o.newLbl)],
+            ['5:/回数は「何回まで」/.test(o.newNote)',/回数は「何回まで」/.test(o.newNote)],
+            ['6:/前からの 作業も 1回/.test(o.newNote)',/前からの 作業も 1回/.test(o.newNote)],
+            ['7:o.hid===\'none\'',o.hid==='none'],
+            ['8:J(o.nw)===J([30,1])',J(o.nw)===J([30,1])],
+            ['9:o.legSel===\'1\'',o.legSel==='1'],
+            ['10:o.legMin===\'30\'',o.legMin==='30'],
+            ['11:o.legSame===true',o.legSame===true],
+            ['12:o.legKeys===false',o.legKeys===false],
+            ['13:J(o.minOnly)===J([45,false])',J(o.minOnly)===J([45,false])],
+            ['14:J(o.cnt3)===J([45,3])',J(o.cnt3)===J([45,3])],
+            ['15:o.cnt1===1',o.cnt1===1],
+            ['16:o.r2Sel===\'3\'',o.r2Sel==='3'],
+            ['17:J(o.r2Gone)===J([false,false])',J(o.r2Gone)===J([false,false])],
+            ['18:o.dirty0===false',o.dirty0===false],
+            ['19:o.dirty1===true',o.dirty1===true],
+            ['20:o.r3Sel===\'1\'&&o.r3===2',o.r3Sel==='1'&&o.r3===2]],
+          `新しい窓：選び ${o.newSel}・はじめ ${o.newVal}・並び ${J(o.newOpts)}・週1で ${o.hid}・保存 ${J(o.nw)}｜前からの作業：窓 ${o.legSel}/${o.legMin}分・何も直さず保存＝同じ ${o.legSame}・reN ${o.legKeys}・分だけ ${J(o.minOnly)}・3回 ${J(o.cnt3)}・1回 ${o.cnt1}｜回数を決めた作業：窓 ${o.r2Sel}・分を空に ${J(o.r2Gone)}｜変更あり ${o.dirty0}→${o.dirty1}`);
+        P.close();
+      });
+      /* ===== 96w：厨房の表。ボタンは 表が入っている店だけ（新村は 何も出ない・「入っていません」も 出ない）／入れるのは 管理者の設定の中だけ／小さくして店のデータに／2台・古い版とのまざり ===== */
+      await tryB('96w',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Ps','ws',st), Q=await mk3(cl,'端末Qs','ws'), O=await mk3(cl,'端末Os','wsold'), o={};
+        const photo=(w,h,noise)=>new Promise(res=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d'); const gr=x.createLinearGradient(0,0,w,h); gr.addColorStop(0,'#fff'); gr.addColorStop(1,'#cde'); x.fillStyle=gr; x.fillRect(0,0,w,h); x.fillStyle='#123'; x.font=Math.round(h/30)+'px sans-serif'; for(let i=0;i<28;i++){ x.fillText('厨房の作業 '+(6+i%12)+':'+pad2(i*2%60)+' 作る・出す・洗う・見る',20,40+i*Math.round(h/32)); x.strokeRect(10,20+i*Math.round(h/32),w-20,Math.round(h/32)); }
+          if(noise){ const id=x.getImageData(0,0,w,h), d=id.data; for(let i=0;i<d.length;i+=4){ d[i]=Math.random()*255; d[i+1]=Math.random()*255; d[i+2]=Math.random()*255; } x.putImageData(id,0,0); }
+          c.toBlob(b=>res(b),'image/png'); });
+        const srv=async(d)=>d.win.__v2.coll.readServer();
+        const kc=(d)=>jp(E(d,`JSON.stringify({list:kcList().map(x=>[x.id,x.name,x.kb,x.w,x.h]),imgs:Object.keys(state).filter(k=>/^kcImg_/.test(k)).length,btn:document.querySelectorAll('.amf-kc').length,txt:/表が入って|入っていません/.test(document.body.innerText)})`),{});
+        P.ev(`isAdmin=false; applyAdminMode(); setView('map'); renderMapView();`); Q.ev(`isAdmin=false; applyAdminMode(); setView('map'); renderMapView();`); O.ev(`isAdmin=false; applyAdminMode(); setView('map'); renderMapView();`); await sleep(300);
+        /* 表が1枚も無い店（新村）：ボタンも案内も 出ない・全画面を 開こうとしても 何も起きない */
+        o.s0=kc(P); P.ev('kcOpen()'); o.s0open=qn(P,'#kc-view'); o.s0hold=E(P,'window.__autoupdateHold()');
+        /* 管理者の設定の中だけ：登録の表の「🧰 道具」→「🍳 厨房の表」。管理者でなければ 入れられない */
+        const big=await photo(3200,2400,false);
+        o.nonAdmin=await P.win.kcIngest(big,''); o.s0b=kc(P);
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map'); amOpenWorks();`); await sleep(150); o.tools=qn(P,'#am-sheet details.amw-tools'); o.toolsBtn=jp(E(P,`JSON.stringify([].map.call(document.querySelectorAll('#am-sheet .amw-tools-b button'),b=>b.textContent.replace(/\\s+/g,' ').trim()))`),[]);
+        P.ev(`kcPanel()`); await sleep(120); o.panel=E(P,'amSheetName()'); o.panelEmpty=/まだ 入っていません/.test(qt(P,'#am-sheet')); o.hold1=E(P,'window.__autoupdateHold()');
+        /* 入れる（3200×2400 の 表）：長い辺 1600 まで小さくなり、1枚 約200KB 以下・JPEG・店のデータに 2つの項目だけ */
+        const t0=Date.now(); o.in1=await P.win.kcIngest(big,''); o.ms=Date.now()-t0; const l1=kc(P).list[0]||[]; const img1=E(P,`state['kcImg_'+kcList()[0].id]||''`);
+        o.l1=l1; o.jpeg=/^data:image\/jpeg;base64,/.test(img1); o.len1=img1.length; o.maxSide=Math.max(l1[3]||0,l1[4]||0);
+        await sync3([P,Q,O]); let sv=await srv(P); const keys1=Object.keys(sv).filter(k=>/kc/.test(k)).sort(); o.keys1=keys1; o.kcPrefix=keys1.every(k=>/^s:kc(List|Img_)/.test(k)); o.imgRec=(sv['s:kcImg_'+l1[0]]||'').length; o.listRec=sv['s:kcList']||'';
+        o.label=jp(E(P,`JSON.stringify([V2.SPECS.ws.label('s:kcList'),V2.SPECS.ws.label('s:kcImg_x1')])`),[]);
+        /* 2枚目・3枚目・4枚目・5枚目（上限 4） */
+        const sm=await photo(1000,700,false); o.in2=await P.win.kcIngest(sm,''); o.in3=await P.win.kcIngest(sm,''); o.in4=await P.win.kcIngest(sm,''); o.in5=await P.win.kcIngest(sm,''); o.n5=kc(P).list.length; o.msg5=E(P,'_kc.msg');
+        /* ノイズだらけの 大きな画像：小さくしても 受けられない時は 受けず、保存は 変わらない（上限の 確かめ） */
+        const before=E(P,`JSON.stringify([kcList(),Object.keys(state).filter(k=>/^kcImg_/.test(k)).sort()])`);
+        P.ev(`state.kcList=kcList().slice(0,1); Object.keys(state).filter(k=>/^kcImg_/.test(k)&&k!=='kcImg_'+kcList()[0].id).forEach(k=>delete state[k]); amSave();`);
+        const nz2=await photo(2400,1800,true); const t1=Date.now(); o.noise=await P.win.kcIngest(nz2,''); o.noiseMs=Date.now()-t1; const nzl=kc(P).list; o.noiseKb=(nzl[1]||[])[2]; o.noiseLen=nzl.length;
+        /* 入れかえ・名前・消す */
+        const id1=kc(P).list[0][0], imgBefore=E(P,`state['kcImg_'+${J(id1)}]`); await sync3([P,Q,O]); const w0=cl.writes;
+        P.ev(`kcRename(${J(id1)},'ふつう')`); await sync3([P,Q,O]); const w1=cl.writes; sv=await srv(P);
+        o.rn=[E(P,`kcList()[0].name`), E(P,`state['kcImg_'+${J(id1)}]`)===imgBefore, JSON.parse(sv['s:kcImg_'+id1])===imgBefore, (sv['s:kcList']||'').indexOf('ふつう')>=0, w1-w0];
+        o.delBefore=kc(P).list.length; P.win.confirm=()=>false; P.ev(`kcDel(${J(id1)})`); o.delNo=kc(P).list.length;
+        o.rep=await P.win.kcIngest(sm,id1); o.repKb=kc(P).list[0][2]; o.repSame=E(P,`state['kcImg_'+${J(id1)}]`)!==imgBefore;
+        /* クルーの画面（2台目）：ボタンが 出る・全画面・切りかえ・閉じる（Esc でも）・管理者の ボタンは 無い */
+        await P.win.kcIngest(sm,''); await sync3([P,Q,O]);
+        P.ev(`kcOpen()`); await sleep(120);
+        o.q=kc(Q); Q.ev(`renderMapView()`); await sleep(100); o.qBtn=qn(Q,'.amf-kc'); Q.ev(`kcOpen()`); await sleep(120);
+        o.qView=[qn(Q,'#kc-view'),qn(Q,'#kc-view .kc-tabs button'),qn(Q,'#kc-view img'),E(Q,`document.getElementById('kc-img').src.length>1000`),qt(Q,'#kc-view .kc-ttl'),qt(Q,'#kc-view .kc-x'),qn(Q,'#kc-view .kc-tools button')];
+        const s1=E(Q,`document.getElementById('kc-img').src.length`); Q.ev(`document.querySelectorAll('#kc-view .kc-tabs button')[1].click()`); await sleep(80); o.sw=[E(Q,`document.getElementById('kc-img').src.length`)!==s1,qn(Q,'#kc-view .kc-tabs button.on')];
+        Q.ev(`kcZoom(1);kcZoom(1)`); o.z=E(Q,`document.getElementById('kc-stage').className`); Q.ev(`kcClose()`); o.qClosed=qn(Q,'#kc-view');
+        Q.ev(`kcOpen()`); await sleep(60); Q.win.document.dispatchEvent(new Q.win.KeyboardEvent('keydown',{key:'Escape',bubbles:true})); o.esc=qn(Q,'#kc-view');
+        o.qAdminBtn=qn(Q,'.amf-kc, #kc-view')+'/'+E(Q,`typeof isAdmin==='boolean'&&isAdmin`);
+        /* 2台：P が 消す → Q の ボタンが 消える・開いていた全画面も 閉じる */
+        Q.ev(`kcOpen()`); await sleep(60); P.win.confirm=()=>true; const allIds=kc(P).list.map(x=>x[0]); allIds.forEach(i=>P.ev(`kcDel(${J(i)})`)); await sync3([P,Q,O]); await sleep(200);
+        o.afterDel=[kc(P).list.length,kc(Q).list.length,qn(Q,'.amf-kc'),qn(Q,'#kc-view')]; sv=await srv(P); o.srvLeft=Object.keys(sv).filter(k=>/kc/.test(k)); o.srvList=sv['s:kcList'];
+        /* 古い版（5.13）の端末とのまざり：表を入れる → 古い版は 知らない項目として 持ち、古い版の保存（記録・作業）の後も 消えない／古い版が 先に 古い状態で 保存しても 消えない */
+        await P.win.kcIngest(sm,''); await P.win.kcIngest(sm,''); await sync3([P,Q,O]); sv=await srv(P); const kcRecs=()=>Object.keys(sv).filter(k=>/^s:kc/.test(k)).sort().map(k=>k+':'+sv[k].length).join(','); const mixBefore=kcRecs();
+        o.oldHas=jp(E(O,`JSON.stringify([Array.isArray(state.kcList)?state.kcList.length:-1,Object.keys(state).filter(k=>/^kcImg_/.test(k)).length,typeof kcOpen,document.querySelectorAll('.amf-kc').length])`),[]);
+        const wid=O.ev('amWorks()[0].id'); O.ev(`amRecord(${J(wid)},'見本 太郎')`); O.ev(`state.staff.push('旧版が足した人'); saveState();`); await sync3([P,Q,O]); sv=await srv(P); o.mixAfter=kcRecs()===mixBefore; o.oldKept=jp(E(O,`JSON.stringify([Array.isArray(state.kcList)?state.kcList.length:-1,Object.keys(state).filter(k=>/^kcImg_/.test(k)).length])`),[]);
+        O.be.setOnline(false); P.be.setOnline(false);   // 2台とも 切れている間に 新しい版が もう1枚入れ、古い版も 保存する
+        await P.win.kcIngest(sm,''); O.ev(`state.staff.push('旧版が足した人2'); saveState();`); P.be.setOnline(true); O.be.setOnline(true); await sync3([P,Q,O]); sv=await srv(P);
+        o.mix2=[kc(P).list.length,kc(O).list?0:0,Object.keys(sv).filter(k=>/^s:kcImg_/.test(k)).length,Object.keys(sv).some(k=>/^s:amLog_/.test(k)),(J(jp(sv['s:staff'],[]))).indexOf('旧版が足した人2')>=0];
+        o.sameKc=E(P,`JSON.stringify(kcList())`)===E(O,`JSON.stringify(state.kcList)`)&&E(P,`JSON.stringify(kcList())`)===E(Q,`JSON.stringify(kcList())`);
+        P.ev('amCloseSheet(); kcClose()'); await sleep(4300); o.lastHold=E(P,'window.__autoupdateHold()');
+        checkL('96w','【厨房の表・見る】表が1枚も無い店（新村）は、最初の画面に「厨房の表」ボタンも「入っていません」の案内も 出ない（全画面も 開かない）。管理者でなければ 画像を 入れられない（何も 変わらない）。入れる場所は 管理者の「📝 登録」→「🧰 道具」→「🍳 厨房の表」だけ（開いている間は 自動の読み込み直しを待たせる）',[
+            ['1:o.s0.list.length===0',o.s0.list.length===0],
+            ['2:o.s0.btn===0',o.s0.btn===0],
+            ['3:o.s0.txt===false',o.s0.txt===false],
+            ['4:o.s0open===0',o.s0open===0],
+            ['5:o.s0hold===false',o.s0hold===false],
+            ['6:o.nonAdmin',o.nonAdmin],
+            ['7:!!o.nonAdmin.err',!!o.nonAdmin.err],
+            ['8:o.s0b.list.length===0',o.s0b.list.length===0],
+            ['9:o.s0b.imgs===0',o.s0b.imgs===0],
+            ['10:o.tools===1',o.tools===1],
+            ['11:o.toolsBtn.some(t=>/見本から 足す/.test(t))',o.toolsBtn.some(t=>/見本から 足す/.test(t))],
+            ['12:o.toolsBtn.some(t=>/厨房の表/.test(t))',o.toolsBtn.some(t=>/厨房の表/.test(t))],
+            ['13:o.toolsBtn.some(t=>/おくれの音/.test(t))',o.toolsBtn.some(t=>/おくれの音/.test(t))],
+            ['14:o.panel===\'kc\'',o.panel==='kc'],
+            ['15:o.panelEmpty',o.panelEmpty],
+            ['16:o.hold1===true,',o.hold1===true,]],
+          `入っていない店：表 ${o.s0.list.length}・ボタン ${o.s0.btn}・案内の字 ${o.s0.txt}・全画面 ${o.s0open}・待たせる ${o.s0hold}｜管理者でない：${J(o.nonAdmin)}・表 ${o.s0b.list.length}｜道具 ${o.tools}：${J(o.toolsBtn)}・窓 ${o.panel}・空の案内 ${o.panelEmpty}・待たせる ${o.hold1}`);
+        checkL('96w2','【厨房の表・入れる】3200×2400 の 画像を 入れる：ブラウザの中で 長い辺 1600px 以下の JPEG に 小さくなり 1枚 約200KB 以下／店のデータには 新しい項目を 2種類だけ（kcList・kcImg_<id>＝ネット上の記録の名前は s:kcList・s:kcImg_<id>＝今ある「設定」と同じ s: の記録。新しい頭文字の記録は 作らない）／1枚の記録の 大きさは 約 270KB（保存先の 1文書の上限 1MB に 収まる。2台が 同時に 入れかえても 収まるように 画像の上限は 240KB＝96w5）／履歴の 名前も 分かる字／上限 4枚（5枚目は 受けない）／ノイズだらけで 小さくしても 240KB を こえる画像は 受けず 保存は 変わらない',[
+            ['1:o.in1',o.in1],
+            ['2:o.in1.ok===true',o.in1.ok===true],
+            ['3:o.jpeg',o.jpeg],
+            ['4:o.maxSide<=1600',o.maxSide<=1600],
+            ['5:o.maxSide>=700',o.maxSide>=700],
+            ['6:o.l1[2]<=200',o.l1[2]<=200],
+            ['7:o.len1<300000',o.len1<300000],
+            ['8:o.kcPrefix',o.kcPrefix],
+            ['9:o.keys1.length===2',o.keys1.length===2],
+            ['10:o.imgRec===o.len1+2',o.imgRec===o.len1+2],
+            ['11:o.imgRec<400000',o.imgRec<400000],
+            ['12:/"name":"表1"/.test(o.listRec)',/"name":"表1"/.test(o.listRec)],
+            ['13:/Kitchen|厨房/.test(o.label.join(\'\'))',/Kitchen|厨房/.test(o.label.join(''))],
+            ['14:!/設定 kc/.test(o.label.join(\'\'))',!/設定 kc/.test(o.label.join(''))],
+            ['15:o.in2.ok',o.in2.ok],
+            ['16:o.in3.ok',o.in3.ok],
+            ['17:o.in4.ok',o.in4.ok],
+            ['18:o.in5.err===\'上限\'',o.in5.err==='上限'],
+            ['19:o.n5===4',o.n5===4],
+            ['20:/4枚まで/.test(o.msg5)',/4枚まで/.test(o.msg5)],
+            ['21:((o.noise&&o.noise.err)?(o.noiseLen===1):(o.noiseKb<=240',((o.noise&&o.noise.err)?(o.noiseLen===1):(o.noiseKb<=240)),]],
+          `3200×2400：結果 ${J(o.in1)}・${o.ms}ms・長い辺 ${o.maxSide}px・約 ${o.l1[2]}KB・JPEG ${o.jpeg}・文字の長さ ${o.len1}｜ネット上の記録の名前 ${J(o.keys1)}・画像の記録 ${o.imgRec} 文字・一覧の記録「${(o.listRec||'').slice(0,60)}」・履歴の名前 ${J(o.label)}｜2〜5枚目 ${o.in2&&o.in2.ok}/${o.in3&&o.in3.ok}/${o.in4&&o.in4.ok}/${J(o.in5)}・枚数 ${o.n5}・案内「${(o.msg5||'').slice(0,26)}」｜ノイズ画像：${J(o.noise)}（${o.noiseMs}ms・約 ${o.noiseKb}KB・枚数 ${o.noiseLen}）`);
+        checkL('96w3','【厨房の表・名前・入れかえ・消す】名前だけ 直した時は 一覧の記録だけが 書き直される（画像の記録は そのまま）／消す時は 確かめつき（いいえ＝残る）／入れかえると 画像だけが 新しくなる／クルーの画面（2台目）に ボタンが 出て、全画面に 画像・切りかえの札・「閉じる」（英語・ネパール語つき）・＋−／札で 画像が 切りかわる／拡大の段（z2）／閉じる・Esc で 閉じる／P が 消すと Q の ボタンも 全画面も 消え、ネット上の kc の記録も 無くなる',[
+            ['1:o.rn[0]===\'ふつう\'',o.rn[0]==='ふつう'],
+            ['2:o.rn[1]===true',o.rn[1]===true],
+            ['3:o.rn[2]===true',o.rn[2]===true],
+            ['4:o.rn[3]===true',o.rn[3]===true],
+            ['5:o.delNo===o.delBefore',o.delNo===o.delBefore],
+            ['6:o.rep',o.rep],
+            ['7:o.rep.ok',o.rep.ok],
+            ['8:o.repSame',o.repSame],
+            ['9:o.qBtn===1',o.qBtn===1],
+            ['10:J(o.qView.slice(0,4))===J([1,o.q.list.length,1,true])',J(o.qView.slice(0,4))===J([1,o.q.list.length,1,true])],
+            ['11:o.q.list.length>=2',o.q.list.length>=2],
+            ['12:/Kitchen chart/.test(o.qView[4])',/Kitchen chart/.test(o.qView[4])],
+            ['13:/भान्सा/.test(o.qView[4])',/भान्सा/.test(o.qView[4])],
+            ['14:/Close/.test(o.qView[5])',/Close/.test(o.qView[5])],
+            ['15:o.qView[6]===3',o.qView[6]===3],
+            ['16:o.sw[0]===true',o.sw[0]===true],
+            ['17:o.sw[1]===1',o.sw[1]===1],
+            ['18:/z2/.test(o.z)',/z2/.test(o.z)],
+            ['19:o.qClosed===0',o.qClosed===0],
+            ['20:o.esc===0',o.esc===0],
+            ['21:J(o.afterDel)===J([0,0,0,0])',J(o.afterDel)===J([0,0,0,0])],
+            ['22:J(o.srvLeft)===J([\'s:kcList\'])',J(o.srvLeft)===J(['s:kcList'])],
+            ['23:o.srvList===\'[]\',',o.srvList==='[]',]],
+          `名前だけ：${J(o.rn)}｜消す（いいえ）：枚数 ${o.delNo}｜入れかえ：${J(o.rep)}・画像 ${o.repSame?'新しくなった':'同じ'}｜Q：ボタン ${o.qBtn}・全画面 ${J(o.qView)}・切りかえ ${J(o.sw)}・拡大 ${o.z}・閉じる ${o.qClosed}・Esc ${o.esc}｜P が消す：${J(o.afterDel)}・ネット上に残る kc 記録 ${J(o.srvLeft)}`);
+        checkL('96w4','【厨房の表・古い版とのまざり】古い版（5.13）の端末は 表の項目を 知らない項目として 持つ（ボタンは 出ない＝kcOpen も 無い）。古い版が 記録・従業員を 保存しても 表の記録は 1つも 変わらない（文字の長さまで同じ）。2台とも 切れている間に 新しい版が 表を足し、古い版が 保存しても、表は 消えず 3台の 一覧が 同じになる',[
+            ['1:o.oldHas[0]===2',o.oldHas[0]===2],
+            ['2:o.oldHas[1]===2',o.oldHas[1]===2],
+            ['3:o.oldHas[2]===\'undefined\'',o.oldHas[2]==='undefined'],
+            ['4:o.oldHas[3]===0',o.oldHas[3]===0],
+            ['5:o.mixAfter===true',o.mixAfter===true],
+            ['6:J(o.oldKept)===J([2,2])',J(o.oldKept)===J([2,2])],
+            ['7:o.mix2[0]===3',o.mix2[0]===3],
+            ['8:o.mix2[2]===3',o.mix2[2]===3],
+            ['9:o.mix2[3]===true',o.mix2[3]===true],
+            ['10:o.mix2[4]===true',o.mix2[4]===true],
+            ['11:o.sameKc===true',o.sameKc===true],
+            ['12:o.lastHold===false,',o.lastHold===false,]],
+          `古い版が持つ：一覧 ${o.oldHas[0]}・画像 ${o.oldHas[1]}・kcOpen「${o.oldHas[2]}」・ボタン ${o.oldHas[3]}｜古い版の保存の後 記録は同じ ${o.mixAfter}・古い版の手元 ${J(o.oldKept)}｜切れている間：枚数 ${o.mix2[0]}・ネット上の画像 ${o.mix2[2]}・作業の記録 ${o.mix2[3]}・従業員 ${o.mix2[4]}・3台の一覧が同じ ${o.sameKc}`);
+        P.close(); Q.close(); O.close();
+      });
+      /* ===== 96u3：古い版（5.8〜5.14）の端末と まざった時の DF。reN の無い 前からの作業は、新しい版では 1回・古い版では 2回まで 数える（数え方が ちがうだけ）。記録は 壊れず 消えず、reN は 古い版を 通っても 残る ===== */
+      await tryB('96u3',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pm','ws',st), O=await mk3(cl,'端末Om','wsold'), o={};
+        const WS=[mkW('w_m1','前からの作業','11:55'),mkW('w_m2','2回にした作業','13:55',{reN:2})];
+        P.ev(`isAdmin=false; amCloseSheet(); window.__ft1=amFireTop; amFireTop=function(){ return null; }; state.amWorks=${J(WS)}; amSave(); setView('off');`); await sync3([P,O]);
+        O.ev(`isAdmin=false; window.__ft1=amFireTop; amFireTop=function(){ return null; }; setView('off');`);
+        try{
+          goto(P,at(12)); goto(O,at(12)); const T0=Number(P.ev('Date.now()'));
+          o.oldHas=[E(O,`typeof amReMax`),E(O,`amWorks().length`)];   // 古い版には amReMax が 無い
+          /* 古い版が 12:00 に「DF中」（9℃）で記録 → 30分後に また「DF中」→ 古い版では 2回目の枠が 出る。新しい版では 前からの作業は 1回まで＝2回目の枠は 出ないが、記録は 2つとも 見える */
+          O.ev(`amOpenArea('w_m1'); amCardPick('a',9); amCardDf(); amRecord('w_m1','見本 花子')`); await sync3([P,O]);
+          const rt=(recsD(O,'w_m1',T0)[0]||{t:T0}).t;
+          goto(O,rt+31*MIN); goto(P,rt+31*MIN);
+          O.ev(`amOpenArea('w_m1'); amCardPick('a',9); amCardDf(); amRecord('w_m1','見本 太郎')`); await sync3([P,O]);
+          const rt2=(recsD(O,'w_m1',T0)[1]||{t:rt}).t;
+          o.oldL=lstD(O,'w_m1',rt2+31*MIN); o.newL=lstD(P,'w_m1',rt2+31*MIN);
+          o.recs=[recsD(O,'w_m1',T0).length,recsD(P,'w_m1',T0).length]; o.same=J(recsD(O,'w_m1',T0).map(r=>[r.t,r.by,r.df,r.re]))===J(recsD(P,'w_m1',T0).map(r=>[r.t,r.by,r.df,r.re]));
+          /* 新しい版が 記録しても 古い版の記録は 消えない */
+          goto(P,at(14)); goto(O,at(14));
+          P.ev(`amOpenArea('w_m2'); amCardPick('a',9); amRecord('w_m2','見本 花子')`); await sync3([P,O]);
+          o.after=[recsD(O,'w_m1',T0).length,recsD(P,'w_m1',T0).length,recsD(O,'w_m2',T0).length,recsD(P,'w_m2',T0).length];
+          /* reN は 古い版を 通っても 残る（古い版が 作業を 直して 保存しても） */
+          O.ev(`isAdmin=true; amEditWork('w_m2'); document.getElementById('amw-sub').value='古い版が 直した'; amSaveWork('w_m2'); isAdmin=false;`); await sync3([P,O]);
+          const wm=d=>jp(E(d,`JSON.stringify(amWorks().find(x=>x.id==='w_m2')||null)`),{})||{};
+          o.reN=[wm(P).reN,wm(O).reN,wm(P).sub];
+        } finally { unwarp(P); unwarp(O); P.ev(`amFireTop=window.__ft1`); }
+        checkL('96u3','【DF・古い版とのまざり】reN の無い 前からの作業：古い版（5.14）の端末が「DF中」を 2回 記録すると、古い版では 2回目の枠まで 出るが、新しい版では 1回まで（数え方が ちがうだけ）。記録は 2つとも 両方の端末に 同じに 残り、新しい版が 記録しても 古い版の記録は 消えない。reN は 古い版が 作業を 直して 保存しても 残る',
+          [['1:古い版には amReMax が無い',o.oldHas[0]==='undefined'],
+            ['2:古い版 枠の最大 2',reMax(o.oldL)===2],
+            ['3:新しい版 枠の最大 1',reMax(o.newL)===1],
+            ['4:記録は 2つずつ',J(o.recs)===J([2,2])],
+            ['5:2台の記録が 同じ',o.same===true],
+            ['6:新しい版の記録の後も 消えない',J(o.after)===J([2,2,1,1])],
+            ['7:reN が 残る',J(o.reN)===J([2,2,'古い版が 直した'])]],
+          `古い版：amReMax「${o.oldHas[0]}」・枠の最大 ${reMax(o.oldL)}｜新しい版：枠の最大 ${reMax(o.newL)}・記録 ${J(o.recs)}・同じ ${o.same}｜新しい版の記録の後 ${J(o.after)}｜古い版が直した後の reN ${J(o.reN)}`);
+        P.close(); O.close();
+      });
+      /* ===== 96w5：画像の上限（240KB）。1文書の上限（1,048,576 バイト）に、2台が 同時に 同じ表の画像を 入れかえても 収まる線。こえる画像は 受けつけず 保存は 変わらない ===== */
+      await tryB('96w5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pz','ws',st), Q=await mk3(cl,'端末Qz','ws'), o={};
+        const big=n=>({url:'data:image/jpeg;base64,'+'A'.repeat(Math.round(n*1024/0.75)),kb:1,w:1200,h:900});   // 画像 n KB ぶんの 文字（kcShrink の「kb」は わざと 1 と 言わせる＝自分で 測る事の確かめ）
+        const noise=(w,h)=>new Promise(res=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d'), id=x.createImageData(w,h), d=id.data; for(let i=0;i<d.length;i+=4){ d[i]=Math.random()*255; d[i+1]=Math.random()*255; d[i+2]=Math.random()*255; d[i+3]=255; } x.putImageData(id,0,0); c.toBlob(b=>res(b),'image/png'); });
+        const png=new Blob([new Uint8Array([137,80,78,71])],{type:'image/png'});
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map')`); Q.ev(`isAdmin=true; applyAdminMode(); setView('map')`);
+        const st0=()=>E(P,`JSON.stringify([kcList(),Object.keys(state).filter(k=>/^kcImg_/.test(k)).sort()])`);
+        o.hardConst=E(P,'KC_HARD');
+        const shrink0=P.win.kcShrink;
+        /* 250KB・241KB は 受けず（保存は 変わらない・案内に 240KB）／240KB は 受ける（3つぶんで 1MB の 内） */
+        const s0=st0(); P.win.kcShrink=async()=>big(250); o.r250=await P.win.kcIngest(png,''); o.same250=st0()===s0; o.msg250=E(P,'_kc.msg');
+        P.win.kcShrink=async()=>big(241); o.r241=await P.win.kcIngest(png,''); o.same241=st0()===s0;
+        P.win.kcShrink=async()=>big(240); o.r240=await P.win.kcIngest(png,''); o.n240=E(P,'kcList().length'); const id240=E(P,'kcList()[0].id'); o.len240=E(P,`state['kcImg_'+${J(id240)}].length`);
+        o.worst3=3*Number(o.len240);   // 同じ画像が 3つぶん 入る場面
+        /* 2台が 同時に（切れた状態で）同じ表の画像を 240KB で 入れかえる → 合わさった後の ネット上の 文書は どれも 1,048,576 バイト より 小さい */
+        await sync3([P,Q]); P.be.setOnline(false); Q.be.setOnline(false);
+        Q.win.kcShrink=async()=>big(240); const imgQ=big(240).url.replace(/A/,'B'); Q.win.kcShrink=async()=>({url:imgQ,kb:1,w:1200,h:900});
+        const imgP=big(240).url.replace(/A/,'C'); P.win.kcShrink=async()=>({url:imgP,kb:1,w:1200,h:900});
+        o.rr=[(await P.win.kcIngest(png,id240)).ok,(await Q.win.kcIngest(png,id240)).ok];
+        P.be.setOnline(true); Q.be.setOnline(true); await sync3([P,Q]);
+        const sizes=Object.keys(cl.docs).map(k=>new Blob([JSON.stringify(cl.docs[k])]).size); o.maxDoc=Math.max.apply(null,sizes); o.nDocs=sizes.length;
+        o.after=[E(P,`kcList().length`),E(Q,`kcList().length`),E(P,`state['kcImg_'+${J(id240)}].length`)===E(Q,`state['kcImg_'+${J(id240)}].length`)];
+        /* 本物の縮める仕組み：ノイズだらけの 大きな画像（2600×2000）も 上限の内に 縮める（受けない時は 案内）。保存した画像は どれも 上限の内 */
+        P.win.kcShrink=shrink0; const nz=await noise(2600,2000); o.noiseR=await P.win.kcIngest(nz,'');
+        o.allIn=jp(E(P,`JSON.stringify(Object.keys(state).filter(k=>/^kcImg_/.test(k)).map(k=>Math.ceil((state[k].length-state[k].indexOf(',')-1)*0.75/1024)))`),[]);
+        checkL('96w5','【厨房の表・画像の上限】画像は 240KB まで（上限の 定数 KC_HARD＝240）。250KB・241KB の画像は 受けつけず 保存は 変わらない（案内に「上限は 240KB」）／240KB は 受ける（その 3つぶんで 1,048,576 バイト の内）／画像の大きさは 文字の長さから 自分で 測る（縮める仕組みの 数字は 信じない）／2台が 同時に 同じ表の画像（240KB）を 入れかえて 合わさった後も、ネット上の どの文書も 1,048,576 バイト より 小さい／本物の縮める仕組みを 通した ノイズだらけの 大きな画像も 上限の内（保存された画像は どれも 240KB 以下）',
+          [['1:KC_HARD は 240',o.hardConst===240],
+            ['2:250KB は 受けない',o.r250&&o.r250.err==='大きすぎ'&&o.same250===true],
+            ['3:案内に 上限 240KB',/上限は 240KB/.test(o.msg250||'')],
+            ['4:241KB も 受けない',o.r241&&o.r241.err==='大きすぎ'&&o.same241===true],
+            ['5:240KB は 受ける',o.r240&&o.r240.ok===true&&o.n240===1],
+            ['6:3つぶんで 1MB の内',o.worst3<1048576-40000],
+            ['7:2台とも 入れかえられた',J(o.rr)===J([true,true])],
+            ['8:合わさった後の 最大の文書が 1,048,576 より小さい',o.maxDoc<1048576],
+            ['9:2台の 表が 同じ',J(o.after)===J([1,1,true])],
+            ['10:ノイズ画像は 上限の内（受ける）か 案内（受けない）',(o.noiseR&&(o.noiseR.ok||o.noiseR.err==='大きすぎ'))===true],
+            ['11:保存された画像は どれも 240KB 以下',o.allIn.length>=1&&o.allIn.every(k=>k<=240)]],
+          `KC_HARD ${o.hardConst}｜250KB：${J(o.r250)}・変わらない ${o.same250}・案内「${(o.msg250||'').slice(0,40)}」｜241KB：${J(o.r241)}｜240KB：${J(o.r240)}・文字 ${o.len240}・3つぶん ${o.worst3}｜2台同時の入れかえ：${J(o.rr)}・ネット上の最大の文書 ${o.maxDoc} バイト（文書 ${o.nDocs}件）・${J(o.after)}｜ノイズ：${J(o.noiseR)}・保存された画像 ${J(o.allIn)}KB`);
+        P.close(); Q.close();
+      });
+      /* ===== 96w6：厨房の表を 全画面で 見ている間は、自動の読み込み直し（autoupdate.js）を 待たせる（閉じたら 今までどおり） ===== */
+      await tryB('96w6',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pv6','ws',st), o={};
+        const jpg=await new Promise(res=>{ const c=document.createElement('canvas'); c.width=800; c.height=600; const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,800,600); x.fillStyle='#123'; x.fillText('表',20,20); c.toBlob(b=>res(b),'image/jpeg',0.7); });
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map')`); await P.win.kcIngest(jpg,''); P.ev(`isAdmin=false; applyAdminMode(); setView('map'); renderMapView()`); await sleep(150);
+        const hold=()=>E(P,"typeof window.__autoupdateHold==='function'?window.__autoupdateHold():'なし'");
+        P.ev('_kc.hs=0;_kc.he=0'); o.h0=hold(); P.ev('kcOpen()'); await sleep(100); o.open=qn(P,'#kc-view'); o.h1=hold();
+        await sleep(6500); o.h2=hold(); o.still=qn(P,'#kc-view');   // 約5秒で 閉じられていた所（自動の読み込み直しは 待つ）
+        P.ev('kcZoom(1)'); o.h3=hold();
+        P.ev(`_kc.since=Date.now()-3.1*3600000`); o.h4=hold(); P.ev(`_kc.since=Date.now()`);   // 3時間をこえて つけっぱなし＝待たない
+        P.ev('kcClose()'); o.h5=hold(); o.closed=qn(P,'#kc-view');
+        checkL('96w6','【厨房の表・全画面の間は待つ】全画面を 開く前は 待たない（false）／全画面の間は 待つ（true。6.5秒 たっても 閉じず 待ったまま・拡大しても 待つ）／3時間を こえて つけっぱなしなら 待たない／閉じたら 今までどおり（待たない）',
+          [['1:開く前は 待たない',o.h0===false],['2:開いた',o.open===1],['3:開いている間は 待つ',o.h1===true],['4:6.5秒後も 待つ',o.h2===true&&o.still===1],['5:拡大しても 待つ',o.h3===true],['6:3時間こえたら 待たない',o.h4===false],['7:閉じたら 待たない',o.h5===false&&o.closed===0]],
+          `開く前 ${o.h0}・開いた ${o.open}・開いている間 ${o.h1}・6.5秒後 ${o.h2}（全画面 ${o.still}）・拡大 ${o.h3}・3時間こえ ${o.h4}・閉じた後 ${o.h5}（全画面 ${o.closed}）`);
+        P.close();
+      });
+      /* ===== 96x4：見本の「足す」ボタンは 窓の 下に 固定（16行の 一覧の いちばん下まで 送らなくても 押せる。44px 以上） ===== */
+      await tryB('96x4',async()=>{
+        const o={};
+        for(const [w,h] of [[768,900],[390,700]]){
+          const P=await mk3(new V2.MemoryCloud(),'端末Px4_'+w,'ws',st,w,h); P.ev(`isAdmin=true; applyAdminMode(); setView('map'); amTplOpen('p1')`); await sleep(250);
+          const m=jp(E(P,`(()=>{ const md=document.querySelector('#am-sheet .am-modal'), b=document.getElementById('tpl-go'); if(!md||!b) return JSON.stringify({err:'なし'}); md.scrollTop=0; const r=b.getBoundingClientRect(), mr=md.getBoundingClientRect(), cx=Math.round(r.left+r.width/2), cy=Math.round(r.top+r.height/2), top=document.elementFromPoint(cx,cy); return JSON.stringify({h:Math.round(r.height),inView:r.top>=mr.top&&r.bottom<=mr.bottom+1,gap:Math.round(mr.bottom-r.bottom),hit:!!(top&&(top===b||b.contains(top))),scrollable:md.scrollHeight>md.clientHeight+50,rows:document.querySelectorAll('#am-sheet .tpl-row').length}); })()`),{});
+          const m2=jp(E(P,`(()=>{ const md=document.querySelector('#am-sheet .am-modal'), b=document.getElementById('tpl-go'); md.scrollTop=md.scrollHeight; const r=b.getBoundingClientRect(), mr=md.getBoundingClientRect(); return JSON.stringify({inView:r.top>=mr.top&&r.bottom<=mr.bottom+1}); })()`),{});
+          o[w]=[m,m2]; P.close();
+        }
+        const ok=k=>o[k][0].h>=44&&o[k][0].inView===true&&o[k][0].hit===true&&o[k][0].scrollable===true&&o[k][0].rows===16&&o[k][1].inView===true;
+        checkL('96x4','【見本から足す・ボタンの場所】16行の 一覧を 開いた まま（送らずに）、「この 16件を 登録に 足す」が 窓の 中に 見えて（高さ 44px 以上）押せる（上に ほかの物が かぶらない）。一覧は 窓より 長い（送る）。いちばん下まで 送っても 見える。幅 768 と 390 の どちらも',
+          [['1:768 で 見えて 押せる',ok(768)],['2:390 で 見えて 押せる',ok(390)]],
+          `768：${J(o[768])}｜390：${J(o[390])}`);
+      });
+      /* ===== 96y2：おくれの音：音の もとの resume() が 断られても、未処理の拒否が 出ない（鳴らないだけ） ===== */
+      await tryB('96y2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Py2','ws',st), o={};
+        P.ev(`window.__rs=0; window.__rej=0; window.addEventListener('unhandledrejection',function(e){ window.__rej++; e.preventDefault(); });
+          window.AudioContext=function(){ this.state='suspended'; this.currentTime=0; this.destination={}; window.__made=(window.__made||0)+1; };
+          window.AudioContext.prototype.resume=function(){ window.__rs++; return Promise.reject(new Error('NotAllowedError')); };
+          _snd.ctx=null;`);
+        P.win.document.dispatchEvent(new P.win.Event('pointerdown')); await sleep(200); P.win.document.dispatchEvent(new P.win.Event('pointerdown')); await sleep(300);
+        o.v=[E(P,'window.__made'),E(P,'window.__rs'),E(P,'window.__rej'),E(P,'amSndBeep()'),E(P,'(amSndTick(),_snd.n)')];
+        checkL('96y2','【おくれの音】音の もとの resume() が 断られても（ブラウザが「だめ」と言っても）、未処理の拒否が 出ず、何も起きない（鳴らないだけ・音の もとは 1つだけ）',
+          [['1:音の もとは 1つ',o.v[0]===1],['2:resume は 呼んだ',o.v[1]>=1],['3:未処理の拒否は 0',o.v[2]===0],['4:鳴らない',o.v[3]===false&&o.v[4]===0]],
+          `音の もと ${o.v[0]}・resume を呼んだ ${o.v[1]}・未処理の拒否 ${o.v[2]}・amSndBeep ${o.v[3]}・鳴った ${o.v[4]}`);
+        P.close();
+      });
+      /* ===== 96x：見本から足す（2・5・11）。店の本物の登録に 勝手に 足さない／中身を 見てから「足す」を押した時だけ／同じ物が 2回 入らない／足した直後に 🔥 が並ばない ===== */
+      await tryB('96x',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pt','ws',st), Q=await mk3(cl,'端末Qt','ws'), O=await mk3(cl,'端末Ot','wsold'), o={};
+        const wl=d=>jp(E(d,`JSON.stringify(amWorks())`),[]), tp=d=>wl(d).filter(w=>w.tpl);
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map'); amOpenWorks();`); await sleep(150);
+        try{
+          goto(P,at(14));
+          const worksJ=()=>E(P,'JSON.stringify(state.amWorks===undefined?null:state.amWorks)'), w0=worksJ(), cw0=cl.writes;
+          /* 見るだけ：登録は 何も 変わらない・ネット上にも 何も 書かない */
+          P.ev(`amTplOpen('')`); await sleep(100); o.list=[qn(P,'#am-sheet .tpl-card'),qt(P,'#am-sheet .am-title'),E(P,'amSheetName()')];
+          P.ev(`amTplOpen('p1')`); await sleep(100); o.p1=[qn(P,'#am-sheet .tpl-row'),qn(P,'#am-sheet .tpl-row input:checked'),qt(P,'#tpl-go')]; o.row1=qt(P,'#am-sheet .tpl-row');
+          P.ev(`amTplOpen('i5')`); await sleep(60); o.i5v=qt(P,'#am-sheet .tpl-row'); P.ev(`amTplOpen('i11')`); await sleep(60); o.i11v=qt(P,'#am-sheet .tpl-row'); await sync3([P,Q]);
+          o.noWrite=[worksJ()===w0,cl.writes===cw0,E(P,'Array.isArray(state.amWorks)')];
+          /* 管理者でなければ 足せない */
+          P.ev(`isAdmin=false`); o.na=[E(P,`amTplAdd('p1')`),worksJ()===w0]; P.ev(`isAdmin=true`);
+          /* 2 紙の16行：2行 外して 足す → 14件。もう一度 足す → 外した2件だけ（同じ物は 入らない） */
+          P.ev(`amTplOpen('p1'); amTplToggle('p1_aico',false); amTplToggle('p1_cdc',false)`); await sleep(80); o.p1b=[qn(P,'#am-sheet .tpl-row input:checked'),qt(P,'#tpl-go')];
+          const nB=wl(P).length; o.add1=E(P,`amTplAdd('p1')`); o.n1=[nB,tp(P).length,wl(P).length];
+          P.ev(`amOpenWorks()`); await sleep(60); P.ev(`amTplOpen('p1')`); await sleep(80); o.p1c=[qn(P,'#am-sheet .tpl-row.has'),qn(P,'#am-sheet .tpl-row input:checked'),qt(P,'#tpl-go')];
+          o.add2=E(P,`amTplAdd('p1')`); o.add3=E(P,`amTplAdd('p1')`); const W1=tp(P); o.n2=[W1.length,wl(P).length,new Set(W1.map(w=>w.tpl)).size];
+          o.ids=W1.every(w=>/^w_[0-9a-z]{6,10}$/.test(w.id))&&new Set(W1.map(w=>w.id)).size===W1.length;
+          const by=k=>W1.find(w=>w.tpl===k)||{};
+          o.shape=W1.every(w=>w.place==='off'&&Array.isArray(w.times)&&w.times.length>0&&Array.isArray(w.items)&&w.items.length>=1&&w.en&&w.ne&&w.kind&&w.name);
+          o.detail=[J(by('p1_aico').times),J(by('p1_tobacco_in').days),J(by('p1_cdc').times),by('p1_ddc').times[0],W1.filter(w=>/^清掃：/.test(w.name)).length,W1.filter(w=>/^返品：/.test(w.name)).length,W1.filter(w=>/^納品：/.test(w.name)).length,W1.filter(w=>/値引き/.test(w.name)).length];
+          /* 足した直後に 🔥 が 並ばない（14:00 に足した。06:00・00:30 など 前の回は 数えない） */
+          o.fires=jp(E(P,`JSON.stringify(amOffList(Date.now()).filter(x=>x.w.tpl&&x.k==='fire').map(x=>x.w.name))`),['(失敗)']); o.fireKeys=E(P,`amFireKeys(Date.now()).filter(k=>amWorks().some(w=>w.tpl&&k.indexOf(w.id+'|')===0)).length`);
+          /* 同じ名前の作業を 店が 自分で 登録していれば 5 は 足さない */
+          P.ev(`state.amWorks.push({id:'w_manual',place:'off',name:'レジの アラートリストを 確かめる',icon:'🧾',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['12:00'],items:[]}); amSave();`);
+          o.manual=[E(P,`amTplAdd('i5')`),wl(P).filter(w=>w.name==='レジの アラートリストを 確かめる').length];
+          P.ev(`state.amWorks=state.amWorks.filter(w=>w.id!=='w_manual'); amSave();`);
+          /* 5：レジの アラートリスト */
+          o.add5=E(P,`amTplAdd('i5')`); const A5=tp(P).find(w=>w.tpl==='i5_alert')||{};
+          o.i5=[J(A5.times),/レジの 画面の 右下あたりに 出る アラートリストを 確かめる/.test(A5.sub),/bottom right of the register screen/.test(A5.en||''),/दायाँ/.test(A5.ne||''),(A5.items||[]).length,/ALIOT/.test(J(A5))];
+          /* 2台目：足した作業が 届く・足そうとしても 入らない・古い版にも そのまま 届く */
+          await sync3([P,Q,O]); o.q=[tp(Q).length===tp(P).length,E(Q,`isAdmin=true; amTplAdd('p1')+amTplAdd('i5')`),tp(Q).length===tp(P).length]; o.old=[tp(O).length===tp(P).length,jp(E(O,`JSON.stringify(amWorks().filter(w=>w.tpl).every(w=>w.place==='off'&&!!w.name))`),false)];
+          /* 11：廃棄（朝 9:00 に 足す → 10:30 の回が いま／外した数 0 でも えらべる／記録の 10分後に「奥の見直し」） */
+          goto(P,at(9)); o.add11=E(P,`amTplAdd('i11')`); const A11=tp(P).find(w=>w.tpl==='i11_waste')||{};
+          o.i11=[J(A11.vals),J(A11.after&&[A11.after.name,A11.after.min,A11.after.grace]),(A11.times||[]).length,(A11.items||[]).length,/Disposal/.test(A11.en||''),/फाल्ने/.test(A11.ne||''),/Second look/.test((A11.after||{}).en||''),/दोस्रो/.test((A11.after||{}).ne||'')];
+          P.ev(`isAdmin=false; window.__ft1=amFireTop; amFireTop=function(){ return null; }; amOpenArea(${J(A11.id)}); amCardPick('a',0);`); await sleep(100);
+          o.card11=[qn(P,'#am-sheet .ao-nv'),/外した 数/.test(qt(P,'#am-sheet .ao-nv-h')),qn(P,'#am-sheet .ao-nv-b.on')];
+          P.ev(`amRecord(${J(A11.id)},'見本 花子')`); const r11=recsD(P,A11.id,at(9))[0]||{}; o.rec0=[JSON.stringify(r11.v),r11.t>0];
+          o.after=jp(E(P,`JSON.stringify([amAfterList(${(r11.t||at(9))+9*MIN}).length,amAfterList(${(r11.t||at(9))+11*MIN}).map(x=>[x.af.name,x.k])])`),[]);
+          P.ev('amCloseSheet()');
+        } finally { unwarp(P); P.ev(`isAdmin=false; if(window.__ft1) amFireTop=window.__ft1; amCloseSheet();`); }
+        checkL('96x','【見本から足す・足す前】見本の 一覧（3つ）→ 中身を 見る（2＝16行・5・11）。見ている間は 登録も ネット上も 何も 変わらない（店の本物の登録に 勝手に 足さない）。管理者でなければ 足せない',[
+            ['1:o.list[0]===3',o.list[0]===3],
+            ['2:/見本から 足す/.test(o.list[1])',/見本から 足す/.test(o.list[1])],
+            ['3:o.list[2]===\'tpl\'',o.list[2]==='tpl'],
+            ['4:o.p1[0]===16',o.p1[0]===16],
+            ['5:o.p1[1]===16',o.p1[1]===16],
+            ['6:/16件/.test(o.p1[2])',/16件/.test(o.p1[2])],
+            ['7:/清掃：店外/.test(o.row1)',/清掃：店外/.test(o.row1)],
+            ['8:/いつ：23:00（押せる 21:00〜2:00）/.test(o.row1)',/いつ：23:00（押せる 21:00〜2:00）/.test(o.row1)],
+            ['9:/確認：/.test(o.row1)',/確認：/.test(o.row1)],
+            ['10:/Cleaning/.test(o.row1)',/Cleaning/.test(o.row1)],
+            ['11:/सफाई/.test(o.row1)',/सफाई/.test(o.row1)],
+            ['12:/レジの 画面の 右下あたり/.test(o.i5v)',/レジの 画面の 右下あたり/.test(o.i5v)],
+            ['13:/Check the alert list at the bottom right/.test(o.i5v)',/Check the alert list at the bottom right/.test(o.i5v)],
+            ['14:/外した 数/.test(o.i11v)',/外した 数/.test(o.i11v)],
+            ['15:/奥の 見直し/.test(o.i11v)',/奥の 見直し/.test(o.i11v)],
+            ['16:/10分後/.test(o.i11v)',/10分後/.test(o.i11v)],
+            ['17:o.noWrite[0]===true',o.noWrite[0]===true],
+            ['18:o.noWrite[1]===true',o.noWrite[1]===true],
+            ['19:o.noWrite[2]===false',o.noWrite[2]===false],
+            ['20:o.na[0]===0',o.na[0]===0],
+            ['21:o.na[1]===true,',o.na[1]===true,]],
+          `一覧 ${J(o.list)}｜2：行 ${o.p1[0]}・✓ ${o.p1[1]}・ボタン「${o.p1[2]}」・1行目「${(o.row1||'').slice(0,90)}」｜5「${(o.i5v||'').slice(0,70)}」｜11「${(o.i11v||'').slice(0,60)}」｜見ただけ：登録 同じ ${o.noWrite[0]}・書いた文書 ${o.noWrite[1]?'0':'あり'}・登録の写し ${o.noWrite[2]}｜管理者でない：${J(o.na)}`);
+        checkL('96x2','【見本から足す・2 紙の16行】2行の ✓ を外して足す＝14件（登録の表には 14件ふえる）→ もう一度 見ると 14件は「登録ずみ」（外せない）・足せるのは 残り2件 → 足す → 全部で 16件。もう一度 足しても 0件（同じ物は 2回 入らない・名前も 重ならない）。足した作業は 売場以外・時刻つき（清掃6・返品2・値引き2・納品6）・id は 画面で足した作業と同じ形（w_＋時刻）・足した直後に 🔥 は 1つも並ばない。店が 同じ名前の作業を 自分で 登録していたら 足さない',[
+            ['1:J(o.p1b)===J([14,\'この 14件を 登録に 足す\'])',J(o.p1b)===J([14,'この 14件を 登録に 足す'])],
+            ['2:o.add1===14',o.add1===14],
+            ['3:J(o.n1)===J([o.n1[0],14,o.n1[0]+14])',J(o.n1)===J([o.n1[0],14,o.n1[0]+14])],
+            ['4:o.p1c[0]===14',o.p1c[0]===14],
+            ['5:o.p1c[1]===2',o.p1c[1]===2],
+            ['6:/この 2件/.test(o.p1c[2])',/この 2件/.test(o.p1c[2])],
+            ['7:o.add2===2',o.add2===2],
+            ['8:o.add3===0',o.add3===0],
+            ['9:J(o.n2)===J([16,o.n1[0]+16,16])',J(o.n2)===J([16,o.n1[0]+16,16])],
+            ['10:o.ids===true',o.ids===true],
+            ['11:o.shape===true',o.shape===true],
+            ['12:J(o.detail)===J([\'["10:00","14:00","19:00","22:00"]\',\'[3',J(o.detail)===J(['["10:00","14:00","19:00","22:00"]','[3]','["06:00","15:30"]','00:30',6,2,6,2])],
+            ['13:J(o.fires)===J([])',J(o.fires)===J([])],
+            ['14:o.fireKeys===0',o.fireKeys===0],
+            ['15:o.manual[0]===0',o.manual[0]===0],
+            ['16:o.manual[1]===1,',o.manual[1]===1,]],
+          `外して足す：${J(o.p1b)}→${o.add1}件・登録の数 ${J(o.n1)}｜もう一度見る：登録ずみ ${o.p1c[0]}・✓ ${o.p1c[1]}・「${o.p1c[2]}」→ ${o.add2}件→ もう一度 ${o.add3}件・合計 ${J(o.n2)}・id の形 ${o.ids}・欄 ${o.shape}｜${J(o.detail)}｜足した直後の 🔥 ${J(o.fires)}（鍵 ${o.fireKeys}）｜店が同じ名前を登録ずみ：足した ${o.manual[0]}件・同じ名前 ${o.manual[1]}件`);
+        checkL('96x3','【見本から足す・5 レジの アラートリスト／11 廃棄】5：作業の説明に「レジの 画面の 右下あたりに 出る アラートリストを 確かめる」・英語・ネパール語つき（右下・दायाँ）・朝と夕方の 2回・確認項目 2つ・ALIOT の 言葉は 入れない。11：外した数（0でも えらべる＝0 を 押すと 記録される・記録に 0 が 残る）・記録の 10分後に「奥の 見直し」が 1件 出る（9分後は まだ 出ない）・英語・ネパール語つき。2台目に 届く・もう一度 足しても 入らない・古い版にも そのまま 届く',[
+            ['1:o.add5===1',o.add5===1],
+            ['2:J(o.i5)===J([\'["07:30","16:30"]\',true,true,true,2,false]',J(o.i5)===J(['["07:30","16:30"]',true,true,true,2,false])],
+            ['3:J(o.q)===J([true,0,true])',J(o.q)===J([true,0,true])],
+            ['4:o.old[0]===true',o.old[0]===true],
+            ['5:o.old[1]===true',o.old[1]===true],
+            ['6:o.add11===1',o.add11===1],
+            ['7:J(o.i11)===J([\'[{"k":"a","label":"外した 数","unit":"個","min',J(o.i11)===J(['[{"k":"a","label":"外した 数","unit":"個","min":0}]','["奥の 見直し（もう一度、棚の奥まで）",10,10]',4,2,true,true,true,true])],
+            ['8:o.card11[0]===1',o.card11[0]===1],
+            ['9:o.card11[1]===true',o.card11[1]===true],
+            ['10:o.card11[2]===1',o.card11[2]===1],
+            ['11:J(o.rec0)===J([\'{"a":0}\',true])',J(o.rec0)===J(['{"a":0}',true])],
+            ['12:o.after[0]===0',o.after[0]===0],
+            ['13:o.after[1].length===1',o.after[1].length===1],
+            ['14:/奥の 見直し/.test(o.after[1][0][0]),',/奥の 見直し/.test(o.after[1][0][0]),]],
+          `5：${J(o.i5)}｜11：${J(o.i11)}・数字の欄 ${J(o.card11)}・記録 ${J(o.rec0)}・9分後 ${o.after[0]}件／11分後 ${J(o.after[1])}｜2台目：${J(o.q)}・古い版：${J(o.old)}`);
+        P.close(); Q.close(); O.close();
+      });
+      /* ===== 96y：おくれの音（新しい 🔥 が出た時だけ 短い音・60秒に 1回・開いた時にすでに出ている 🔥 では 鳴らさない・管理者が 切れる（全部の端末）・音を出せない端末では 何も起きない） ===== */
+      await tryB('96y',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pu','ws',st), Q=await mk3(cl,'端末Qu','ws'), o={};
+        const Fake=function(){ Fake.made++; this.state='running'; this.currentTime=0; this.destination={}; };
+        Fake.made=0; Fake.starts=0; Fake.prototype.createOscillator=function(){ return {type:'',frequency:{value:0},connect(){},start(){ Fake.starts++; },stop(){}}; }; Fake.prototype.createGain=function(){ return {gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}}; }; Fake.prototype.resume=function(){ this.state='running'; };
+        const idOf=n=>'w_'+(at(8)+n).toString(36);
+        const fireW=n=>({id:idOf(n),place:'off',name:'おくれの音の試験'+n,icon:'🔔',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['10:30'],lead:30,grace:30,items:[]});
+        const okW={id:idOf(99),place:'off',name:'まだ先の作業',icon:'🕐',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['23:30'],lead:30,grace:30,items:[]};
+        const beeps=()=>Fake.starts/2;
+        try{
+          goto(P,at(12)); P.win.AudioContext=Fake; P.win.webkitAudioContext=undefined;
+          P.ev(`isAdmin=true; applyAdminMode(); state.amWorks=${J([okW])}; amSave(); _snd.prev=null; _snd.last=0; _snd.n=0;`);
+          o.noCtx=E(P,`(amSndTick(),_snd.n)`);   // まだ 触られていない（音の もとが 無い）：何も 起きない
+          P.win.document.dispatchEvent(new P.win.Event('pointerdown')); o.made=Fake.made;
+          o.base=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps()+'/'+E(P,'_snd.prev===null?0:1');   // 最初の確認は 覚えるだけ
+          P.ev(`state.amWorks=${J([okW,fireW(1)])}`); o.keys1=E(P,'amFireKeys(Date.now()).length'); o.b1=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps();   // 新しい 🔥 → 鳴る
+          o.b1b=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps();   // 同じ 🔥 のまま → 鳴らない
+          P.ev(`state.amWorks=${J([okW,fireW(1),fireW(2)])}`); o.b2=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps();   // 60秒 以内の 次の 🔥 → 鳴らない（間引く）
+          P.ev(`_snd.last=0; state.amWorks=${J([okW,fireW(1),fireW(2),fireW(3)])}`); o.b3=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps();   // 60秒 たてば 鳴る
+          /* 管理者が 切る：全部の端末に 効く（2台目で 入り切りの 状態が 同じ）。切ると 新しい 🔥 でも 鳴らない */
+          P.ev(`amSave(); amSndToggle()`); o.off=E(P,'JSON.stringify([amSndOn(),state.amSnd])'); await sync3([P,Q]); o.offQ=E(Q,'amSndOn()'); const sv=await P.win.__v2.coll.readServer(); o.offRec=sv['s:amSnd'];
+          P.ev(`_snd.last=0; state.amWorks=${J([okW,fireW(1),fireW(2),fireW(3),fireW(4)])}`); o.b4=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps();
+          P.ev(`amSndToggle()`); o.on=E(P,'JSON.stringify([amSndOn(),state.amSnd===undefined])'); await sync3([P,Q]); o.onQ=E(Q,'amSndOn()');
+          P.ev(`_snd.last=0; state.amWorks=${J([okW,fireW(1),fireW(2),fireW(3),fireW(4),fireW(5)])}`); o.b5=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps();
+          /* 音を出せない端末：動いていない・無い → 何も 起きず・エラーも 出ない */
+          P.ev(`_snd.ctx.state='suspended'; _snd.last=0; state.amWorks=${J([okW,fireW(1),fireW(2),fireW(3),fireW(4),fireW(5),fireW(6)])}`); o.s1=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps()+'/'+E(P,'amSndBeep()');
+          P.ev(`_snd.ctx=null; _snd.last=0; state.amWorks=${J([okW,fireW(1),fireW(2),fireW(3),fireW(4),fireW(5),fireW(6),fireW(7)])}`); o.s2=E(P,`(amSndTick(),_snd.n)`)+'/'+beeps()+'/'+E(P,'amSndBeep()');
+          o.btn=[E(P,`isAdmin=true; amOpenWorks(); document.getElementById('snd-toggle')?document.getElementById('snd-toggle').textContent.trim():'(なし)'`)];
+        } finally { unwarp(P); P.ev(`isAdmin=false; amCloseSheet();`); }
+        checkL('96y','【おくれの音】開いた時に すでに出ている 🔥 では 鳴らさない（最初の確認は 覚えるだけ）／新しい 🔥 が出たら 1回（短い2音）／同じ 🔥 のままなら 鳴らない／60秒 以内の 次の 🔥 は 鳴らさない・60秒たてば 鳴る／管理者が 切ると 全部の端末で 鳴らない（ネット上の 記録は s:amSnd＝{off:1}）・入れると 項目ごと 無くなる／まだ 触られていない・音を 出せない・動いていない 端末では 何も 起きず エラーも 出ない',[
+            ['1:(String(o.noCtx)===\'0\')',(String(o.noCtx)==='0')],
+            ['2:o.made===1',o.made===1],
+            ['3:o.base===\'0/0/1\'',o.base==='0/0/1'],
+            ['4:o.keys1===1',o.keys1===1],
+            ['5:o.b1===\'1/1\'',o.b1==='1/1'],
+            ['6:o.b1b===\'1/1\'',o.b1b==='1/1'],
+            ['7:o.b2===\'1/1\'',o.b2==='1/1'],
+            ['8:o.b3===\'2/2\'',o.b3==='2/2'],
+            ['9:o.off===\'[false,{"off":1}]\'',o.off==='[false,{"off":1}]'],
+            ['10:o.offQ===false',o.offQ===false],
+            ['11:o.offRec===\'{"off":1}\'',o.offRec==='{"off":1}'],
+            ['12:o.b4===\'2/2\'',o.b4==='2/2'],
+            ['13:o.on===\'[true,true]\'',o.on==='[true,true]'],
+            ['14:o.onQ===true',o.onQ===true],
+            ['15:o.b5===\'3/3\'',o.b5==='3/3'],
+            ['16:o.s1===\'3/3/false\'',o.s1==='3/3/false'],
+            ['17:o.s2===\'3/3/false\'',o.s2==='3/3/false'],
+            ['18:/入/.test(o.btn[0])',/入/.test(o.btn[0])]],
+          `触られる前 ${o.noCtx}・音の もと ${o.made}個・最初 ${o.base}・新しい🔥 ${o.b1}・同じ 🔥 ${o.b1b}・60秒以内 ${o.b2}・60秒後 ${o.b3}｜切る：${o.off}・2台目 ${o.offQ}・ネット上 ${o.offRec}・切った後 ${o.b4}｜入れる：${o.on}・2台目 ${o.onQ}・入れた後 ${o.b5}｜音を出せない：止まっている ${o.s1}・無い ${o.s2}｜ボタン「${o.btn[0]}」`);
+        P.close(); Q.close();
+      });
+      /* ===== 96z：きのうの抜け（きのうの 回で 記録が なかった物。0件の日は 何も出ない・人の名前は 出さない・「見た」で その日は 出さない・保存する物は 無い） ===== */
+      await tryB('96z',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pv','ws',st), o={};
+        const yday=h=>{ const d=new Date(at(12)); d.setDate(d.getDate()-1); d.setHours(h,0,0,0); return d.getTime(); };
+        const idOld='w_'+(at(12)-5*864e5).toString(36);
+        const W=(id,name,tm)=>({id,place:'off',name,icon:'🧪',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[tm],lead:30,grace:60,items:[]});
+        const reset=()=>P.ev(`_yd={t:0,n:-1,items:[]}`);
+        try{
+          goto(P,at(12)); P.win.sessionStorage.removeItem('ws_am_yd');
+          P.ev(`isAdmin=false; applyAdminMode(); setView('map'); state.amWorks=${J([W(idOld,'きのうの抜けの試験','10:30'),W('w_ydother','別の作業','11:00')])}; amSave(); renderMapView();`); await sleep(120);
+          reset(); o.none=[E(P,'amYdData().n'),qn(P,'#amf-yd')];   // 記録が 1つも 無い（記録を始める前）＝数えない
+          P.ev(`amLogAdd('w_ydother',{at:new Date(${yday(11)}).toISOString(),by:'見本 花子'},null,null); amSave(); renderMapView()`); reset(); P.ev(`renderMapView()`); await sleep(80);
+          o.n1=[E(P,'amYdData().n'),E(P,'amYdData().items[0].name'),qn(P,'#amf-yd'),qt(P,'#amf-yd'),E(P,'document.getElementById("amf-yd").getBoundingClientRect().height')];
+          P.ev(`amYdOpen()`); await sleep(80); o.sheet=[E(P,'amSheetName()'),qt(P,'#am-sheet'),qn(P,'#am-sheet .yd-row')];
+          o.noPerson=!/見本 花子|見本 太郎/.test(qt(P,'#am-sheet'));
+          P.ev(`amYdSeenSet()`); await sleep(80); o.seen=[qn(P,'#amf-yd'),P.win.sessionStorage.getItem('ws_am_yd'),E(P,'amSheetName()')];
+          P.win.sessionStorage.removeItem('ws_am_yd'); reset();
+          P.ev(`amLogAdd(${J(idOld)},{at:new Date(${yday(10)+40*MIN}).toISOString(),by:'見本 太郎'},null,null); amSave(); renderMapView()`); reset(); P.ev(`renderMapView()`); await sleep(80); o.n0=[E(P,'amYdData().n'),qn(P,'#amf-yd')];
+          o.noSave=E(P,`JSON.stringify(Object.keys(state).filter(k=>/yd|Yd/.test(k)))`);
+          /* きのうの記録が 1件も 無い日（おとといには ある）：抜けは 数えない・1行も 出ない（店で まだ 使っていない間に 毎日 大きな数が 出て じゃまに ならないように・店長 10/19） */
+          P.win.sessionStorage.removeItem('ws_am_yd');
+          P.ev(`(()=>{ amLogKeys().forEach(k=>{ delete state[k]; }); amLogAdd('w_ydother',{at:new Date(${yday(11)-864e5}).toISOString(),by:'見本 花子'},null,null); amSave(); })()`); reset(); P.ev(`renderMapView()`); await sleep(80);
+          o.noYd=[E(P,'amYdData().n'),qn(P,'#amf-yd'),E(P,'amLogKeys().length')];
+        } finally { unwarp(P); try{ P.win.sessionStorage.removeItem('ws_am_yd'); }catch(_){} P.ev(`amCloseSheet();`); }
+        checkL('96z','【きのうの抜け】記録を 始める前（記録が 1つも無い）は 数えない／きのうの 回で 記録が なかった作業が あれば、最初の画面の 細い1行（広い画面は 右の列の 上・スマホは 列の 上）「きのう 記録が なかった 作業 ◯件」（押せる・高さ 44px 以上）→ 押すと 作業の名前と 時刻の 一覧（人の名前は 出さない・英語・ネパール語つき）→「見た」で その日は 出さない／きのうの 記録が そろえば 0件で 何も 出ない／きのうの 記録が 1件も 無い日は（おとといに あっても）抜けを 数えず 1行も 出ない／保存する物は 無い',[
+            ['1:J(o.none)===J([0,0])',J(o.none)===J([0,0])],
+            ['2:o.n1[0]===1',o.n1[0]===1],
+            ['3:/きのうの抜けの試験/.test(o.n1[1])',/きのうの抜けの試験/.test(o.n1[1])],
+            ['4:o.n1[2]===1',o.n1[2]===1],
+            ['5:/きのう 記録が なかった 作業 1件/.test(o.n1[3])',/きのう 記録が なかった 作業 1件/.test(o.n1[3])],
+            ['6:Number(o.n1[4])>=44',Number(o.n1[4])>=44],
+            ['7:o.sheet[0]===\'yd\'',o.sheet[0]==='yd'],
+            ['8:/きのうの抜けの試験/.test(o.sheet[1])',/きのうの抜けの試験/.test(o.sheet[1])],
+            ['9:/10:30/.test(o.sheet[1])',/10:30/.test(o.sheet[1])],
+            ['10:/Not recorded yesterday/.test(o.sheet[1])',/Not recorded yesterday/.test(o.sheet[1])],
+            ['11:/हिजो/.test(o.sheet[1])',/हिजो/.test(o.sheet[1])],
+            ['12:o.sheet[2]===1',o.sheet[2]===1],
+            ['13:o.noPerson',o.noPerson],
+            ['14:o.seen[0]===0',o.seen[0]===0],
+            ['15:/^\\d{4}-\\d\\d-\\d\\d$/.test(String(o.seen[1]))',/^\d{4}-\d\d-\d\d$/.test(String(o.seen[1]))],
+            ['16:o.seen[2]===\'\'',o.seen[2]===''],
+            ['17:J(o.n0)===J([0,0])',J(o.n0)===J([0,0])],
+            ['18:o.noSave===\'[]\'',o.noSave==='[]'],
+            ['19:きのうの記録が 無い日は 出ない',J(o.noYd)===J([0,0,1])]],
+          `記録を始める前：${J(o.none)}｜1件：${J(o.n1)}｜一覧：窓 ${o.sheet[0]}・行 ${o.sheet[2]}・人の名前なし ${o.noPerson}｜見た：${J(o.seen)}｜きのうの記録が そろう：${J(o.n0)}｜保存した項目 ${o.noSave}`);
+        P.close();
+      });
     }
     check('97','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
     const srv=await c.readServer(); check('98','ネット上を直接読み直して組み立てた中身が、画面の中身と同じ',nz(J(V2.SPECS.ws.join(srv)))===nz(A.ev('JSON.stringify(state)')),Object.keys(srv).length+' 件の記録');

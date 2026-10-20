@@ -2666,6 +2666,86 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
   .am-items li:has(> .am-iso) > .am-iso{grid-template-columns:repeat(2,150px);margin:4px 0}
   .am-items li:has(> .am-iso) > .am-ng{margin-top:0}
 }   /* 広い画面は 絵の右に NG時アクション（案の絵のとおり）。:has が使えない古いブラウザは 縦に並ぶだけ */
+/* ===== 5.15：厨房の表（ボタン・全画面・管理者の入れかえ）／🧰 道具／見本から足す／きのうの抜け ===== */
+/* 最初の画面の「厨房の表」ボタン：表が入っている店だけ。上の細い行（お客様・レジ…／？）の中。広い画面＝ふつうの形／タブレット（621〜899px）＝小さな四角（絵＋「厨房」）／スマホ＝画面の下の「？」のとなり */
+.amf-kc{order:2;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:48px;padding:6px 12px;border:1.5px solid #0f172a;border-radius:12px;background:#fff;color:#0f172a;font-family:inherit;font-size:16px;font-weight:800;line-height:1.2;cursor:pointer}
+.amf-kc .kc-i{font-size:20px;line-height:1} .amf-kc .kc-s{display:none}
+.amf-kc~.amf-rule{order:1} .amf-kc~.am-help-btn{order:3} .amf-kc~.amf-tab{order:4}
+@media(min-width:621px) and (max-width:899px){
+  .amf-kc{flex-direction:column;gap:0;min-width:48px;margin:0 -3px;padding:2px 4px;font-size:14px;line-height:1.1;border-radius:10px}
+  .amf-kc .kc-l{display:none} .amf-kc .kc-s{display:inline}
+  .amf-kc~.amf-rule>span:first-child{display:none}   /* 🙋 の絵を かくして、決まりの文が 2行に 収まるように */
+  #amf-wrap.m5w .amf-kc~.amf-rule{padding:5px 6px}
+  .amf-kc~.amf-rule>span:last-child{word-break:keep-all;overflow-wrap:anywhere}   /* 決まりの文は「お客様・レジが」「いつでも先」の 切れ目だけで 折り返す */
+}
+@media(max-width:620px){
+  .amf-M .amf-top .amf-kc{position:fixed;left:64px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:41;min-height:48px;background:#fff;box-shadow:0 4px 14px rgba(15,23,42,.18)}
+  .amf-M .amf-kc~.amf-tab,.amf-open .amf-kc~.amf-tab{left:204px}
+}
+@media(max-width:389px){
+  .amf-M .amf-top .amf-kc{flex-direction:column;gap:0;padding:2px 6px;min-width:52px;font-size:14px;line-height:1.1}
+  .amf-kc .kc-l{display:none} .amf-kc .kc-s{display:inline}
+  .amf-M .amf-kc~.amf-tab,.amf-open .amf-kc~.amf-tab{left:124px}
+}
+/* 全画面（クルーの画面でも 同じ）。暗い地に 白い札。字は 17px 以上・押す所は 48px 以上 */
+.kc-view{position:fixed;inset:0;z-index:9400;background:#0b1220;color:#fff;display:flex;flex-direction:column;overscroll-behavior:contain}
+.kc-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:8px 10px;background:#0f172a;border-bottom:1px solid #334155}
+.kc-ttl{font-size:18px;font-weight:800;line-height:1.25;margin-right:auto}
+.kc-ttl .am-tr{color:#cbd5e1;font-size:14px;font-weight:500}
+.kc-name{font-size:17px;font-weight:800;color:#e2e8f0}
+.kc-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.kc-tabs button{min-height:48px;padding:6px 18px;border:1.5px solid #64748b;border-radius:12px;background:#1e293b;color:#fff;font-family:inherit;font-size:17px;font-weight:800;cursor:pointer}
+.kc-tabs button.on{background:#fff;color:#0f172a;border-color:#fff}
+.kc-tools{display:flex;gap:6px;align-items:center}
+.kc-tools button{min-width:48px;min-height:48px;border:1.5px solid #64748b;border-radius:12px;background:#1e293b;color:#fff;font-family:inherit;font-size:22px;font-weight:800;cursor:pointer;line-height:1}
+.kc-tools button:disabled{opacity:.35;cursor:default}
+.kc-tools .kc-x{padding:4px 14px;font-size:17px;background:#fff;color:#0f172a;border-color:#fff;line-height:1.2}
+.kc-x small{display:block;font-size:14px;font-weight:600;color:#475569}
+.kc-stage{flex:1 1 0;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;background:#0b1220}
+.kc-stage img{margin:auto;display:block;max-width:100%;max-height:100%;object-fit:contain;background:#fff;touch-action:pan-x pan-y pinch-zoom;-webkit-user-select:none;user-select:none}
+.kc-stage.z1 img,.kc-stage.z2 img,.kc-stage.z3 img{max-width:none;max-height:none;height:auto;flex:0 0 auto}
+.kc-stage.z1 img{width:150%} .kc-stage.z2 img{width:220%} .kc-stage.z3 img{width:320%}
+/* 管理者の入れかえ（厨房の表） */
+.kcp-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px 12px;align-items:start;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;margin:8px 0}
+.kcp-th{width:72px;height:96px;object-fit:cover;object-position:top;border-radius:8px;border:1px solid #cbd5e1;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:12px;color:#64748b;text-align:center}
+.kcp-main{display:flex;flex-direction:column;gap:6px;min-width:0}
+.kcp-nm{display:flex;flex-direction:column;gap:2px;font-size:13px;color:#475569}
+.kcp-nm input{min-height:44px;font-size:16px;font-family:inherit;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px}
+.kcp-info{font-size:13px;color:#64748b}
+.kcp-act{display:flex;gap:8px;flex-wrap:wrap}
+.kcp-act button{min-height:44px}
+.kcp-del{color:#b91c1c}
+.kcp-msg{margin:6px 0;padding:8px 12px;border-radius:10px;background:#e8f1fb;color:#0f3a7a;font-size:14px;font-weight:700;line-height:1.5}
+.kcp-msg.warn{background:#fff4d6;color:#7a4a00}
+/* 登録の表の「🧰 道具」（たたんである） */
+.amw-tools{border:1px solid var(--border);border-radius:11px;padding:8px 12px;margin-bottom:12px}
+.amw-tools summary{cursor:pointer;font-size:14px;font-weight:800;color:#334155;min-height:32px;display:flex;align-items:center}
+.amw-tools-b{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.amw-tools-b button{min-height:44px}
+/* 見本から足す */
+.tpl-card{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:8px 0;background:#fff}
+.tpl-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:16px}
+.tpl-no{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:999px;background:#0f172a;color:#fff;font-size:14px;font-weight:800;padding:0 6px}
+.tpl-ok{font-size:13px;font-weight:800;color:#15803d;background:#dcf3e3;border-radius:999px;padding:2px 10px}
+.tpl-l{font-size:14px;color:#475569;line-height:1.6;margin:6px 0 8px}
+.tpl-list{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+/* 「足す」のボタンは 窓の 下に 固定（16行の 一覧の いちばん下まで 送らなくても 押せる。押す所は 48px） */
+.tpl-foot{position:sticky;bottom:0;z-index:3;display:flex;gap:8px;justify-content:space-between;align-items:center;margin:8px -16px 0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1.5px solid var(--border);box-shadow:0 -6px 12px rgba(15,23,42,.07)}
+.tpl-foot button{min-height:48px;font-size:16px;word-break:keep-all}
+.tpl-foot .btn-primary{flex:1 1 auto}
+.tpl-row{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer}
+.tpl-row.has{background:#f1f5f9;cursor:default}
+.tpl-row input{width:24px;height:24px;margin-top:2px;flex:0 0 auto}
+.tpl-b{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:15px}
+.tpl-b small{font-size:13px;color:#475569;line-height:1.5}
+.tpl-b .tpl-tr{color:#7586a0}
+/* きのうの抜け：最初の画面の細い1行（0件の日は 出ない） */
+#amf-wrap.m5w .amf-yd{grid-column:2;grid-row:2;margin:0 0 4px}   /* 広い画面：右の列の いちばん上（決まりの文の 上）の 空いている段 */
+.amf-yd{flex:0 0 auto;display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 6px;padding:6px 12px;border:1.5px solid #e9c46a;border-radius:10px;background:#fff8e1;color:#5c3d00;font-family:inherit;font-size:15px;font-weight:700;text-align:left;cursor:pointer;line-height:1.3}
+.amf-yd .yd-t{flex:1 1 auto;min-width:0} .amf-yd .k{display:inline-block} .amf-yd b{font-size:16px}
+.yd-list{display:flex;flex-direction:column;gap:4px;margin:6px 0}
+.yd-row{display:flex;gap:10px;align-items:baseline;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:15px}
+.yd-w{min-width:52px;font-weight:800;color:#334155}
 </style>
 <!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す＋Gist同期を停止（単体URLでは従来通り） -->
 <script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
@@ -3771,7 +3851,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.14'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.15'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -10828,8 +10908,8 @@ function renderMapView(){
   const keep=(()=>{ const c=document.getElementById('amf-col'), m=document.querySelector('#amf-map .am-mapbox'); return {c:c?c.scrollTop:0, x:m?m.scrollLeft:0, y:m?m.scrollTop:0, sb:Array.prototype.map.call(document.querySelectorAll('#amf-col .amf-sb'),e=>e.scrollTop)}; })();
   view.innerHTML=`<div class="am-wrap amf amf-${map?'M':'L'}${(_amfOpen||!map)?' amf-open':''}${_amZoom?' amf-zoom':''}" id="amf-wrap"${map?` style="--amf-ar:${(map.w/map.h).toFixed(4)}"`:''}>
     ${isAdmin?`<div class="am-adminbar"><button type="button" class="am-cfgbtn" onclick="amOpenWorks()">📝 ワークスケジュール登録</button><button type="button" class="am-cfgbtn" onclick="amEditMap()">🗺 マップ登録</button></div>`:''}
-    <div class="amf-top"><div class="amf-rule" id="amf-rule"><span aria-hidden="true">🙋</span><span>お客様・レジが いつでも先</span></div><button type="button" class="am-help-btn" onclick="amOpenHelp()" aria-label="印と役割の説明">？</button>${tab}</div>
-    ${filt}<div class="amf-g">${mapH}<div class="amf-col${split?' amf-split':''}" id="amf-col">${col}${noMap}</div></div></div>`;   // 5.9：売場以外の「帯」は 出さない（下の列があるため。売場以外の作業が無い店は 帯も 元から出ない）
+    <div class="amf-top">${amKcBtn()}<div class="amf-rule" id="amf-rule"><span aria-hidden="true">🙋</span><span>お客様・レジが いつでも先</span></div><button type="button" class="am-help-btn" onclick="amOpenHelp()" aria-label="印と役割の説明">？</button>${tab}</div>
+    ${filt}${amYdHtml()}<div class="amf-g">${mapH}<div class="amf-col${split?' amf-split':''}" id="amf-col">${col}${noMap}</div></div></div>`;   // 5.9：売場以外の「帯」は 出さない（下の列があるため。売場以外の作業が無い店は 帯も 元から出ない）
   { const c=document.getElementById('amf-col'), m=document.querySelector('#amf-map .am-mapbox'); if(c&&keep.c) c.scrollTop=keep.c; if(m&&_amZoom&&(keep.x||keep.y)){ m.scrollLeft=keep.x; m.scrollTop=keep.y; } Array.prototype.forEach.call(document.querySelectorAll('#amf-col .amf-sb'),(e,i)=>{ if(keep.sb&&keep.sb[i]) e.scrollTop=keep.sb[i]; }); }
   amFFit(); amFPlace(); amFHi(); amFMore();
   updateMapBadge(); amOffRefresh();
@@ -10983,6 +11063,308 @@ function amHoldNow(){
   return false;
 }
 window.__autoupdateHold=amHoldNow;
+/* ===== 5.15（2026-10-19・店長「厨房の表は店のデータ、ワークスケジュールのところからボタン一つで簡単に確認できるように」「新村は厨房対象外店舗」）：厨房の表 =====
+   ・見る：最初の画面の「厨房の表」ボタン（表が入っている店だけ。入っていない店には ボタンも「入っていません」も出さない）→ 全画面。表が2枚以上なら 上の札で切りかえ。閉じるのも1つ。
+   ・入れる：管理者の「📝 ワークスケジュール登録」の中の「🧰 道具」→「🍳 厨房の表」だけ。画像を えらぶ → ブラウザの中で小さくして（長い辺 KC_SIDE px・JPEG・1枚 約 KC_KB KB）保存。名前を付けられる。消すのは確かめつき。
+   ・保存の形（足すだけ。今の形は 変えない）：state のいちばん上に 新しい項目を 2種類だけ足す。
+       kcList＝[{id, name, at（入れた時刻 ms）, kb（約何KB）, w, h}]（id で突き合わせて 合成される形＝作業の一覧と同じ）
+       kcImg_<id>＝画像の文字（data:image/jpeg;base64,…）1枚ごとに1項目（名前を変えるだけで 画像は 書き直さない）
+     古い版の端末（5.13 まで）は、知らない項目として そのまま往復させる（wsshim・wsspec は変えていない）。古い版では ボタンが 出ないだけ。
+   ・表を 入れた直後に 画面が 古い版へ 読み込み直されないよう、管理者の窓が開いている間・画像を処理している間は 自動の読み込み直しを待つ。 */
+const KC_MAX=4, KC_KB=200, KC_HARD=240, KC_SIDE=1600;   // 表の数の上限／1枚の目安（KB）／これを こえたら 受けない（KB。10/20 テスの測り：2台が 同時に 同じ表の画像を 入れかえると、ネット上の 1文書（上限 1,048,576 バイト）に 同じ画像が 3つぶん 入る＝画像 約 254KB が 線。240KB で 余白を 取る）／長い辺（px）
+let _kc={sel:'', z:0, open:false, busy:0, since:0, target:'', msg:''};
+function kcList(){ const a=state.kcList; return Array.isArray(a)?a.filter(x=>x&&typeof x==='object'&&typeof x.id==='string'&&x.id):[]; }
+function kcImg(id){ const v=state['kcImg_'+id]; return (typeof v==='string'&&v.indexOf('data:image/')===0)?v:''; }
+function kcCharts(){ return kcList().filter(x=>kcImg(x.id)); }   // 画像まで届いている表だけ（届くまでは ボタンを出さない）
+/* 最初の画面のボタン。表が1枚も無い店（新村）は 何も出さない */
+function amKcBtn(){
+  if(!kcCharts().length) return '';
+  return `<button type="button" class="amf-kc" id="amf-kc" onclick="kcOpen()" aria-label="厨房の表（Kitchen chart）" title="厨房の表 / Kitchen chart"><span class="kc-i" aria-hidden="true">🍳</span><span class="kc-l">厨房の表</span><span class="kc-s">厨房</span></button>`;
+}
+/* ---- 見る（全画面） ---- */
+function kcOpen(){
+  const cs=kcCharts(); if(!cs.length) return;
+  if(!cs.some(c=>c.id===_kc.sel)) _kc.sel=cs[0].id;
+  _kc.z=0; _kc.open=true; _kc.since=Date.now(); kcRender();
+  document.addEventListener('keydown',kcKey,true);
+}
+function kcKey(e){ if(e.key==='Escape'&&_kc.open){ e.stopPropagation(); kcClose(); } }
+function kcClose(){ _kc.open=false; document.removeEventListener('keydown',kcKey,true); const v=document.getElementById('kc-view'); if(v) v.remove(); }
+function kcSel(id){ if(!kcCharts().some(c=>c.id===id)) return; _kc.sel=id; _kc.z=0; kcRender(); }
+function kcZoomToggle(){ kcZoom(_kc.z?-3:2); }   // 画像を 2回 たたく（ダブルクリック）＝ 拡大 ⇔ 全体
+function kcZoom(d){   // 画像は 描き直さない（ちらつき・読み直しを 避ける）。大きさの段（z0〜z3）の 印だけ 替える
+  _kc.z=Math.max(0,Math.min(3,_kc.z+d)); const st=document.getElementById('kc-stage'); if(st) st.className='kc-stage z'+_kc.z;
+  const b=document.querySelectorAll('#kc-view .kc-tools button'); if(b[0]) b[0].disabled=_kc.z<=0; if(b[1]) b[1].disabled=_kc.z>=3;
+}
+function kcRender(keep){
+  if(!_kc.open) return;
+  const cs=kcCharts();
+  if(!cs.length){ kcClose(); return; }   // ほかの端末で 消された
+  if(!cs.some(c=>c.id===_kc.sel)){ _kc.sel=cs[0].id; _kc.z=0; keep=false; }
+  let v=document.getElementById('kc-view');
+  if(!v){ v=document.createElement('div'); v.id='kc-view'; v.className='kc-view'; v.setAttribute('role','dialog'); v.setAttribute('aria-modal','true'); v.setAttribute('aria-label','厨房の表 Kitchen chart'); document.body.appendChild(v); }
+  const old=v.querySelector('.kc-stage'), sx=old?old.scrollLeft:0, sy=old?old.scrollTop:0, cur=cs.find(c=>c.id===_kc.sel);
+  v.innerHTML=`<div class="kc-bar"><div class="kc-ttl">🍳 厨房の表<span class="am-tr">Kitchen chart ・ भान्सा तालिका</span></div>
+    ${cs.length>1?`<div class="kc-tabs" role="tablist">${cs.map(c=>`<button type="button" role="tab" aria-selected="${c.id===_kc.sel}" class="${c.id===_kc.sel?'on':''}" data-id="${escapeHtml(c.id)}" onclick="kcSel(this.dataset.id)">${escapeHtml(c.name||'表')}</button>`).join('')}</div>`:`<div class="kc-name">${escapeHtml(cur.name||'')}</div>`}
+    <div class="kc-tools"><button type="button" onclick="kcZoom(-1)" aria-label="小さく（Zoom out）"${_kc.z<=0?' disabled':''}>−</button><button type="button" onclick="kcZoom(1)" aria-label="大きく（Zoom in）"${_kc.z>=3?' disabled':''}>＋</button><button type="button" class="kc-x" onclick="kcClose()" aria-label="閉じる（Close）">✕ 閉じる<small>Close ・ बन्द गर्नुहोस्</small></button></div></div>
+    <div class="kc-stage z${_kc.z}" id="kc-stage"><img id="kc-img" alt="${escapeHtml(cur.name||'厨房の表')}" src="${kcImg(cur.id)}" ondblclick="kcZoomToggle()"></div>`;
+  if(keep){ const st=v.querySelector('.kc-stage'); if(st){ st.scrollLeft=sx; st.scrollTop=sy; } }
+}
+/* ほかの端末から 届いた時：開いている全画面と 管理者の窓を 描き直す（名前を 打っている途中は さわらない） */
+function kcRemote(){
+  try{
+    if(_kc.open) kcRender(true);
+    if(amSheetName()==='kc'&&!_kc.busy){ const a=document.activeElement; if(!(a&&a.tagName==='INPUT'&&a.closest&&a.closest('#am-sheet'))) kcPanel(); }
+  }catch(e){ console.warn('kcRemote',e); }
+}
+window.addEventListener('storage',e=>{ if(e.key===STORAGE_KEY) kcRemote(); });
+/* 自動の読み込み直し（autoupdate.js）を待たせる：全画面で 見ている間（3時間まで）・管理者の窓（厨房の表・見本から足す）が 開いている間・画像を 処理している間（20分まで）（5.13 の amHoldNow と同じ考え方） */
+function kcHold(){
+  try{
+    if(_kc.open&&Date.now()-_kc.since<10800000) return true;   // 全画面で 見ている間は 待つ（閉じたら 今までどおり。3時間 つけっぱなしなら あきらめる）
+    const nm=amSheetName(), on=_kc.busy>0||(isAdmin&&(nm==='kc'||nm==='tpl')), now=Date.now();
+    if(on){ if(!_kc.hs) _kc.hs=now; _kc.he=now; return now-_kc.hs<1200000; }
+    if(_kc.hs){ if(now-_kc.he<4000) return true; _kc.hs=0; }
+  }catch(e){}
+  return false;
+}
+window.__autoupdateHold=function(){ return amHoldNow()||kcHold(); };
+/* ---- 入れる（管理者だけ） ---- */
+function kcPanel(){
+  if(!isAdmin) return;
+  const cs=kcList(), room=KC_MAX-cs.length;
+  const rows=cs.map(c=>{ const u=kcImg(c.id);
+    return `<div class="kcp-row" data-id="${escapeHtml(c.id)}">${u?`<img class="kcp-th" alt="" src="${u}">`:`<div class="kcp-th kcp-none">画像なし</div>`}
+      <div class="kcp-main"><label class="kcp-nm"><span>名前（クルーの 画面の 札に 出ます）</span><input type="text" id="kcnm-${escapeHtml(c.id)}" value="${escapeHtml(c.name||'')}" maxlength="20" data-id="${escapeHtml(c.id)}" onchange="kcRename(this.dataset.id,this.value)"></label>
+        <div class="kcp-info">${u?`約 ${+c.kb||Math.round(u.length*0.75/1024)} KB${c.w&&c.h?`・${c.w}×${c.h}`:''}`:'画像が まだ 届いていません'}${c.at?`・入れた日 ${(()=>{ const d=new Date(+c.at); return isFinite(d)?`${d.getMonth()+1}/${d.getDate()} ${amHM(d.getTime())}`:''; })()}`:''}</div>
+        <div class="kcp-act"><button type="button" class="btn-secondary" data-id="${escapeHtml(c.id)}" onclick="kcAsk(this.dataset.id)">🖼 画像を 入れかえる</button><button type="button" class="btn-secondary kcp-del" data-id="${escapeHtml(c.id)}" onclick="kcDel(this.dataset.id)">🗑 消す</button></div></div></div>`; }).join('');
+  _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">🍳 厨房の表（管理者）</div>
+    <div class="am-sub">厨房を している 店だけ 入れます。入れると、クルーの 最初の画面に「厨房の表」ボタンが 出ます。1枚も 入っていない 店には ボタンは 出ません。<br>
+      画像は 入れる時に ブラウザの中で 小さくして（長い辺 ${KC_SIDE}px・約 ${KC_KB}KB）、店の データに 保存します（公開の サイトには 置きません）。最大 ${KC_MAX}枚。名前は 札に 出ます（例：ふつう／理想）。</div>
+    ${_kc.msg?`<div class="kcp-msg${/^⚠/.test(_kc.msg)?' warn':''}" role="status">${escapeHtml(_kc.msg)}</div>`:''}
+    ${_kc.busy?`<div class="kcp-msg" role="status">画像を 小さくして 保存しています…</div>`:''}
+    ${rows||`<div class="amw-offnone">まだ 入っていません。下の「＋ 表を 足す」から 画像を えらびます。</div>`}
+    <input type="file" id="kc-file" accept="image/*" style="display:none" onchange="kcPicked(this)">
+    <div class="am-cfg-act" style="justify-content:space-between;flex-wrap:wrap"><button type="button" class="btn-secondary" onclick="amOpenWorks()">← 登録の表へ</button><span style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${cs.length?`<button type="button" class="btn-secondary" onclick="amCloseSheet();kcOpen()">👁 クルーの 画面で 見る</button>`:''}<button type="button" class="btn-primary" onclick="kcAsk('')"${room>0&&!_kc.busy?'':' disabled'}>＋ 表を 足す（あと ${Math.max(0,room)}枚）</button></span></div>`, 'wide', 'kc');
+}
+function kcAsk(id){
+  if(!isAdmin||_kc.busy) return;
+  const f=document.getElementById('kc-file'); if(!f) return;
+  _kc.target=id||''; _kc.msg=''; f.value=''; f.click();
+}
+function kcPicked(f){ const file=f&&f.files&&f.files[0]; if(!file) return; kcIngest(file,_kc.target); }
+function kcLoadImg(blob){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(blob), im=new Image(); im.onload=()=>{ URL.revokeObjectURL(url); res(im); }; im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('画像を 読めませんでした（JPEG・PNG の 写真か 画像を えらんでください）')); }; im.src=url; }); }
+/* 小さくする：長い辺を KC_SIDE px まで（大きくはしない）→ JPEG。1枚が 約 KC_KB KB に なるまで、画質を 下げ、それでも 大きければ 大きさを 15% ずつ 下げる。白い地に 描く（透明な PNG が 黒く ならないように） */
+async function kcShrink(blob){
+  const im=await kcLoadImg(blob), w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
+  if(!(w>0&&h>0)) throw new Error('画像の 大きさが 分かりません');
+  let side=Math.min(KC_SIDE,Math.max(w,h)), best=null;
+  for(let pass=0;pass<14;pass++){
+    const sc=Math.min(1,side/Math.max(w,h)), cw=Math.max(1,Math.round(w*sc)), ch=Math.max(1,Math.round(h*sc));
+    const c=document.createElement('canvas'); c.width=cw; c.height=ch; const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,cw,ch); x.drawImage(im,0,0,cw,ch);
+    for(const q of [0.8,0.7,0.6,0.5,0.4]){ const u=c.toDataURL('image/jpeg',q); const kb=Math.round((u.length-u.indexOf(',')-1)*0.75/1024); best={url:u,kb,w:cw,h:ch,q}; if(kb<=KC_KB) return best; }
+    side=Math.round(side*0.85); if(side<480) break;
+  }
+  return best;
+}
+/* 画像（Blob）を 受けて 保存する。target が 空＝足す／id＝その表の 画像を 入れかえる。戻り値＝{ok, id} か {err} */
+async function kcIngest(blob,target){
+  if(!isAdmin) return {err:'管理者の 画面で 行ってください'};
+  if(!blob||!/^image\//.test(blob.type||'image/')) { _kc.msg='⚠ 画像では ありません'; kcPanelIf(); return {err:'画像では ありません'}; }
+  if(_kc.busy) return {err:'処理中です'};
+  const list0=kcList(); if(!target&&list0.length>=KC_MAX){ _kc.msg='⚠ 表は '+KC_MAX+'枚までです。いらない 表を 消してから 足してください'; kcPanelIf(); return {err:'上限'}; }
+  _kc.busy++; _kc.msg=''; kcPanelIf();
+  try{
+    const r=await kcShrink(blob);
+    const kbR=(r&&typeof r.url==='string'&&r.url.indexOf(',')>0)?Math.ceil((r.url.length-r.url.indexOf(',')-1)*0.75/1024):0;   // 文字の長さから 自分で 測る（kcShrink の 数字は 信じない）
+    if(!kbR||kbR>KC_HARD){ _kc.msg=`⚠ 画像が 大きすぎます（小さくしても 約 ${kbR||'?'}KB。上限は ${KC_HARD}KB）。細かい 絵や 写真が 多い 画像は 受けられません。表の 部分だけを 切り取った 画像で もう一度 入れてください`; return {err:'大きすぎ'}; }
+    r.kb=kbR;
+    const list=kcList().slice(); let id=target, it=target?list.find(x=>x.id===target):null;
+    if(target&&!it){ _kc.msg='⚠ この表は ほかの端末で 消されました。足し直してください'; return {err:'消えた'}; }
+    if(!it){ if(list.length>=KC_MAX){ _kc.msg='⚠ 表は '+KC_MAX+'枚までです'; return {err:'上限'}; }
+      id='k'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); it={id, name:'表'+(list.length+1)}; list.push(it); }
+    it.at=Date.now(); it.kb=r.kb; it.w=r.w; it.h=r.h;
+    state['kcImg_'+id]=r.url; state.kcList=list;   // 画像を 先に（名簿だけが 先に届いても、画像が 届くまで ボタンは 出さない）
+    amSave(); renderMapView();
+    _kc.msg=`${target?'入れかえました':'足しました'}（約 ${r.kb}KB・${r.w}×${r.h}）。名前は 上の 欄で 直せます`;
+    return {ok:true,id,kb:r.kb};
+  }catch(e){ _kc.msg='⚠ '+(e&&e.message||e); return {err:String(e&&e.message||e)}; }
+  finally{ _kc.busy=Math.max(0,_kc.busy-1); kcPanelIf(); }
+}
+function kcPanelIf(){ if(isAdmin&&amSheetName()==='kc') kcPanel(); }
+function kcRename(id,v){
+  if(!isAdmin) return; v=String(v||'').trim().slice(0,20);
+  const list=kcList().slice(), it=list.find(x=>x.id===id); if(!it) return;
+  if(!v){ kcPanel(); return; }   // 空には しない（もとの名前に 戻す）
+  if(it.name===v) return;
+  it.name=v; state.kcList=list; amSave(); _kc.msg='名前を 直しました'; renderMapView(); kcPanel();
+}
+function kcDel(id){
+  if(!isAdmin) return; const it=kcList().find(x=>x.id===id); if(!it) return;
+  if(!confirm(`厨房の表「${it.name||''}」を 消しますか？\n\nクルーの 画面から この表が 消えます（全部の 端末から）。\n画像の もとの ファイルは 消えません。もう一度 入れる時は「＋ 表を 足す」から。`)) return;
+  state.kcList=kcList().filter(x=>x.id!==id); delete state['kcImg_'+id];
+  amSave(); _kc.msg=`「${it.name||''}」を 消しました`; renderMapView(); kcPanel();
+}
+/* ===== 5.15（2026-10-19・店長「作ってよい」「アラートリストはレジの画面右下あたりに表示されてる」）：見本から足す =====
+   店の 本物の 登録に、作業を 勝手に 足さない。管理者が「📝 ワークスケジュール登録」→「🧰 道具」→「🧩 見本から 足す」を 押し、中身を 見て、「足す」を 押した時だけ 登録する。
+   ・見本は 3つ：【2】紙のチェック表①の うち、初期の 登録に 無い 16行（清掃6・返品2・値引き2・納品6）／【5】レジの アラートリスト／【11】廃棄：棚の 奥まで。
+   ・足した作業には tpl（見本の名前）を 付ける＝同じ物が 2回 入らない目印（tpl が同じ・または 売場以外に 同じ名前の作業が 既に あれば「登録ずみ」として 足さない）。
+   ・作業の id は 画面で 足した作業と 同じ形（w_＋足した時刻）。足した時刻より 前に 締切が 来た回は 数えない（足した 直後に 🔥 が 並ばない。amWorkSince）。
+   ・足したあとは、登録の表の「✏️ 内容」で 時刻・回数・文を 直せる（見本は 出発点）。 */
+function amTplDefs(){
+  /* 全部「時刻で決める 売場以外の作業」（紙の 時間帯の 窓に 合わせて、何時から 押せて 何時が 締切かを 決めてある）。時刻の作業は、足した時刻より前に 締切が 来た回を 数えない（足した直後に 🔥 が 並ばない） */
+  const W=(tpl,name,icon,kind,sub,o)=>Object.assign({tpl,place:'off',name,icon,kind,zone:'blue',sub,sch:[0,0,0,0],days:null},o);
+  const NIGHT={times:['23:00'],lead:120,grace:180};   // 夜（紙の 21〜3時）＝21時から 押せて、2時が 締切
+  const seiso=(k,name,icon,en,ne,item)=>W('p1_'+k,'清掃：'+name,icon,'清掃','本部マニュアルの とおりに 清掃する',Object.assign({items:[[item||(name+'の 清掃を した（本部マニュアルの とおり）'),'']],en,ne},NIGHT));
+  const A=[
+    seiso('seiso_outside','店外','🚗','Cleaning: outside the store','सफाई: पसल बाहिर'),
+    seiso('seiso_floor','床','🧹','Cleaning: floor','सफाई: भुइँ'),
+    seiso('seiso_toilet','トイレ','🚻','Cleaning: toilet','सफाई: शौचालय'),
+    seiso('seiso_tank','飲み残しタンク','🥤','Cleaning: leftover-drink tank','सफाई: बाँकी पेय ट्याङ्की'),
+    W('p1_seiso_fryer','清掃：フライヤー','🍟','清掃','本部マニュアルの とおりに 清掃する（夕方〜夜）',{times:['19:00'],lead:60,grace:120,items:[['フライヤーの 清掃を した（本部マニュアルの とおり）','']],en:'Cleaning: fryer',ne:'सफाई: फ्राइयर'}),
+    seiso('seiso_coffee','コーヒーマシン 洗浄','☕','Cleaning: coffee machine','सफाई: कफी मेसिन','コーヒーマシンの 洗浄を した（本部マニュアルの とおり）'),
+    W('p1_return_mag','返品：雑誌','📚','返品','返品する 雑誌を まとめて 出す',Object.assign({items:[['返品する 雑誌を まとめて 出した','']],en:'Return: magazines',ne:'फिर्ता: म्यागजिन'},NIGHT)),
+    W('p1_return_news','返品：新聞','📰','返品','返品する 新聞を まとめて 出す',Object.assign({items:[['返品する 新聞を まとめて 出した','']],en:'Return: newspapers',ne:'फिर्ता: अखबार'},NIGHT)),
+    W('p1_aico','AICO推奨値引き','🏷','その他','AICO が 出した 推奨の 値引きを 貼る（10・14・19・22時）',{times:['10:00','14:00','19:00','22:00'],lead:30,grace:60,items:[['AICO の 推奨の 値引きを 貼った','']],en:'AICO recommended markdowns',ne:'AICO सिफारिस गरिएको छुट'}),
+    W('p1_flat_disc','平場商品の値引き','🏷','その他','対象：常温和洋菓子／日配食品／チルド飲料／プリン・ヨーグルト（ウチカフェ以外）／バナナ。販売許容 当日の ものに 30%引きを 貼る（昼前）',{times:['10:30'],lead:90,grace:90,items:[['対象の 商品（販売許容 当日）に 30%引きを 貼った','']],en:'Markdown: sales-floor items (30% off)',ne:'छुट: पसलका सामान (३०% छुट)'}),
+    W('p1_cdc','納品：CDC','🚚','納品','CDC の 納品を 受ける・検品する（6時／15〜16時）',{times:['06:00','15:30'],lead:30,grace:60,items:[['納品を 受けて、検品を した','']],en:'Delivery: CDC',ne:'डेलिभरी: CDC'}),
+    W('p1_ddc','納品：DDC','🚚','納品','DDC の 納品を 受ける・検品する（0〜1時）',{times:['00:30'],lead:30,grace:60,items:[['納品を 受けて、検品を した','']],en:'Delivery: DDC',ne:'डेलिभरी: DDC'}),
+    W('p1_yamazaki','納品：山崎パン','🍞','納品','朝の パンの 納品を 受ける・検品する',{times:['07:00'],lead:30,grace:120,items:[['納品を 受けて、検品を した','']],en:'Delivery: bread (Yamazaki)',ne:'डेलिभरी: पाउरोटी'}),
+    W('p1_mag_in','納品：雑誌','📚','納品','夜の 雑誌の 納品を 受ける・検品する',Object.assign({items:[['納品を 受けて、検品を した','']],en:'Delivery: magazines',ne:'डेलिभरी: म्यागजिन'},NIGHT)),
+    W('p1_news_in','納品：新聞','📰','納品','夜の 新聞の 納品を 受ける・検品する',Object.assign({items:[['納品を 受けて、検品を した','']],en:'Delivery: newspapers',ne:'डेलिभरी: अखबार'},NIGHT)),
+    W('p1_tobacco_in','納品：タバコ（水曜）','🚬','納品','水曜の 昼前に タバコの 納品を 受ける・検品する',{times:['10:30'],lead:90,grace:90,days:[3],items:[['納品を 受けて、検品を した','']],en:'Delivery: tobacco (Wed)',ne:'डेलिभरी: चुरोट (बुधबार)'})
+  ];
+  const B=[ W('i5_alert','レジの アラートリストを 確かめる','🧾','点検','レジの 画面の 右下あたりに 出る アラートリストを 確かめる（朝・夕方）',{times:['07:30','16:30'],lead:90,grace:90,
+      items:[['レジの 画面の 右下あたりに 出る アラートリストを 開いて、出ている 物を ぜんぶ 見た','見落としを 探して 見る'],['対応が 要る 物は、対応した（または 店長へ）','残っている 物は 店長へ 伝える']],
+      en:'Check the alert list at the bottom right of the register screen',ne:'रजिस्टर स्क्रिनको तल्लो दायाँ कुनामा देखिने अलर्ट सूची जाँच गर्नुहोस्'}) ];
+  const C=[ W('i11_waste','廃棄：棚の 奥まで 確かめる','🗑','点検','期限が 切れた 物を、奥まで ぜんぶ 外す（朝・昼前・夕方・夜）',{times:['07:30','10:30','16:30','21:00'],lead:90,grace:90,
+      items:[['棚の 手前だけでなく、奥・下の段まで 手を入れて 日付を 見た','手前の 物を いったん 出して、奥から 見る'],['期限が 切れた 物を ぜんぶ 外した','外し忘れを 探して 外す']],
+      vals:[{k:'a',label:'外した 数',unit:'個',min:0}],
+      after:{name:'奥の 見直し（もう一度、棚の奥まで）',min:10,grace:10,en:'Second look: check the back of the shelf again',ne:'दोस्रो पटक: दराजको पछाडि फेरि हेर्नुहोस्'},
+      en:'Disposal: check to the back of the shelf',ne:'फाल्ने: दराजको पछाडिसम्म जाँच'}) ];
+  return [
+    {key:'p1',no:'2',title:'チェック漏れ：紙のチェック表①の 16行',lead:'信濃大町駅前店の 紙の チェック表①（点検・清掃・補充・返品・値引き・納品の 26行）の うち、いまの 初期の 登録に 無い 16行を、売場以外の 作業として 足します。点検8行と 補充2行は もう あります。新村の 紙が 同じとは かぎらないので、新村では 中身を 見て 確かめてから 足します。',works:A},
+    {key:'i5',no:'5',title:'レジの アラートリストを 確かめる',lead:'レジの 画面の 右下あたりに 出る アラートリストを、朝と 夕方に 確かめる 作業です（回数は あとで 登録の表の □ で 直せます）。',works:B},
+    {key:'i11',no:'11',title:'廃棄：棚の 奥まで 確かめる',lead:'棚の 奥・下の段まで 見て、期限切れを 外した 数を 残します（0 でも 数を えらびます）。記録の 10分後に「奥の 見直し」が もう一度 出ます。',works:C}
+  ];
+}
+function amTplHas(w){ const nm=String(w.name||'').trim(); return amWorks().some(x=>x&&typeof x==='object'&&(x.tpl===w.tpl||(amIsOff(x)&&String(x.name||'').trim()===nm))); }
+let _tpl={key:'',off:{}};   // 開いている見本・外した行（tpl の名前→true）
+function amTplWhen(w){
+  const fm=v=>{ v=((v%1440)+1440)%1440; return Math.floor(v/60)+':'+String(v%60).padStart(2,'0'); }, dd=(Array.isArray(w.days)&&w.days.length&&w.days.length<7)?'　'+w.days.map(i=>AM_REP_DOW[i]).join('・')+'曜':'';
+  if(Array.isArray(w.times)&&w.times.length) return w.times.map(t=>`${amTimeTxt(t)}（押せる ${fm(amTimeKey(t)-w.lead)}〜${fm(amTimeKey(t)+w.grace)}）`).join('・')+dd;
+  const sb=amSch(w); return AM_BANDS.map((b,i)=>sb[i]?`${b.label}${sb[i]>1?'×'+sb[i]:''}`:'').filter(Boolean).join('・')+dd;
+}
+function amTplOpen(key){
+  if(!isAdmin) return;
+  const defs=amTplDefs();
+  if(!key){
+    _tpl.key=''; _tpl.off={};
+    _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">🧩 見本から 足す</div>
+      <div class="am-sub">見本を えらぶと、足す 作業の 中身が 見えます。「足す」を 押すまで、登録は 何も 変わりません。足した 作業は 登録の表の「✏️ 内容」で 直せます。同じ 見本は 2回 入りません。</div>
+      ${defs.map(d=>{ const n=d.works.length, have=d.works.filter(amTplHas).length;
+        return `<div class="tpl-card"><div class="tpl-h"><span class="tpl-no">${d.no}</span><b>${escapeHtml(d.title)}</b>${have===n?'<span class="tpl-ok">✅ 登録ずみ</span>':(have?`<span class="tpl-ok">一部 登録ずみ（${have}/${n}）</span>`:'')}</div><div class="tpl-l">${escapeHtml(d.lead)}</div>
+          <button type="button" class="btn-secondary" data-k="${d.key}" onclick="amTplOpen(this.dataset.k)">中身を 見る（${n}件）</button></div>`; }).join('')}
+      <div class="am-cfg-act"><button type="button" class="btn-secondary" onclick="amOpenWorks()">← 登録の表へ</button></div>`, 'wide', 'tpl');
+    return;
+  }
+  const d=defs.find(x=>x.key===key); if(!d) return;
+  if(_tpl.key!==key){ _tpl.key=key; _tpl.off={}; }
+  const rows=d.works.map(w=>{ const has=amTplHas(w), on=!has&&!_tpl.off[w.tpl];
+    const its=(w.items||[]).map(x=>escapeHtml(x[0])).join('／'), vs=(w.vals||[]).map(v=>`${escapeHtml(v.label)}（${escapeHtml(v.unit||'')}）`).join('・');
+    return `<label class="tpl-row${has?' has':''}"><input type="checkbox" id="tpl-${w.tpl}" data-t="${w.tpl}" ${has?'disabled':(on?'checked':'')} onchange="amTplToggle(this.dataset.t,this.checked)"><span class="tpl-b"><b>${escapeHtml(w.icon)} ${escapeHtml(w.name)}</b>${has?'<span class="tpl-ok">✅ 登録ずみ</span>':''}<small>いつ：${escapeHtml(amTplWhen(w))}</small>
+      ${w.sub?`<small>説明：${escapeHtml(w.sub)}</small>`:''}<small>確認：${its}</small>${vs?`<small>数字を 残す：${vs}</small>`:''}${w.after?`<small>あとの作業：${w.after.min}分後に「${escapeHtml(w.after.name)}」</small>`:''}<small class="tpl-tr">${escapeHtml(w.en||'')} ・ ${escapeHtml(w.ne||'')}</small></span></label>`; }).join('');
+  const n=d.works.filter(w=>!amTplHas(w)&&!_tpl.off[w.tpl]).length;
+  _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">🧩 ${d.no}　${escapeHtml(d.title)}</div>
+    <div class="am-sub">${escapeHtml(d.lead)}<br><b>これから 足す 作業の 中身です。</b>${d.works.length>1?'いらない 行は ✓ を 外します。':''}「足す」を 押すと 登録に 入ります（登録の表の「✏️ 内容」で 直せます）。</div>
+    <div class="tpl-list">${rows}</div>
+    <div class="tpl-foot"><button type="button" class="btn-secondary" onclick="amTplOpen('')">← 一覧へ</button><button type="button" class="btn-primary" id="tpl-go" onclick="amTplAdd('${key}')"${n?'':' disabled'}>${n?`この ${n}件を 登録に 足す`:'足す 物は ありません'}</button></div>`, 'wide', 'tpl');
+}
+function amTplToggle(t,on){ if(on) delete _tpl.off[t]; else _tpl.off[t]=true; amTplOpen(_tpl.key); }
+/* 足す：もう一度 登録を 見て（同じ物が 入っていないか）から 足す。足した件数を 返す */
+function amTplAdd(key){
+  if(!isAdmin) return 0;
+  const d=amTplDefs().find(x=>x.key===key); if(!d) return 0;
+  const todo=d.works.filter(w=>!amTplHas(w)&&!_tpl.off[w.tpl]);
+  if(!todo.length){ amSnack('足す 物は ありません（もう 登録ずみです）',false); amTplOpen(key); return 0; }
+  const list=amWorksEdit(), t0=Date.now();
+  todo.forEach((w,i)=>{ list.push(Object.assign({id:'w_'+(t0+i).toString(36)},JSON.parse(JSON.stringify(w)))); });
+  _amSeqUndo=null; _tpl.key=''; _tpl.off={};
+  amSave(); amOpenWorks(); renderMapView();
+  amSnack(`🧩 ${todo.length}件 登録に 足しました（${d.title}）。「✏️ 内容」で 直せます`,false);
+  return todo.length;
+}
+/* ===== 5.15：管理者の「🧰 道具」／おくれの音／きのうの抜け ===== */
+/* 登録の表（📝 ワークスケジュール登録）の下の「🧰 道具」（たたんである）：見本から足す・厨房の表・おくれの音。管理者だけ（amOpenWorks は 管理者でなければ 何も しない） */
+function amToolsHtml(){
+  const on=amSndOn(), nk=kcList().length;
+  return `<details class="amw-tools"><summary>🧰 道具（見本から 足す・厨房の表・おくれの音）</summary><div class="amw-tools-b">
+    <button type="button" class="btn-secondary" onclick="amTplOpen('')">🧩 見本から 足す</button>
+    <button type="button" class="btn-secondary" onclick="kcPanel()">🍳 厨房の表${nk?`（${nk}枚）`:''}</button>
+    <button type="button" class="btn-secondary" id="snd-toggle" onclick="amSndToggle()" aria-pressed="${on}">🔔 おくれの音：${on?'入':'切'}</button></div>
+    <div class="am-sub" style="margin:6px 0 0">「見本から 足す」は 中身を 見て 確かめてから 登録します。「厨房の表」は 厨房を している 店だけ。「おくれの音」は、おくれ（🔥）が 新しく 出た時に 短い音が 鳴ります（音が 出せない 端末では 何も 起きません）。全部の 端末に 効きます。</div></details>`;
+}
+/* ---- おくれの音（店長 10/19「作ってよい」。案のとおり：音を出せない端末では 何もしない・管理者が切れる）----
+   ・新しい 🔥（まだ 前の確認の時に 無かった物）が 出た時に、短い音を 1回（60秒に 1回まで）。開いた時に すでに 出ている 🔥 では 鳴らさない（最初の確認は 覚えるだけ）。
+   ・切る・入れるは state.amSnd（{off:1}。入れる時は 項目ごと無し＝今までの形）。音は 端末が 最初に 触られた後で 鳴る（iPad・スマホは 触られるまで 音を 出せないため）。AudioContext が 無い・動いていない 時は 何もしない。 */
+function amSndOn(){ const s=state.amSnd; return !(s&&typeof s==='object'&&s.off); }
+function amSndToggle(){
+  if(!isAdmin) return;
+  if(amSndOn()) state.amSnd={off:1}; else delete state.amSnd;
+  amSave(); amOpenWorks(); amSnack(amSndOn()?'🔔 おくれの音を 入れました（全部の 端末）':'🔕 おくれの音を 切りました（全部の 端末）',false);
+}
+const _snd={ctx:null, prev:null, last:0, n:0};
+function amFireKeys(now){
+  const out=[];
+  amWorks().forEach(a=>{ if(!a||typeof a!=='object'||amIsOff(a)) return; try{ const s=amStatus(a,now); if(s.st==='fire') out.push(a.id+'|'+s.deadline); }catch(e){} });
+  try{ amOffList(now).forEach(o=>{ if(o.k==='fire') out.push(o.w.id+'|'+(o.af?'af'+o.src:o.s)); }); }catch(e){}
+  return out;
+}
+function amSndBeep(){
+  try{
+    const c=_snd.ctx; if(!c||c.state!=='running') return false;
+    const t=c.currentTime;
+    [[880,0],[660,0.2]].forEach(p=>{ const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.value=p[0]; g.gain.setValueAtTime(0.0001,t+p[1]); g.gain.exponentialRampToValueAtTime(0.25,t+p[1]+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+p[1]+0.17); o.connect(g); g.connect(c.destination); o.start(t+p[1]); o.stop(t+p[1]+0.19); });
+    _snd.n++; return true;
+  }catch(e){ return false; }
+}
+function amSndTick(){
+  try{
+    if(document.hidden||typeof state!=='object'||!state) return;
+    const now=Date.now(), keys=amFireKeys(now), cur={}; keys.forEach(k=>{ cur[k]=1; });
+    const prev=_snd.prev; _snd.prev=cur;
+    if(!prev||!amSndOn()) return;   // 最初の確認は 覚えるだけ／切ってある
+    if(keys.some(k=>!prev[k])&&now-_snd.last>=60000&&amSndBeep()) _snd.last=now;
+  }catch(e){}
+}
+document.addEventListener('pointerdown',()=>{ try{ if(!_snd.ctx){ const C=window.AudioContext||window.webkitAudioContext; if(C) _snd.ctx=new C(); } if(_snd.ctx&&_snd.ctx.state==='suspended'){ const p=_snd.ctx.resume(); if(p&&typeof p.catch==='function') p.catch(()=>{}); } }catch(e){} },{passive:true});   // resume() が 断られても（未処理の拒否を 出さず）何もしない＝鳴らないだけ
+setInterval(amSndTick,20000); setTimeout(amSndTick,4000);
+/* ---- きのうの抜け（店長 10/19「作ってよい」。案：最初の画面に「きのう、記録の無かった作業 N件」を 1行）----
+   ・きのう（3:00 始まりの日）の回のうち、記録が 無かった物（📊 の「抜け」と同じ数え方。記録を 始める前の回は 数えない）。0件なら 何も出さない。**きのうの記録が 1件も 無い日は 出さない**（店で まだ 使っていない間に 毎日 大きな数が 出て じゃまに ならないように。店長 10/19）。
+   ・押すと 一覧（作業の名前と 時刻・時間帯だけ。人の名前は 出さない）。「見た」を 押すと その日は もう出さない（このタブの間だけ。sessionStorage）。保存する物は 無い。 */
+let _yd={t:0,n:-1,items:[]};
+function amYdData(){
+  const now=Date.now(); if(_yd.n>=0&&now-_yd.t<30000) return _yd;
+  let items=[];
+  try{ const day=amLogDayMs(amLogDay(now))-86400000, from=day+3*3600000;
+    if(amLogRange(from,from+86400000).length){ const ctx=amOccCtx(day,day,now); items=amDayOcc(day,ctx).filter(o=>o&&o.w&&o.st==='miss'&&!o.pre); }   // きのうの記録が 1件も無い日（まだ 店で 使っていない・おやすみ）は 出さない（店長 10/19）
+  }catch(e){ items=[]; }
+  _yd={t:now,n:items.length,items:items.map(o=>({id:o.w.id,name:String(o.w.name||''),icon:String(o.w.icon||''),s:+o.s||0,timed:!!o.t,bi:+o.bi||0})).sort((a,b)=>(a.s-b.s)||(a.name<b.name?-1:1))};
+  return _yd;
+}
+function amYdSeen(){ try{ return sessionStorage.getItem('ws_am_yd')===amLogDay(Date.now()); }catch(_){ return false; } }
+function amYdHtml(){
+  try{ const d=amYdData(); if(!d.n||amYdSeen()) return '';
+    return `<button type="button" class="amf-yd" id="amf-yd" onclick="amYdOpen()" title="Not recorded yesterday: ${d.n} ・ हिजो रेकर्ड नगरिएको: ${d.n}"><span aria-hidden="true">📋</span><span class="yd-t"><span class="k">きのう</span> <span class="k">記録が</span> <span class="k">なかった</span> <span class="k">作業 <b>${d.n}件</b></span></span><span aria-hidden="true">›</span></button>`; }catch(e){ return ''; }
+}
+function amYdOpen(){
+  const d=amYdData();
+  _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">📋 きのう 記録が なかった 作業（${d.n}件）</div>
+    <div class="am-sub">きのうの 回で、記録が 1つも 無かった 作業です（人の 名前は 出しません）。今日 同じことが 起きないように、時刻を 見て ください。${amTr2('Not recorded yesterday','हिजो रेकर्ड नगरिएको')}</div>
+    <div class="yd-list">${d.items.length?d.items.map(o=>`<div class="yd-row"><span class="yd-w">${o.timed?amHM(o.s):escapeHtml((AM_BANDS[o.bi]||AM_BANDS[0]).label)}</span><span class="yd-n">${escapeHtml(o.icon)} ${escapeHtml(o.name)}</span></div>`).join(''):'<div class="amw-offnone">きのうの 抜けは ありません</div>'}</div>
+    <div class="am-cfg-act"><button type="button" class="btn-secondary" onclick="amYdSeenSet()">見た（きょうは もう 出さない）</button><button type="button" class="btn-primary" onclick="amCloseSheet()">閉じる</button></div>`, 'wide', 'yd');
+}
+function amYdSeenSet(){ try{ sessionStorage.setItem('ws_am_yd',amLogDay(Date.now())); }catch(_){} amCloseSheet(); renderMapView(); }
 /* B：入れた物を 確認なしで 捨てない。「作業の内容」の窓は、開いた時の 欄の値（_amFormSnap）と 今を 比べて、変わっていれば「変更あり」。
    ×・「戻る」＝変更が あれば 確認。窓の外（暗い所）＝変更が あれば 閉じない（文字を ドラッグして 外で 離した時も 同じ）。変更が 無ければ 今までどおり。 */
 let _amFormSnap='', _amBase=null;
@@ -11110,7 +11492,7 @@ function amOpenArea(id, keep){
     head=`<div class="am-cd-t"><span class="am-cd-i">${escapeHtml(a.icon||'⏰')}</span><span class="am-cd-n">${escapeHtml(a.name||'')}</span></div>${amTr(a)}
     <div class="am-cd-m"><span class="am-zt">⏰ 売場以外</span>${amRepChip(a)}<span class="am-st ${L[0]}">${L[1]}</span><span class="am-cd-when">${escapeHtml(L[2])}</span></div>`;
     const dd=amIsRep(a)?`（${amRepText(a)}）`:(Array.isArray(a.days)&&a.days.length&&a.days.length<7)?`（${a.days.map(i=>'日月火水木金土'[i]).join('・')}）`:'';
-    plan=`${amTimes(a).map(amTimeTxt).join('・')}${dd}（${amOffLead(a)}分前から 押せる・${amOffGrace(a)}分後が 締切）${amRecheckMin(a)?`／DF中は ${amRecheckMin(a)}分後に もう一度`:''}`;
+    plan=`${amTimes(a).map(amTimeTxt).join('・')}${dd}（${amOffLead(a)}分前から 押せる・${amOffGrace(a)}分後が 締切）${amRecheckMin(a)?`／DF中・数字が 範囲の外の時は ${amRecheckMin(a)}分後に もう一度（${amReMax(a)}回まで）`:''}`;
   } else if(off){
     head=`<div class="am-cd-t"><span class="am-cd-i">${escapeHtml(a.icon||'⏰')}</span><span class="am-cd-n">${escapeHtml(a.name||'')}</span></div>${amTr(a)}
     <div class="am-cd-m"><span class="am-zt">⏰ 売場以外</span>${amRepChip(a)}${amStTag(s)}<span class="am-cd-when">${escapeHtml(amWhenText(s))}</span></div>`;
@@ -11184,7 +11566,7 @@ function amRecord(id,name){
     const vs=amVals(a);
     if(vs.length){ const cv=(_amCard&&_amCard.id===id&&_amCard.vals)||{}; if(vs.some(d=>typeof cv[d.k]!=='number')){ amSnack('先に 数字を えらんでください',false); return; } v={}; vs.forEach(d=>{ v[d.k]=cv[d.k]; }); }
     /* 5.8：再チェックを決めている作業。re＝いまの枠が 再チェックの枠（その記録は 再チェックの記録）／df＝カードで「DF中」を押してある（いま押せる回で、再チェックが 2回目より前の時だけ） */
-    if(amRecheckMin(a)){ const lv=(os.slot&&os.slot.re)||0, df=!!(_amCard&&_amCard.id===id&&_amCard.df)&&(os.st==='soon'||os.st==='fire')&&lv<AM_RE_MAX; fl={df, re:lv>0}; }
+    if(amRecheckMin(a)){ const lv=(os.slot&&os.slot.re)||0, mx=amReMax(a), on=(os.st==='soon'||os.st==='fire')&&lv<mx, df=on&&!!(_amCard&&_amCard.id===id&&_amCard.df); fl={df, re:lv>0}; if(amValsNg(a,v)){ if(on&&!df) fl.ng=1; else if(lv>=mx) fl.stop=1; } }   // 5.15：fl.ng＝数字が範囲の外（「DF中」を押さなくても 自動で再チェック。記録には 印を足さず 読む時に決める）／fl.stop＝回数をこえても まだ範囲の外（お知らせだけ）
   }
   const rec={at:new Date().toISOString(), by:name||''};
   const all=_amChecks(); if(!Array.isArray(all[id])) all[id]=[];
@@ -11194,7 +11576,7 @@ function amRecord(id,name){
   if(name){ try{sessionStorage.setItem('ws_am_me',name);}catch(_){} }
   amSave(); amCloseSheet(); renderMapView();
   /* だれの名前で記録したかを 先頭に出す（名前の押しまちがいに気づけるように） */
-  _amUndo={id,at:rec.at,log:lg}; amSnack(`✅ ${name?name+' で':'名前なしで'} 記録しました：${a.name}${v?'（'+amValPlain(a,v)+'）':''}${fl&&fl.df?`・DF中 → ${amHM(new Date(rec.at).getTime()+amRecheckMin(a)*60000)} に もう一度 出ます`:fl&&fl.re?'・再チェック':''}`, true);
+  _amUndo={id,at:rec.at,log:lg}; amSnack(`✅ ${name?name+' で':'名前なしで'} 記録しました：${a.name}${v?'（'+amValPlain(a,v)+'）':''}${fl&&fl.df?`・DF中 → ${amHM(new Date(rec.at).getTime()+amRecheckMin(a)*60000)} に もう一度 出ます`:fl&&fl.ng?`・範囲の外 → ${amHM(new Date(rec.at).getTime()+amRecheckMin(a)*60000)} に もう一度 出ます`:fl&&fl.stop?'・⚠ まだ 範囲の外です。店長に 知らせてください':fl&&fl.re?'・再チェック':''}`, true);
 }
 function amUndoLast(){
   if(!_amUndo)return; const arr=_amChecks()[_amUndo.id]||[], i=arr.findIndex(r=>r.at===_amUndo.at);
@@ -11287,7 +11669,7 @@ function amOpenWorks(){
     <details class="amw-roles"><summary>✏️ 巡回の役割の説明を編集（売場マップの「？」の中に表示される文章）</summary>
       ${['blue','red','both'].map(k=>`<label><span class="am-ztag" style="background:${AM_ZONE[k].color}">${AM_ZONE[k].short}</span><textarea rows="2" onchange="amSetRole('${k}',this.value)" placeholder="${escapeHtml(AM_ZONE[k].role)}">${escapeHtml(((state.amRoles||{})[k])||'')}</textarea></label>`).join('')}
       <div class="am-sub" style="margin:4px 0 0">空欄にすると、うすく表示されている初期の文章が使われます。</div></details>
-    <div class="am-cfg-act" style="justify-content:space-between;flex-wrap:wrap"><button type="button" class="btn-secondary" onclick="amResetWorks()">初期値に戻す</button><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><small class="amw-addnote">番号を並べた後に足した作業は、いちばん下に入ります</small><button type="button" class="btn-primary" onclick="amEditWork('')">＋ 作業を追加</button><button type="button" class="btn-secondary amw-addoff" onclick="amEditWork('','off')">＋ ⏰ 売場以外の 作業を 追加</button><button type="button" class="btn-secondary" onclick="amCloseSheet()">閉じる</button></span></div>`, true, 'works');
+    ${amToolsHtml()}<div class="am-cfg-act" style="justify-content:space-between;flex-wrap:wrap"><button type="button" class="btn-secondary" onclick="amResetWorks()">初期値に戻す</button><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><small class="amw-addnote">番号を並べた後に足した作業は、いちばん下に入ります</small><button type="button" class="btn-primary" onclick="amEditWork('')">＋ 作業を追加</button><button type="button" class="btn-secondary amw-addoff" onclick="amEditWork('','off')">＋ ⏰ 売場以外の 作業を 追加</button><button type="button" class="btn-secondary" onclick="amCloseSheet()">閉じる</button></span></div>`, true, 'works');
   const md=document.querySelector('#am-sheet .am-modal'); if(md) md.classList.toggle('am-mvpad',!!mv);
   amMoveBar();
 }
@@ -11483,6 +11865,7 @@ function amApplyPatch(w,rec,sb,fo,base){
     if(k==='lead'&&v===amOffLead(base)) return;
     if(k==='grace'&&v===amOffGrace(base)) return;
     if(k==='recheck'&&+b===v) return;
+    if(k==='reN'&&v===amReMax(base)) return;   // 5.15：窓に出ていた 今の回数（reN が無ければ 2）と同じなら 変更ではない（開いて 保存しても reN を 足さない）
     if(same(v,b)||(Array.isArray(v)&&!v.length&&!Array.isArray(b))) return;
     w[k]=v; n++;
   });
@@ -11785,8 +12168,17 @@ function amOffGrace(w){ const n=+(w&&w.grace); return (isFinite(n)&&n>0)?Math.mi
    ・「もう一度」は予定の 1回ぶん（再チェックの枠）として、記録から その場で作る（amReSlots）。枠は保存しない。取り消せば 枠も消える。
    ・再チェックは 2回まで（AM_RE_MAX）。再チェックで また DF中 を押したら もう1回だけ出す。それ以上は出さない：DF が 1時間以上 続く時は 夜通し 🔥 を出し続けるより 店長に知らせる事のほうが 大切なため（カードにも書く）。
    ・次の回が（再チェックの時刻より）先に押せるようになる時は 再チェックの枠は作らない（次の回が再チェックを かねる。📊 でも抜けに数えない）。 */
-const AM_RE_MAX=2;
+const AM_RE_MAX=1;   // 5.15：reN の無い 作業の 回数。5.8〜5.14 は 2回だった（店長 10/19「DFは30分後に1回のみで大丈夫」）。2回以上は 作業ごとに reN で えらぶ
 function amRecheckMin(w){ if(!amIsOff(w)||!amIsTimed(w)||amIsRep(w)) return 0; const n=+w.recheck; return (isFinite(n)&&n>0)?Math.min(720,Math.round(n)):0; }
+/* 5.15 DF の再チェックを広げる（店長 10/19「DFは30分後に1回のみで大丈夫。それも何回にするか設定できるようにしたらいい」・温度の数字が OK の範囲の外の時は「DF中」を押さなくても自動で再チェック）
+   ・作業に reN（再チェックの回数。1〜AM_RE_CAP）を足せる。無い・こわれた値は AM_RE_MAX（＝1回。店長 10/19「DFは30分後に1回のみで大丈夫」。5.8〜5.14 は 2回だった）。2回以上にしたい作業は 登録の窓で えらぶ（reN を書く）。古い版（5.8〜5.14）の端末は reN を知らず 2回まで 数えるが、記録は 同じ形なので 壊れも 消えも しない。
+   ・数字（温度など）が OK の範囲の外の記録は、「DF中」を押していなくても DF中と同じに 再チェックの もとにする。記録に印は 足さない：記録の数字と 今の OK の範囲から、再チェックの枠を作る時（amReSlots）と 札を出す時に 読んで決める。古い版の端末が記録した分にも 効く。
+   ・何分後かは 今までどおり recheck（分）。回数をこえたら それ以上は出さず、店長に知らせる（カード・記録のお知らせ）。 */
+const AM_RE_CAP=5;
+function amReMax(w){ const n=+(w&&w.reN); return (isFinite(n)&&n>=1)?Math.min(AM_RE_CAP,Math.floor(n)):AM_RE_MAX; }
+function amValsNg(w,v){ if(!v||typeof v!=='object') return false; return amVals(w).some(d=>typeof v[d.k]==='number'&&amValNg(d,v[d.k])); }
+function amRecDf(w,r){ return !!r&&(!!r.df||(!!r.v&&amRecheckMin(w)>0&&amValsNg(w,r.v))); }   // 再チェックの もとになる記録：「DF中」を 押した記録（df:1）か、数字が 範囲の外の 記録
+function amDfWord(w,r){ return (r&&r.df)?'DF中':(amRecDf(w,r)?'範囲の外':''); }
 /* ===== 5.10（2026-10-13）：あとの作業・始める時に やる事 =====
    店長（10/13）「ワークスケジュールで中華まん作成があったとして、札を準備中、販売中に切り替えるオペレーションが忘れてる人が多い。仕組みで解決できるよう、設定項目をついかしてください」
    ・作業に after:{name, min, grace, en?, ne?} を足せる（無ければ今までどおり＝保存の形は何も変わらない）。その作業を記録すると、min 分後に name の作業が 1つ出る（🟡 いま。grace 分を すぎたら 🔥）。
@@ -11963,15 +12355,15 @@ function amOffRecsOf(w, now){ const D=86400000; return amLogRange(now-4*D, now+2
    枠：{s=o=記録の時刻＋◯分, e=s＋締切の分（grace）, t:true, re:1か2（何回目の再チェックか）, from:もとの記録の時刻}。
    次の回が先に押せるようになる時（s が次の回の o 以後）は作らない＝次の回が 再チェックを かねる。取り消して記録が無くなれば 枠も無くなる（記録から その場で作るだけ。保存しない） */
 function amReSlots(w, base, recs){
-  const rc=amRecheckMin(w)*60000, grace=amOffGrace(w)*60000, out=[];
+  const rc=amRecheckMin(w)*60000, grace=amOffGrace(w)*60000, mx=amReMax(w), out=[];   // 5.15：回数は 作業ごと（reN。無ければ 1回）
   if(!rc||!recs||!recs.length) return out;
   base.forEach((x,i)=>{
     const nx=base[i+1]||null, end=nx?nx.o:Infinity;
-    let cur=recs.find(r=>r.df&&r.t>=x.o&&r.t<end), lv=0;
-    while(cur&&lv<AM_RE_MAX){
+    let cur=recs.find(r=>amRecDf(w,r)&&r.t>=x.o&&r.t<end), lv=0;
+    while(cur&&lv<mx){
       const s=cur.t+rc; if(!(s<end)) break;
       lv++; const y={s, e:s+grace, o:s, t:true, re:lv, from:cur.t}; out.push(y);
-      cur=recs.find(r=>r.df&&r.t>=y.o&&r.t<end);
+      cur=recs.find(r=>amRecDf(w,r)&&r.t>=y.o&&r.t<end);
     }
   });
   return out;
@@ -12241,7 +12633,7 @@ function amOffRefresh(){
 function amOffLockTap(hm){ amSnack(`${hm} から 記録できます`,false); }
 /* 5.8：再チェックの札（枠が 再チェックの時だけ）。DF中の記録の札（記録が df:1 の時だけ） */
 function amOffReTag(o){ return (o.re?' <span class="ao-tg re">🔁 再チェック</span>':'')+(o.rep?` <span class="ao-tg rp">${o.rep==='w'?'週1':'月1'}${o.carry?'・持ち越し':''}</span>`:'')+(o.af?` <span class="ao-tg af">➡ ${escapeHtml(o.w.name||'')} の あと</span>`:''); }   // 5.9：くり返しの作業の札（週1・月1。持ち越しの時は そう書く）／5.10：あとの作業の札
-function amOffDfTag(r){ return (r&&r.df)?' <span class="ao-tg df">🔁 DF中</span>':''; }
+function amOffDfTag(r,w){ const k=amDfWord(w||{},r); return k?` <span class="ao-tg df">🔁 ${k}</span>`:''; }   // 5.15：数字が範囲の外で 自動で再チェックになった記録は「範囲の外」（w＝その作業。無ければ 今までどおり df だけ見る）
 function amOffCardHtml(o){
   const w=o.w, f=o.k==='fire', t=o.t?amHM(o.s):amOccChip(o);
   return `<button type="button" class="ao-card ${o.k}" onclick="${amOcOpen(o)}"><span class="ao-ci">${escapeHtml(w.icon||'⏰')}</span><span class="ao-cm"><span class="ao-ct">${t}${amOffDdTag(o)}${amOffReTag(o)}</span><span class="ao-cn">${escapeHtml(o.af?o.af.name:(w.name||''))}</span>${amTr(o.af||w)}<span class="ao-cs">${f?`<span class="ao-nb">🔥 ${o.carry?amRepDT(o.e):amHM(o.e)} まで</span><span class="ao-nb">（すぎています）</span>`:`🟡 ${amHM(o.e)} まで`}</span></span><span class="ao-go" aria-hidden="true">✓</span></button>`;
@@ -12254,7 +12646,7 @@ function amOffRowHtml(o){
   const w=o.w, time=o.t?`<b>${amHM(o.s)}</b>`:amOccChip(o), day=amLogDayMs(amLogDay(o.s));
   let cls='', ico='⬜', st='', tap='';
   if(o.k==='done'){ cls=' done'; ico='✅'; const rt=o.rec?o.rec.t:(o.next?o.next.t:0), late=o.st==='late';
-    st=(rt?`${amOffRecTxt(rt,day)} に 記録`:'済')+(late?' <span class="ao-tg late">⏱ 遅れ</span>':'')+(o.rec&&o.rec.v?' '+amValHtml(w,o.rec.v):'')+amOffDfTag(o.rec); }
+    st=(rt?`${amOffRecTxt(rt,day)} に 記録`:'済')+(late?' <span class="ao-tg late">⏱ 遅れ</span>':'')+(o.rec&&o.rec.v?' '+amValHtml(w,o.rec.v):'')+amOffDfTag(o.rec,w); }
   else if(o.k==='gone'){ cls=' gone'; ico='➖'; st='記録なし'; }
   else if(o.lock){ cls=' lock'; st=`${amHM(o.t?o.a:o.s)} から 押せます`; tap=` onclick="amOffLockTap('${amHM(o.t?o.a:o.s)}')"`; }
   else { st=`${amHM(o.e)} までに`; }
@@ -12311,14 +12703,14 @@ function amCardPick(k,v){ if(!_amCard)return; _amCard.vals[k]=v; amCardDraftSave
    出すのは：再チェックを決めている作業・いま押せる回（🟡 か 🔥）だけ。再チェックの枠でも出す（2回目まで）。2回目の再チェックでは出さず、「2回まで」の1行を出す */
 function amCardDfHtml(a, os){
   const rc=amRecheckMin(a); if(!rc||!_amCard||!os||(os.st!=='soon'&&os.st!=='fire')) return '';
-  const lv=(os.slot&&os.slot.re)||0;
-  if(lv>=AM_RE_MAX) return `<div class="ao-dfn"><span>🔁 再チェックは ${AM_RE_MAX}回までです。</span><span>それでも OK に ならない時は、店長に 知らせてください</span>${amTr2(`Re-check is limited to ${AM_RE_MAX} times. If still not OK, tell the manager.`,`पुनः जाँच ${AM_RE_MAX} पटकसम्म मात्र। अझै ठिक भएन भने, म्यानेजरलाई भन्नुहोस्।`)}</div>`;
-  const on=!!_amCard.df;
+  const lv=(os.slot&&os.slot.re)||0, mx=amReMax(a);   // 5.15：回数は 作業ごと（reN。無ければ 1回）
+  if(lv>=mx) return `<div class="ao-dfn"><span>🔁 再チェックは ${mx}回までです。</span><span>それでも OK に ならない時は、店長に 知らせてください</span>${amTr2(`Re-check is limited to ${mx} time${mx>1?'s':''}. If still not OK, tell the manager.`,`पुनः जाँच ${mx} पटकसम्म मात्र। अझै ठिक भएन भने, म्यानेजरलाई भन्नुहोस्।`)}</div>`;
+  const auto=amValsNg(a,_amCard.vals), on=!!_amCard.df||auto;   // 5.15：数字が OK の範囲の外なら、「DF中」を 押さなくても 自動で「DF中」と同じ（押せない・名前を押すと 再チェックの もとになる）
   /* 広い画面＝長い形（tr-l）／スマホ幅（420px 以下。5.10 で 400 から広げた）＝短い形（tr-s）。スマホでは カードの数字のボタンを 全部見せたいので、ボタンの高さを 約 60px に詰める：英・ネは 1行・ヒントは「押した後」だけ 1行（押す前の ヒントは 短い1行（5.10。「DF中は 先に これを 押す」）） */
   const hm=amHM(Date.now()+rc*60000);
-  const hint=on?`<small class="ao-df-h"><span class="tr-l">このまま 名前を 押すと「DF中」で 記録します。${hm} ごろに もう一度 出ます</span><span class="tr-s">名前を 押すと ${hm} ごろ もう一度</span></small>`:`<small class="ao-df-h"><span class="tr-l">DF中の ときは、これを 押してから 名前を 押す</span><span class="tr-s">DF中は 先に これを 押す</span></small>`;
-  const tr=`<span class="am-tr"><span class="tr-l">Defrost (DF) on: check again in ${rc} min ・ DF चलिरहेको: ${rc} मिनेटपछि फेरि जाँच्नुहोस्</span><span class="tr-s">DF: check again in ${rc} min ・ DF: ${rc} मिनेटपछि फेरि</span></span>`;
-  return `<button type="button" class="ao-df${on?' on':''}" aria-pressed="${on}" onclick="amCardDf()"><span class="ao-df-t">${on?'✓ ':''}🔁 DF中（${rc}分後に もう一度）</span>${hint}${tr}</button>`;
+  const hint=on?`<small class="ao-df-h"><span class="tr-l">このまま 名前を 押すと ${auto?'記録します':'「DF中」で 記録します'}。${hm} ごろに もう一度 出ます</span><span class="tr-s">名前を 押すと ${hm} ごろ もう一度</span></small>`:`<small class="ao-df-h"><span class="tr-l">DF中の ときは、これを 押してから 名前を 押す</span><span class="tr-s">DF中は 先に これを 押す</span></small>`;
+  const tr=auto?`<span class="am-tr"><span class="tr-l">Out of range: check again in ${rc} min (auto) ・ दायरा बाहिर: ${rc} मिनेटपछि फेरि जाँच्नुहोस् (स्वतः)</span><span class="tr-s">Out of range: again in ${rc} min ・ दायरा बाहिर: ${rc} मिनेटपछि फेरि</span></span>`:`<span class="am-tr"><span class="tr-l">Defrost (DF) on: check again in ${rc} min ・ DF चलिरहेको: ${rc} मिनेटपछि फेरि जाँच्नुहोस्</span><span class="tr-s">DF: check again in ${rc} min ・ DF: ${rc} मिनेटपछि फेरि</span></span>`;
+  return `<button type="button" class="ao-df${on?' on':''}${auto?' auto':''}" aria-pressed="${on}"${auto?' aria-disabled="true"':' onclick="amCardDf()"'}><span class="ao-df-t">${on?'✓ ':''}${auto?`🔁 範囲の外 → ${rc}分後に もう一度（自動）`:`🔁 DF中（${rc}分後に もう一度）`}</span>${hint}${tr}</button>`;
 }
 function amCardDf(){ if(!_amCard)return; _amCard.df=!_amCard.df; amCardDraftSave(); amOpenArea(_amCard.id,true); }
 function amCardStep(k,dv){ if(!_amCard||typeof _amCard.vals[k]!=='number')return; const a=amWork(_amCard.id), d=amVals(a).find(x=>x.k===k); if(!d)return; const q=amValQuick(d), cur=_amCard.vals[k]; let v=cur+dv;
@@ -12390,6 +12782,7 @@ function amFormOffHtml(w){
   const lead=w?amOffLead(w):AM_OFF_LEAD, grace=w?amOffGrace(w):AM_OFF_GRACE, vs=w?amVals(w):[];
   const hasLbl=vs.some(d=>d&&d.label), rcv=(w&&isFinite(+w.recheck)&&+w.recheck>0)?String(Math.round(+w.recheck)):'';   // 5.8：再チェック（分）。数字を残す欄を 新しく使い始める時は 30 を入れる（amFormRecheckAuto）。すでに 数字の欄のある作業は 空のまま（開くだけで 値を足さない）
   const opt=(list,cur,f)=>list.concat(list.includes(cur)?[]:[cur]).sort((a,b)=>a-b).map(n=>`<option value="${n}"${n===cur?' selected':''}>${f(n)}</option>`).join('');
+  const rcn=(w&&rcv!=='')?amReMax(w):1;   // 5.15：再チェックの回数（何回まで）。決めている作業＝今の値（reN が無い 前からの作業は 1回）／新しく使い始める作業＝1回
   const num=x=>typeof x==='number'?x:'';
   const afr=(w&&w.after&&typeof w.after==='object'&&!Array.isArray(w.after))?w.after:{}, stt=(w&&w.start&&typeof w.start==='object'&&!Array.isArray(w.start))?w.start:{};   // 5.10：あとの作業・始める時に やる事の はじめの値
   const rp=w?amRepOf(w):null, rwd=(rp&&rp.k==='w')?rp.d:1, rwt=(rp&&rp.k==='w'&&rp.to!==rp.d)?rp.to:'', rmd=(rp&&rp.k==='m')?rp.d:1;   // 5.9：くり返しの欄の はじめの値（新しい作業は 毎日。週1の はじめは 月曜・月1の はじめは 1日）
@@ -12400,9 +12793,9 @@ function amFormOffHtml(w){
     time:`<div id="amw-time-box"><div class="amw-lbl amw-l2">時刻（1日に 何回でも）</div><div class="amw-times" id="amw-times"></div>
       <div class="amw-timeadd"><input type="time" id="amw-time-in" aria-label="足す 時刻"><button type="button" class="btn-secondary amw-big" onclick="amFormTimeAdd()">＋ 足す</button></div>
       <div class="amw-lbl amw-l2">押せる 時間</div><div class="amw-2"><label><span>何分前から 押せるか</span><select id="amw-lead" onchange="amFormSync()">${opt([15,30,45,60,90,120],lead,n=>n+'分前から')}</select></label><label><span>何分後が 締切か（すぎたら 🔥）</span><select id="amw-grace" onchange="amFormSync()">${opt([30,45,60,90,120,180],grace,n=>n+'分後まで')}</select></label></div>
-      <div class="amw-lbl amw-l2" id="amw-rc-l">再チェック（DF中の ときに、◯分後に もう一度 出す）</div>
-      <div class="amw-2" id="amw-rc-b"><label><span>何分後に もう一度 出すか（空なら 出さない）</span><input type="text" inputmode="numeric" id="amw-recheck" value="${rcv}" placeholder="例：30" data-hv="${hasLbl?'1':''}" oninput="this.dataset.t='1';amFormSync()"></label></div>
-      <div class="amw-note" id="amw-rc-n">温度チェックなど。クルーが カードで「DF中」を 押して 記録すると、この 分数の あとに この作業が もう一度 出ます（急ぐ 印は 🟡、締切を すぎたら 🔥）。2回まで。数字を 残す 作業は 30 分から 始めます（直して かまいません）。</div>
+      <div class="amw-lbl amw-l2" id="amw-rc-l">再チェック（DF中・数字が OK の範囲の外の ときに、◯分後に もう一度 出す）</div>
+      <div class="amw-2" id="amw-rc-b"><label><span>何分後に もう一度 出すか（空なら 出さない）</span><input type="text" inputmode="numeric" id="amw-recheck" value="${rcv}" placeholder="例：30" data-hv="${hasLbl?'1':''}" oninput="this.dataset.t='1';amFormSync()"></label><label><span>何回まで もう一度 出すか</span><select id="amw-rcn" onchange="amFormSync()">${opt([1,2,3,4,5],rcn,n=>n+'回まで')}</select></label></div>
+      <div class="amw-note" id="amw-rc-n">温度チェックなど。クルーが カードで「DF中」を 押して 記録するか、数字が OK の範囲の外の まま 記録すると、この 分数の あとに この作業が もう一度 出ます（急ぐ 印は 🟡、締切を すぎたら 🔥）。回数は「何回まで」で 決めます（はじめは 1回。回数を 決めていない 前からの 作業も 1回。2回以上に したい時は えらびます）。回数を こえても OK に ならない時は、カードが 店長へ 知らせるよう 出します。数字を 残す 作業は 30 分から 始めます（直して かまいません）。</div>
       <div class="amw-warn" id="amw-time-warn" style="display:none"></div></div>`,
     vals:`<div id="amw-vals-box"><div class="amw-lbl amw-l2">数字を 残す（温度など。使わない 行は 空のまま）</div>${rows}
       <div class="amw-note">数字を えらぶまで、名前は 押せません。OK の 範囲の 外の 数字も 残せます（赤く 出ます）。範囲は 空でも かまいません。</div></div>`,
@@ -12444,8 +12837,8 @@ function amFormOffRead(w){
   else if(off&&w&&Array.isArray(w.times)&&w.times.length) set.times=[];
   /* 5.8：再チェック（分）。時刻で決める売場以外の作業だけ。空なら 項目ごと無し（保存の形は今までどおり）。整数 1〜720 */
   const rcEl=g('amw-recheck'), rcs=timed&&rk==='d'&&rcEl?(rcEl.value||'').trim().replace(/[０-９]/g,c=>'０１２３４５６７８９'.indexOf(c)):'';
-  if(rcs!==''){ const n=Number(rcs); if(!(isFinite(n)&&n>=1&&n<=720&&Math.floor(n)===n)) return {err:'再チェックの 分は、1〜720 の 整数で 入れてください（空なら 出しません）'}; set.recheck=n; }
-  else if(w&&('recheck' in w)) del.push('recheck');
+  if(rcs!==''){ const n=Number(rcs); if(!(isFinite(n)&&n>=1&&n<=720&&Math.floor(n)===n)) return {err:'再チェックの 分は、1〜720 の 整数で 入れてください（空なら 出しません）'}; set.recheck=n; const rnEl=g('amw-rcn'), rn=rnEl?Number(rnEl.value):NaN; if(isFinite(rn)&&rn>=1&&rn<=AM_RE_CAP&&Math.floor(rn)===rn) set.reN=rn; }   // 5.15：回数（reN）。分を決めた時だけ書く
+  else if(w&&('recheck' in w)){ del.push('recheck'); if('reN' in w) del.push('reN'); }
   if(off){
     const used={}, vals=[]; let bad='';
     Array.prototype.forEach.call(document.querySelectorAll('#amw-vals-box .amw-vrow'),row=>{
@@ -12514,9 +12907,9 @@ function amWhoMark(o, names){
 function amWhoDetail(o, names){
   const w=o.w; let body;
   if(o.pre) body='<span class="aw-note">記録を 始める 前の 回です（数に 入れて いません）</span>';
-  else if(o.rec) body=`<b>${amHM(o.rec.t)}</b> ${amWhoChip(o.rec.by,names)}${escapeHtml(o.rec.by||'名前なし')} ${o.st==='late'?`<span class="aw-tg late">⏱ 遅れ +${amDur((o.rec.t-o.e)/60000)}</span>`:'<span class="aw-tg ok">✅ 時間内</span>'} ${amValHtml(w,o.rec.v)}${o.rec.df?` <span class="aw-tg df">🔁 DF中 → ${amRecheckMin(w)}分後に 再チェック</span>`:''}${o.re?` <span class="aw-tg df">🔁 再チェックの 記録</span>`:''}`;   // 5.8：DF中の記録・再チェックの記録（時間内/遅れは 今までどおり その枠の締切で決める）
+  else if(o.rec) body=`<b>${amHM(o.rec.t)}</b> ${amWhoChip(o.rec.by,names)}${escapeHtml(o.rec.by||'名前なし')} ${o.st==='late'?`<span class="aw-tg late">⏱ 遅れ +${amDur((o.rec.t-o.e)/60000)}</span>`:'<span class="aw-tg ok">✅ 時間内</span>'} ${amValHtml(w,o.rec.v)}${amRecDf(w,o.rec)?` <span class="aw-tg df">🔁 ${amDfWord(w,o.rec)} → ${amRecheckMin(w)}分後に 再チェック</span>`:''}${o.re?` <span class="aw-tg df">🔁 再チェックの 記録</span>`:''}`;   // 5.8：DF中の記録・再チェックの記録（時間内/遅れは 今までどおり その枠の締切で決める）
   else if(o.st==='late') body=`<span class="aw-tg late">⏱ 遅れ +${amDur((o.fe-o.e)/60000)}</span> <span class="aw-note">枠の 中に 記録なし → つぎの 記録 ${amHM(o.fe)}</span>`;
-  else if(o.st==='miss') body=`<span class="aw-tg miss">${amWhoFire(o)}</span> <span class="aw-note">${o.re?`DF中の 記録（${amHM(o.from)}）の あと、再チェックの 記録が ありません（抜けに 数えます）。`:''}記録が ありません。出勤の 情報は アプリに 無いので、だれの 分かは 出しません</span>`;
+  else if(o.st==='miss') body=`<span class="aw-tg miss">${amWhoFire(o)}</span> <span class="aw-note">${o.re?`DF中・範囲の外の 記録（${amHM(o.from)}）の あと、再チェックの 記録が ありません（抜けに 数えます）。`:''}記録が ありません。出勤の 情報は アプリに 無いので、だれの 分かは 出しません</span>`;
   else if(o.st==='cur') body='<span class="aw-tg late">🟡 いまの 回（まだ 記録なし）</span>';
   else body='⬜ これから';
   return `<span class="aw-dt-w">${escapeHtml(w.icon||'')} ${escapeHtml(w.name||'')}</span><span class="aw-dt-p">${amWhoPlan(o)}</span><span>${body}</span>`;   // 5.8：再チェックの枠は amWhoPlan が「🔁 再チェック …」と書く
