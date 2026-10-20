@@ -2587,7 +2587,10 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 #amf-wrap.m5 .amf-map{transition:none!important}
 #amf-wrap.m5 .am-mapbox{padding:0;overflow:hidden;box-sizing:border-box}
 #amf-wrap.m5 .am-mapbox .am-svg{display:block;width:100%;height:100%;max-width:none}
-.m5 .amf-hi rect{fill:rgba(37,99,235,.14);stroke:#1d4ed8;stroke-width:5px}
+.m5 .amf-hi rect{fill:rgba(37,99,235,.10);stroke:#2f6fd8;stroke-width:2px}
+/* 5.16（店長 10/20「文字が太くて、色も濃いからすごく見ずらい。目がちかちかする」）：地図の字は ふつうの太さ・濃い灰（札だけ少し太く）。色は うすい単色の塗り＋細い枠 */
+#amf-wrap.m5 .am-svg .am-lbl{font-weight:500}
+#amf-wrap.m5 .am-svg .am-lbl.am-b{font-weight:600}
 @media(min-width:621px){
   #amf-wrap.m5w{display:grid;box-sizing:border-box;grid-template-columns:minmax(0,1fr) var(--m5-colw);grid-template-rows:auto auto auto minmax(0,1fr);column-gap:12px;
     padding:0 12px calc(6px + var(--amf-foot,0px));height:calc(var(--amf-vh,100vh) - var(--amf-mtop,150px))}
@@ -2659,7 +2662,7 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .amf-seg button{font-family:inherit;border:none;cursor:pointer;flex:1 1 0;margin:0;min-height:36px;padding:4px 6px;font-size:14px;font-weight:800;border-radius:8px;background:transparent;color:#475569;white-space:nowrap}
 .amf-seg button.on{background:#1a56b0;color:#fff}
 /* 5.14：地図の 選んでいる所の わく（青・少し光る） */
-.m5 .amf-hi rect{fill:rgba(26,86,176,.10);stroke:#1a56b0;stroke-width:4.5px;filter:drop-shadow(0 0 4px rgba(26,86,176,.55))}
+.m5 .amf-hi rect{fill:rgba(37,99,235,.08);stroke:#3b78d8;stroke-width:2.5px;filter:drop-shadow(0 0 2px rgba(59,120,216,.35))}   /* 5.16：選んでいる所の青いわくを 細く・うすく */
 @media(min-width:640px){
   .am-items li:has(> .am-iso){display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;align-items:center}
   .am-items li:has(> .am-iso) > .am-it{grid-column:1 / -1}
@@ -2668,7 +2671,7 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 }   /* 広い画面は 絵の右に NG時アクション（案の絵のとおり）。:has が使えない古いブラウザは 縦に並ぶだけ */
 /* ===== 5.15：厨房の表（ボタン・全画面・管理者の入れかえ）／🧰 道具／見本から足す／きのうの抜け ===== */
 /* 最初の画面の「厨房の表」ボタン：表が入っている店だけ。上の細い行（お客様・レジ…／？）の中。広い画面＝ふつうの形／タブレット（621〜899px）＝小さな四角（絵＋「厨房」）／スマホ＝画面の下の「？」のとなり */
-.amf-kc{order:2;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:48px;padding:6px 12px;border:1.5px solid #0f172a;border-radius:12px;background:#fff;color:#0f172a;font-family:inherit;font-size:16px;font-weight:800;line-height:1.2;cursor:pointer}
+.amf-kc{order:2;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:48px;padding:6px 12px;border:1.5px solid #64748b;border-radius:12px;background:#fff;color:#374151;font-family:inherit;font-size:16px;font-weight:600;line-height:1.2;cursor:pointer}   /* 5.16：黒い太いふち・字 800 をやめる（地図の外わくと同じ灰色） */
 .amf-kc .kc-i{font-size:20px;line-height:1} .amf-kc .kc-s{display:none}
 .amf-kc~.amf-rule{order:1} .amf-kc~.am-help-btn{order:3} .amf-kc~.amf-tab{order:4}
 @media(min-width:621px) and (max-width:899px){
@@ -2741,7 +2744,7 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .tpl-b .tpl-tr{color:#7586a0}
 /* きのうの抜け：最初の画面の細い1行（0件の日は 出ない） */
 #amf-wrap.m5w .amf-yd{grid-column:2;grid-row:2;margin:0 0 4px}   /* 広い画面：右の列の いちばん上（決まりの文の 上）の 空いている段 */
-.amf-yd{flex:0 0 auto;display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 6px;padding:6px 12px;border:1.5px solid #e9c46a;border-radius:10px;background:#fff8e1;color:#5c3d00;font-family:inherit;font-size:15px;font-weight:700;text-align:left;cursor:pointer;line-height:1.3}
+.amf-yd{flex:0 0 auto;display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 6px;padding:6px 12px;border:1px solid #eddcae;border-radius:10px;background:#fffbee;color:#5c3d00;font-family:inherit;font-size:15px;font-weight:600;text-align:left;cursor:pointer;line-height:1.3}   /* 5.16：ふちを 細く・色を うすく（気づける黄色は 残す。数は 太いまま・字の色は 濃いまま） */
 .amf-yd .yd-t{flex:1 1 auto;min-width:0} .amf-yd .k{display:inline-block} .amf-yd b{font-size:16px}
 .yd-list{display:flex;flex-direction:column;gap:4px;margin:6px 0}
 .yd-row{display:flex;gap:10px;align-items:baseline;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:15px}
@@ -4040,7 +4043,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.17'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.18'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -16386,7 +16389,7 @@ async function start(){
   if(window.__m5Init) return; window.__m5Init=true;
   var baseRender=renderMapView, baseCell=amCellSvg, basePlace=amFPlace, baseToggle=amFToggle;
   var mq=window.matchMedia('(min-width:621px)');
-  var S={s:0,vx:0,vy:0,vw:0,vh:0,lay:null,info:null,key:null,layK:''};
+  var S={s:0,vx:0,vy:0,vw:0,vh:0,lay:null,info:null,key:null,layK:'',stat:null};
   /* shorter labels (display only; the data is not changed). first = the one used for a tag when the cell is too small */
   var ALT={ice1:['冷凍アイス①'],wayo:['和洋菓子'],reizo:['冷蔵\nケース'],wagashi:['和菓子'],dessert1:['デザート①'],dessert2:['デザート②'],
     orig:['オリジナル菓子'],machi:['まちかど厨房'],gomi:['ゴミ箱\nレンジ'],season:['シーズン\nエンド①'],coffee:['コーヒー\nマシン'],cup:['カフェ\nカップ'],ice2:['冷凍\nアイス②']};
@@ -16403,33 +16406,40 @@ async function start(){
     var n=j.length;
     (ALT[c.id]||[]).forEach(function(a){ v.push(a.split('\n')); });
     function cut(i){ while(i<n&&(j.charAt(i)==='ー'||j.charAt(i)==='・'||(cw(j.charAt(i))<1&&cw(j.charAt(i-1))<1)||'①②③'.indexOf(j.charAt(i))>=0)) i++; return i; }
-    if(n>=6){ var h=cut(Math.ceil(n/2)); if(h<n) v.push([j.slice(0,h),j.slice(h)]); }
-    if(n>=8){ var t=cut(Math.ceil(n/3)), t2=cut(Math.ceil(2*n/3)); if(t<t2&&t2<n) v.push([j.slice(0,t),j.slice(t,t2),j.slice(t2)]); }
+    if(n>=6){ var h=cut(Math.ceil(n/2)); if(h<n){ var s2=[j.slice(0,h),j.slice(h)]; s2.alg=true; v.push(s2); } }
+    if(n>=8){ var t=cut(Math.ceil(n/3)), t2=cut(Math.ceil(2*n/3)); if(t<t2&&t2<n){ var s3=[j.slice(0,t),j.slice(t,t2),j.slice(t2)]; s3.alg=true; v.push(s3); } }
     return v;
   }
   /* text block in px. returns {o:'h'|'v', lines, fs} or null. W,H = inner size of the cell in px */
   function fit(lines,fs,W,H){
     var n=lines.length, mx=0, i; for(i=0;i<n;i++) mx=Math.max(mx,tw(lines[i],fs));
     if(mx<=W&&n*fs*1.18<=H) return {o:'h',lines:lines,fs:fs,bw:mx,bh:n*fs*1.18};
-    if(n*fs*1.12<=W&&mx<=H) return {o:'v',lines:lines,fs:fs,bw:n*fs*1.12,bh:mx};
+    if(!(lines.alg&&n>1)&&n*fs*1.12<=W&&mx<=H) return {o:'v',lines:lines,fs:fs,bw:n*fs*1.12,bh:mx};
     return null;
   }
-  function fitInside(c,vars,s,sizes){
-    var W=c.w*s-2.5, H=c.h*s-2.5, vi, si, r;
+  function fitInside(c,vars,s,sizes,mg){
+    var W=c.w*s-mg, H=c.h*s-mg, vi, si, r;
     for(vi=0;vi<vars.length;vi++) for(si=0;si<sizes.length;si++){ r=fit(vars[vi],sizes[si],W,H); if(r) return r; }
     return null;
   }
   function overlap(a,b){ return a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h; }
+  /* 5.16：マスの中の字は 枠から 少しあけて（mg＝3.5px）入れる。この あけ方で 置けない札が出る時だけ、前と同じあけ方（2.5px）でも作って、置けない札が少ない方を使う */
   function buildLayout(map){
+    var CC={c:{},n:0}, a=buildLayout0(map,3.5,CC), na=lostN(S.info);   // CC＝札の置き場所の候補の覚え（2回で 使い回す）
+    if(na>0){ var ia=S.info, sa=S.stat, b=buildLayout0(map,2.5,CC), nb=lostN(S.info); if(nb<na) return b; S.info=ia; S.stat=sa; }
+    return a;
+  }
+  function lostN(info){ var n=0; (info||[]).forEach(function(x){ if(x.mode==='lost') n++; }); return n; }
+  function buildLayout0(map,mg,CC,blind){
     var s=S.s, cells=map.cells, L={}, rects=[], placed=[], info=[], u=1/s;
     var vis={l:S.vx+1.5*u,t:S.vy+1.5*u,r:S.vx+S.vw-1.5*u,b:S.vy+S.vh-1.5*u};
     cells.forEach(function(c){ rects.push({x:c.x-0.6*u,y:c.y-0.6*u,w:c.w+1.2*u,h:c.h+1.2*u,id:c.id}); });
-    var pend=[];
+    var pend=[], trects=[];
     cells.forEach(function(c){
       var wk=hasWorks(c), lab=String(c.label||'');
       if(!lab){ L[c.id]={mode:'none',wk:wk}; return; }
-      var vars=variants(c), r=fitInside(c,vars,s,wk?[14,13,12,11.3]:[12,11.3]);
-      if(r){ L[c.id]={mode:'in',wk:wk,r:r}; info.push({id:c.id,mode:'in',wk:wk,fs:r.fs,o:r.o,t:r.lines.join('/')}); return; }
+      var vars=variants(c), r=fitInside(c,vars,s,(c.kind||'cell')==='pin'?[11.3]:[12,11.3],mg);
+      if(r){ L[c.id]={mode:'in',wk:wk,r:r}; trects.push({x:c.x+c.w/2-r.bw*u/2-u,y:c.y+c.h/2-r.bh*u/2-u,w:r.bw*u+2*u,h:r.bh*u+2*u}); info.push({id:c.id,mode:'in',wk:wk,fs:r.fs,o:r.o,t:r.lines.join('/')}); return; }
       if(!wk){ L[c.id]={mode:'none',wk:wk}; return; }
       var alt=ALT[c.id], txt=(alt?alt[0]:lab).replace(/\n/g,'');
       L[c.id]={mode:'tag',wk:wk,txt:txt}; pend.push(c);
@@ -16437,49 +16447,96 @@ async function start(){
     /* place tags: nearest free spot (beside the cell, then the free aisles, then the side gutters) */
     pend.sort(function(a,b){ return (a.y+a.h/2)-(b.y+b.h/2); });
     /* 1つの札の置き場所：空いている いちばん近い所を さがす（いままでと 同じ さがし方）。置けなければ null。placed＝この置き方で もう置いた札 */
-    function findSpot(c,placed){
-      var lay=L[c.id], best=null, fsList=[12,11.3], fi, k;
-      var ccx=c.x+c.w/2, ccy=c.y+c.h/2;
+    /* 5.16：引き出し線（マスのはしから札まで）を札どうし・字・ほかの線とぶつけない。置けない時だけ 線の決まりをゆるめて（strict=false）置く */
+    function leader(c,b){ var bx=b.x+b.w/2, by=b.y+b.h/2, px=Math.max(c.x,Math.min(c.x+c.w,bx)), py=Math.max(c.y,Math.min(c.y+c.h,by)); return {x1:px,y1:py,x2:Math.max(b.x,Math.min(b.x+b.w,px)),y2:Math.max(b.y,Math.min(b.y+b.h,py))}; }
+    /* 線と線：箱が はっきり はなれていれば すぐ「ぶつからない」。式（向きの積）は 5.16 のまま。物を作らず 数（8つ）で渡す（スマホ幅の重さの直し） */
+    function ss8(ax1,ay1,ax2,ay2,bx1,by1,bx2,by2){ if(Math.max(ax1,ax2)<Math.min(bx1,bx2)||Math.max(bx1,bx2)<Math.min(ax1,ax2)||Math.max(ay1,ay2)<Math.min(by1,by2)||Math.max(by1,by2)<Math.min(ay1,ay2)) return false; var d1=(ax2-ax1)*(by1-ay1)-(ay2-ay1)*(bx1-ax1), d2=(ax2-ax1)*(by2-ay1)-(ay2-ay1)*(bx2-ax1), d3=(bx2-bx1)*(ay1-by1)-(by2-by1)*(ax1-bx1), d4=(bx2-bx1)*(ay2-by1)-(by2-by1)*(ax2-bx1); return ((d1>0)!==(d2>0))&&((d3>0)!==(d4>0)); }
+    function segSeg(a,b){ return ss8(a.x1,a.y1,a.x2,a.y2,b.x1,b.y1,b.x2,b.y2); }
+    function segRect(sg,r){ var x1=sg.x1,y1=sg.y1,x2=sg.x2,y2=sg.y2, rx=r.x,ry=r.y,rr=r.x+r.w,rb=r.y+r.h; if(Math.max(x1,x2)<rx||Math.min(x1,x2)>rr||Math.max(y1,y2)<ry||Math.min(y1,y2)>rb) return false; if((x1>rx&&x1<rr&&y1>ry&&y1<rb)||(x2>rx&&x2<rr&&y2>ry&&y2<rb)) return true; return ss8(x1,y1,x2,y2,rx,ry,rr,ry)||ss8(x1,y1,x2,y2,rr,ry,rr,rb)||ss8(x1,y1,x2,y2,rr,rb,rx,rb)||ss8(x1,y1,x2,y2,rx,rb,rx,ry); }
+    /* 5.16（テスの点検：スマホ幅の置き方が 5.15 の 10〜35倍 重い）：置き場所の さがし方だけを 軽くした。答え（置く場所・置けない札・線のぶつかり）は 1つも変えない（置き方の答えの印を 320〜1280 の大きさで 前と比べて 同じ）。
+       ・置ける場所の候補（画面の中の所）は 札ごと・字の大きさごとに 近い順に 少しずつ作り、覚える（CC＝あけ方 3.5／2.5 の 2回で 使い回す）。マスと かさなるかは 候補ごとに 1回だけ 調べて 覚える。前は 置き方を ためすたびに（最大 19回 × 札の数 × 2）候補 4344個を 全部 作り直して 全部 調べていた
+       ・近い順に 見て、いまの いちばん良い所より 遠い候補に 来たら やめる（同じ近さの時は 前と同じ「先に作った方」を使う）
+       ・引き出し線が ぶつかる数は 同じ札・同じ置き方の中で 1回だけ 数える（きびしい さがしと ゆるめた さがしで 2回 数えない。印＝CC.n） */
+    /* 候補は 近い順に 少しずつ 作る（全部（4344個）作って ならべ直す 代わり。スマホ幅の重さの直し）。
+       候補は 12 の並び（横・縦 × 6 の置き方：マスの左右・上下・画面の左右のはし）で、どの並びも k=0 が いちばん近く、k が 0 から はなれるほど 一定の幅（5px）ずつ 遠くなる（V の形）。
+       並びごとに「k=0 → 左右の枝（k<0・k>0）の 近い方」の順に 出し、12 の並びの 先頭を 比べて 近い物から 足す。同じ近さなら 先に作る物（i＝前の作り方での 順番）。できる順は 全部作って ならべた時と 同じ */
+    function candsOf(c,fs){
+      var key=c.id+'|'+fs, hit=CC.c[key]; if(hit) return hit;
+      var lay=L[c.id], len=tw(lay.txt,fs), ccx=c.x+c.w/2, ccy=c.y+c.h/2, H={arr:[],F:[],ccx:ccx,ccy:ccy}, oi, j;
+      for(oi=0;oi<2;oi++){
+        var o=oi?'v':'h', bw=(o==='h'?len+5:fs*1.2+1)*u, bh=(o==='h'?fs*1.25+1:len+5)*u, step=5*u, gap=2.5*u, ex=(o==='v'?6*u:0), ob=oi*1086;
+        var xs=[c.x-gap-bw,c.x+c.w+gap], ys=[c.y-gap-bh,c.y+c.h+gap];
+        for(j=0;j<6;j++) H.F.push({j:j,o:o,bw:bw,bh:bh,step:step,ex:ex,ob:ob,x0:(j<2?xs[j]:(j===4?vis.l:(j===5?vis.r-bw:0))),y0:((j===2||j===3)?ys[j-2]:0),k0:true,l:-1,r:1,lc:null,rc:null,head:null,end:false});
+      }
+      return CC.c[key]=H;
+    }
+    function mkCand(H,F,k){   // 並び F の k 番目の候補（画面の外なら null）。場所・近さ・順番 i は 前の作り方と 同じ式
+      var x,y;
+      if(F.j===2||F.j===3){ x=H.ccx-F.bw/2+k*F.step; y=F.y0; } else { x=F.x0; y=H.ccy-F.bh/2+k*F.step; }
+      if(x<vis.l||y<vis.t||x+F.bw>vis.r||y+F.bh>vis.b) return null;
+      return {x:x,y:y,w:F.bw,h:F.bh,o:F.o,c0:Math.abs(x+F.bw/2-H.ccx)+Math.abs(y+F.bh/2-H.ccy)+F.ex,i:F.ob+6*(k+90)+F.j,ok:0,st:0,cn:0};
+    }
+    function nextOf(H,F){   // 並び F の 次の候補（無ければ null）：k=0 → 左の枝と 右の枝の 近い方（同じ近さなら 左＝i が小さい方）
+      if(F.k0){ F.k0=false; var c=mkCand(H,F,0); if(c) return c; }
+      if(F.lc===null){ while(F.l>=-90&&!(F.lc=mkCand(H,F,F.l))) F.l--; if(F.lc) F.l--; }
+      if(F.rc===null){ while(F.r<=90&&!(F.rc=mkCand(H,F,F.r))) F.r++; if(F.rc) F.r++; }
+      var a=F.lc, b=F.rc; if(!a&&!b) return null;
+      if(a&&(!b||a.c0<b.c0||(a.c0===b.c0&&a.i<b.i))){ F.lc=null; return a; }
+      F.rc=null; return b;
+    }
+    function more(H){   // H.arr に 次に近い候補を 1つ足す（無ければ false）：12 の並びの 先頭の うち いちばん近い物
+      var best=null, bi=-1, f, F, h;
+      for(f=0;f<12;f++){ F=H.F[f]; if(F.head===null&&!F.end){ F.head=nextOf(H,F); if(F.head===null) F.end=true; } h=F.head; if(h&&(!best||h.c0<best.c0||(h.c0===best.c0&&h.i<best.i))){ best=h; bi=f; } }
+      if(!best) return false;
+      H.F[bi].head=null; H.arr.push(best); return true;
+    }
+    function findSpot(c,placed,lines,strict,nopen,exh){   // exh＝きびしい さがしが 候補を 全部 見て 置けなかった 後の ゆるめた さがし（同じ札・同じ置き方）
+      var fsList=[12,11.3], best=null, bi=0, fi, j, i;
       for(fi=0;fi<fsList.length&&!best;fi++){
-        var fs=fsList[fi], len=tw(lay.txt,fs);
-        ['h','v'].forEach(function(o){
-          var bw=(o==='h'?len+5:fs*1.2+1)*u, bh=(o==='h'?fs*1.25+1:len+5)*u, step=5*u, gap=2.5*u, cand=[];
-          var xs=[c.x-gap-bw,c.x+c.w+gap], ys=[c.y-gap-bh,c.y+c.h+gap];
-          for(k=-90;k<=90;k++){
-            xs.forEach(function(x){ cand.push([x,ccy-bh/2+k*step]); });
-            ys.forEach(function(y){ cand.push([ccx-bw/2+k*step,y]); });
-            cand.push([vis.l,ccy-bh/2+k*step]); cand.push([vis.r-bw,ccy-bh/2+k*step]);
+        var fs=fsList[fi], H=candsOf(c,fs), arr=H.arr;
+        for(j=0;;j++){
+          if(j>=arr.length&&!more(H)) break;   // まだ 作っていなければ 次に近い候補を 1つ作る
+          var p=arr[j]; if(best&&p.c0>best.cost) break;   // これより遠い候補は、いまの いちばん良い所に 勝てない
+          if(exh&&p.st!==CC.n) continue;   // きびしい さがしで マス・ほかの札に 当たった候補（線の数を 数えなかった物）は、ゆるめても 当たる
+          if(p.ok===0){ p.ok=1; for(i=0;i<rects.length;i++) if(overlap(p,rects[i])){ p.ok=2; break; } }
+          if(p.ok===2) continue;
+          var bad=false, q, ax=p.x-1.5*u, ay=p.y-1.5*u, aw=p.w+3*u, ah=p.h+3*u; for(i=0;i<placed.length&&!bad;i++){ q=placed[i]; if(ax<q.x+q.w&&q.x<ax+aw&&ay<q.y+q.h&&q.y<ay+ah) bad=true; }   // ＝overlap（ほかの札との あけ方 1.5px の箱, 置いた札）
+          if(bad) continue;
+          var cost=p.c0;
+          if(!nopen){
+            var cnt;
+            if(p.st===CC.n) cnt=p.cn;
+            else{ var sg=leader(c,p); cnt=0; for(i=0;i<placed.length;i++) if(segRect(sg,placed[i])) cnt++; for(i=0;i<trects.length;i++) if(segRect(sg,trects[i])) cnt++; for(i=0;i<lines.length;i++) if(segSeg(sg,lines[i])||segRect(lines[i],p)) cnt++; p.st=CC.n; p.cn=cnt; }
+            if(strict&&cnt) continue; cost+=cnt*150*u;   // ゆるめる時は、線がぶつかる数が いちばん少ない所を選ぶ
           }
-          cand.forEach(function(p){
-            var b={x:p[0],y:p[1],w:bw,h:bh};
-            if(b.x<vis.l||b.y<vis.t||b.x+b.w>vis.r||b.y+b.h>vis.b) return;
-            var cost=Math.abs(b.x+bw/2-ccx)+Math.abs(b.y+bh/2-ccy)+(o==='v'?6*u:0);
-            if(best&&cost>=best.cost) return;
-            var i, bad=false;
-            for(i=0;i<rects.length&&!bad;i++) if(overlap(b,rects[i])) bad=true;
-            for(i=0;i<placed.length&&!bad;i++) if(overlap({x:b.x-1.5*u,y:b.y-1.5*u,w:b.w+3*u,h:b.h+3*u},placed[i])) bad=true;
-            if(!bad) best={cost:cost,b:b,o:o,fs:fs};
-          });
-        });
+          if(!best||cost<best.cost||(cost===best.cost&&p.i<bi)){ best={cost:cost,b:{x:p.x,y:p.y,w:p.w,h:p.h},o:p.o,fs:fs}; bi=p.i; }
+        }
       }
       return best;
     }
-    function tryOrder(order){
-      var placed=[], res={}, lost=0;
-      order.forEach(function(c){ var b=findSpot(c,placed); res[c.id]=b; if(b) placed.push(b.b); else lost++; });
-      return {res:res,lost:lost,order:order};
+    function tryOrder(order,relOnly,old){
+      var placed=[], lines=[], res={}, lost=0, len=0;
+      order.forEach(function(c){ CC.n++; var b=(relOnly?null:findSpot(c,placed,lines,true))||findSpot(c,placed,lines,false,old,!relOnly); res[c.id]=b; if(b){ placed.push(b.b); var ld=leader(c,b.b); lines.push(ld); len+=Math.sqrt((ld.x2-ld.x1)*(ld.x2-ld.x1)+(ld.y2-ld.y1)*(ld.y2-ld.y1)); } else lost++; });
+      var cross=0, i2, j2; for(i2=0;i2<lines.length;i2++){ for(j2=i2+1;j2<lines.length;j2++) if(segSeg(lines[i2],lines[j2])) cross++; for(j2=0;j2<placed.length;j2++) if(segRect(lines[i2],placed[j2])) cross++; for(j2=0;j2<trects.length;j2++) if(segRect(lines[i2],trects[j2])) cross++; }
+      return {res:res,lost:lost,order:order,len:len,cross:cross};
     }
-    var pick=tryOrder(pend);
+    var pick=blind?tryOrder(pend,true,true):tryOrder(pend);
     /* 5.13 N1（店長 10/18「全部おすすめで」・テスの指摘：幅360以下の小さいスマホで 置けない札が 5.11 の r3 より 1〜2個 ふえた）：
        「ATM」などの字の幅の見積りを 実際の幅に直した（5.11 P6）ので、マスの中に 入らず 札になる字が ふえ、札どうしが 場所を うばいあって 置けない札が 出る。
        置けない札が ある時だけ、置く順を かえて やり直し（下から／長い字から／右から／左から／置けなかった札を 先に）、置けない札が いちばん少ない置き方を 使う。
        置けない札が 0 の時（ふつうの画面は ぜんぶ これ）は 何も かわらない（1回で 終わる）。字の大きさ（12・11.3px）・札の形・マスの形と位置は 変えない */
-    if(pick.lost>0){
-      var alts=[pend.slice().reverse(),
+    function better(r,p){ return r.lost<p.lost||(r.lost===p.lost&&(r.cross<p.cross||(r.cross===p.cross&&r.len<p.len-1*u))); }   /* 5.16：置けない札が同じなら、引き出し線の長さの合計が短い置き方を使う（いつも5つの順番を試す。札の置き場所は 大きさ・マス・作業の有無が同じ間は覚えている） */
+    var alts=[pend.slice().reverse(),
         pend.slice().sort(function(a,b){ return (L[b.id].txt.length-L[a.id].txt.length)||((a.y+a.h/2)-(b.y+b.h/2)); }),
         pend.slice().sort(function(a,b){ return (b.x+b.w/2)-(a.x+a.w/2); }),
         pend.slice().sort(function(a,b){ return (a.x+a.w/2)-(b.x+b.w/2); })];
-      alts.forEach(function(o){ if(pick.lost===0) return; var r=tryOrder(o); if(r.lost<pick.lost) pick=r; });
+    if(blind){   /* 試験の窓（__m5.probe）だけが使う：線を見ない 5.15 の置き方（置けない札が ある時だけ 順をかえる）。画面の描きには 使わない */
+      if(pick.lost>0){ alts.forEach(function(o){ if(pick.lost===0) return; var r=tryOrder(o,true,true); if(r.lost<pick.lost) pick=r; });
+        for(var it2=0; it2<4&&pick.lost>0; it2++){ var cur2=pick, lo2=cur2.order.filter(function(c){ return !cur2.res[c.id]; }), ok2=cur2.order.filter(function(c){ return cur2.res[c.id]; }), r3=tryOrder(lo2.concat(ok2),true,true); if(r3.lost<cur2.lost) pick=r3; else break; } }
+    } else {
+      alts.forEach(function(o){ var r=tryOrder(o); if(better(r,pick)) pick=r; });
+      if(pick.lost>0||pick.cross>0){ alts.concat([pend]).forEach(function(o){ var r=tryOrder(o,true); if(better(r,pick)) pick=r; }); }
+      if(pick.lost>0){ alts.concat([pend]).forEach(function(o){ var r=tryOrder(o,true,true); if(better(r,pick)) pick=r; }); }   // それでも 置けない札が出る時は、5.14 までと同じ置き方（線のぶつかりは見ない）も試す   // 線を ぶつけない置き方で 置けない札が出る時は、線の決まりを ゆるめた置き方も試し、置けない札 → 線のぶつかり → 線の長さ の順で よい方を使う
       for(var it=0; it<4&&pick.lost>0; it++){   // 置けなかった札を 先に置いて やり直す（良くなる間だけ）
         var cur=pick, lostC=cur.order.filter(function(c){ return !cur.res[c.id]; }), okC=cur.order.filter(function(c){ return cur.res[c.id]; }), r2=tryOrder(lostC.concat(okC));
         if(r2.lost<cur.lost) pick=r2; else break;
@@ -16490,7 +16547,7 @@ async function start(){
       if(best){ lay.tag=best; info.push({id:c.id,mode:'tag',wk:true,fs:best.fs,o:best.o,t:lay.txt}); }
       else{ lay.mode='lost'; info.push({id:c.id,mode:'lost',wk:true,fs:0,t:lay.txt}); }
     });
-    S.info=info; return L;
+    S.info=info; S.stat={lost:pick.lost,cross:pick.cross,len:Math.round(pick.len*10)/10,tags:pend.length,mg:mg,blind:!!blind}; return L;   // stat＝置き方の数（試験の窓 __m5.probe が読む）
   }
   function textEl(x,y,fs,t,fill,cls,vert,extra){
     var s=S.s;
@@ -16503,32 +16560,32 @@ async function start(){
     if(!S.lay||S.layK!==S.key){ S.lay=buildLayout(amMap()); S.layK=S.key; }
     var lay=S.lay[c.id]||{mode:'none'};
     var fill=z.fill, stroke=z.stroke, sw=0.9, dash='', tc='#3f4349', op='', bold=false;
-    if(wk){ stroke=z.ink; sw=1.6; tc='#0f172a'; bold=true; }
+    if(wk){ stroke='#a3aec0'; sw=1.1; tc='#374151'; }   /* 5.16：濃い字・太い字をやめる（字は ふつうの太さ・濃い灰） */
     else { op=' stroke-opacity=".55"'; tc='#7b838c'; }
-    if(kind==='door'){ fill='url(#am-hatch)'; stroke='#1f4e8c'; sw=2; dash=' stroke-dasharray="'+(6*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; tc='#1f4e8c'; op=''; bold=true; }
-    else if(kind==='zone'){ dash=' stroke-dasharray="'+(5*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; if(c.zone==='none'){ fill='none'; stroke='#c9ced6'; } else { stroke=wk?z.ink:z.stroke; sw=wk?1.4:0.9; op=wk?'':' stroke-opacity=".6"'; } tc=wk?(z.ink||'#555'):'#9aa0a8'; }
+    if(kind==='door'){ fill='url(#am-hatch)'; stroke='#1f4e8c'; sw=2; dash=' stroke-dasharray="'+(6*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; tc='#1f4e8c'; op=''; }
+    else if(kind==='zone'){ dash=' stroke-dasharray="'+(5*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; if(c.zone==='none'){ fill='none'; stroke='#c9ced6'; } else { stroke=wk?'#a3aec0':z.stroke; sw=wk?1.1:0.9; op=wk?'':' stroke-opacity=".6"'; } tc=wk?'#374151':'#9aa0a8'; }
     else if(kind==='text'){ fill='none'; stroke='none'; tc='#7b838c'; }
-    else if(kind==='pin'){ bold=true; tc=z.color; if(wk){ sw=1.6; } }
+    else if(kind==='pin'){ tc='#6b7280'; }   /* 5.16：「床」の札は 小さく・うすく */
     /* 5.14（店長 10/18「マップのデザインってまだ古いやつだよね？」→ 案1「案1で」）：地図の色を 5.12 の一覧とそろえる。白い地・遅れ＝赤い斜線・もうすぐ＝薄い青の点線・選んでいる所＝青いわく（CSS）。形・位置・字・札は 今のまま */
-    if(kind==='cell'||kind==='pin'){ fill=wk?'#ffffff':'#f6f8fb'; stroke=wk?'#8d9aae':'#c3ccd8'; sw=wk?1.3:1; op=''; }
-    if(st&&st.st==='fire'){ fill='url(#am-fire)'; stroke='#c8322a'; sw=2.6; dash=''; op=''; tc='#7e1a14'; }
-    else if(st&&st.st==='soon'){ fill='#eaf1fb'; stroke='#1a56b0'; sw=2; dash=' stroke-dasharray="'+(6*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; op=''; tc='#0f3a7a'; }
+    if(kind==='cell'||kind==='pin'){ fill=wk?'#ffffff':'#f7f8fa'; stroke=wk?'#a3aec0':'#d5dbe4'; sw=wk?1.1:0.9; op=''; }
+    if(st&&st.st==='fire'){ fill='#fdeceb'; stroke='#dc6a62'; sw=1.8; dash=''; op=''; tc='#374151'; }   /* 5.16：おくれ＝うすい赤の単色＋細い赤の枠（斜線はやめた） */
+    else if(st&&st.st==='soon'){ fill='#eef4fc'; stroke='#6a97d8'; sw=1.5; dash=' stroke-dasharray="'+(5*u).toFixed(1)+' '+(4*u).toFixed(1)+'"'; op=''; tc='#374151'; }
     var x=c.x,y=c.y,w=c.w,h=c.h, rx=kind==='pin'?Math.min(w,h)/2:2*u;
     var ic=(c.icon&&AM_ICONS[c.icon])?AM_ICONS[c.icon]:null, g='', cx=x+w/2, cy=y+h/2;
     if(lay.mode==='in'){
       var r=lay.r, fs=r.fs, pitchV=fs*1.12, lh=fs*1.18;
       var leftH=(h*s-2.5)-r.bh, isz=Math.min(18,w*s*0.55), showIc=ic&&r.o==='h'&&(leftH>=isz+4)&&isz>=14&&!(st&&st.st==='none');
       var top=cy-(r.bh+(showIc?(isz+3):0)/1)*u/2;
-      if(showIc) g+='<g transform="translate('+(cx-isz*u/2).toFixed(1)+','+top.toFixed(1)+') scale('+(isz*u/24).toFixed(4)+')" fill="none" stroke="'+((st&&st.st==='fire')?'#b42318':z.ink)+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+ic.d+'</g>';
+      if(showIc) g+='<g transform="translate('+(cx-isz*u/2).toFixed(1)+','+top.toFixed(1)+') scale('+(isz*u/24).toFixed(4)+')" fill="none" stroke="'+((st&&st.st==='fire')?'#b9514a':z.ink)+'" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+ic.d+'</g>';
       var base=top+(showIc?(isz+3)*u:0);
-      if(r.o==='h'){ r.lines.forEach(function(t,i){ g+=textEl(cx,base+(lh*(i+0.5))*u,fs,t,tc,bold?'am-b':'',false); }); }
-      else{ var n=r.lines.length; r.lines.forEach(function(t,i){ var colx=cx+((n-1)/2-i)*pitchV*u; g+=textEl(colx,cy,fs,t,tc,bold?'am-b':'',true); }); }
+      if(r.o==='h'){ r.lines.forEach(function(t,i){ g+=textEl(cx,base+(lh*(i+0.5))*u,fs,t,tc,'',false); }); }
+      else{ var n=r.lines.length; r.lines.forEach(function(t,i){ var colx=cx+((n-1)/2-i)*pitchV*u; g+=textEl(colx,cy,fs,t,tc,'',true); }); }
     } else if(lay.mode==='tag'&&lay.tag){
       var tg=lay.tag, b=tg.b, bx=b.x+b.w/2, by=b.y+b.h/2;
       var px=Math.max(x,Math.min(x+w,bx)), py=Math.max(y,Math.min(y+h,by)), qx=Math.max(b.x,Math.min(b.x+b.w,px)), qy=Math.max(b.y,Math.min(b.y+b.h,py));
-      g+='<line x1="'+px.toFixed(1)+'" y1="'+py.toFixed(1)+'" x2="'+qx.toFixed(1)+'" y2="'+qy.toFixed(1)+'" stroke="#475569" stroke-width="'+(1*u).toFixed(2)+'"/><circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="'+(1.8*u).toFixed(2)+'" fill="#475569"/>';
-      g+='<rect x="'+b.x.toFixed(1)+'" y="'+b.y.toFixed(1)+'" width="'+b.w.toFixed(1)+'" height="'+b.h.toFixed(1)+'" rx="'+(2*u).toFixed(1)+'" fill="#fff" fill-opacity=".92" stroke="#94a3b8" stroke-width="'+(0.8*u).toFixed(2)+'"/>';
-      g+=textEl(bx,by,tg.fs,lay.txt,'#0f172a','am-b',tg.o==='v');
+      g+='<line x1="'+px.toFixed(1)+'" y1="'+py.toFixed(1)+'" x2="'+qx.toFixed(1)+'" y2="'+qy.toFixed(1)+'" stroke="#94a3b8" stroke-width="'+(0.9*u).toFixed(2)+'"/><circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="'+(1.5*u).toFixed(2)+'" fill="#94a3b8"/>';
+      g+='<rect x="'+b.x.toFixed(1)+'" y="'+b.y.toFixed(1)+'" width="'+b.w.toFixed(1)+'" height="'+b.h.toFixed(1)+'" rx="'+(2*u).toFixed(1)+'" fill="#fff" fill-opacity=".92" stroke="#b6c0cf" stroke-width="'+(0.7*u).toFixed(2)+'"/>';
+      g+=textEl(bx,by,tg.fs,lay.txt,'#334155','am-b',tg.o==='v');
     }
     var cls='am-cell'+(o.tap?' am-tap':'')+(o.dim?' am-dim':'');
     var hit=(kind==='text'||fill==='none')?'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="#fff" fill-opacity="0.01"/>':'';
@@ -16554,7 +16611,7 @@ async function start(){
     S.s=s; S.vx=vx; S.vy=vy; S.vw=vw; S.vh=vh;
     svg.setAttribute('viewBox',vx.toFixed(2)+' '+vy.toFixed(2)+' '+vw.toFixed(2)+' '+vh.toFixed(2));
     svg.setAttribute('preserveAspectRatio','xMidYMid meet');
-    var fr=svg.querySelector('rect[stroke="#111827"]'); if(fr) fr.setAttribute('stroke-width',(2.2/s).toFixed(2));
+    var fr=svg.querySelector('rect[stroke="#111827"]'); if(fr){ fr.setAttribute('stroke-width',(1.8/s).toFixed(2)); fr.setAttribute('stroke','#64748b'); }   /* 5.16：外わくの黒い太線をやめる（灰色） */
     return ch;
   }
   /* narrow list (tablet): fire / soon marks next to the short name */
@@ -16568,6 +16625,7 @@ async function start(){
   }
   window.renderMapView=function(){
     S.key=null;
+    try{ post(); }catch(e){}   /* 5.16（スマホ幅の重さの直し）：描く前に いまの大きさを 測る。大きさが変わった直後は、前は 古い大きさで 1回 描いてから 測って 描き直していた（1回 むだ）。測った結果は 下の post と 同じ（最後の形は 変わらない） */
     baseRender.apply(this,arguments);
     try{
       var tries=0; while(post()&&tries++<3){ S.key=null; baseRender.apply(this,arguments); }
@@ -16591,7 +16649,9 @@ async function start(){
     try{ if(!_amfOpen&&!mq.matches&&post()) renderMapView(); }catch(e){ console.error('m5 toggle '+(e&&e.message)); }
     return r;
   };
-  window.__m5={info:function(){ return {s:S.s,rw:S.rw,rh:S.rh,vb:[S.vx,S.vy,S.vw,S.vh],cells:S.info}; },S:S};
+  /* 試験の窓（wstest 96s3・96s6）：いまの置き方の数（置けない札・引き出し線のぶつかり・線の長さ）と、同じ画面で「線を見ない 5.15 の置き方」の数を出す。決まった数でなく 比べで試験できる（端末や字体で 変わらない）。画面・S.lay・保存には さわらない */
+  window.__m5={info:function(){ return {s:S.s,rw:S.rw,rh:S.rh,vb:[S.vx,S.vy,S.vw,S.vh],cells:S.info}; },S:S,
+    probe:function(){ var map=amMap(), k={info:S.info,stat:S.stat}; if(!map||!(S.s>0)) return null; try{ buildLayout(map); var now=S.stat; buildLayout0(map,now.mg,{c:{},n:0},true); return {now:now,blind:S.stat}; } finally{ S.info=k.info; S.stat=k.stat; } }};
   var rt=null; function again(){ clearTimeout(rt); rt=setTimeout(function(){ if(document.getElementById('amf-wrap')) renderMapView(); },60); }
   window.addEventListener('resize',again); mq.addEventListener('change',again);
   if(document.getElementById('amf-wrap')) renderMapView();

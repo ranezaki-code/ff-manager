@@ -340,12 +340,19 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const xBtn=()=>A.ev(`(()=>{ const b=document.querySelector('#am-sheet .am-x'); if(b) b.click(); return !!b; })()`);
       const bg=()=>A.ev(`(()=>{ const m=document.getElementById('am-sheet'); m.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); return true; })()`);
       const t0=tot(), o={};
-      /* (a) 列の行：1回目で開く → 0.1秒後・その 0.15秒後に 名前のボタン → その 0.1秒後に × → その 0.1秒後に 窓の外（全部 0.5秒の中）。どれも受けない＝記録 0件・カードは開いたまま */
-      A.ev(`setView('map'); _amPatrol='all'; amFToggle(true); renderMapView(); document.querySelectorAll('#amf-col .amf-r')[0].click();`); o.a0=sheet();
-      await sleep(100); o.a1b=anon(); o.a1=[sheet(),tot()-t0];
-      await sleep(150); anon(); o.a2=[sheet(),tot()-t0];
-      await sleep(100); xBtn(); o.a3=[sheet(),tot()-t0];
-      await sleep(100); bg(); o.a4=[sheet(),tot()-t0];   /* 5.7：0.1・0.25・0.35・0.45秒（受けなかった押しで のばさないので、0.5秒の中で押す） */
+      /* (a) 列の行：1回目で開く → 開いた時からの 実測の経過で 0.1秒に 名前のボタン・0.2秒に もう一度・0.3秒に ×・0.4秒に 窓の外（全部 0.5秒の守りの中。前は sleep の足し算 0.1・0.25・0.35・0.45秒で、道具の往復がかさむと 4回目が 0.5秒を こえて 落ちた＝テス r9・06:00 など）。
+         どれも受けない＝記録 0件・カードは開いたまま。押した時刻（ms）は 詳細に出す。4回目が 0.47秒より遅かった時は 道具の都合なので、閉じて ひと息おいて もう一度（最大3回） */
+      const Tn=()=>Number(A.ev('performance.now()'));
+      for(let tryN=0;tryN<3;tryN++){
+        if(tryN){ A.ev('amCloseSheet()'); await sleep(700); }
+        A.ev(`setView('map'); _amPatrol='all'; amFToggle(true); renderMapView(); document.querySelectorAll('#amf-col .amf-r')[0].click();`); o.a0=sheet(); const tO=Tn();
+        const at=async ms=>{ const d=ms-(Tn()-tO); if(d>0) await sleep(d); };
+        await at(100); o.a1b=anon(); o.a1=[sheet(),tot()-t0]; o.ta1=Math.round(Tn()-tO);
+        await at(200); anon(); o.a2=[sheet(),tot()-t0]; o.ta2=Math.round(Tn()-tO);
+        await at(300); xBtn(); o.a3=[sheet(),tot()-t0]; o.ta3=Math.round(Tn()-tO);
+        await at(400); const tb=Math.round(Tn()-tO); bg(); o.a4=[sheet(),tot()-t0]; o.ta4=tb; o.tries=tryN+1;
+        if(tb<=470) break;
+      }
       /* ひと息（0.5秒より長く）おけば、名前のボタンは 今までどおり 1回で記録できる。その記録は「取り消す」で戻す */
       await sleep(700); anon(); o.a5=[sheet(),tot()-t0];
       A.ev(`(()=>{ const b=document.querySelector('#am-snack button'); if(b) b.click(); })()`); o.a6=tot()-t0;
@@ -370,7 +377,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         &&!!cells[0]&&o.b0==='card'&&J2(o.b1)==='["card",0]'
         &&!!cells[1]&&o.c0==='pick'&&o.c1==='pick'&&o.c2==='card'&&J2(o.c3)==='["card",0]'
         &&(o.d0!==true||(o.d1===true&&J2(o.d2)==='["card",0]'))&&tot()===t0&&same(),
-        `行：${J2(o.a1)}→${J2(o.a2)}→×${J2(o.a3)}→外${J2(o.a4)}→ひと息おいて${J2(o.a5)}→取り消し ${o.a6}／マス ${J2(o.b1)}／選ぶ窓 ${o.c1}→${o.c2}→${J2(o.c3)}／ほかの人 ${o.d0?J2(o.d2):'（ボタンなし）'}`); }
+        `行：${J2(o.a1)}→${J2(o.a2)}→×${J2(o.a3)}→外${J2(o.a4)}（押した時刻 ${o.ta1}・${o.ta2}・${o.ta3}・${o.ta4}ms・${o.tries}回目）→ひと息おいて${J2(o.a5)}→取り消し ${o.a6}／マス ${J2(o.b1)}／選ぶ窓 ${o.c1}→${o.c2}→${J2(o.c3)}／ほかの人 ${o.d0?J2(o.d2):'（ボタンなし）'}`); }
     // ---------- 段2（2026-10-12）：日ごとの記録（state のいちばん上の amLog_日付）・⏰ 売場以外・📊 だれが・いつ ----------
     const logOf=(d,id)=>JSON.parse(d.ev(`JSON.stringify(amLogRange(Date.now()-3*864e5,Date.now()+6e4).filter(r=>r.id&&r.w===${J(id)}).map(r=>[r.id,r.by,r.v]))`));
     const logKeys=d=>JSON.parse(d.ev('JSON.stringify(amLogKeys())'));
@@ -1480,7 +1487,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.17'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.18'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1604,7 +1611,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.17',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.18',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -1616,9 +1623,9 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       KM.ev(`setView('map')`); await sleep(700);
       const km=JSON.parse(KM.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), rs=[].slice.call(svg.querySelectorAll('g.am-cell > rect')).map(r=>(r.getAttribute('fill')||'').toLowerCase());
         const hi=document.querySelector('#amf-hi rect'), cs=hi?getComputedStyle(hi):null;
-        return JSON.stringify({n:rs.length, fire:rs.filter(f=>f==='url(#am-fire)').length, soon:rs.filter(f=>f==='#eaf1fb').length, old:rs.filter(f=>f==='#f6a79e'||f==='#fbe18a').length, pat:!!svg.querySelector('pattern#am-fire'), hi:cs?cs.stroke:'', cells:amMap().cells.length}); })()`));
-      check('96s','売場マップの色（5.14・案1）：遅れのマスは 赤い斜線（#am-fire）・もうすぐは 薄い青・前の色（#f6a79e・#fbe18a）は 0・選んでいる所の わくは 青（#1a56b0）。マスの数は 59 のまま',
-        km.fire>0&&km.old===0&&km.pat&&/26, 86, 176/.test(km.hi)&&km.cells===59,`マス ${km.cells}・赤い斜線 ${km.fire}・薄い青 ${km.soon}・前の色 ${km.old}・わく ${km.hi}`);
+        return JSON.stringify({n:rs.length, fire:rs.filter(f=>f==='#fdeceb').length, hatch:rs.filter(f=>f==='url(#am-fire)').length, soon:rs.filter(f=>f==='#eef4fc').length, old:rs.filter(f=>f==='#f6a79e'||f==='#fbe18a').length, pat:!!svg.querySelector('pattern#am-fire'), hi:cs?cs.stroke:'', cells:amMap().cells.length}); })()`));
+      check('96s','売場マップの色（5.16）：遅れのマスは うすい赤の単色（#fdeceb。斜線は使わない）・もうすぐは 薄い青（#eef4fc）・前の色（#f6a79e・#fbe18a）は 0・選んでいる所の わくは 青（#3b78d8）。マスの数は 59 のまま',
+        km.fire>0&&km.hatch===0&&km.old===0&&/59, 120, 216/.test(km.hi)&&km.cells===59,`マス ${km.cells}・うすい赤 ${km.fire}・斜線 ${km.hatch}・薄い青 ${km.soon}・前の色 ${km.old}・わく ${km.hi}`);
       KM.close();
       /* 5.14：持ち場の切り替えを 最初の画面に（店長 10/18「隠れてないほうがいい…じゃまにならないように」）。押すと 今までの amSetPatrol と同じ・データは変わらない */
       const KS=await mkSolo(390,844);
@@ -1632,6 +1639,87 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         ks.n===3&&ks.labels[0]==='すべて'&&/周辺/.test(ks.labels[1])&&/外/.test(ks.labels[2])&&ks.h>0&&ks.h<=48&&ks.one&&ks.blue.p==='blue'&&ks.blue.on&&ks.blue.okB&&ks.blue.ss==='blue'&&ks.all.p==='all'&&ks.all.on&&ks.same,
         `ボタン ${ks.labels.join('／')}・高さ ${ks.h}px・1行 ${ks.one}｜周辺：${ks.blue.rows}行（周辺と両方だけ ${ks.blue.okB}）・覚えた ${ks.blue.ss}｜すべて：${ks.all.p}｜データ同じ ${ks.same}`);
       KS.close();
+      /* ---- 5.16（店長 10/20「文字被りだったり、はみ出てるのが気になる。文字が太くて、色も濃いからすごく見ずらい。目がちかちかする」→ 10/20「一旦公開で」）：地図の字と色を おだやかに。マスの形と位置は 1つも変えない（96a）。
+           96s2＝字・札・色／96s3＝引き出し線が 札・字・ほかの線に ぶつからない／96s4＝縦の字を 言葉の途中で切らない・外わく・保存しない ---- */
+      const KU=await mkSolo(768,1024);
+      KU.ev(`setView('map')`); await sleep(700);
+      const ku=JSON.parse(KU.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), sc=svg.getScreenCTM().a, gs=[].slice.call(svg.querySelectorAll('g.am-cell')), tx=[].slice.call(svg.querySelectorAll('text'));
+        const w=tx.map(t=>+getComputedStyle(t).fontWeight), px=tx.map(t=>parseFloat(t.getAttribute('font-size'))*sc), outs=[], cells=[], tags=[];
+        gs.forEach(g=>{ const rc=g.querySelector('rect:not([fill-opacity="0.01"])'); if(!rc) return; const cr=rc.getBoundingClientRect(), ln=g.querySelector('line'), rs=g.querySelectorAll('rect'); cells.push({g:g,x:cr.left,y:cr.top,w:cr.width,h:cr.height});
+          [].slice.call(g.querySelectorAll('text')).forEach(t=>{ const r=t.getBoundingClientRect(); if(ln){ const tr=rs[rs.length-1].getBoundingClientRect(); tags.push({g:g,t:t.textContent,x:tr.left,y:tr.top,w:tr.width,h:tr.height}); } else if(r.left<cr.left-.6||r.right>cr.right+.6||r.top<cr.top-.6||r.bottom>cr.bottom+.6) outs.push(t.textContent); }); });
+        let tc=0, tt=0; tags.forEach((a,i)=>{ cells.forEach(c=>{ if(c.g!==a.g&&a.x<c.x+c.w-.8&&c.x<a.x+a.w-.8&&a.y<c.y+c.h-.8&&c.y<a.y+a.h-.8) tc++; }); tags.slice(i+1).forEach(b=>{ if(a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h) tt++; }); });
+        const fr=svg.querySelector('g.am-cell > rect[fill="#fdeceb"]'), sw=fr?parseFloat(fr.getAttribute('stroke-width'))*sc:0, pins=[].slice.call(svg.querySelectorAll('g.am-cell')).filter(g=>/^床$/.test((g.textContent||'').trim())).map(g=>parseFloat(g.querySelector('text').getAttribute('font-size'))*sc);
+        return JSON.stringify({n:tx.length, wmax:Math.max.apply(null,w), pmin:Math.min.apply(null,px), pmax:Math.max.apply(null,px), outs:outs, tags:tags.length, tc:tc, tt:tt, sw:sw, pins:pins, url:svg.querySelectorAll('[fill="url(#am-fire)"]').length}); })()`));
+      check('96s2','売場マップの字（5.16）：字の太さは 600 まで（前は 800）・大きさは 11px〜12px（前は 11〜14）・マスの中の字は マスからはみ出さない・外の札は マスにも ほかの札にも かぶらない・赤い斜線は使わない・おくれの枠は 2px 以下・「床」は 11.5px 以下',
+        ku.n>20&&ku.wmax<=600&&ku.pmin>=11&&ku.pmax<=12.1&&ku.outs.length===0&&ku.tc===0&&ku.tt===0&&ku.url===0&&ku.sw>0&&ku.sw<=2&&ku.pins.every(p=>p<=11.5),
+        `字 ${ku.n}個・太さ 最大 ${ku.wmax}・大きさ ${Math.round(ku.pmin*10)/10}〜${Math.round(ku.pmax*10)/10}px・はみ出し ${ku.outs.join('、')||'なし'}・外の札 ${ku.tags}（マスに かぶる ${ku.tc}・札どうし ${ku.tt}）・斜線 ${ku.url}・おくれの枠 ${Math.round(ku.sw*10)/10}px・床 ${ku.pins.map(p=>Math.round(p*10)/10).join('/')}px`);
+      /* 96s3：引き出し線（マスのはしから 外の札まで）が ほかの札・字・ほかの線に ぶつからない。広い画面は 0。スマホは 置ける場所が少ないので「ゆるめて 置く」（5.15 より 大きく へる）。
+         測る関数は 枠の中で動かす（作り物のデータだけ。画面の絵は 変えない） */
+      const lineJs='('+function(){
+        function ss(a,b){ function o(ax,ay,bx,by,cx,cy){ return (bx-ax)*(cy-ay)-(by-ay)*(cx-ax); } var d1=o(a.x1,a.y1,a.x2,a.y2,b.x1,b.y1), d2=o(a.x1,a.y1,a.x2,a.y2,b.x2,b.y2), d3=o(b.x1,b.y1,b.x2,b.y2,a.x1,a.y1), d4=o(b.x1,b.y1,b.x2,b.y2,a.x2,a.y2); return ((d1>0)!==(d2>0))&&((d3>0)!==(d4>0)); }
+        function sr(sg,r){ function inR(x,y){ return x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h; } if(inR(sg.x1,sg.y1)||inR(sg.x2,sg.y2)) return true; var E=[{x1:r.x,y1:r.y,x2:r.x+r.w,y2:r.y},{x1:r.x+r.w,y1:r.y,x2:r.x+r.w,y2:r.y+r.h},{x1:r.x+r.w,y1:r.y+r.h,x2:r.x,y2:r.y+r.h},{x1:r.x,y1:r.y+r.h,x2:r.x,y2:r.y}]; for(var k=0;k<4;k++) if(ss(sg,E[k])) return true; return false; }
+        var svg=document.querySelector('#map-view svg.am-svg'), gs=[].slice.call(svg.querySelectorAll('g.am-cell')), tags=[], lines=[], texts=[];
+        gs.forEach(function(g){ var rs=[].slice.call(g.querySelectorAll('rect')), ln=g.querySelector('line');
+          [].slice.call(g.querySelectorAll('text')).forEach(function(t){ var r=t.getBoundingClientRect(); if(ln){ var tr=rs[rs.length-1].getBoundingClientRect(); tags.push({g:g,x:tr.left,y:tr.top,w:tr.width,h:tr.height}); } else texts.push({x:r.left,y:r.top,w:r.width,h:r.height}); });
+          if(ln){ var m=ln.getScreenCTM(), P=function(x,y){ return {x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f}; }, p1=P(+ln.getAttribute('x1'),+ln.getAttribute('y1')), p2=P(+ln.getAttribute('x2'),+ln.getAttribute('y2')); lines.push({g:g,x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y}); } });
+        var ll=0, lt=0, lx=0; lines.forEach(function(a,i){ lines.slice(i+1).forEach(function(b){ if(ss(a,b)) ll++; }); tags.forEach(function(t){ if(t.g!==a.g&&sr(a,t)) lt++; }); texts.forEach(function(t){ if(sr(a,t)) lx++; }); });
+        var info=(window.__m5&&window.__m5.info().cells)||[];
+        return JSON.stringify({tags:tags.length, ll:ll, lt:lt, lx:lx, tot:ll+lt+lx, lost:info.filter(function(x){ return x.mode==='lost'; }).length});
+      }.toString()+')()';
+      const KL1=await mkSolo(1100,900);
+      KL1.ev(`setView('map')`); await sleep(700);
+      const probeJs='JSON.stringify(window.__m5&&window.__m5.probe?window.__m5.probe():null)';   // 試験の窓が 無い版（5.15）では null＝不合格（止まらない）
+      const kl1=JSON.parse(KL1.ev(lineJs)), pr1=JSON.parse(KL1.ev(probeJs)); KL1.close();
+      const KL2=await mkSolo(390,844);
+      KL2.ev(`setView('map')`); await sleep(500); KL2.ev(`document.getElementById('amf-tab').click()`); await sleep(600);
+      const kl2=JSON.parse(KL2.ev(lineJs)), pr2=JSON.parse(KL2.ev(probeJs)); KL2.close();
+      const KL3=await mkSolo(360,740);
+      KL3.ev(`setView('map')`); await sleep(500); KL3.ev(`document.getElementById('amf-tab').click()`); await sleep(600);
+      const kl3=JSON.parse(KL3.ev(lineJs)), pr3=JSON.parse(KL3.ev(probeJs)); KL3.close();
+      /* 96s3 の直し（テスの点検：決まった数（390＝2本・360＝12本）は 端末や字体で 変わる＝テスの環境では 360 幅で 25本）：同じ画面で「線を見ない 5.15 の置き方」（__m5.probe の blind）と比べる形に。
+         数は 置き方の中の数（引き出し線が ほかの線・札・マスの中の字と ぶつかる数＝線の長さの見積りで決まる物。字体に よらない）。画面で測った数（字体で変わる）は 参考に 出すだけ */
+      const fewer=p=>!!(p&&p.now&&p.blind)&&(p.blind.cross>0?p.now.cross<p.blind.cross:p.now.cross===0)&&p.now.lost<=p.blind.lost;
+      const prS=p=>p&&p.now?`ぶつかり ${p.now.cross}（5.15 の置き方 ${p.blind.cross}）・置けない ${p.now.lost}（5.15 の置き方 ${p.blind.lost}）`:'（試験の窓が無い）';
+      check('96s3','地図の引き出し線（5.16）：外の札につなぐ細い線が ほかの札・字・ほかの線に ぶつからない。1100×900＝0本・置けない 0／幅390・360＝同じ画面の「線を見ない 5.15 の置き方」より ぶつかりが 少ない・置けない札は 5.15 の置き方より 多くない・390 は 置けない 0（決まった本数では 端末や字体で 変わるので、比べで見る）',
+        kl1.tags>5&&!!pr1&&pr1.now.cross===0&&pr1.now.lost===0&&kl2.tags>10&&fewer(pr2)&&pr2.now.lost===0&&kl3.tags>10&&fewer(pr3),
+        `1100：札 ${kl1.tags}・${prS(pr1)}・画面で測った ぶつかり ${kl1.tot}｜390：札 ${kl2.tags}・${prS(pr2)}・画面で測った ${kl2.tot}｜360：札 ${kl3.tags}・${prS(pr3)}・画面で測った ${kl3.tot}`);
+      /* 96s4：縦に並べた字は 言葉の途中で 切らない（登録に「ゴミ箱／レンジ」のように 改行がある物だけが 2列。自動の分け方は 横だけ）。外わくの黒い太線は 灰色。地図を描いても 保存する物は 無い（state が変わらない） */
+      const vJs='('+function(){
+        var svg=document.querySelector('#map-view svg.am-svg'), by=new Map(), out=[];
+        [].slice.call(svg.querySelectorAll('g.am-cell')).forEach(function(g){ var vs=[].slice.call(g.querySelectorAll('text')).filter(function(t){ return t.getAttribute('writing-mode')==='vertical-rl'&&!g.querySelector('line'); }).map(function(t){ return t.textContent; }); if(vs.length>1) out.push(vs.join('\n')); });
+        var allowed=[]; amMap().cells.forEach(function(c){ if(/\n/.test(c.label||'')) allowed.push(String(c.label)); });
+        ['ゴミ箱\nレンジ','シーズン\nエンド①','コーヒー\nマシン','冷蔵\nケース','冷凍\nアイス②'].forEach(function(a){ allowed.push(a); });   // 名前を短くした物（登録の文字ではなく 画面の ALT）も 手で区切った物
+        var bad=out.filter(function(o){ return allowed.indexOf(o)<0; });
+        var s0=JSON.stringify(state), ls0=0; try{ ls0=localStorage.length; }catch(e){}
+        renderMapView(); var s1=JSON.stringify(state);
+        return JSON.stringify({groups:out, bad:bad, black:!!svg.querySelector('rect[stroke="#111827"]'), gray:!!document.querySelector('#map-view svg.am-svg rect[stroke="#64748b"]'), same:s0===s1});
+      }.toString()+')()';
+      const kv=JSON.parse(KU.ev(vJs));
+      check('96s4','地図の縦の字・外わく（5.16）：縦に 2列以上 並ぶ字は 登録に 改行がある（または 画面で 手で区切った）物だけ＝言葉の途中で 自動では 切らない（前は「まちかど厨房」が「まちか／ど厨房」）・外わくは 灰色で 黒い太線は 無い・地図を描き直しても state は 変わらない',
+        kv.groups.length>=1&&kv.bad.length===0&&!kv.black&&kv.gray&&kv.same,
+        `縦に2列以上 ${kv.groups.length}個（${kv.groups.map(g=>g.replace(/\n/g,'／')).join('、')}）・途中で切った物 ${kv.bad.length}（${kv.bad.map(g=>g.replace(/\n/g,'／')).join('、')}）・外わく 黒 ${kv.black}／灰 ${kv.gray}・state 同じ ${kv.same}`);
+      KU.close();
+      /* 96s6：地図の置き方の重さ（テスの点検：5.16 の置き方は スマホ幅で 5.15 の 10〜35倍。390 幅 5→67ms・320 幅 28→241ms）。
+         決まった時間ではなく「描き直しだけ（置き方を使い回す）」との比で見る（端末の速さで 変わらない形）。幅 390×844・320×640（地図を出した状態）で、
+         置き方を作り直す描き直し（S.layK を消して renderMapView）の いちばん速い回 ÷ 使い回す描き直しの いちばん速い回 ≦ 390 は 8・320 は 16（直す前の 5.16 は 20・60、直した後は 4・8、5.15 は 2・8）。置けない札は 同じ画面の「線を見ない 5.15 の置き方」（probe の blind）より 多くない事を見る（決まった数は 端末で変わる） */
+      const perfJs='('+function(){
+        var S=window.__m5.S, i, full=[], cached=[];
+        function mn(a){ return Math.round(Math.min.apply(null,a)*100)/100; }
+        renderMapView();
+        for(i=0;i<7;i++){ S.layK='x'; var t0=performance.now(); renderMapView(); full.push(performance.now()-t0); }
+        for(i=0;i<7;i++){ var t1=performance.now(); renderMapView(); cached.push(performance.now()-t1); }
+        var inf=window.__m5.info().cells||[], pr=window.__m5.probe?window.__m5.probe():null;
+        return JSON.stringify({w:innerWidth,h:innerHeight,full:mn(full),cached:mn(cached),ratio:Math.round(mn(full)/Math.max(mn(cached),0.5)*10)/10,tags:inf.filter(function(x){ return x.mode==='tag'||x.mode==='lost'; }).length,lost:inf.filter(function(x){ return x.mode==='lost'; }).length,cross:pr?pr.now.cross:-1,lostOld:pr?pr.blind.lost:-1});
+      }.toString()+')()';
+      const KP1=await mkSolo(390,844);
+      KP1.ev(`setView('map')`); await sleep(500); KP1.ev(`document.getElementById('amf-tab').click()`); await sleep(600);
+      const kp1=JSON.parse(KP1.ev(perfJs)); KP1.close();
+      const KP2=await mkSolo(320,640);
+      KP2.ev(`setView('map')`); await sleep(500); KP2.ev(`document.getElementById('amf-tab').click()`); await sleep(600);
+      const kp2=JSON.parse(KP2.ev(perfJs)); KP2.close();
+      check('96s6','地図の置き方の重さ（5.16 の直し）：幅 390×844 では 置き方を作り直す描き直しは「描き直しだけ」の 8倍 まで（直す前の 5.16 は 20倍・直した後は 4倍・5.15 は 2倍）・幅 320×640（置けない札が 出る いちばん重い所）は 16倍 まで（直す前は 60倍・直した後は 8倍・5.15 は 8倍）・置けない札は 同じ画面の「線を見ない 5.15 の置き方」より 多くない（決まった数は 端末で変わる＝テスの PC では 320 幅で 10）・札は 10 以上',
+        kp1.tags>=10&&kp1.lostOld>=0&&kp1.lost<=kp1.lostOld&&kp1.ratio<=8&&kp2.tags>=10&&kp2.lostOld>=0&&kp2.lost<=kp2.lostOld&&kp2.ratio<=16,
+        `390：作り直し ${kp1.full}ms／描き直しだけ ${kp1.cached}ms＝${kp1.ratio}倍・札 ${kp1.tags}・置けない ${kp1.lost}（5.15 の置き方 ${kp1.lostOld}）・ぶつかり ${kp1.cross}｜320：作り直し ${kp2.full}ms／描き直しだけ ${kp2.cached}ms＝${kp2.ratio}倍・札 ${kp2.tags}・置けない ${kp2.lost}（5.15 の置き方 ${kp2.lostOld}）・ぶつかり ${kp2.cross}`);
     }
     /* ---- 5.13（店長 10/18「全部おすすめで」）：登録の窓の「守り」A〜E と、5.11 の残り N1・N2。
          作り物のデータだけの別の枠（ネット上の保存先は 別の入れ物＝2台の中身・未送信には 関わらない）。保存先は 使わず、画面の中の状態（state）を 見る。
@@ -2439,6 +2527,44 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           `記録を始める前：${J(o.none)}｜1件：${J(o.n1)}｜一覧：窓 ${o.sheet[0]}・行 ${o.sheet[2]}・人の名前なし ${o.noPerson}｜見た：${J(o.seen)}｜きのうの記録が そろう：${J(o.n0)}｜保存した項目 ${o.noSave}`);
         P.close();
       });
+      /* ===== 96s5：厨房の表のボタンと「きのうの抜け」の帯を、5.16 の おだやかな地図に そろえる（店長の決まり「出来ばえは 自分から 直す」10/20）。
+           ボタン＝ふちは 灰色（黒く 太いふちを やめる）・字は 600 まで／帯＝色と ふちを うすく（黄色の気づきやすさは 残す）・数は 太いまま・字は 濃いまま。押す所は 44px 以上 ===== */
+      await tryB('96s5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk3(cl,'端末Pk','ws',st), o={};
+        const yday=h=>{ const d=new Date(at(12)); d.setDate(d.getDate()-1); d.setHours(h,0,0,0); return d.getTime(); };
+        const idOld='w_'+(at(12)-5*864e5).toString(36);
+        const W=(id,name,tm)=>({id,place:'off',name,icon:'🧪',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:[tm],lead:30,grace:60,items:[]});
+        const mJs='('+function(){
+          var cs=function(e){ return e?getComputedStyle(e):null; }, kc=document.getElementById('amf-kc'), yd=document.getElementById('amf-yd'), b=yd&&yd.querySelector('b'), k=cs(kc), y=cs(yd), bb=cs(b), rk=kc&&kc.getBoundingClientRect(), ry=yd&&yd.getBoundingClientRect();
+          function rgb(s){ var m=/rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(s||''); return m?[+m[1],+m[2],+m[3]]:[0,0,0]; }
+          return JSON.stringify({kc:!!kc, yd:!!yd, kcBw:k?parseFloat(k.borderTopWidth):0, kcBc:k?rgb(k.borderTopColor):[0,0,0], kcFw:k?+k.fontWeight:0, kcH:rk?rk.height:0, kcW:rk?rk.width:0,
+            ydBw:y?parseFloat(y.borderTopWidth):0, ydBc:y?rgb(y.borderTopColor):[0,0,0], ydBg:y?rgb(y.backgroundColor):[0,0,0], ydFw:y?+y.fontWeight:0, ydCol:y?rgb(y.color):[255,255,255], ydH:ry?ry.height:0, bFw:bb?+bb.fontWeight:0, bFs:bb?parseFloat(bb.fontSize):0,
+            ydTxt:yd?yd.textContent.replace(/\s+/g,' ').trim():''});
+        }.toString()+')()';
+        try{
+          goto(P,at(12)); P.win.sessionStorage.removeItem('ws_am_yd');
+          P.ev(`isAdmin=false; applyAdminMode(); setView('map'); state.amWorks=${J([W(idOld,'帯の試験','10:30'),W('w_ydother','別の作業','11:00')])}; state.kcList=[{id:'t1',name:'ふつう',at:1,kb:1,w:1,h:1}]; state['kcImg_t1']='data:image/jpeg;base64,AA=='; amSave(); renderMapView();`); await sleep(120);
+          P.ev(`amLogAdd('w_ydother',{at:new Date(${yday(11)}).toISOString(),by:'見本 花子'},null,null); amSave(); _yd={t:0,n:-1,items:[]}; renderMapView()`); await sleep(150);
+          o.m=jp(E(P,mJs),{});
+        } finally { unwarp(P); try{ P.win.sessionStorage.removeItem('ws_am_yd'); }catch(_){} }
+        const m=o.m||{}, gray=c=>Array.isArray(c)&&(Math.max.apply(null,c)-Math.min.apply(null,c))<=45&&(c[0]+c[1]+c[2])/3>=90, mn=c=>Array.isArray(c)?Math.min.apply(null,c):0;
+        checkL('96s5','【厨房ボタン・きのうの抜けの帯（5.16）】ボタンの ふちは 灰色で 太くない（黒い太いふちを やめる）・字は 600 まで・44px 以上／帯は ふちが 細く うすい黄・地も うすい・字は 600 まで・数は 太いまま・字の色は 濃いまま・44px 以上・「きのう 記録が なかった 作業 1件」のまま',
+          [['1:ボタンと帯が 出ている',!!m.kc&&!!m.yd],
+           ['2:ボタンの ふち 1.6px 以下',m.kcBw>0&&m.kcBw<=1.6],
+           ['3:ボタンの ふちは 灰色（黒ではない）',gray(m.kcBc)],
+           ['4:ボタンの 字 600 まで',m.kcFw>0&&m.kcFw<=600],
+           ['5:ボタン 44px 以上',m.kcH>=44&&m.kcW>=44],
+           ['6:帯の ふち 1.2px 以下',m.ydBw>0&&m.ydBw<=1.2],
+           ['7:帯の ふちは うすい（いちばん小さい色が 150 以上）',mn(m.ydBc)>=150],
+           ['8:帯の 地は うすい（いちばん小さい色が 232 以上）',mn(m.ydBg)>=232],
+           ['9:帯の 字 600 まで',m.ydFw>0&&m.ydFw<=600],
+           ['10:帯の 字の色は 濃い（赤が 110 以下）',m.ydCol&&m.ydCol[0]<=110],
+           ['11:数は 太く 15px 以上',m.bFw>=700&&m.bFs>=15],
+           ['12:帯 44px 以上',m.ydH>=44],
+           ['13:帯の 字は 前のまま',/きのう 記録が なかった 作業 1件/.test(m.ydTxt||'')]],
+          `ボタン：ふち ${m.kcBw}px・色 ${J(m.kcBc)}・字 ${m.kcFw}・${Math.round(m.kcW)}×${Math.round(m.kcH)}｜帯：ふち ${m.ydBw}px・色 ${J(m.ydBc)}・地 ${J(m.ydBg)}・字 ${m.ydFw}・字の色 ${J(m.ydCol)}・数 ${m.bFw}／${m.bFs}px・高さ ${Math.round(m.ydH)}｜「${m.ydTxt}」`);
+        P.close();
+      });
     }
     /* ---- 5.17（店長 10/17「ワークスケジュールのワークスケジュール登録、作業を追加の中の設定さ、なんかバグってる。消えてたり、設定もしづらいので見栄え等リニューアルして」→ 10/19 案に「全部お勧めで」→ 10/20「一旦公開で」）：
          登録の表と「作業の内容」の窓の作りかえ。保存の形は 変えない（新しい鍵なし）。保存の道（amSaveWork → amApplyPatch／amFormOffRead）は 今までどおり。
@@ -2882,7 +3008,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same2=[wsj(O5)===wsj(P),wsj(O4)===wsj(P)];
         } finally { for(const d of [P,O5,O4]){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
         checkL7('97l','【古い版（5.14・5.15）の端末と まざる】新しい画面で 足した作業が 古い画面にも 同じ中身で 届く（保存の形は 同じ）・古い画面で 開いて 保存しても 変わらない・同じ作業の 別の欄（説明・名前・締切）を 3台が 同時に 直しても 全部 残る・新しい画面の ＋ と 古い画面の □ は 同じ書き方（sch7 と sch）で 3台が そろう',[
-            ['1:版',o.v[0]==='5.17'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
+            ['1:版',o.v[0]==='5.18'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
             ['2:はじめ そろう',J(o.seed)===J([true,true])],
             ['3:作業が 届く',J(o.arrive)===J([true,true,true,true])],
             ['4:開いて保存＝変わらない',J(o.noop)===J([true,true,true])],
