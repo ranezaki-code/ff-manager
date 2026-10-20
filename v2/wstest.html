@@ -1487,7 +1487,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.19'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.20'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1611,7 +1611,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.19',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.20',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -3008,7 +3008,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same2=[wsj(O5)===wsj(P),wsj(O4)===wsj(P)];
         } finally { for(const d of [P,O5,O4]){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
         checkL7('97l','【古い版（5.14・5.15）の端末と まざる】新しい画面で 足した作業が 古い画面にも 同じ中身で 届く（保存の形は 同じ）・古い画面で 開いて 保存しても 変わらない・同じ作業の 別の欄（説明・名前・締切）を 3台が 同時に 直しても 全部 残る・新しい画面の ＋ と 古い画面の □ は 同じ書き方（sch7 と sch）で 3台が そろう',[
-            ['1:版',o.v[0]==='5.19'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
+            ['1:版',o.v[0]==='5.20'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
             ['2:はじめ そろう',J(o.seed)===J([true,true])],
             ['3:作業が 届く',J(o.arrive)===J([true,true,true,true])],
             ['4:開いて保存＝変わらない',J(o.noop)===J([true,true,true])],
@@ -3488,7 +3488,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.errs=errN8()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL8('97y','【見本「ぜんぶ」・2台と 古い版】A：Q（5.19）が 切れている 間に 回数を 直し 自分の 作業を 足す・P は つながった まま 40件 足す → Q が あとから つながっても、P の 40件・Q の 作業と 回数・今の 作業 21件が 全部 残り、4台（5.19×2・5.14・5.18）の 中身が 同じ。B：P が 切れている 間に 残り 5件を 足し、その間に Q・5.14・5.17 が それぞれ 回数を 直す → P が あとから つながっても 全部 残る（45件・3台の 回数・Q の 作業）。負けた 入力 0。古い版でも 登録の表が 開ける（5.18 は 見本の 一覧が 3つの まま）',[
-            ['1:版',o.v[0]==='5.19'&&o.v[1]==='5.19'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
+            ['1:版',o.v[0]==='5.20'&&o.v[1]==='5.20'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
             ['2:A 4台 同じ',o.A[0].every(x=>x===true)],
             ['3:A 全部 残る',o.addA===40&&o.A[1]===true&&o.A[2]===true&&o.A[3]===40&&o.A[4]===true],
             ['4:B 4台 同じ',o.B[0].every(x=>x===true)],
@@ -3497,6 +3497,287 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             ['7:古い版の 画面',o.o7[0]>=67&&o.o7[1]==='works'&&o.o7t===3&&o.o4[0]==='works'&&o.o4[1]===true],
             ['8:エラー 0',o.errs===0]],
           `版 ${J(o.v)}・はじめ ${J(o.seed)}｜A 足した ${o.addA}・同じ ${J(o.A[0])}・Qの作業 ${o.A[1]}・Qの回数 ${o.A[2]}（${o.qT}）・ぜんぶ ${o.A[3]}・前の作業 ${o.A[4]}｜B 足した ${o.addB}・同じ ${J(o.B[0])}・ぜんぶ ${o.B[1]}・回数 ${J(o.B[2])}（${J(o.bT)}）・Q ${o.B[3]}・前 ${o.B[4]}・全部で ${o.B[5]}｜負け ${o.lost}｜5.18 ${J(o.o7)} 見本 ${o.o7t}・5.14 ${J(o.o4)}｜エラー ${o.errs}`);
+        for(const d of D) d.close();
+      });
+    }
+    /* ---- 5.20（店長 10/20「カテゴリに値引を追加してほしい」「その他にもタグを登録できるしすてむにして」）：作業の 種類（タグ）。
+         はじめからの 種類に「値引」・管理者が 種類を 足す／名前を 直す／隠す／消す（英語・ネパール語つき）・登録の窓／一覧の絞り／カードで 使う。
+         保存の形は 足すだけ（state.amTags＝鍵ごとの 入れ物。作業の kind は 字の まま）・開いて 何も 変えずに 保存＝1字 同じ・2台 同時・古い版（5.14・5.19）と まざっても 消えない。作り物の データだけ ---- */
+    {
+      const mk9=async(cl,name,dir,seed,size)=>{
+        const be=cl.device(), store=new V2.Store({backend:be,space:'T9',device:name,kv:new V2.MemKV(),snapshot:false});
+        const sz=size||[768,900], f=document.createElement('iframe'); f.style.cssText=`display:block;width:${sz[0]}px;height:${sz[1]}px;max-width:none;border:1px solid #cbd5e1;border-radius:8px;background:#fff;margin:8px 0`; document.body.appendChild(f);
+        const win=await load(f,(dir||'ws')+'/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null;
+        await win.__v2go(Object.assign({store,stores,current:'w1'},seed?{state:J(seed)}:{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); await sleep(300);
+        return {f,win,be,store,name,ev:s=>win.eval(s),close:()=>{ try{ f.remove(); }catch(_){} }};
+      };
+      const sync9=async(devs)=>{ for(let i=0;i<3;i++){ for(const d of devs){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(350); };
+      const E9=(d,s)=>{ try{ return d.ev(s); }catch(e){ return '(エラー：'+String(e&&e.message).slice(0,60)+'）'; } };
+      const jp9=(s,d)=>{ try{ return JSON.parse(s); }catch(e){ return d; } };
+      const qn9=(d,sel)=>Number(E9(d,`document.querySelectorAll(${J(sel)}).length`))||0, qt9=(d,sel)=>String(E9(d,`(document.querySelector(${J(sel)})||{}).textContent||''`)).replace(/\s+/g,' ');
+      const qa9=(d,sel)=>jp9(E9(d,`JSON.stringify(Array.from(document.querySelectorAll(${J(sel)})).map(e=>(e.textContent||'').replace(/\\s+/g,' ').trim()))`),[]);
+      const tryB9=async(no,fn)=>{ try{ await fn(); }catch(e){ check(no+'-止','（この 試験は 途中で 止まった＝関数が 無い・エラー）',false,String(e&&e.stack||e).slice(0,400)); } };
+      const checkL9=(no,what,conds,detail)=>{ const bad=conds.filter(c=>!c[1]).map(c=>c[0]); check(no,what,bad.length===0,(bad.length?'【不合格の項目：'+bad.join(' ｜ ')+'】 ':'')+detail); };
+      const wl9=d=>jp9(E9(d,'JSON.stringify(amWorks())'),[]), wsj9=d=>E9(d,'JSON.stringify(state.amWorks===undefined?null:state.amWorks)');
+      const tg9=d=>jp9(E9(d,'JSON.stringify(state.amTags===undefined?null:state.amTags)'),'(読めない)');
+      const errN9=()=>(window.__clErrs?window.__clErrs().length:0);
+      const lost9=cl=>Object.keys(cl.docs).filter(k=>/~l~/.test(k)).reduce((n,k)=>n+(((cl.docs[k]||{}).e)||[]).filter(x=>x.lost).length,0);
+      const srvRecs9=cl=>{ const m={}; Object.keys(cl.docs).forEach(k=>{ if(/~r~/.test(k)) m[k]=J(cl.docs[k]&&cl.docs[k].d); }); return m; };
+      const kindOpts9=d=>jp9(E9(d,`JSON.stringify(Array.from(document.querySelectorAll('#amw-kind option')).map(o=>[o.value,o.textContent,o.selected]))`),[]);
+      const cardTag9=(d,id)=>String(E9(d,`(()=>{ const r=amRowEl(${J(id)}); const t=r&&r.querySelector('.rg-t.k'); return t?t.textContent:'(札なし)'; })()`));
+      /* 店で 使っている 形：初期の作業（番号つき）＋ 売場以外の 作業 4つ（値引き・温度・決めていない 種類） */
+      const W9=[
+        {id:'w_t1',place:'off',name:'平場の値引き',icon:'🏷',kind:'その他',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['10:30'],lead:90,grace:90,items:[['30%引きを 貼った','']]},
+        {id:'w_t2',place:'off',name:'温度 チェック',icon:'🌡',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['09:00'],lead:30,grace:60,items:[],vals:[{k:'a',label:'冷蔵',unit:'℃',max:5}]},
+        {id:'w_t3',place:'off',name:'種類なしの 作業',icon:'❔',kind:'',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['13:00'],lead:30,grace:60,items:[]},
+        {id:'w_t4',place:'off',name:'夕方の 値引き',icon:'🏷',kind:'その他',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:['17:00'],lead:30,grace:60,items:[]}];
+      const seed9=d=>Number(d.ev(`(()=>{ const W=JSON.parse(JSON.stringify(DEFAULT_WORKS)).map((w,i)=>Object.assign(w,{seq:(i+1)*1000})).concat(${J(W9)}); state.amWorks=W; amSave(); return W.length; })()`));
+      const setKind9=(d,id,k)=>E9(d,`(()=>{ amEditWork(${J(id)}); document.getElementById('amw-kind').value=${J(k)}; amSaveWork(${J(id)}); return (amWork(${J(id)})||{}).kind; })()`);
+      const kindOf9=(d,id)=>(wl9(d).find(w=>w.id===id)||{}).kind;
+
+      /* ===== 98a：値引（はじめからの 種類）。登録の窓で えらべる・保存・カードの 札・クルーの カード。はじめは state.amTags を 書かない ===== */
+      await tryB9('98a',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9a','ws',st), o={}, e0=errN9();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seed9(P); await sync9([P]);
+        try{
+          o.kinds=jp9(E9(P,'JSON.stringify(AM_KINDS)'),[]);
+          P.ev(`amEditWork('w_t1')`); await sleep(120); o.opt=kindOpts9(P).map(x=>x[0]); P.ev(`amCloseSheet()`);
+          o.set=setKind9(P,'w_t1','値引'); o.set4=setKind9(P,'w_t4','値引'); await sync9([P]);
+          P.ev(`amOpenWorks()`); await sleep(120); o.card=cardTag9(P,'w_t1');
+          P.ev(`amCloseSheet(); isAdmin=false; applyAdminMode(); amOpenArea('w_t1')`); await sleep(150); o.crew=qt9(P,'#am-sheet .am-hist'); P.ev(`amCloseSheet(); isAdmin=true; applyAdminMode();`);
+          o.tags=tg9(P); o.rec=Object.keys(srvRecs9(cl)).filter(k=>/amTags/.test(k)).length;
+          o.errs=errN9()-e0;
+        } finally { P.ev('amCloseSheet()'); }
+        checkL9('98a','【種類に「値引」】はじめからの 種類は 9つ（返品の 次に 値引・最後は その他）。登録の窓で えらべて 保存できる（作業の kind＝「値引」の 字）。登録の表の 札・クルーの カードの「種類：値引」。種類を 足したり 直したり しない 店では state.amTags を 書かない（ネット上にも 記録 なし）',[
+            ['1:9つ',J(o.kinds)===J(['点検','清掃','補充','前陳','品出し','納品','返品','値引','その他'])],
+            ['2:えらべる',o.opt.indexOf('値引')>=0&&o.opt.length===9],
+            ['3:保存',o.set==='値引'&&o.set4==='値引'],
+            ['4:札',o.card==='値引'],
+            ['5:クルーの カード',/種類：値引/.test(o.crew)],
+            ['6:amTags なし',o.tags===null&&o.rec===0],
+            ['7:エラー 0',o.errs===0]],
+          `種類 ${J(o.kinds)}｜選び ${J(o.opt)}｜保存 ${o.set}/${o.set4}｜札 ${o.card}｜クルー「${o.crew.slice(0,60)}」｜amTags ${J(o.tags)}・記録 ${o.rec}｜エラー ${o.errs}`);
+        P.close();
+      });
+
+      /* ===== 98b：足す・名前を 直す・英語/ネパール語・隠す／出す（管理者だけ）。保存の 形・作業の kind は 変えない ===== */
+      await tryB9('98b',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9b','ws',st), o={}, e0=errN9();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seed9(P); await sync9([P]);
+        try{
+          const W0=wsj9(P), r0=srvRecs9(cl);
+          /* 管理者で なければ 足せない */
+          P.ev('isAdmin=false'); o.na=[J(E9(P,`amTagAdd('温度')`)),tg9(P)]; P.ev('isAdmin=true');
+          /* 窓から 足す（打って ＋） */
+          P.ev(`amOpenWorks(); amTagPanel();`); await sleep(120); o.sheet=E9(P,'amSheetName()');
+          P.ev(`document.getElementById('tg-new').value='温度'; amTagAddTap();`); await sleep(150);
+          o.after=[E9(P,`document.getElementById('tg-new').value`),qn9(P,'#am-sheet .tg-row'),qt9(P,'#am-sheet .kcp-msg')];
+          await sync9([P]); const T1=tg9(P); o.t1=T1&&T1['温度']; o.keys1=T1?Object.keys(T1):[];
+          /* 同じ 名前（全角/半角・空白）は 足さない／空・長すぎ */
+          o.dup=[J(E9(P,`amTagAdd(' 温度 ')`)),J(E9(P,`amTagAdd('点検')`)),J(E9(P,`amTagAdd('')`)),J(E9(P,`amTagAdd('とても長い種類の名前です12')`))];
+          o.k2=Object.keys(tg9(P)||{}).length;
+          /* 作業に 付ける（登録の窓の 選びに 出る） */
+          P.ev(`amCloseSheet(); amEditWork('w_t2')`); await sleep(120); o.opt=kindOpts9(P).map(x=>x[1]); P.ev('amCloseSheet()');
+          o.set=setKind9(P,'w_t2','温度'); await sync9([P]);
+          /* 名前を 直す（作業の kind は 変えない・札は 新しい 名前） */
+          P.ev(`amTagName('温度','温度管理')`); await sync9([P]);
+          o.ren=[kindOf9(P,'w_t2'),tg9(P)['温度'].n]; P.ev(`amOpenWorks()`); await sleep(100); o.card=cardTag9(P,'w_t2');
+          /* 英語・ネパール語 → クルーの カード */
+          P.ev(`amTagTr('温度','en','Temperature'); amTagTr('温度','ne','तापक्रम');`); await sync9([P]);
+          P.ev(`amCloseSheet(); isAdmin=false; applyAdminMode(); amOpenArea('w_t2')`); await sleep(150); o.crew=qt9(P,'#am-sheet .am-hist'); P.ev(`amCloseSheet(); isAdmin=true; applyAdminMode();`);
+          /* はじめからの 種類の 名前を 直す → 空で もとに 戻す */
+          P.ev(`amTagName('点検','チェック')`); P.ev(`amOpenWorks()`); await sleep(100); o.b1=[cardTag9(P,'w_t1'),cardTag9(P,'w_t1')==='値引'?'':'',J(tg9(P)['点検'])];
+          o.b1card=String(E9(P,`(()=>{ const w=amWorks().find(x=>x.kind==='点検'&&!amIsOff(x)); return w?cardTag9x(w.id):''; function cardTag9x(id){ const r=amRowEl(id); const t=r&&r.querySelector('.rg-t.k'); return t?t.textContent:''; } })()`));
+          P.ev(`amTagName('点検','')`); o.b2=J(tg9(P)['点検']);
+          /* 隠す：えらべない（新しい 作業の 選びに 出ない）・付いている 作業の 窓では「（隠している 種類）」で 選ばれた まま・札は そのまま */
+          P.ev(`amTagHide('前陳',1)`); P.ev(`amEditWork('')`); await sleep(120); o.hNew=kindOpts9(P).map(x=>x[0]); P.ev('amCloseSheet()');
+          const fz=wl9(P).find(w=>w.kind==='前陳'); P.ev(`amEditWork(${J(fz.id)})`); await sleep(120); o.hOld=kindOpts9(P).filter(x=>x[2]); P.ev('amCloseSheet()');
+          P.ev(`amOpenWorks()`); await sleep(100); o.hCard=cardTag9(P,fz.id);
+          P.ev(`amTagHide('前陳',0)`); o.unh=J(tg9(P)['前陳']);
+          /* 作業の 中身は 種類を 付けた 1か所の ほか 変わらない */
+          const W1=jp9(wsj9(P),[]), W0p=jp9(W0,[]); o.wsame=W1.length===W0p.length&&W1.every((w,i)=>w.id==='w_t2'?(J(Object.assign({},w,{kind:W0p[i].kind}))===J(W0p[i])):J(w)===J(W0p[i]));
+          /* ネット上で 増えた 記録は amTags の 1つだけ・作業の登録の 記録の ほかは 1字も 変わらない */
+          const r1=srvRecs9(cl); o.newRec=Object.keys(r1).filter(k=>!(k in r0)); o.chg=Object.keys(r0).filter(k=>r0[k]!==r1[k]).map(k=>k.replace(/^.*~r~/,''));
+          o.shape=tg9(P); o.errs=errN9()-e0;
+        } finally { P.ev('amCloseSheet()'); }
+        const t1=o.t1||{};
+        checkL9('98b','【種類を 足す・名前・英ネ・隠す】管理者で なければ 足せない。窓で 打って ＋ → 鍵「温度」の 入れ物（add・n・at だけ）・打った 欄は 空に・お知らせ。同じ 名前（空白ちがい・はじめからの 種類）・空・13字は 足さない。登録の窓の 選びに 出る → 作業に 付けると kind＝「温度」。名前を「温度管理」に 直しても kind は「温度」の まま・札は「温度管理」。英語・ネパール語は クルーの カードに 小さく。はじめからの 種類の 名前を 直す（入れ物が できる）・空で もとに 戻す。隠す＝新しい 作業の 選びに 出ない・付いている 作業は「（隠している 種類）」で 選ばれた まま・札は そのまま。作業の 中身は 付けた 1か所の ほか 同じ。ネット上で 増えた 記録は amTags の 1つだけ',[
+            ['1:管理者でない',/管理者/.test(o.na[0])&&o.na[1]===null],
+            ['2:窓から 足す',o.sheet==='tags'&&o.after[0]===''&&o.after[1]===10&&/足しました/.test(o.after[2])],
+            ['3:入れ物の 形',t1.add===1&&t1.n==='温度'&&t1.at>0&&J(Object.keys(t1).sort())===J(['add','at','n'])&&J(o.keys1)===J(['温度'])],
+            ['4:同じ名前・空・長い',/same/.test(o.dup[0])&&/same/.test(o.dup[1])&&/err/.test(o.dup[2])&&/err/.test(o.dup[3])&&o.k2===1],
+            ['5:選びに 出る',o.opt.indexOf('温度')>=0&&o.opt.indexOf('値引')>=0],
+            ['6:付ける',o.set==='温度'],
+            ['7:名前を 直す',J(o.ren)===J(['温度','温度管理'])&&o.card==='温度管理'],
+            ['8:英ネ',/種類：温度管理（Temperature ・ तापक्रम）/.test(o.crew)],
+            ['9:はじめからの 名前',o.b1card==='チェック'&&o.b1[2]===J({n:'チェック'})&&o.b2==='{}'],
+            ['10:隠す',o.hNew.indexOf('前陳')<0&&o.hNew.indexOf('温度')>=0&&o.hOld.length===1&&o.hOld[0][0]==='前陳'&&/隠している/.test(o.hOld[0][1])&&o.hCard==='前陳'&&o.unh==='{}'],
+            ['11:作業は 1か所だけ',o.wsame===true],
+            ['12:記録は amTags だけ',o.newRec.length===1&&/amTags$/.test(o.newRec[0])&&o.chg.every(k=>/(amWorks|__order)$/.test(k))],
+            ['13:エラー 0',o.errs===0]],
+          `管理者でない ${J(o.na)}｜窓 ${o.sheet} ${J(o.after)}｜形 ${J(o.t1)} ${J(o.keys1)}｜同じ ${J(o.dup)} ${o.k2}｜選び ${J(o.opt)}｜付ける ${o.set}｜直す ${J(o.ren)} 札 ${o.card}｜クルー「${o.crew.slice(0,80)}」｜はじめから ${o.b1card} ${o.b1[2]}→${o.b2}｜隠す 新 ${J(o.hNew)} 今 ${J(o.hOld)} 札 ${o.hCard} 出す ${o.unh}｜作業 ${o.wsame}｜記録 ${J(o.newRec)} 変わった ${J(o.chg)}｜形 ${J(o.shape)}｜エラー ${o.errs}`);
+        P.close();
+      });
+
+      /* ===== 98c：消す（店で 足した 種類だけ）。使っている 作業が あれば 確かめる・キャンセルで 何も しない・作業の kind は 変えない・札は 名前の まま・同じ 名前で 足すと 戻る ===== */
+      await tryB9('98c',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9c','ws',st), o={}, e0=errN9();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seed9(P); await sync9([P]);
+        try{
+          P.ev(`amTagAdd('冷凍'); amTagName('冷凍','冷凍庫')`); setKind9(P,'w_t2','冷凍'); setKind9(P,'w_t4','冷凍'); await sync9([P]);
+          const W1=wsj9(P), T1=J(tg9(P));
+          o.base=E9(P,`amTagDel('値引')`);
+          P.ev(`window.__cm=''; window.confirm=function(m){ window.__cm=m; return false; }`); o.cancel=[E9(P,`amTagDel('冷凍')`),J(tg9(P))===T1,String(E9(P,'window.__cm'))]; P.ev(`window.confirm=function(){ return true; }`);
+          o.del=E9(P,`amTagDel('冷凍')`); await sync9([P]);
+          o.rec=tg9(P)['冷凍']; o.w=[wsj9(P)===W1,kindOf9(P,'w_t2'),kindOf9(P,'w_t4')];
+          P.ev(`amOpenWorks()`); await sleep(100); o.card=cardTag9(P,'w_t2');
+          P.ev(`amTagPanel()`); await sleep(100); o.rows=qa9(P,'#am-sheet .tg-row .rg-t.k');
+          P.ev(`amEditWork('w_t2')`); await sleep(120); o.sel=kindOpts9(P).filter(x=>x[2]); P.ev('amCloseSheet()');
+          P.ev(`amEditWork('w_t1')`); await sleep(120); o.selOther=kindOpts9(P).map(x=>x[1]); P.ev('amCloseSheet()');
+          o.back=J(E9(P,`amTagAdd('冷凍庫')`)); o.rec2=tg9(P)['冷凍'];
+          /* 使っていない 種類は 確かめの 文が「ありません」 */
+          P.ev(`amTagAdd('空の種類'); window.__cm=''; window.confirm=function(m){ window.__cm=m; return true; }`); o.del0=[E9(P,`amTagDel('空の種類')`),/ありません/.test(String(E9(P,'window.__cm')))]; P.ev(`window.confirm=function(){ return true; }`);
+          o.errs=errN9()-e0;
+        } finally { P.ev(`window.confirm=function(){ return true; }; amCloseSheet();`); }
+        const r=o.rec||{};
+        checkL9('98c','【種類を 消す】はじめからの 種類は 消せない。使っている 作業が 2件の 時は 確かめの 文に「2件」・キャンセルなら 何も 変わらない。消すと 入れ物に del（鍵は 残る）・作業の kind は「冷凍」の まま・札は「冷凍庫」の まま・種類の 窓の 一覧から 消える・付いている 作業の 窓では「（消した 種類）」で 選ばれた まま・ほかの 作業の 選びには 出ない。同じ 名前で 足すと 戻る。使っていない 種類は「ありません」',[
+            ['1:はじめからは 消せない',o.base===false],
+            ['2:キャンセル',o.cancel[0]===false&&o.cancel[1]===true&&/2件/.test(o.cancel[2])],
+            ['3:消す',o.del===true&&r.del===1&&r.n==='冷凍庫'&&r.add===1],
+            ['4:作業は そのまま',o.w[0]===true&&o.w[1]==='冷凍'&&o.w[2]==='冷凍'],
+            ['5:札は 名前の まま',o.card==='冷凍庫'],
+            ['6:窓の 一覧に 出ない',o.rows.length===9&&o.rows.indexOf('冷凍庫')<0],
+            ['7:選び',o.sel.length===1&&o.sel[0][0]==='冷凍'&&/消した/.test(o.sel[0][1])&&o.selOther.every(x=>!/冷凍/.test(x))],
+            ['8:戻る',/back/.test(o.back)&&o.rec2&&!o.rec2.del],
+            ['9:使っていない',o.del0[0]===true&&o.del0[1]===true],
+            ['10:エラー 0',o.errs===0]],
+          `はじめから ${o.base}｜キャンセル ${J(o.cancel).slice(0,160)}｜消す ${o.del} ${J(o.rec)}｜作業 ${J(o.w)}｜札 ${o.card}｜一覧 ${J(o.rows)}｜選び ${J(o.sel)} ほか ${J(o.selOther)}｜戻す ${o.back} ${J(o.rec2)}｜空 ${J(o.del0)}｜エラー ${o.errs}`);
+        P.close();
+      });
+
+      /* ===== 98d：一覧の 絞り（種類）。数・絞った 中身・隠した 種類も 付いていれば 出る・決めていない・絞りを 外す・外から 開き直すと 戻る・種類の 窓との 行き来では そのまま ===== */
+      await tryB9('98d',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9d','ws',st), o={}, e0=errN9();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seed9(P); await sync9([P]);
+        try{
+          setKind9(P,'w_t1','値引'); setKind9(P,'w_t4','値引'); P.ev(`amTagAdd('温度')`); setKind9(P,'w_t2','温度'); P.ev(`amTagHide('前陳',1)`); await sync9([P]);
+          const W=wl9(P), cnt=k=>W.filter(w=>String(w.kind==null?'':w.kind)===k).length;
+          P.ev(`amOpenWorks()`); await sleep(120);
+          o.opts=jp9(E9(P,`JSON.stringify(Array.from(document.querySelectorAll('#rg-kind option')).map(o=>[o.value,o.textContent.trim()]))`),[]);
+          const ot=v=>(o.opts.find(x=>x[0]===v)||[,''])[1];
+          o.lbl=[ot(''),ot('値引'),ot('温度'),ot('前陳'),ot('\t'),ot('返品')];
+          P.ev(`amRgKind('値引')`); await sleep(100); o.f1=[qn9(P,'#rg-list .rg-card'),qa9(P,'#rg-list .rg-card .rg-t.k'),E9(P,`document.getElementById('rg-kind').value`),E9(P,`document.getElementById('rg-kind').className`)];
+          P.ev(`amRgKind('\\t')`); await sleep(100); o.f2=qn9(P,'#rg-list .rg-card');
+          P.ev(`amRgKind('前陳')`); await sleep(100); o.f3=qn9(P,'#rg-list .rg-card');
+          P.ev(`amRgKind('温度'); amRgFilt('floor')`); await sleep(100); o.f4=[qn9(P,'#rg-list .rg-card'),/絞りを 外す/.test(qt9(P,'#rg-list'))];
+          P.ev(`amRgClear()`); await sleep(100); o.f5=[qn9(P,'#rg-list .rg-card'),E9(P,'_amRg.kind')];
+          P.ev(`amRgKind('値引'); amTagPanel();`); await sleep(100); P.ev(`amOpenWorks()`); await sleep(100); o.f6=[E9(P,'_amRg.kind'),qn9(P,'#rg-list .rg-card')];
+          P.ev(`amCloseSheet(); amOpenWorks()`); await sleep(100); o.f7=[E9(P,'_amRg.kind'),qn9(P,'#rg-list .rg-card')];
+          /* 検索でも 種類の 名前で 見つかる（名前を 直した 種類） */
+          P.ev(`amTagName('温度','温度管理'); amOpenWorks(); amRgQ('温度管理')`); await sleep(100); o.q=qn9(P,'#rg-list .rg-card');
+          o.all=W.length; o.cnt=[cnt('値引'),cnt(''),cnt('前陳'),cnt('温度')];
+          o.errs=errN9()-e0;
+        } finally { P.ev('amCloseSheet()'); }
+        checkL9('98d','【一覧の 絞り（種類）】種類の 選び：「種類：すべて」・値引 2・温度 1・隠した 前陳も 付いていれば「（隠している）」で 出る・決めていない 1・付いていない 返品は 0 で 出る。値引で 絞る＝2枚（札は 値引）・選びが 青い。決めていない＝1枚・前陳＝前陳の 枚数。温度＋売場＝0枚で「絞りを 外す」→ 外すと 全部。種類の 窓と 行き来しても 絞りは そのまま・外から 開き直すと すべてに 戻る。検索は 直した 名前でも 見つかる',[
+            ['1:選びの 中身',o.lbl[0]==='種類：すべて'&&o.lbl[1]==='値引 2'&&o.lbl[2]==='温度 1'&&o.lbl[3]===('前陳（隠している） '+o.cnt[2])&&o.lbl[4]==='（決めていない） 1'&&o.lbl[5]==='返品 0'],
+            ['2:値引で 絞る',o.f1[0]===2&&o.f1[1].every(x=>x==='値引')&&o.f1[2]==='値引'&&o.f1[3]==='on'],
+            ['3:決めていない・前陳',o.f2===1&&o.f3===o.cnt[2]&&o.cnt[2]>0],
+            ['4:0枚',o.f4[0]===0&&o.f4[1]===true],
+            ['5:外す',o.f5[0]===o.all&&o.f5[1]===''],
+            ['6:行き来',o.f6[0]==='値引'&&o.f6[1]===2],
+            ['7:開き直す',o.f7[0]===''&&o.f7[1]===o.all],
+            ['8:検索',o.q===1],
+            ['9:エラー 0',o.errs===0]],
+          `選び ${J(o.lbl)}｜値引 ${J(o.f1)}｜決めていない ${o.f2}・前陳 ${o.f3}｜0枚 ${J(o.f4)}｜外す ${J(o.f5)}｜行き来 ${J(o.f6)}｜開き直す ${J(o.f7)}｜検索 ${o.q}｜全部 ${o.all} 数 ${J(o.cnt)}｜エラー ${o.errs}`);
+        P.close();
+      });
+
+      /* ===== 98e：開いて 何も 変えずに 保存＝1字 同じ（全部の 作業。値引・足した・隠した・消した・決めていない 種類の 作業も）。何も 書かない ===== */
+      await tryB9('98e',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9e','ws',st), o={}, e0=errN9();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seed9(P); await sync9([P]);
+        try{
+          setKind9(P,'w_t1','値引'); P.ev(`amTagAdd('温度'); amTagAdd('消す種類')`); setKind9(P,'w_t2','温度'); setKind9(P,'w_t4','消す種類'); P.ev(`amTagHide('温度',1); amTagDel('消す種類'); amTagHide('点検',1); amTagName('清掃','そうじ')`); await sync9([P]);
+          const W0=wsj9(P), T0=J(tg9(P)), cw0=cl.writes, ids=wl9(P).map(w=>w.id);
+          o.n=ids.length; o.bad=[];
+          for(const id of ids){ const b=J(wl9(P).find(w=>w.id===id)); P.ev(`amEditWork(${J(id)})`); await sleep(30); P.ev(`amSaveWork(${J(id)})`); await sleep(20); const a=J(wl9(P).find(w=>w.id===id)); if(a!==b) o.bad.push(id); }
+          await sync9([P]);
+          o.same=[wsj9(P)===W0,J(tg9(P))===T0,cl.writes===cw0];
+          o.errs=errN9()-e0;
+        } finally { P.ev('amCloseSheet()'); }
+        checkL9('98e','【開いて 保存＝1字 同じ】種類を いろいろ 直した 店（値引・足した 温度を 隠す・消した 種類・点検を 隠す・清掃を「そうじ」に）で、全部の 作業（初めの 17＋4）を 1つずつ「作業の内容」で 開いて 何も 変えずに 保存 → どの 作業も 1字 同じ・作業の登録も 種類も 同じ・ネット上に 何も 書かない',[
+            ['1:全部 同じ',o.n===21&&o.bad.length===0],
+            ['2:書かない',J(o.same)===J([true,true,true])],
+            ['3:エラー 0',o.errs===0]],
+          `作業 ${o.n}・ちがう ${J(o.bad)}｜同じ ${J(o.same)}｜エラー ${o.errs}`);
+        P.close();
+      });
+
+      /* ===== 98f：2台が 同時に（切れていた 間に）種類を さわる → 両方 残る。負けた 入力 0 ===== */
+      await tryB9('98f',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9f','ws',st), Q=await mk9(cl,'端末Q9f','ws'), D=[P,Q], o={}, e0=errN9();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); Q.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seed9(P); await sync9(D);
+        try{
+          P.ev(`amTagAdd('共通')`); await sync9(D);
+          /* A：両方が 切れている 間に、それぞれ 別の 種類を 足し、同じ 種類の 別の 欄を 直す */
+          P.be.setOnline(false); Q.be.setOnline(false);
+          P.ev(`amTagAdd('ぱ種類'); amTagName('点検','チェック'); amTagHide('共通',1);`);
+          Q.ev(`amTagAdd('きゅ種類'); amTagTr('点検','en','Check'); amTagTr('共通','ne','साझा');`);
+          o.local=[Object.keys(tg9(P)).sort(),Object.keys(tg9(Q)).sort()];
+          P.be.setOnline(true); await sync9([P]); Q.be.setOnline(true); await sync9(D); await sync9(D);
+          const TP=tg9(P), TQ=tg9(Q);
+          o.A=[J(TP)===J(TQ),Object.keys(TP).sort(),J(TP['点検']),J(TP['共通']&&{hide:TP['共通'].hide,ne:TP['共通'].ne,n:TP['共通'].n})];
+          /* B：つながった まま 続けて（保存を 待たずに）2台が 足す */
+          P.ev(`amTagAdd('P1'); amTagAdd('P2')`); Q.ev(`amTagAdd('Q1'); amTagAdd('Q2')`); await sync9(D); await sync9(D);
+          o.B=[J(tg9(P))===J(tg9(Q)),['P1','P2','Q1','Q2'].every(k=>tg9(P)[k]&&tg9(P)[k].add===1)];
+          /* C：1台が 消す・もう1台が 同じ 種類の 英語を 入れる（切れている 間） */
+          P.be.setOnline(false); P.ev(`amTagDel('P1')`); Q.ev(`amTagTr('P1','en','P one')`); await sync9([Q]); P.be.setOnline(true); await sync9(D); await sync9(D);
+          o.C=[J(tg9(P))===J(tg9(Q)),J(tg9(P)['P1'])];
+          o.lost=lost9(cl); o.pend=[P.store.status().pending,Q.store.status().pending]; o.works=wsj9(P)===wsj9(Q);
+          o.errs=errN9()-e0;
+        } finally { for(const d of D){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
+        checkL9('98f','【2台 同時】A：両方 切れている 間に P が「ぱ種類」を 足し・点検の 名前を 直し・共通を 隠す、Q が「きゅ種類」を 足し・点検の 英語・共通の ネパール語を 入れる → つながると 2台 同じ・両方の 種類・点検は 名前と 英語の 両方・共通は 隠す と ネパール語の 両方。B：つながった まま 2台が 2つずつ 続けて 足す → 4つ とも 残る。C：P が 消す 間に Q が 英語を 入れる → 消した 印と 英語の 両方（2台 同じ）。負けた 入力 0・未送信 0・作業の登録も 同じ',[
+            ['1:A 同じ',o.A[0]===true],
+            ['2:A 両方の 種類',J(o.A[1])===J(['きゅ種類','ぱ種類','共通','点検'].sort())],
+            ['3:A 同じ 種類の 別の 欄',o.A[2]===J({n:'チェック',en:'Check'})||o.A[2]===J({en:'Check',n:'チェック'})],
+            ['4:A 共通',o.A[3]===J({hide:1,ne:'साझा',n:'共通'})],
+            ['5:B 4つ',o.B[0]===true&&o.B[1]===true],
+            ['6:C 消すと 英語',o.C[0]===true&&/"del":1/.test(o.C[1])&&/"en":"P one"/.test(o.C[1])],
+            ['7:負け 0・未送信 0',o.lost===0&&J(o.pend)==='[0,0]'&&o.works===true],
+            ['8:エラー 0',o.errs===0]],
+          `切れている間 ${J(o.local)}｜A ${J(o.A)}｜B ${J(o.B)}｜C ${J(o.C)}｜負け ${o.lost}・未送信 ${J(o.pend)}・作業 ${o.works}｜エラー ${o.errs}`);
+        for(const d of D) d.close();
+      });
+
+      /* ===== 98g：古い版（5.14・5.19）が まざる → 種類も 作業も 消えない。古い版では 足した 種類の 作業は 鍵（足した時の 名前）の まま 見え、開いて 保存しても kind は 変わらない ===== */
+      await tryB9('98g',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9g','ws',st), O9=await mk9(cl,'端末O9g9','wsold519'), O4=await mk9(cl,'端末O9g4','wsold'), D=[P,O9,O4], o={}, e0=errN9();
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); seed9(P); await sync9(D);
+        try{
+          o.v=D.map(d=>String(E9(d,'APP_VERSION')));
+          P.ev(`amTagAdd('温度'); amTagName('温度','温度管理'); amTagTr('温度','en','Temperature'); amTagHide('前陳',1)`); setKind9(P,'w_t2','温度'); setKind9(P,'w_t1','値引'); await sync9(D); await sync9(D);
+          const T1=J(tg9(P));
+          o.got=[J(tg9(O9))===T1,J(tg9(O4))===T1,kindOf9(O9,'w_t2'),kindOf9(O4,'w_t1')];
+          /* 古い版で 作業を 直す（回数）・足した 種類の 作業を 開いて 何も 変えずに 保存・5.19 で 別の 作業を「値引」に（5.19 の 選びには 無い＝今の値として 出る） */
+          O9.ev(`isAdmin=true; applyAdminMode(); amStep(null,'trash',1,1)`); O4.ev(`isAdmin=true; applyAdminMode(); amCycle('toilet',4)`);
+          O9.ev(`amOpenWorks()`); await sleep(120); o.oCard=String(E9(O9,`(()=>{ const r=amRowEl('w_t2'); const t=r&&r.querySelector('.rg-t.k'); return t?t.textContent:'(札なし)'; })()`)); O9.ev('amCloseSheet()');
+          O9.ev(`amEditWork('w_t2')`); await sleep(120); o.oSel=kindOpts9(O9).filter(x=>x[2]).map(x=>x[0]); O9.ev(`amSaveWork('w_t2')`);
+          O9.ev(`amEditWork('w_t1')`); await sleep(120); o.oSel1=kindOpts9(O9).filter(x=>x[2]).map(x=>x[0]); O9.ev(`amSaveWork('w_t1')`);
+          await sync9(D); await sync9(D);
+          /* そのあと 新しい 版で 種類を 足す（古い版が 持ち回った 後も 消えない） */
+          P.ev(`amTagAdd('あと')`); O9.ev(`amStep(null,'coffee',2,1)`); await sync9(D); await sync9(D);
+          o.end=[D.map(d=>J(tg9(d))===J(tg9(P))),D.map(d=>wsj9(d)===wsj9(P)),Object.keys(tg9(P)).sort(),kindOf9(P,'w_t2'),kindOf9(P,'w_t1'),tg9(P)['温度'].n,tg9(P)['温度'].en];
+          o.lost=lost9(cl); o.errs=errN9()-e0;
+        } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
+        checkL9('98g','【古い版と まざる】5.20・5.19・5.14 の 3台。5.20 で 種類を 足し（名前を 直し・英語）・前陳を 隠し・作業に「温度」「値引」を 付ける → 古い版にも 種類の 入れ物が そのまま 届く。古い版で 回数を 直す・5.19 で「温度」の 作業を 開くと 札は「温度」（鍵の まま）・選びも「温度」で 選ばれた まま → 何も 変えずに 保存しても kind は 変わらない（「値引」も 同じ）。そのあと 5.20 で 種類を 足しても 消えない・3台の 種類と 作業が 同じ・負けた 入力 0',[
+            ['1:版',o.v[0]==='5.20'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
+            ['2:古い版に 届く',o.got[0]===true&&o.got[1]===true&&o.got[2]==='温度'&&o.got[3]==='値引'],
+            ['3:古い版の 札と 選び',o.oCard==='温度'&&J(o.oSel)===J(['温度'])&&J(o.oSel1)===J(['値引'])],
+            ['4:3台 同じ',o.end[0].every(x=>x===true)&&o.end[1].every(x=>x===true)],
+            ['5:種類も kind も 残る',J(o.end[2])===J(['あと','前陳','温度'].sort())&&o.end[3]==='温度'&&o.end[4]==='値引'&&o.end[5]==='温度管理'&&o.end[6]==='Temperature'],
+            ['6:負け 0',o.lost===0],
+            ['7:エラー 0',o.errs===0]],
+          `版 ${J(o.v)}｜届く ${J(o.got)}｜5.19 札 ${o.oCard} 選び ${J(o.oSel)} ${J(o.oSel1)}｜おわり ${J(o.end)}｜負け ${o.lost}｜エラー ${o.errs}`);
         for(const d of D) d.close();
       });
     }

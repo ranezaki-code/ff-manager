@@ -2725,6 +2725,25 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .amw-tools summary{cursor:pointer;font-size:14px;font-weight:800;color:#334155;min-height:32px;display:flex;align-items:center}
 .amw-tools-b{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .amw-tools-b button{min-height:44px}
+/* 5.20：作業の 種類（タグ）の 窓・種類で 絞る */
+.tg-add{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tg-add input{flex:1 1 180px;min-width:0;min-height:44px;font-size:16px;border:1.5px solid #cbd5e1;border-radius:10px;padding:0 12px}
+.tg-add button{min-height:44px}
+.tg-row{border:1px solid var(--border);border-radius:12px;padding:10px;margin:8px 0;background:#fff}
+.tg-row.off{background:#f8fafc}
+.tg-row.off .rg-t{opacity:.55}
+.tg-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#475569}
+.tg-h .rg-t{font-size:14px}
+.tg-hid{color:#92400e;font-weight:700}
+.tg-f{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.tg-f label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#64748b;min-width:0}
+.tg-f input{min-height:44px;font-size:16px;font-family:inherit;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;min-width:0}
+.tg-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tg-act button{min-height:44px}
+@media (max-width:560px){ .tg-f{grid-template-columns:1fr 1fr} .tg-f label:first-child{grid-column:1 / -1} }
+.rg-tools #rg-kind{max-width:10em}
+@media (max-width:560px){ #am-sheet .rg-tools input{flex:1 1 100px} #am-sheet .rg-tools select{padding:0 4px;font-size:14px} #am-sheet .rg-tools #rg-kind{max-width:8em} }
+.rg-tools #rg-kind.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
 /* 見本から足す */
 .tpl-card{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:8px 0;background:#fff}
 .tpl-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:16px}
@@ -4060,7 +4079,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.19'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.20'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -10680,7 +10699,7 @@ function amSchSet(w, sb){ const a=AM_BANDS.map((b,i)=>Math.max(0,Math.min(6,Math
 function amBandIdx(h){ for(let i=0;i<AM_NB;i++){ if(h<AM_BANDS[i].e) return i; } return AM_NB-1; }
 /* 時間帯の札（絵つき）。big＝大きいカードの時間 */
 function amBandChip(b, extra){ return `<span class="ao-bd"${extra||''} style="background:${b.bg};color:${b.color}">${b.ico?`<span class="ao-bi" aria-hidden="true">${b.ico}</span>`:''}<span class="ao-bt">${b.label}</span></span>`; }
-const AM_KINDS = ['点検','清掃','補充','前陳','品出し','納品','返品','その他'];
+const AM_KINDS = ['点検','清掃','補充','前陳','品出し','納品','返品','値引','その他'];   // 5.20：「値引」を 足した（はじめからの 種類。消せない＝隠すだけ）。店で 足す 種類は state.amTags（amTagAll）
 /* 段2（2026-10-12）の決まりの数字。ここを変えれば、全部の画面で変わる */
 const AM_LOG_DAYS = 35;                        // 日ごとの記録を残す日数
 const AM_LOG_PRE = 'amLog_';                   // 日ごとの記録の項目の名前（state のいちばん上。後ろに日付）
@@ -11331,7 +11350,7 @@ window.addEventListener('storage',e=>{ if(e.key===STORAGE_KEY) kcRemote(); });
 function kcHold(){
   try{
     if(_kc.open&&Date.now()-_kc.since<10800000) return true;   // 全画面で 見ている間は 待つ（閉じたら 今までどおり。3時間 つけっぱなしなら あきらめる）
-    const nm=amSheetName(), on=_kc.busy>0||(isAdmin&&(nm==='kc'||nm==='tpl')), now=Date.now();
+    const nm=amSheetName(), on=_kc.busy>0||(isAdmin&&(nm==='kc'||nm==='tpl'||nm==='tags')), now=Date.now();
     if(on){ if(!_kc.hs) _kc.hs=now; _kc.he=now; return now-_kc.hs<1200000; }
     if(_kc.hs){ if(now-_kc.he<4000) return true; _kc.hs=0; }
   }catch(e){}
@@ -11434,8 +11453,8 @@ function amTplDefs(){
     seiso('seiso_coffee','コーヒーマシン 洗浄','☕','Cleaning: coffee machine','सफाई: कफी मेसिन','コーヒーマシンの 洗浄を した（本部マニュアルの とおり）'),
     W('p1_return_mag','返品：雑誌','📚','返品','返品する 雑誌を まとめて 出す',Object.assign({items:[['返品する 雑誌を まとめて 出した','']],en:'Return: magazines',ne:'फिर्ता: म्यागजिन'},NIGHT)),
     W('p1_return_news','返品：新聞','📰','返品','返品する 新聞を まとめて 出す',Object.assign({items:[['返品する 新聞を まとめて 出した','']],en:'Return: newspapers',ne:'फिर्ता: अखबार'},NIGHT)),
-    W('p1_aico','AICO推奨値引き','🏷','その他','AICO が 出した 推奨の 値引きを 貼る（10・14・19・22時）',{times:['10:00','14:00','19:00','22:00'],lead:30,grace:60,items:[['AICO の 推奨の 値引きを 貼った','']],en:'AICO recommended markdowns',ne:'AICO सिफारिस गरिएको छुट'}),
-    W('p1_flat_disc','平場商品の値引き','🏷','その他','対象：常温和洋菓子／日配食品／チルド飲料／プリン・ヨーグルト（ウチカフェ以外）／バナナ。販売許容 当日の ものに 30%引きを 貼る（昼前）',{times:['10:30'],lead:90,grace:90,items:[['対象の 商品（販売許容 当日）に 30%引きを 貼った','']],en:'Markdown: sales-floor items (30% off)',ne:'छुट: पसलका सामान (३०% छुट)'}),
+    W('p1_aico','AICO推奨値引き','🏷','値引','AICO が 出した 推奨の 値引きを 貼る（10・14・19・22時）',{times:['10:00','14:00','19:00','22:00'],lead:30,grace:60,items:[['AICO の 推奨の 値引きを 貼った','']],en:'AICO recommended markdowns',ne:'AICO सिफारिस गरिएको छुट'}),
+    W('p1_flat_disc','平場商品の値引き','🏷','値引','対象：常温和洋菓子／日配食品／チルド飲料／プリン・ヨーグルト（ウチカフェ以外）／バナナ。販売許容 当日の ものに 30%引きを 貼る（昼前）',{times:['10:30'],lead:90,grace:90,items:[['対象の 商品（販売許容 当日）に 30%引きを 貼った','']],en:'Markdown: sales-floor items (30% off)',ne:'छुट: पसलका सामान (३०% छुट)'}),
     W('p1_cdc','納品：CDC','🚚','納品','CDC の 納品を 受ける・検品する（6時／15〜16時）',{times:['06:00','15:30'],lead:30,grace:60,items:[['納品を 受けて、検品を した','']],en:'Delivery: CDC',ne:'डेलिभरी: CDC'}),
     W('p1_ddc','納品：DDC','🚚','納品','DDC の 納品を 受ける・検品する（0〜1時）',{times:['00:30'],lead:30,grace:60,items:[['納品を 受けて、検品を した','']],en:'Delivery: DDC',ne:'डेलिभरी: DDC'}),
     W('p1_yamazaki','納品：山崎パン','🍞','納品','朝の パンの 納品を 受ける・検品する',{times:['07:00'],lead:30,grace:120,items:[['納品を 受けて、検品を した','']],en:'Delivery: bread (Yamazaki)',ne:'डेलिभरी: पाउरोटी'}),
@@ -11474,7 +11493,7 @@ const AM_TPL_ALL=[
     ['h03','ゆうパック出荷','📮','その他','off','','Yu-Pack parcel shipping','यु-प्याक पार्सल पठाउने'],
     ['h04','オープンケース廃棄・登録','🗑','点検','off','','Open case: remove expired, register','खुला केस: म्याद सकिएको हटाउने, दर्ता'],
     ['h05','FF販売許容確認・廃棄・登録','🍗','点検','off','','FF: check sell-by, remove, register','FF: बिक्री समय जाँच, हटाउने, दर्ता'],
-    ['h06','各時間帯の値引き・廃棄・登録','🏷','その他','off','','Markdowns, disposal, register (each time slot)','हरेक समयमा छुट, फाल्ने, दर्ता'],
+    ['h06','各時間帯の値引き・廃棄・登録','🏷','値引','off','','Markdowns, disposal, register (each time slot)','हरेक समयमा छुट, फाल्ने, दर्ता'],
     ['h07','フライヤー油の酸価チェック','🍟','点検','off','','Fryer oil acid check','फ्राइयर तेलको अम्ल जाँच']]],
   ['売場・商品管理',[
     ['u01','品出し','📥','品出し','map','both','Stocking shelves','सामान राख्ने'],
@@ -11569,7 +11588,7 @@ function amTplAllRows(d){
   const row=w=>{ const has=amTplIs(d,w), sim=has?[]:amTplSimNames(w,exS), on=!has&&!_tpl.off[w.tpl]; if(has) nHas++; else if(sim.length) nSim++; if(on) n++;
     const om=AM_TPL_OMACHI.test(w.name);
     return `<label class="tpl-row${has?' has':''}${sim.length?' sim':''}"><input type="checkbox" id="tpl-${w.tpl}" data-t="${w.tpl}" ${has?'disabled':(on?'checked':'')} onchange="amTplToggle(this.dataset.t,this.checked)"><span class="tpl-b"><b>${escapeHtml(w.icon)} ${escapeHtml(w.name)}</b>
-      <span class="tpl-tags"><span class="tpl-tg">${escapeHtml(w.kind)}</span><span class="tpl-tg">${w.place==='off'?'⏰ 売場以外':'🗺 売場マップ'}</span>${om?'<span class="tpl-tg tpl-om">🍳 大町だけ</span>':''}${has?'<span class="tpl-ok">✅ 登録ずみ（同じ名前）</span>':''}</span>
+      <span class="tpl-tags"><span class="tpl-tg">${escapeHtml(amKindName(w.kind))}</span><span class="tpl-tg">${w.place==='off'?'⏰ 売場以外':'🗺 売場マップ'}</span>${om?'<span class="tpl-tg tpl-om">🍳 大町だけ</span>':''}${has?'<span class="tpl-ok">✅ 登録ずみ（同じ名前）</span>':''}</span>
       ${sim.length?`<small class="tpl-sim">≈ 似た名前が 登録ずみ：${sim.slice(0,2).map(s=>'「'+escapeHtml(s)+'」').join('')}${sim.length>2?` ほか ${sim.length-2}件`:''}</small>`:''}<small class="tpl-tr">${escapeHtml(w.en||'')} ・ ${escapeHtml(w.ne||'')}</small></span></label>`; };
   const rows=d.groups.map(g=>`<div class="tpl-grp">${escapeHtml(g.t)}<small>${g.works.length}件</small></div>`+g.works.map(row).join('')).join('');
   const sum=`<div class="tpl-sum"><span class="s-has">✅ 同じ名前が 登録ずみ ${nHas}件（外しました）</span><span class="s-sim">≈ 似た名前 ${nSim}件（✓ は 付いた まま）</span></div>`;
@@ -11641,8 +11660,124 @@ function amToolsHtml(){
   return `<details class="amw-tools"><summary>🧰 道具（見本から 足す・厨房の表・おくれの音）</summary><div class="amw-tools-b">
     <button type="button" class="btn-secondary" onclick="amTplOpen('')">🧩 見本から 足す</button>
     <button type="button" class="btn-secondary" onclick="kcPanel()">🍳 厨房の表${nk?`（${nk}枚）`:''}</button>
-    <button type="button" class="btn-secondary" id="snd-toggle" onclick="amSndToggle()" aria-pressed="${on}">🔔 おくれの音：${on?'入':'切'}</button></div>
-    <div class="am-sub" style="margin:6px 0 0">「見本から 足す」は 中身を 見て 確かめてから 登録します。「厨房の表」は 厨房を している 店だけ。「おくれの音」は、おくれ（🔥）が 新しく 出た時に 短い音が 鳴ります（音が 出せない 端末では 何も 起きません）。全部の 端末に 効きます。</div></details>`;
+    <button type="button" class="btn-secondary" id="snd-toggle" onclick="amSndToggle()" aria-pressed="${on}">🔔 おくれの音：${on?'入':'切'}</button>
+    <button type="button" class="btn-secondary" id="tg-open" onclick="amTagPanel()">🏷 作業の 種類（${amTagAll().filter(t=>!t.del&&!t.hide).length}）</button></div>
+    <div class="am-sub" style="margin:6px 0 0">「見本から 足す」は 中身を 見て 確かめてから 登録します。「厨房の表」は 厨房を している 店だけ。「おくれの音」は、おくれ（🔥）が 新しく 出た時に 短い音が 鳴ります（音が 出せない 端末では 何も 起きません）。全部の 端末に 効きます。「作業の 種類」は、登録の 窓の「種類」で えらぶ 札を 足す・名前を 直す・隠す 所です。</div></details>`;
+}
+/* ===== 5.20（2026-10-20・店長「カテゴリに値引を追加してほしい」「その他にもタグを登録できるしすてむにして」）：作業の 種類（タグ） =====
+   ・はじめからの 種類＝AM_KINDS（9つ。5.20 で「値引」を 足した）。消せない（隠すだけ）。名前・英語・ネパール語を 直せる。
+   ・店で 足す 種類：管理者だけが 足す・名前を 直す・隠す・消す。クルーは 札を 見るだけ。1つの 作業に 付けるのは 今までどおり 1つ（作業の kind）。
+   ・保存の形（足すだけ。作業の kind の 形は 変えない＝字のまま）：state のいちばん上に amTags を 1つ 足す。
+       amTags＝{ <鍵>: { n?:名前, en?:英語, ne?:ネパール語, hide?:1, add?:1（店で 足した）, del?:1（消した）, at?:足した時刻 ms } }
+       鍵＝作業の kind に 入る 字（はじめからの 種類は その名前、店で 足した 種類は 足した時の 名前）。名前を 直しても 鍵と 作業の kind は 変えない（画面で 名前に 置きかえて 見せる）。
+       はじめからの 種類は、直した時だけ 入れ物が できる（直していなければ 何も 書かない）。
+   ・2台が 同時に：鍵ごとの 入れ物なので、別の 種類を 足しても・同じ 種類の 別の 欄を 直しても 両方 残る（core.js の 合成は 入れ物の 中を 鍵ごと・欄ごと）。
+     消す時も 鍵を 消さず del:1 を 付ける（消した 種類の 作業は、名前の まま 札が 見える。同じ 名前で もう一度 足すと 戻る）。
+   ・古い版（5.15〜5.19）の 端末は、amTags を 知らない 項目として そのまま 持ち回る（消さない）。店で 足した 種類の 作業は、古い版では 鍵（足した時の 名前）の まま 見える。 */
+const AM_TAG_MAX=12, _tg={msg:''};
+function amTagsRaw(){ const t=state.amTags; return (t&&typeof t==='object'&&!Array.isArray(t))?t:{}; }
+function amTagOk(k){ return typeof k==='string'&&k!==''&&!(k in Object.prototype); }
+function amTagRec(k){ const t=amTagsRaw(); if(!amTagOk(k)||!Object.prototype.hasOwnProperty.call(t,k)) return null; const r=t[k]; return (r&&typeof r==='object'&&!Array.isArray(r))?r:null; }
+/* 種類 1つの 中身（画面で 使う形）。base＝はじめから／known＝はじめから か 店で 足した（それ以外は 古い データなどの 知らない 字） */
+function amTagInfo(k){
+  k=String(k==null?'':k); const r=amTagRec(k)||{}, base=AM_KINDS.includes(k), n=String(r.n==null?'':r.n).trim();
+  return {k, n:n||k, en:String(r.en==null?'':r.en).trim(), ne:String(r.ne==null?'':r.ne).trim(), hide:!!r.hide, del:!base&&!!r.del, base, known:base||!!r.add, at:+r.at||0};
+}
+/* 全部の 種類（はじめからの 9つ → 店で 足した 順）。消した 物も 入る（del） */
+function amTagAll(){
+  const t=amTagsRaw(), add=Object.keys(t).filter(k=>amTagOk(k)&&!AM_KINDS.includes(k)&&amTagRec(k)&&amTagRec(k).add).map(amTagInfo).sort((a,b)=>(a.at-b.at)||(a.k<b.k?-1:a.k>b.k?1:0));
+  return AM_KINDS.map(amTagInfo).concat(add);
+}
+function amKindName(k){ k=String(k==null?'':k); return k?amTagInfo(k).n:''; }
+/* 英語・ネパール語（入れていなければ 空＝日本語の まま） */
+function amKindTr(k){ const t=amTagInfo(k); return (t.en||t.ne)?`${escapeHtml(t.en)}${t.en&&t.ne?' ・ ':''}${escapeHtml(t.ne)}`:''; }
+/* 作業ごとの 種類の 数（kind の 字ごと） */
+function amTagUse(){ const u={}; amWorks().forEach(w=>{ if(w&&typeof w==='object'){ const k=String(w.kind==null?'':w.kind); u[k]=(u[k]||0)+1; } }); return u; }
+/* 名前の 見くらべ（全角/半角・空白・大文字小文字は 同じ） */
+function amTagNm(s){ let x=String(s==null?'':s); try{ x=x.normalize('NFKC'); }catch(_){} return x.replace(/[\s　]+/g,'').toLowerCase(); }
+/* 同じ 名前の 種類（消した 物は 入れない。skip＝自分） */
+function amTagSame(name,skip){ const nm=amTagNm(name); return amTagAll().find(t=>!t.del&&t.k!==skip&&(amTagNm(t.n)===nm||amTagNm(t.k)===nm))||null; }
+/* 1つの 種類の 欄だけを 書く（鍵ごと・欄ごとに 合成されるように、ほかの 鍵・ほかの 欄には さわらない）。値が null／'' の 欄は 消す。何も 変わらなければ 書かない */
+function amTagPut(k,patch){
+  if(!isAdmin||!amTagOk(k)) return false;
+  const t=amTagsRaw(), old=amTagRec(k), r=old?Object.assign({},old):{};
+  Object.keys(patch).forEach(f=>{ const v=patch[f]; if(v===null||v===undefined||v===''||v===0||v===false) delete r[f]; else r[f]=v; });
+  if(old&&JSON.stringify(old)===JSON.stringify(r)) return false;
+  if(!old&&!Object.keys(r).length) return false;
+  const nt=Object.assign({},t); nt[k]=r; state.amTags=nt;
+  amSave(); return true;
+}
+/* 作業の 種類を えらぶ 選びの 中身：見えている 種類 ＋ 今の値（隠している・消した・知らない 字の 時は 印つきで 足す＝黙って 変わらない） */
+function amKindOpts(kindNow){
+  const vis=amTagAll().filter(t=>!t.hide&&!t.del), out=(kindNow===''?[['','（決めていない）']]:[]).concat(vis.map(t=>[t.k,t.n]));
+  if(kindNow!==''&&!vis.some(t=>t.k===kindNow)){ const t=amTagInfo(kindNow); out.push([kindNow, t.n+(t.del?'（消した 種類）':t.hide?'（隠している 種類）':'')]); }
+  return out;
+}
+/* 新しい 作業の はじめの 種類：今までどおり「点検」。点検を 隠している 時は 見えている いちばん上の 種類（無ければ 決めていない） */
+function amKindDefault(){ const t=amTagInfo('点検'); if(!t.hide) return '点検'; const v=amTagAll().find(x=>!x.hide&&!x.del); return v?v.k:''; }
+function amTagId(k){ let h=5381; const s=String(k); for(let i=0;i<s.length;i++) h=((h*33)^s.charCodeAt(i))>>>0; return h.toString(36); }
+/* 管理者の 窓：作業の 種類（足す・名前・英語・ネパール語・隠す／出す・消す） */
+function amTagPanel(){
+  if(!isAdmin) return;
+  const use=amTagUse(), all=amTagAll().filter(t=>!t.del);
+  const row=t=>{ const ek=escapeHtml(t.k), id=amTagId(t.k), u=use[t.k]||0;
+    return `<div class="tg-row${t.hide?' off':''}" data-k="${ek}">
+      <div class="tg-h"><span class="rg-t k">${escapeHtml(t.n)}</span><small>${t.base?'はじめから':'店で 足した'}${t.n!==t.k?`・もとの 名前「${ek}」`:''}・使っている 作業 ${u}</small>${t.hide?'<small class="tg-hid">隠している（えらべない）</small>':''}</div>
+      <div class="tg-f"><label><span>名前</span><input type="text" id="tgn-${id}" data-k="${ek}" value="${escapeHtml(t.n)}" maxlength="${AM_TAG_MAX}" autocomplete="off" onchange="amTagName(this.dataset.k,this.value)"></label>
+        <label><span>English</span><input type="text" id="tge-${id}" data-k="${ek}" value="${escapeHtml(t.en)}" maxlength="40" autocomplete="off" placeholder="（空なら 日本語）" onchange="amTagTr(this.dataset.k,'en',this.value)"></label>
+        <label><span>नेपाली</span><input type="text" id="tgp-${id}" data-k="${ek}" value="${escapeHtml(t.ne)}" maxlength="40" autocomplete="off" placeholder="（空なら 日本語）" onchange="amTagTr(this.dataset.k,'ne',this.value)"></label></div>
+      <div class="tg-act"><button type="button" class="btn-secondary tg-hide" data-k="${ek}" onclick="amTagHide(this.dataset.k,${t.hide?0:1})">${t.hide?'👁 出す':'🙈 隠す'}</button>${t.base?'':`<button type="button" class="btn-secondary kcp-del tg-del" data-k="${ek}" onclick="amTagDel(this.dataset.k)">🗑 消す</button>`}</div></div>`; };
+  _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">🏷 作業の 種類（管理者）${amTr2('Task types','कामका प्रकार')}</div>
+    <div class="am-sub">登録の 窓の「種類」で えらぶ 札です。足した 種類は この 店の 全部の 端末で 使えます。<b>隠す</b>＝えらべなく なるだけ（付いている 作業の 札は そのまま）。はじめからの 種類は 消せません。英語・ネパール語は 空なら 日本語の まま 出ます。</div>
+    ${_tg.msg?`<div class="kcp-msg${/^⚠/.test(_tg.msg)?' warn':''}" role="status">${escapeHtml(_tg.msg)}</div>`:''}
+    <div class="tg-add"><input type="text" id="tg-new" maxlength="${AM_TAG_MAX}" placeholder="新しい 種類（例：温度）" autocomplete="off" aria-label="新しい 種類の 名前" onkeydown="if(event.key==='Enter'&&!event.isComposing){ event.preventDefault(); amTagAddTap(); }"><button type="button" class="btn-primary" id="tg-add-b" onclick="amTagAddTap()">＋ 種類を 足す</button></div>
+    <div class="tg-list">${all.map(row).join('')}</div>
+    <div class="am-cfg-act" style="justify-content:flex-start"><button type="button" class="btn-secondary" onclick="_tg.msg='';amOpenWorks()">← 登録の表へ</button></div>`, 'wide', 'tags');
+}
+function amTagPanelIf(){ if(isAdmin&&amSheetName()==='tags') amTagPanel(); }
+function amTagAddTap(){
+  const el=document.getElementById('tg-new'), v=el?el.value:'';
+  if(el){ el.value=''; try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){} }   // 入力途中の 守りの 控えを 空にする（描き直しの後に 打った字が 戻ってこない）
+  const r=amTagAdd(v); if(r&&r.err&&el){ el.value=v; }
+}
+/* 足す：同じ 名前が あれば 足さない（隠している 物は 出す・消した 物は 戻す）。鍵が ほかの 種類の もとの 名前に 使われている 時は（2）を 付ける */
+function amTagAdd(name){
+  if(!isAdmin) return {err:'管理者だけ'};
+  const v=String(name==null?'':name).replace(/[\s　]+/g,' ').trim();
+  if(!v){ _tg.msg='⚠ 名前を 入れてください'; amTagPanelIf(); return {err:'空'}; }
+  if(v.length>AM_TAG_MAX||!amTagOk(v)){ _tg.msg=`⚠ 名前は ${AM_TAG_MAX}字までに してください`; amTagPanelIf(); return {err:'長い'}; }
+  const same=amTagSame(v,null);
+  if(same){
+    if(same.hide){ amTagPut(same.k,{hide:null}); _tg.msg=`「${same.n}」は 隠して いたので、出しました（えらべます）`; }
+    else _tg.msg=(amTagNm(same.n)===amTagNm(v))?`⚠「${same.n}」は もう あります`:`⚠「${v}」は「${same.n}」の もとの 名前です。別の 名前に してください`;
+    amTagPanelIf(); return {k:same.k, same:true};
+  }
+  const gone=amTagAll().find(t=>t.del&&(amTagNm(t.n)===amTagNm(v)||amTagNm(t.k)===amTagNm(v)));
+  if(gone){ amTagPut(gone.k,{del:null,hide:null}); _tg.msg=`「${gone.n}」を 戻しました（前に 消した 種類）`; amTagPanelIf(); return {k:gone.k, back:true}; }
+  let k=v, i=2; while(amTagRec(k)||AM_KINDS.includes(k)) k=v+'（'+(i++)+'）';
+  amTagPut(k,{add:1, n:v, at:Date.now()});
+  _tg.msg=`「${v}」を 足しました。登録の 窓の「種類」で えらべます`; amTagPanelIf(); return {k};
+}
+function amTagName(k,v){
+  if(!isAdmin) return; const t=amTagInfo(k); if(!t.known&&!amTagRec(k)) return;
+  v=String(v==null?'':v).replace(/[\s　]+/g,' ').trim().slice(0,AM_TAG_MAX);
+  if(!v){ if(t.base){ amTagPut(k,{n:null}); _tg.msg=`名前を もとの「${k}」に 戻しました`; } amTagPanelIf(); return; }   // 空：はじめからの 種類は もとの 名前に 戻す／足した 種類は 何も しない
+  if(v===t.n){ amTagPanelIf(); return; }
+  const same=amTagSame(v,k); if(same){ _tg.msg=`⚠「${same.n}」は もう あります。別の 名前に してください`; amTagPanelIf(); return; }
+  amTagPut(k,{n:(t.base&&v===k)?null:v}); _tg.msg=`「${t.n}」→「${v}」に しました（付いている 作業の 札も 変わります）`;
+  renderMapView(); amTagPanelIf();
+}
+function amTagTr(k,f,v){ if(!isAdmin||(f!=='en'&&f!=='ne')) return; v=String(v==null?'':v).trim().slice(0,40); amTagPut(k,{[f]:v||null}); _tg.msg=(f==='en'?'英語':'ネパール語')+'の 名前を 保存しました'; amTagPanelIf(); }
+function amTagHide(k,on){
+  if(!isAdmin) return; const t=amTagInfo(k);
+  amTagPut(k,{hide:on?1:null}); _tg.msg=on?`「${t.n}」を 隠しました（えらべなく なります。付いている 作業 ${amTagUse()[k]||0}件の 札は そのまま）`:`「${t.n}」を 出しました`; amTagPanelIf();
+}
+/* 消す：店で 足した 種類だけ。使っている 作業が あれば 確かめる（作業の kind は 変えない＝札は 名前の まま 見える） */
+function amTagDel(k){
+  if(!isAdmin) return false; const t=amTagInfo(k); if(t.base||!t.known||t.del) return false;
+  const u=amTagUse()[k]||0;
+  if(!confirm(`種類「${t.n}」を 消しますか？\n\n`+(u?`この 種類の 作業が ${u}件 あります。作業は 消えません（札は「${t.n}」の まま 見えます。別の 種類に するには、作業ごとに ✏️ で えらび直します）。\n`:'この 種類の 作業は ありません。\n')+'同じ 名前で もう一度 足すと 戻ります。')) return false;
+  amTagPut(k,{del:1}); _tg.msg=`「${t.n}」を 消しました`+(u?`（作業 ${u}件の 札は そのまま）`:''); amTagPanelIf(); return true;
 }
 /* ---- おくれの音（店長 10/19「作ってよい」。案のとおり：音を出せない端末では 何もしない・管理者が切れる）----
    ・新しい 🔥（まだ 前の確認の時に 無かった物）が 出た時に、短い音を 1回（60秒に 1回まで）。開いた時に すでに 出ている 🔥 では 鳴らさない（最初の確認は 覚えるだけ）。
@@ -11844,7 +11979,7 @@ function amOpenArea(id, keep){
     ${head}${amStartHtml(a)}${amRepNote(a,s)}${fgHtml}${off?amCardDfHtml(a,os):''}${off?amCardValsHtml(a):''}
     ${a.sub?`<div class="am-sub">${escapeHtml(a.sub)}</div>`:''}
     ${(a.items||[]).length?`<ol class="am-items">${a.items.map(([t,ng])=>`<li><div class="am-it">${escapeHtml(t)}</div>${amIsoFig(t)}${ng?`<div class="am-ng"><span>NG時アクション</span>${escapeHtml(ng)}</div>`:''}</li>`).join('')}</ol>`:''}
-    <div class="am-hist">予定：${escapeHtml(plan)}${a.kind?`　／　種類：${escapeHtml(a.kind)}`:''}${hist.length?`<br>これまでの記録：${hist.map(h=>`${fmt(h.at)}${h.by?' '+escapeHtml(h.by):''}`).join('　／　')}`:''}</div></div>
+    <div class="am-hist">予定：${escapeHtml(plan)}${a.kind?`　／　種類：${escapeHtml(amKindName(a.kind))}${amKindTr(a.kind)?`（${amKindTr(a.kind)}）`:''}`:''}${hist.length?`<br>これまでの記録：${hist.map(h=>`${fmt(h.at)}${h.by?' '+escapeHtml(h.by):''}`).join('　／　')}`:''}</div></div>
     <div class="am-cd-foot${need?' am-cd-foot-need':''}">${footHtml}</div>`, 'card', 'card');
 }
 function amCardOthers(){ if(!_amCard)return; _amCard.others=!_amCard.others; _amfHold=amFT()+AM_HOLD_MS; if(_amCard.af) return amOpenAfter(_amCard.af.wid,_amCard.af.src,true); amOpenArea(_amCard.id,true); }
@@ -11988,7 +12123,7 @@ function amB7Note(){
    ・状態（メモリの中だけ。保存しない）：_amPeek＝絞り（all／floor／off／rep／rest。5.16 までは 時間帯ののぞき窓。amSaveWork・amMoveTo が 'all' に戻す所は そのまま）／_amRg＝検索・並べ・ひらいている作業。
    5.17f（テスの点検 10/20 の △ 6つ。保存の形・保存の道は 変えない）：①「続き」の「なし」は 両方の欄を 空に（amFormCont）②動かす帯の 1つ上／1つ下は 見えている 作業どうし（amMvVis・amMoveBar・amMoveBy）
      ③10/13 の お知らせを 今の操作に（amB7Note・たたむ）④広い画面で 窓の下の すき間を 無くす ⑤幅 360 で 絞りの札を 送らずに 見える・上を 詰める ⑥英語・ネパール語を 12px 以上・読める濃さに（css） */
-let _amRg={q:'',sort:'seq',open:'',sc:0};   // sc＝「作業の内容」の窓を 開く前の 一覧の 位置（戻った時に 使う）
+let _amRg={q:'',sort:'seq',open:'',sc:0,kind:''};   // 5.20：kind＝種類で 絞る（''＝すべて／'\t'＝決めていない／そのほか＝作業の kind の 字）   // sc＝「作業の内容」の窓を 開く前の 一覧の 位置（戻った時に 使う）
 const AM_RG_FILT=[['all','すべて'],['floor','売場'],['off','売場以外'],['rep','くり返し'],['rest','休み']];
 /* 5.17f：動かす「1つ上／1つ下」の となり（動かす帯）。見えている 売場の作業（絞り・検索の 中。動かしている 作業は いつも 入れる）の 並び。
    ok＝やる順の 並び（名前順・時刻順では 見えている 並びと 番号の 並びが ちがうので 使えない）／hid＝絞り・検索で 見えない 売場の作業が ある */
@@ -12005,8 +12140,9 @@ function amRgPass(w){
   if(f==='off'&&!amIsOff(w)) return false;
   if(f==='rep'&&!amIsRep(w)) return false;
   if(f==='rest'&&!amRgRest(w)) return false;
+  if(_amRg.kind&&String(w.kind==null?'':w.kind)!==(_amRg.kind==='\t'?'':_amRg.kind)) return false;   // 5.20：種類で 絞る（'\t'＝決めていない）
   const q=String(_amRg.q||'').trim().toLowerCase();
-  if(q){ const it=(Array.isArray(w.items)?w.items:[]).map(x=>String((x&&x[0])||'')).join(' '), hay=[w.name,w.icon,w.kind,w.sub,w.en,w.ne,it].map(x=>String(x==null?'':x)).join(' ').toLowerCase(); if(!q.split(/[\s　]+/).every(t=>!t||hay.includes(t))) return false; }
+  if(q){ const it=(Array.isArray(w.items)?w.items:[]).map(x=>String((x&&x[0])||'')).join(' '), hay=[w.name,w.icon,w.kind,amKindName(w.kind),w.sub,w.en,w.ne,it].map(x=>String(x==null?'':x)).join(' ').toLowerCase(); if(!q.split(/[\s　]+/).every(t=>!t||hay.includes(t))) return false; }
   return true;
 }
 /* 「続き」の1行（カードに出す）：もう一度＝再チェック／別の作業＝あとの作業。どちらも無ければ 空 */
@@ -12050,7 +12186,7 @@ function amRgCard(w,v,mv){
   const id=String(w.id), eid=escapeHtml(id), off=amIsOff(w), timed=off&&amIsTimed(w), z=AM_ZONE[w.zone]||AM_ZONE.none;
   const n=off?null:v.num[id], rest=amRgRest(w), nw=!off&&v.isNew(w), sc=amSch(w), none=!timed&&sc.every(x=>!(+x>0)), open=!mv&&_amRg.open===id;
   const zt=off?'':(z.sfx?z.sfx.replace(/[（）]/g,''):z.short);
-  const tags=`${w.kind?`<span class="rg-t k">${escapeHtml(w.kind)}</span>`:''}${off?'<span class="rg-t o">売場以外</span>':(zt?`<span class="rg-t z" style="--zc:${z.color}">${escapeHtml(zt)}</span>`:'')}`;
+  const tags=`${w.kind?`<span class="rg-t k">${escapeHtml(amKindName(w.kind))}</span>`:''}${off?'<span class="rg-t o">売場以外</span>':(zt?`<span class="rg-t z" style="--zc:${z.color}">${escapeHtml(zt)}</span>`:'')}`;
   const sm=`${amIsRep(w)?`<small class="amw-k-rep">${escapeHtml(amRepText(w))}</small>`:(Array.isArray(w.days)&&w.days.length&&w.days.length<7)?`<small class="rg-days">${w.days.map(i=>'日月火水木金土'[i]).join('・')}</small>`:''}${rest?`<small class="amw-k-rest">${rest}</small>`:''}${nw?'<small class="amw-k-new">新・場所を決めてください</small>':''}${none?'<small class="amw-k-none">まだ どこにも 出ません（回数が なし）</small>':''}`;
   const cont=amRgContText(w);
   const when=timed?`<span class="rg-bd rg-tm">${amTimes(w).map(amTimeTxt).join('・')}</span>`:sc.map((c,i)=>c>0?`<span class="rg-bd" style="background:${AM_BANDS[i].bg};color:${AM_BANDS[i].color}">${AM_BANDS[i].label} ${c}</span>`:'').join('');
@@ -12065,7 +12201,7 @@ function amRgCard(w,v,mv){
 function amRgListHtml(v,mv){
   const ord=amRgOrder(v).filter(amRgPass);
   if(!ord.length){
-    const on=_amPeek!=='all'||String(_amRg.q||'').trim();
+    const on=_amPeek!=='all'||String(_amRg.q||'').trim()||_amRg.kind;
     return on?`<div class="rg-none">この 条件に 合う 作業は ありません。<button type="button" class="rg-b" onclick="amRgClear()">絞りを 外す</button></div>`
       :`<div class="rg-none">まだ 作業が ありません。下の「＋ 作業を追加」から 登録します（値引き・精算・鮮度管理・温度チェック など 時刻の ある 作業も ここから）。</div>`;
   }
@@ -12082,7 +12218,17 @@ function amRgTap(id){
 function amRgQ(v){ _amRg.q=String(v==null?'':v); amRgRefresh(); }
 function amRgSort(k){ _amRg.sort=(k==='name'||k==='time')?k:'seq'; amOpenWorks(); }
 function amRgFilt(k){ _amPeek=AM_RG_FILT.some(f=>f[0]===k)?k:'all'; amOpenWorks(); }
-function amRgClear(){ _amPeek='all'; _amRg.q=''; amOpenWorks(); }
+function amRgClear(){ _amPeek='all'; _amRg.q=''; _amRg.kind=''; amOpenWorks(); }
+function amRgKind(k){ _amRg.kind=String(k==null?'':k); amOpenWorks(); }
+/* 5.20：種類で 絞る 選び。見えている 種類 ＋ 作業に 付いている 種類（隠している・消した・知らない 字も）。数は 付いている 作業の 数 */
+function amRgKindSel(all){
+  const u={}; all.forEach(w=>{ const k=String(w.kind==null?'':w.kind); u[k]=(u[k]||0)+1; });
+  const ks=amTagAll().filter(t=>(!t.hide&&!t.del)||u[t.k]).map(t=>[t.k,t.n+(t.del?'（消した）':t.hide?'（隠している）':'')]);
+  Object.keys(u).forEach(k=>{ if(k!==''&&!ks.some(x=>x[0]===k)) ks.push([k,k]); });
+  if(u['']) ks.push(['\t','（決めていない）']);
+  if(_amRg.kind&&!ks.some(x=>x[0]===_amRg.kind)) _amRg.kind='';
+  return `<select id="rg-kind" aria-label="種類で 絞る" onchange="amRgKind(this.value)"${_amRg.kind?' class="on"':''}><option value="">種類：すべて</option>${ks.map(([k,l])=>`<option value="${escapeHtml(k)}"${_amRg.kind===k?' selected':''}>${escapeHtml(l)} ${u[k==='\t'?'':k]||0}</option>`).join('')}</select>`;
+}
 /* 検索の文字を 打っている間は、カードの 並びだけ 描き直す（入れている欄・上の絞りは さわらない） */
 function amRgRefresh(){
   const el=document.getElementById('rg-list'); if(!el||amSheetName()!=='works'){ return; }
@@ -12114,15 +12260,15 @@ function amOpenWorks(){
   if(_amMoving&&!amWork(_amMoving)) _amMoving=null;
   const bo=document.querySelector('#am-sheet .rg-body'), prev=amSheetName(), keep=(bo&&prev==='works')?bo.scrollTop:(prev==='edit'?(_amRg.sc||0):0);   // 同じ窓の 描き直しは 今の位置／「作業の内容」から 戻った時は 開く前の位置（一覧に戻ると 位置を 失う、を 直した）
   _amRg.sc=0;
-  const fresh=(prev!=='works'&&prev!=='edit'&&prev!=='tpl'&&prev!=='kc');
-  if(fresh){ _amRg.open=''; _amRg.q=''; _amRg.sort='seq'; _amPeek='all'; }   // 外から 開き直した時は 絞り・検索・ひらいた作業を もとに戻す（窓の中の 行き来では そのまま）
+  const fresh=(prev!=='works'&&prev!=='edit'&&prev!=='tpl'&&prev!=='kc'&&prev!=='tags');
+  if(fresh){ _amRg.open=''; _amRg.q=''; _amRg.sort='seq'; _amPeek='all'; _amRg.kind=''; }   // 外から 開き直した時は 絞り・検索・ひらいた作業を もとに戻す（窓の中の 行き来では そのまま）
   const v=amWorksView(), mv=_amMoving, all=amWorks().filter(w=>w&&typeof w==='object');
   const cnt={all:all.length, floor:all.filter(w=>!amIsOff(w)).length, off:all.filter(amIsOff).length, rep:all.filter(amIsRep).length, rest:all.filter(w=>amRgRest(w)).length};
   const chips=AM_RG_FILT.map(([k,l])=>`<button type="button" class="${_amPeek===k?'on':''}" aria-pressed="${_amPeek===k}" onclick="amRgFilt('${k}')"><span class="rg-cl">${l}</span> <b class="rg-cn">${cnt[k]}</b></button>`).join('');   // 5.17f：名前と 数を 分けた（せまい 画面では 2行の 札にして 5つとも 送らずに 見える）。字は 今までどおり「すべて 3」
   const sortSel=`<select id="rg-sort" aria-label="並べかえ" onchange="amRgSort(this.value)">${[['seq','やる順'],['name','名前'],['time','時刻']].map(([k,l])=>`<option value="${k}"${_amRg.sort===k?' selected':''}>${l}</option>`).join('')}</select>`;
   const cols=`<div class="rg-cols" aria-hidden="true"><span class="rg-c-no">番号</span><span class="rg-c-nm">作業</span><span class="rg-c-bd">${AM_BANDS.map(b=>`<span>${b.label}</span>`).join('')}</span><span class="rg-c-pen"></span></div>`;
   _amSheet(`<div class="rg-top"><div class="rg-ttl"><div class="am-title"><span class="rg-t1">📝 作業の登録</span>${amTr2('Task setup','कार्य दर्ता')}</div><button type="button" class="rg-x" onclick="amCloseSheet()" aria-label="閉じる">×</button></div>
-      <div class="rg-tools"><input type="text" id="rg-q" value="${escapeHtml(_amRg.q)}" placeholder="🔍 作業名で さがす" autocomplete="off" oninput="amRgQ(this.value)" aria-label="作業名で さがす">${sortSel}${_amSeqUndo?'<button type="button" class="rg-undo" onclick="amSeqUndoRun()">↩ 1つ前に戻す</button>':''}</div>
+      <div class="rg-tools"><input type="text" id="rg-q" value="${escapeHtml(_amRg.q)}" placeholder="🔍 作業名で さがす" autocomplete="off" oninput="amRgQ(this.value)" aria-label="作業名で さがす">${amRgKindSel(all)}${sortSel}${_amSeqUndo?'<button type="button" class="rg-undo" onclick="amSeqUndoRun()">↩ 1つ前に戻す</button>':''}</div>
       <div class="rg-chips" role="group" aria-label="絞り">${chips}</div></div>
     <div class="rg-body"><div class="rg-hint">番号が 小さい 作業から やります。作業を 押すと 開いて、回数を その場で 直せます。${v.anySeq?'':'最初の 番号は、今までの 高 → 中 → 低 と 登録した 順です。'}</div>
       ${amB7Note()}${cols}<div class="rg-list${mv?' moving':''}" id="rg-list">${amRgListHtml(v,mv)}</div>
@@ -12218,6 +12364,7 @@ function amRemoteRefresh(){
   if(name==='card'&&_amCard) return;
   /* 5.13 D：「作業の内容」の窓を開いている間に、その作業が ほかの端末で 消された時：窓は 描き直さず、窓の中に 黄色で 知らせる（保存する時にも もう一度 聞く） */
   if(name==='edit'&&_amBase&&_amBase.id&&!amWork(_amBase.id)){ const gn=document.getElementById('amw-gone'); if(gn) gn.style.display=''; return; }
+  if(name==='tags'&&isAdmin){ const a=document.activeElement, sh=document.getElementById('am-sheet'); if(!(a&&sh&&sh.contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) amTagPanel(); return; }   // 5.20：種類の 窓（打っている 途中は さわらない）
   if(name!=='works'||!isAdmin)return;
   const a=document.activeElement, sh=document.getElementById('am-sheet');
   if(a&&sh&&sh.contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
@@ -12355,8 +12502,8 @@ function amEditWork(id, preset, copyOf, tplKey){
   _amForm={place:isOff?'off':'floor', how:(w&&amIsOff(w)&&!amIsTimed(w))?'band':'time', times:w?amTimes(w):[], cells:(w&&!isOff)?(real?amEmCellsOf(w.id):(src?amEmCellsOf(src.id):[])):[], cset:!!(src&&!isOff&&amEmCellsOf(src.id).length), rk:(w&&amRepOf(w)||{k:'d'}).k, cont:hasRe?'re':(hasAf?'af':'none'), st:{}, preset:preset, tpl:td?td.k:'', copy:!!src, autoRe:false};   // rk＝くり返し（d＝毎日／w＝週1／m＝月1）。5.9／cont＝続き（none／re＝もう一度／af＝別の作業。5.17）／cells・cset＝5.8「地図で えらぶ」：窓を開いた時にマップで結びついているマス／「決める」を押したか（複製は 元の場所を そのまま 入れる）
   const fx=amFormOffHtml(w);
   _amBase=real?{id:real.id,w:JSON.parse(JSON.stringify(real))}:null;   // 5.13 D：窓を開いた時の作業の写し。保存の時、ここから「直した欄だけ」を書く（開いている間に ほかの端末が直した欄を 戻さない）
-  const kindNow=w?String(w.kind==null?'':w.kind):'点検', zoneNow=w?String(w.zone==null?'':w.zone):'blue';   // 5.13 E：選びに 今の値が 無い時は 今の値を 足す（黙って 変わらない）
-  const kindOpts=(kindNow===''?['']:[]).concat(AM_KINDS).concat((kindNow!==''&&!AM_KINDS.includes(kindNow))?[kindNow]:[]);
+  const kindNow=w?String(w.kind==null?'':w.kind):amKindDefault(), zoneNow=w?String(w.zone==null?'':w.zone):'blue';   // 5.13 E：選びに 今の値が 無い時は 今の値を 足す（黙って 変わらない）
+  const kindOpts=amKindOpts(kindNow);   // 5.20：見えている 種類（はじめから＋店で 足した。隠した 物は 出さない）＋ 今の値（隠している・消した 時は 印つき）。値は 鍵（作業の kind の 字）、見せるのは 名前
   const zoneOpts=[['blue','カウンター周辺点検（青ゾーン）'],['red','カウンター外点検（赤ゾーン）'],['both','両方']].concat(['blue','red','both'].includes(zoneNow)?[]:[[zoneNow,zoneNow===''?'（決めていない）':'（いまの値：'+zoneNow+'）']]);
   const nameV=src?String(src.name||'')+'（コピー）':(w?String(w.name||''):'');
   const title=real?`<span class="rg-t1">✏️ 作業の内容 ${isOff?'⏰':amNoC(amNums()[real.id],'n28')}</span>${amTr2('Edit task','कार्य सम्पादन')}`:(src?`<span class="rg-t1">＋ 作業を追加（${escapeHtml(src.name||'')} の コピー）</span>${amTr2('Add a task (copy)','कार्य थप्नुहोस् (प्रतिलिपि)')}`:`<span class="rg-t1">＋ 作業を追加</span>${amTr2('Add a task','कार्य थप्नुहोस्')}`);
@@ -12369,7 +12516,7 @@ function amEditWork(id, preset, copyOf, tplKey){
       <section class="rg-sec">${sec(1,'何を','名前と絵','What','के')}
         <div class="rg-r1"><label class="rg-f"><span>絵</span><input type="text" id="amw-icon" value="${escapeHtml(w?w.icon||'':'')}" placeholder="🧹"></label>
           <label class="rg-f"><span>名前</span><input type="text" id="amw-name" value="${escapeHtml(nameV)}" placeholder="例：トイレ"></label>
-          <label class="rg-f rg-kind"><span>種類</span><select id="amw-kind">${kindOpts.map(k=>`<option value="${escapeHtml(k)}"${kindNow===k?' selected':''}>${k===''?'（決めていない）':escapeHtml(k)}</option>`).join('')}</select></label></div></section>
+          <label class="rg-f rg-kind"><span>種類</span><select id="amw-kind">${kindOpts.map(([k,l])=>`<option value="${escapeHtml(k)}"${kindNow===k?' selected':''}>${escapeHtml(l)}</option>`).join('')}</select></label></div></section>
       <section class="rg-sec">${sec(2,'どこで','','Where','कहाँ')}
         ${fx.place}
         <label class="rg-f" id="amw-zone-box"><span>巡回（だれの担当か）</span><select id="amw-zone">${zoneOpts.map(([k,l])=>`<option value="${escapeHtml(k)}"${zoneNow===k?' selected':''}>${escapeHtml(l)}</option>`).join('')}</select></label>
