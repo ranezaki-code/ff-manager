@@ -1487,7 +1487,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.21'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.22'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1611,7 +1611,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.21',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.22',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -3008,7 +3008,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same2=[wsj(O5)===wsj(P),wsj(O4)===wsj(P)];
         } finally { for(const d of [P,O5,O4]){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
         checkL7('97l','【古い版（5.14・5.15）の端末と まざる】新しい画面で 足した作業が 古い画面にも 同じ中身で 届く（保存の形は 同じ）・古い画面で 開いて 保存しても 変わらない・同じ作業の 別の欄（説明・名前・締切）を 3台が 同時に 直しても 全部 残る・新しい画面の ＋ と 古い画面の □ は 同じ書き方（sch7 と sch）で 3台が そろう',[
-            ['1:版',o.v[0]==='5.21'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
+            ['1:版',o.v[0]==='5.22'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
             ['2:はじめ そろう',J(o.seed)===J([true,true])],
             ['3:作業が 届く',J(o.arrive)===J([true,true,true,true])],
             ['4:開いて保存＝変わらない',J(o.noop)===J([true,true,true])],
@@ -3488,7 +3488,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.errs=errN8()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL8('97y','【見本「ぜんぶ」・2台と 古い版】A：Q（5.19）が 切れている 間に 回数を 直し 自分の 作業を 足す・P は つながった まま 40件 足す → Q が あとから つながっても、P の 40件・Q の 作業と 回数・今の 作業 21件が 全部 残り、4台（5.19×2・5.14・5.18）の 中身が 同じ。B：P が 切れている 間に 残り 5件を 足し、その間に Q・5.14・5.17 が それぞれ 回数を 直す → P が あとから つながっても 全部 残る（45件・3台の 回数・Q の 作業）。負けた 入力 0。古い版でも 登録の表が 開ける（5.18 は 見本の 一覧が 3つの まま）',[
-            ['1:版',o.v[0]==='5.21'&&o.v[1]==='5.21'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
+            ['1:版',o.v[0]==='5.22'&&o.v[1]==='5.22'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
             ['2:A 4台 同じ',o.A[0].every(x=>x===true)],
             ['3:A 全部 残る',o.addA===40&&o.A[1]===true&&o.A[2]===true&&o.A[3]===40&&o.A[4]===true],
             ['4:B 4台 同じ',o.B[0].every(x=>x===true)],
@@ -3770,7 +3770,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lost9(cl); o.errs=errN9()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('98g','【古い版と まざる】5.20・5.19・5.14 の 3台。5.20 で 種類を 足し（名前を 直し・英語）・前陳を 隠し・作業に「温度」「値引」を 付ける → 古い版にも 種類の 入れ物が そのまま 届く。古い版で 回数を 直す・5.19 で「温度」の 作業を 開くと 札は「温度」（鍵の まま）・選びも「温度」で 選ばれた まま → 何も 変えずに 保存しても kind は 変わらない（「値引」も 同じ）。そのあと 5.20 で 種類を 足しても 消えない・3台の 種類と 作業が 同じ・負けた 入力 0',[
-            ['1:版',o.v[0]==='5.21'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
+            ['1:版',o.v[0]==='5.22'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
             ['2:古い版に 届く',o.got[0]===true&&o.got[1]===true&&o.got[2]==='温度'&&o.got[3]==='値引'],
             ['3:古い版の 札と 選び',o.oCard==='温度'&&J(o.oSel)===J(['温度'])&&J(o.oSel1)===J(['値引'])],
             ['4:3台 同じ',o.end[0].every(x=>x===true)&&o.end[1].every(x=>x===true)],
@@ -3848,7 +3848,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.ver=E9(P,'APP_VERSION');
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         checkL9('97z1','【🎯 目標の分】登録の窓 ③ に 欄が 出る（売場以外では 出ない）・12 を入れると goal だけ 足される・まとめの行に 出る・まちがった字は 保存しない・全角も 読む・空で 項目ごと 消える・全部の作業を 開いて 何も変えずに 保存しても 1字も 変わらず 何も 書かない',[
-            ['1:版 5.21',o.ver==='5.21'],
+            ['1:版 5.22',o.ver==='5.22'],
             ['2:全部 開いて 保存 → 同じ・書かない',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10],
             ['3:欄が 出る・はじめは 空',o.box[0]===1&&o.box[1]!=='none'&&o.box[2]===''],
             ['4:まとめの行',/目標 12分/.test(o.sum)],
@@ -4123,7 +4123,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lostN(cl);
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('97z9','【古い版と まざる】5.19・5.16・5.14 の 端末：目標が 届く・古い端末の カードは 今までどおり（▶ なし）・P が 始めた 作業中に 古い端末が 記録・作業の名前を 直しても 印・目標が 残る・P が 終わると 古い端末も 済・古い端末の 記録は s なし・押し忘れは 古い端末でも 済に 数えない・4台 同じ・負けた入力 0',[
-            ['1:版',o.v[0]==='5.21'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
+            ['1:版',o.v[0]==='5.22'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
             ['4:古い 保存で 消えない',o.keep[0]===1&&o.keep[1]===10&&o.keep[2]==='古い版で 直した名前'&&o.keep[3].every(Boolean)],
             ['5:終わる → 古い端末も 済',o.end[0]===1&&o.end[1]==='done'&&o.end[2]===1],['6:古い端末の 記録',o.oldRec[0]===2&&o.oldRec[1]>=1],
             ['7:押し忘れは 済に しない',o.nf[0]===1&&o.nf[1]===true&&o.nf[2]===true],['8:印が 残る・4台 同じ',o.run[0]==='1,1,1,1'&&o.run[1]===true],['9:負けた入力 0',o.lost===0]],
@@ -4212,6 +4212,349 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         checkLA('97z12','【押す所 44px・英語/ネパール語】作業中の カードの「取り消す」が 幅も 高さも 44px 以上・📊 の 人の行が 44px 以上（768）・目標の札に Goal と लक्ष्य・作業中の 分に min と मिनेट',[
             ['1:取り消す',o.x[0]>=44&&o.x[1]>=44],['2:人の行',o.pp.length>=1&&o.pp.every(h=>h>=44)],['3:目標の札',/Goal 10 min/.test(o.tr[0])&&/लक्ष्य/.test(o.tr[0])],['4:分',/3 min \/ goal 10 min/.test(o.tr[1])&&/मिनेट/.test(o.tr[1])]],
           `取り消す ${J(o.x)}｜人の行 ${J(o.pp)}｜札「${o.tr[0]}」｜分「${o.tr[1].slice(0,120)}」`);
+        P.close();
+      });
+    }
+    /* ---- 5.22（店長 10/20「スケジュールの間隔設定みたいのってあったっけ？例えば10分間隔とかできれば、その時間帯の点検とかいろんな業務をまとめてやられなくなる」→「Aで、あとはおすすめで」）：
+         前の 記録から ◯分 あける（作業の gap）。登録の窓の「くわしく」・カードの ⏳・押す所の 守り・境目 7:29／7:31・時刻の作業 9:44／9:46・なし・長い時の ⚠・🔥 の案内・DF 再チェックと あとの作業は 止めない・
+         2台・古い版（5.19・5.14）と まざる・数え方が 変わらない・今の 作業と 記録が 変わらない。作り物のデータだけの 別の枠（保存先も 別の入れ物）。時計は 枠の中だけ 決めた時刻に する ---- */
+    {
+      const mkG=async(cl,name,dir,seed)=>{
+        const be=cl.device(), store=new V2.Store({backend:be,space:'TG',device:name,kv:new V2.MemKV(),snapshot:false});
+        const f=document.createElement('iframe'); f.style.cssText='display:block;width:768px;height:900px;max-width:none;border:1px solid #cbd5e1;border-radius:8px;background:#fff;margin:8px 0'; document.body.appendChild(f);
+        const win=await load(f,(dir||'ws')+'/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null;
+        await win.__v2go(Object.assign({store,stores,current:'w1'},seed?{state:J(seed)}:{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); await sleep(300);
+        return {f,win,be,store,name,ev:s=>win.eval(s),close:()=>{ try{ f.remove(); }catch(_){} }};
+      };
+      const syncG=async(devs)=>{ for(let i=0;i<3;i++){ for(const d of devs){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(350); };
+      const EG=(d,s)=>{ try{ return d.ev(s); }catch(e){ return '(エラー：'+String(e&&e.message).slice(0,60)+'）'; } };   // 直す前の版に 無い関数を 呼んでも、その試験だけが 不合格になる
+      const jpG=(s,d)=>{ try{ return JSON.parse(s); }catch(e){ return d; } };
+      const qnG=(d,sel)=>Number(EG(d,`document.querySelectorAll(${J(sel)}).length`))||0, qtG=(d,sel)=>String(EG(d,`(document.querySelector(${J(sel)})||{}).textContent||''`)).replace(/\s+/g,' ');
+      const tryG=async(no,fn)=>{ try{ await fn(); }catch(e){ check(no+'-止','（この 試験は 途中で 止まった＝関数が 無い・エラー）',false,String(e&&e.stack||e).slice(0,400)); } };
+      const checkLG=(no,what,conds,detail)=>{ const bad=conds.filter(c=>!c[1]).map(c=>c[0]); check(no,what,bad.length===0,(bad.length?'【不合格の項目：'+bad.join(' ｜ ')+'】 ':'')+detail); };
+      const nzG=s=>{ const o=JSON.parse(s); delete o._modifiedAt; return J(o); };
+      const stG=()=>JSON.parse(J(st));
+      /* 枠の中の 時計：この 試験の 日（下の BG＝はじめに 1回 決める。どの 枠も 同じ 日）の h:m:s に する（進み方は 本物と 同じ）。枠ごと */
+      const BG=new Date(); BG.setHours(12,0,0,0);
+      const clkG=(d,h,m,s)=>{ d.ev(`(()=>{ if(window.__gSet) return; const RD=Date, B=new RD(${BG.getTime()}); let off=0; function FD(){ const a=Array.prototype.slice.call(arguments); if(!new.target) return new RD(RD.now()+off).toString(); if(a.length===0) return Reflect.construct(RD,[RD.now()+off],new.target); return Reflect.construct(RD,a,new.target); } FD.prototype=RD.prototype; Object.setPrototypeOf(FD,RD); FD.now=()=>RD.now()+off; window.Date=FD; window.__gSet=(h,m,s)=>{ const t=new RD(B.getFullYear(),B.getMonth(),B.getDate(),h,m,s||0,0).getTime(); off=t-RD.now(); return t; }; })()`); return Number(d.ev(`__gSet(${h},${m},${s||0})`)); };
+      const setWG=(d,ws)=>d.ev(`(()=>{ state.amWorks=${J(ws)}; state.areaChecks={}; Object.keys(state).filter(k=>/^amLog_/.test(k)).forEach(k=>{ delete state[k]; }); amSave(); renderMapView(); })()`);
+      const acG=(d,id)=>Number(EG(d,`((state.areaChecks||{})[${J(id)}]||[]).length`))||0;
+      const cardG=(d,id)=>{ d.ev('amCloseSheet()'); d.ev(`amOpenArea(${J(id)})`); return {n:qnG(d,'#am-sheet button[onclick^="amRecord("]'), dis:qnG(d,'#am-sheet button[onclick^="amRecord("][disabled]'), gap:qtG(d,'#am-sheet .am-gap'), fg:qnG(d,'#am-sheet .am-fg')}; };
+      const snG=d=>qtG(d,'#am-snack');
+      const fW=x=>Object.assign({id:'gF',name:'見本の 床',icon:'🧹',kind:'点検',zone:'red',sub:'',sch:[2,0,0,0],sch7:[0,2,0,0,0,0,0],days:null,items:[['床に 汚れが 無い','']]},x||{});   // 売場：朝（6〜9時）に 2回＝6:00〜7:30／7:30〜9:00
+      const oW=x=>Object.assign({id:'gO',name:'見本の 温度',icon:'🌡',kind:'点検',zone:'blue',sub:'',place:'off',times:['10:00','10:30'],lead:45,grace:60,sch:[0,0,0,0],days:null,items:[]},x||{});   // 売場以外：10:00・10:30（45分前から）
+
+      /* ===== 97zg1：登録の窓（くわしく）・まとめの行・保存の形（gap だけ）・開いて 保存しても 変わらない・なし で 項目ごと 消える・長い時の ⚠・時刻の 間 ===== */
+      await tryG('97zg1',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGa','ws',stG()), o={};
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); await sleep(150);
+        try{
+          o.ver=EG(P,'APP_VERSION');
+          P.ev('amWorksEdit(); amSave();'); await syncG([P]);
+          /* 全部の作業（店の 見本 49件など）を 開いて 何も変えずに 保存 → 1字も 変わらない・何も 書かない */
+          const w0=EG(P,'JSON.stringify(state.amWorks)'), cw0=cl.writes, all=jpG(EG(P,'JSON.stringify(amWorks().map(w=>w.id))'),[]);
+          for(const id of all){ P.ev(`amEditWork(${J(id)})`); await sleep(15); P.ev(`amSaveWork(${J(id)})`); }
+          await syncG([P]); o.same=[EG(P,'JSON.stringify(state.amWorks)')===w0, cl.writes===cw0, all.length, Number(EG(P,`amWorks().filter(w=>'gap' in w).length`))];
+          setWG(P,[fW(),oW()]); await syncG([P]); const wF0=jpG(EG(P,`JSON.stringify(amWork('gF'))`),{});
+          /* 欄：くわしくの 中・はじめは なし */
+          P.ev(`amEditWork('gF')`); await sleep(80);
+          o.box=[qnG(P,'#amw-more #amw-gap'), String(EG(P,`document.getElementById('amw-gap').value`)), String(EG(P,`Array.prototype.map.call(document.getElementById('amw-gap').options,x=>x.value+(x.disabled?'x':'')).join(',')`))];
+          P.ev(`document.getElementById('amw-gap').value='45'; amFormSync();`);
+          o.sum=[qtG(P,'#amw-sum'), qtG(P,'#amw-more-s'), String(EG(P,`getComputedStyle(document.getElementById('amw-gap-warn')).display`))];
+          P.ev(`amSaveWork('gF')`); await syncG([P]);
+          const wF1=jpG(EG(P,`JSON.stringify(amWork('gF'))`),{}); o.set=[wF1.gap, J(Object.assign({},wF1,{gap:undefined}))===J(wF0)];
+          /* カードの 予定の行 */
+          P.ev(`amOpenArea('gF')`); o.plan=qtG(P,'#am-sheet .am-hist'); P.ev('amCloseSheet()');
+          /* 開いて 何も変えずに 保存（あり）→ 書かない */
+          const w1=EG(P,'JSON.stringify(state.amWorks)'), cw1=cl.writes; P.ev(`amEditWork('gF')`); await sleep(50); o.v45=String(EG(P,`document.getElementById('amw-gap').value`)); P.ev(`amSaveWork('gF')`); await syncG([P]);
+          o.same2=[EG(P,'JSON.stringify(state.amWorks)')===w1, cl.writes===cw1];
+          /* 朝を 4回（枠 45分）に すると 45分は ⚠・60分は えらべない */
+          P.ev(`amEditWork('gF')`); await sleep(50); P.ev(`document.getElementById('amw-sch-1').value='4'; amFormSync();`);
+          o.long=[String(EG(P,`getComputedStyle(document.getElementById('amw-gap-warn')).display`)), qtG(P,'#amw-gap-warn'), String(EG(P,`Array.prototype.map.call(document.getElementById('amw-gap').options,x=>x.value+(x.disabled?'x':'')).join(',')`)), qtG(P,'#amw-gap-n')];
+          P.ev(`document.getElementById('amw-sch-1').value='2'; document.getElementById('amw-gap').value='0'; amFormSync(); amSaveWork('gF');`); await syncG([P]);
+          o.del=[EG(P,`('gap' in amWork('gF'))`), J(jpG(EG(P,`JSON.stringify(amWork('gF'))`),{}))===J(wF0)];
+          /* 時刻の作業（10:00・10:30＝間 30分）：30分 から 上は えらべない */
+          P.ev(`amEditWork('gO')`); await sleep(50);
+          o.off=[String(EG(P,`Array.prototype.map.call(document.getElementById('amw-gap').options,x=>x.value+(x.disabled?'x':'')).join(',')`)), qtG(P,'#amw-gap-n')];
+          P.ev(`document.getElementById('amw-gap').value='20'; amFormSync(); amSaveWork('gO');`); await syncG([P]); o.offSet=EG(P,`amWork('gO').gap`);
+          /* 新しい作業：なし＝gap の 項目なし／10分＝gap:10 */
+          const n0=Number(EG(P,'amWorks().length'));
+          P.ev(`amEditWork('')`); await sleep(50); P.ev(`document.getElementById('amw-name').value='見本の 新しい 作業'; amSaveWork('')`); await sleep(50);
+          P.ev(`amEditWork('')`); await sleep(50); P.ev(`document.getElementById('amw-name').value='見本の 新しい 作業2'; document.getElementById('amw-gap').value='10'; amFormSync(); amSaveWork('')`); await syncG([P]);
+          o.nw=[Number(EG(P,'amWorks().length'))-n0, EG(P,`('gap' in amWorks().find(w=>w.name==='見本の 新しい 作業'))`), EG(P,`amWorks().find(w=>w.name==='見本の 新しい 作業2').gap`)];
+        } finally { P.ev('isAdmin=false; amCloseSheet()'); }
+        checkLG('97zg1','【あける 時間・登録の窓】「くわしく」に 1行（はじめは なし）・45分で まとめの行と たたんだ 見出しに 出る・保存は gap だけ 足す・カードの 予定に 出る・開いて 保存しても 書かない・枠より 長いと ⚠ で えらべない・なしで 項目ごと 消える（元と 1字 同じ）・時刻の 間 30分 → 30分から 上は えらべない・新しい 作業・全部の 作業を 開いて 保存しても 1字も 変わらない',[
+            ['1:版 5.22',o.ver==='5.22'],
+            ['2:全部 開いて 保存 → 同じ・書かない・gap 0件',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10&&o.same[3]===0],
+            ['3:欄（くわしくの中・なし・8つ・えらべる）',o.box[0]===1&&o.box[1]==='0'&&o.box[2]==='0,5,10,15,20,30,45,60'],
+            ['4:まとめ・見出し・⚠なし',/前の 記録から 45分 あける/.test(o.sum[0])&&/あける 45分/.test(o.sum[1])&&o.sum[2]==='none'],
+            ['5:gap だけ 足す',o.set[0]===45&&o.set[1]===true],
+            ['6:カードの 予定',/前の 記録から 45分 あける/.test(o.plan)],
+            ['7:開いて 保存 → 書かない',o.v45==='45'&&o.same2[0]===true&&o.same2[1]===true],
+            ['8:長い時 ⚠・60は えらべない',o.long[0]!=='none'&&/45分/.test(o.long[1])&&o.long[2]==='0,5,10,15,20,30,45,60x'&&/45分/.test(o.long[3])],
+            ['9:なし → 項目ごと 消える',o.del[0]===false&&o.del[1]===true],
+            ['10:時刻の 間 30分',o.off[0]==='0,5,10,15,20,30x,45x,60x'&&/時刻の 間（30分）/.test(o.off[1])&&o.offSet===20],
+            ['11:新しい 作業',o.nw[0]===2&&o.nw[1]===false&&o.nw[2]===10]],
+          `版 ${o.ver}｜全部 ${J(o.same)}｜欄 ${J(o.box)}｜まとめ ${J(o.sum)}｜足す ${J(o.set)}｜予定「${o.plan}」｜2回目 ${o.v45} ${J(o.same2)}｜長い ${J(o.long)}｜なし ${J(o.del)}｜時刻 ${J(o.off)} → ${o.offSet}｜新しい ${J(o.nw)}`);
+        P.close();
+      });
+
+      /* ===== 97zg2：売場の 作業（朝2回・45分 あける）：7:29 に ほかの人が 押す → 7:31 は 押せない（⏳ 8:14）・押しても 記録しない・8:13:59 も 止まる・8:14 ちょうどで 押せる・押せる 時刻に カードが ひとりでに 変わる・数え方は 同じ ===== */
+      await tryG('97zg2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGb','ws',stG()), o={};
+        try{
+          setWG(P,[fW({gap:45})]); await syncG([P]);
+          const stCmp=()=>String(EG(P,`(()=>{ const w=amWork('gF'), c=JSON.parse(JSON.stringify(w)); delete c.gap; const n=Date.now(), a=amStatus(w,n), b=amStatus(c,n); return a.st+(a.lv||'')+'/'+b.st+(b.lv||''); })()`));
+          clkG(P,7,29); P.ev(`amRecord('gF','見本 太郎')`); o.r1=acG(P,'gF');
+          clkG(P,7,29,30); o.s729=stCmp();
+          clkG(P,7,31); o.c731=cardG(P,'gF'); o.s731=stCmp();
+          P.ev(`amRecord('gF','見本 花子')`); o.r2=[acG(P,'gF'), snG(P)];
+          clkG(P,8,13,59); o.c813=cardG(P,'gF'); P.ev(`amRecord('gF','見本 花子')`); o.r3=acG(P,'gF');
+          clkG(P,8,14,0); o.c814=cardG(P,'gF'); P.ev(`amRecord('gF','見本 花子')`); o.r4=acG(P,'gF'); o.s814=stCmp();
+          /* ひとりでに 変わる：8:58:59.4 に 開く（8:14 の 記録から 45分＝8:59）→ 1.3秒 待つと 名前が 押せる */
+          clkG(P,8,58,59); await sleep(400); o.cA=cardG(P,'gF'); await sleep(1300);
+          o.cB={n:qnG(P,'#am-sheet button[onclick^="amRecord("]'), dis:qnG(P,'#am-sheet button[onclick^="amRecord("][disabled]'), gap:qtG(P,'#am-sheet .am-gap')};
+          P.ev('amCloseSheet()');
+          /* 列の 行（つぎはこれ）：朝4回（枠 45分）・30分 あける 作業 gR4 を 7:29 に 記録 → 7:55（もうすぐ）は 行に「⏳ 7:59」・並びは gap の 有る・無しで 同じ・7:59 で 消える */
+          setWG(P,[fW({id:'gR4',name:'見本の 4回',sch:[4,0,0,0],sch7:[0,4,0,0,0,0,0],gap:30}),fW({id:'gR5',name:'見本の 棚',sch:[4,0,0,0],sch7:[0,4,0,0,0,0,0]})]); await syncG([P]);
+          clkG(P,7,29); P.ev(`amRecord('gR4','見本 太郎')`); clkG(P,7,55); P.ev(`amCloseSheet(); setView('map'); renderMapView();`); await sleep(100);
+          const rowsG=()=>String(EG(P,`Array.prototype.map.call(document.querySelectorAll('#amf-col .amf-r[data-w]'),r=>r.getAttribute('data-w')).join(',')`));
+          o.row=[qtG(P,'#amf-col .amf-r[data-w="gR4"] .amf-gp'), rowsG(), qnG(P,'#amf-col .amf-first .amf-gp')];
+          P.ev(`(()=>{ const w=amWork('gR4'); delete w.gap; renderMapView(); })()`); o.row.push(rowsG(), qnG(P,'#amf-col .amf-gp')); P.ev(`(()=>{ amWork('gR4').gap=30; renderMapView(); })()`);
+          clkG(P,7,59,0); P.ev('renderMapView()'); o.row759=[qnG(P,'#amf-col .amf-gp'), rowsG()];
+        } finally { P.ev('amCloseSheet()'); }
+        checkLG('97zg2','【止める・境目】7:29 の 記録（ほかの人）→ 7:31 の カードは 名前が 全部 灰色・「⏳ 8:14 から 押せます」（英・ネ）・押しても 記録しない（お知らせ）・8:13:59 も 止まる・8:14 ちょうどで 押せて 記録できる・押せる 時刻に なると カードが ひとりでに 変わる・数え方（amStatus）は gap の 有る・無しで 同じ',[
+            ['1:7:29 に 記録',o.r1===1],
+            ['2:7:31 灰色・⏳',o.c731.n>=2&&o.c731.dis===o.c731.n&&/8:14 から 押せます/.test(o.c731.gap)&&/7:29/.test(o.c731.gap)&&/45分/.test(o.c731.gap)&&/You can record from 8:14/.test(o.c731.gap)&&/बाट/.test(o.c731.gap)],
+            ['3:押しても 記録しない',o.r2[0]===1&&/8:14 から 押せます/.test(o.r2[1])],
+            ['4:8:13:59 も 止まる',o.c813.dis===o.c813.n&&o.c813.n>=2&&o.r3===1],
+            ['5:8:14 ちょうどで 押せる',o.c814.n>=2&&o.c814.dis===0&&o.c814.gap===''&&o.r4===2],
+            ['6:ひとりでに 変わる',o.cA.dis===o.cA.n&&o.cA.n>=2&&o.cB.n>=2&&o.cB.dis===0&&o.cB.gap===''],
+            ['8:列の 行 ⏳ 7:59・並び 同じ・7:59 で 消える',/⏳ 7:59/.test(o.row[0])&&/gR4/.test(o.row[1])&&o.row[1]===o.row[3]&&o.row[4]===0&&o.row759[0]===0&&o.row759[1]===o.row[1]],
+            ['7:数え方は 同じ',[o.s729,o.s731,o.s814].every(x=>{ const p=x.split('/'); return p.length===2&&p[0]===p[1]; })&&/^done/.test(o.s729)&&/^todo/.test(o.s731)&&/^done/.test(o.s814)]],
+          `記録 ${o.r1}/${J(o.r2)}/${o.r3}/${o.r4}｜行 ${J(o.row)} ${J(o.row759)}｜7:31 ${J(o.c731)}｜8:13:59 ${J(o.c813)}｜8:14 ${J(o.c814)}｜ひとりでに ${J(o.cA)} → ${J(o.cB)}｜状態 ${o.s729} ${o.s731} ${o.s814}`);
+        P.close();
+      });
+
+      /* ===== 97zg3：時刻の 作業（10:00・10:30・45分前から・15分 あける）：9:44 に 押す（10:00 の分）→ 9:46（10:30 の分が 押せる 時刻）は 止まる（⏳ 9:59）・9:58:59 も 止まる・9:59 で 10:30 の分を 記録できる・数え方（amOffStatus）は 同じ ===== */
+      await tryG('97zg3',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGc','ws',stG()), o={};
+        try{
+          setWG(P,[oW({gap:15})]); await syncG([P]);
+          const stC=()=>String(EG(P,`(()=>{ const w=amWork('gO'), c=JSON.parse(JSON.stringify(w)); delete c.gap; const n=Date.now(), f=s=>s.st+(s.lock?'*':'')+'@'+(s.slot?amHM(s.slot.s):'-'); return f(amOffStatus(w,n))+'/'+f(amOffStatus(c,n)); })()`));
+          clkG(P,9,44); P.ev(`amRecord('gO','見本 太郎')`); o.r1=[acG(P,'gO'), stC()];
+          clkG(P,9,46); o.s946=stC(); o.c946=cardG(P,'gO'); P.ev(`amRecord('gO','見本 花子')`); o.r2=[acG(P,'gO'), snG(P)];
+          clkG(P,9,58,59); o.c958=cardG(P,'gO'); P.ev(`amRecord('gO','見本 花子')`); o.r3=acG(P,'gO');
+          clkG(P,9,59,0); o.c959=cardG(P,'gO'); P.ev(`amRecord('gO','見本 花子')`); o.r4=[acG(P,'gO'), stC()];
+          P.ev('amCloseSheet()');
+        } finally { P.ev('amCloseSheet()'); }
+        checkLG('97zg3','【時刻の 作業】9:44 に 10:00 の分を 記録 → 9:46 は 10:30 の分が 押せる 時刻でも 止まる（⏳ 9:59・名前は 灰色・押しても 記録しない）・9:58:59 も 止まる・9:59 で 10:30 の分を 記録・amOffStatus は gap の 有る・無しで 同じ',[
+            ['1:9:44 に 10:00 の分',o.r1[0]===1&&/^done@10:00\/done@10:00$/.test(o.r1[1])],
+            ['2:9:46 の 状態は 同じ（10:30 の分 いま）',o.s946==='soon@10:30/soon@10:30'],
+            ['3:9:46 止まる',o.c946.n>=2&&o.c946.dis===o.c946.n&&/9:59 から 押せます/.test(o.c946.gap)&&/9:44/.test(o.c946.gap)&&o.r2[0]===1&&/9:59/.test(o.r2[1])],
+            ['4:9:58:59 も 止まる',o.c958.dis===o.c958.n&&o.r3===1],
+            ['5:9:59 で 記録',o.c959.dis===0&&o.c959.gap===''&&o.r4[0]===2&&o.r4[1]==='done@10:30/done@10:30']],
+          `記録 ${J(o.r1)}｜9:46 ${o.s946} ${J(o.c946)} ${J(o.r2)}｜9:58:59 ${J(o.c958)} ${o.r3}｜9:59 ${J(o.c959)} ${J(o.r4)}`);
+        P.close();
+      });
+
+      /* ===== 97zg4：なし は 今までどおり（7:29・7:31 と 続けて 押せる）・DF の 再チェックの 回は 止めない・あとの 作業は 止めない ===== */
+      await tryG('97zg4',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGd','ws',stG()), o={};
+        const rW={id:'gR',name:'見本の 冷蔵',icon:'🧊',kind:'点検',zone:'blue',sub:'',place:'off',times:['10:00'],lead:30,grace:60,recheck:15,reN:1,gap:30,vals:[{k:'a',label:'温度',unit:'℃',min:0,max:10}],sch:[0,0,0,0],days:null,items:[]};
+        const aW=fW({id:'gA',name:'見本の 品出し',sch:[0,0,0,0],sch7:[0,0,2,0,0,0,0],gap:30,after:{name:'札を 戻す',min:5,grace:5}});
+        try{
+          setWG(P,[fW(),rW,aW]); await syncG([P]);
+          /* なし */
+          clkG(P,7,29); P.ev(`amRecord('gF','見本 太郎')`); clkG(P,7,31); o.c0=cardG(P,'gF'); P.ev(`amRecord('gF','見本 花子')`); o.r0=acG(P,'gF');
+          /* DF：10:00 に 範囲の外（20℃）で 記録 → 10:15 に 再チェックの 回 → 10:16 は 止めない（あける 30分の 中でも） */
+          clkG(P,10,0); P.ev(`amOpenArea('gR')`); P.ev(`amCardPick('a',20)`); P.ev(`amRecord('gR','見本 花子')`); o.d1=acG(P,'gR');
+          clkG(P,10,16); o.re=String(EG(P,`(()=>{ const s=amOffNow(amWork('gR')); return (s.slot&&s.slot.re)+'/'+s.st; })()`));
+          P.ev('amCloseSheet()'); P.ev(`amOpenArea('gR')`); P.ev(`amCardPick('a',5)`);
+          o.dc={n:qnG(P,'#am-sheet button[onclick^="amRecord("]'), dis:qnG(P,'#am-sheet button[onclick^="amRecord("][disabled]'), gap:qtG(P,'#am-sheet .am-gap')};
+          P.ev(`amRecord('gR','見本 花子')`); o.d2=[acG(P,'gR'), snG(P)];
+          /* あとの 作業：11:00 に 品出し → 11:06 に「札を 戻す」は 記録できる（品出し そのものは 11:30 まで 止まる） */
+          clkG(P,11,0); P.ev(`amRecord('gA','見本 花子')`); const src=Number(EG(P,`new Date(amLast('gA').at).getTime()`));
+          clkG(P,11,6); o.af0=EG(P,`!!amAfterFind('gA',${src},Date.now())`);
+          P.ev(`amRecordAfter('gA',${src},'見本 太郎')`);
+          o.af=[Number(EG(P,`Object.keys(state).filter(k=>/^amLog_/.test(k)).reduce((n,k)=>n+Object.values(state[k]).filter(r=>r&&r.w==='gA#af'&&r.af).length,0)`)), EG(P,`amAfterFind('gA',${src},Date.now()).k`)];
+          P.ev(`amRecord('gA','見本 太郎')`); o.a2=acG(P,'gA');
+        } finally { P.ev('amCloseSheet()'); }
+        checkLG('97zg4','【止めない 物】あける時間が なし の 作業は 7:29・7:31 と 続けて 記録できる（⏳ なし）・DF の 再チェックの 回（10:15）は あける 30分の 中でも 押せる・あとの 作業は 記録できる（元の 作業は 止まる）',[
+            ['1:なし',o.c0.n>=2&&o.c0.dis===0&&o.c0.gap===''&&o.r0===2],
+            ['2:再チェックの 回',o.d1===1&&o.re==='1/soon'&&o.dc.n>=2&&o.dc.dis===0&&o.dc.gap===''&&o.d2[0]===2&&/再チェック/.test(o.d2[1])],
+            ['3:あとの 作業',o.af0===true&&o.af[0]===1&&o.af[1]==='done'&&o.a2===1]],
+          `なし ${J(o.c0)} ${o.r0}｜DF ${o.d1} ${o.re} ${J(o.dc)} ${J(o.d2)}｜あと ${o.af0} ${J(o.af)} 元 ${o.a2}`);
+        P.close();
+      });
+
+      /* ===== 97zg5：🔥 の 案内は、止めている 作業を 指さない（ほかの 🔥 は 今までどおり 指す） ===== */
+      await tryG('97zg5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGe','ws',stG()), o={};
+        const xW=oW({id:'gX',name:'見本の 油',times:['09:00','10:00'],lead:10,grace:10,gap:45});   // 9:40 に 9:00 の分 → 10:10 の 締切を すぎて 🔥・でも 10:25 まで 止まる
+        const yW=fW({id:'gY',name:'見本の 棚',sch:[0,0,0,0],sch7:[0,0,1,0,0,0,0]});                // 昼前 1回（9:01 に 済）
+        const zW=oW({id:'gZ',name:'見本の 窓',times:['10:00'],lead:10,grace:10});                  // 記録なし → 10:10 を すぎて 🔥（止めていない）
+        try{
+          setWG(P,[xW,yW]); await syncG([P]);
+          clkG(P,9,1); P.ev(`amRecord('gY','見本 花子')`); clkG(P,9,40); P.ev(`amRecord('gX','見本 太郎')`);
+          clkG(P,10,12);
+          o.x=String(EG(P,`(()=>{ const s=amOffStatus(amWork('gX'),Date.now()); return s.st+'@'+(s.slot?amHM(s.slot.s):'-'); })()`));
+          o.top1=EG(P,`JSON.stringify(amFireTop(Date.now()))`); o.c1=cardG(P,'gY');
+          o.cx=cardG(P,'gX');
+          P.ev(`(()=>{ amWorksEdit().push(${J(zW)}); amSave(); })()`); await syncG([P]);
+          o.top2=EG(P,`(amFireTop(Date.now())||{}).id`); o.c2=cardG(P,'gY');
+          P.ev('amCloseSheet()');
+        } finally { P.ev('amCloseSheet()'); }
+        checkLG('97zg5','【🔥 の 案内】止めている 作業（🔥・10:25 まで 止まる）しか 🔥 が 無い時は、ほかの カードに「先に 🔥」を 出さない（名前は 押せる）・止めている 作業の カードは ⏳ で 灰色・止めていない 🔥 が 足されると そちらを 指す',[
+            ['1:油は 🔥',o.x==='fire@10:00'],
+            ['2:案内なし',o.top1==='null'&&o.c1.fg===0&&o.c1.dis===0&&o.c1.n>=2],
+            ['3:止めている カード',o.cx.fg===0&&o.cx.dis===o.cx.n&&o.cx.n>=2&&/10:25 から 押せます/.test(o.cx.gap)],
+            ['4:ほかの 🔥 は 指す',o.top2==='gZ'&&o.c2.fg===1&&o.c2.dis===o.c2.n]],
+          `油 ${o.x}｜案内 ${o.top1} ${J(o.c1)}｜油の カード ${J(o.cx)}｜窓を 足す ${o.top2} ${J(o.c2)}`);
+        P.close();
+      });
+
+      /* ===== 97zg6：2台（どちらも 5.22）：P の 記録で Q も 止まる・P が あける時間を 直し Q が 同じ 作業の 名前を 直す（同時）→ 両方 残る・2台 同じ・負けた入力 0 ===== */
+      await tryG('97zg6',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGf','ws',stG()), Q=await mkG(cl,'端末QGf','ws'), D=[P,Q], o={};
+        const lostG=()=>Object.keys(cl.docs).filter(k=>/~l~/.test(k)).reduce((n,k)=>n+(((cl.docs[k]||{}).e)||[]).filter(x=>x.lost).length,0);
+        try{
+          setWG(P,[fW({gap:45})]); await syncG(D); o.q0=EG(Q,`amWork('gF').gap`);
+          clkG(P,7,29); P.ev(`amRecord('gF','見本 太郎')`); await syncG(D);
+          clkG(Q,7,31); o.cq=cardG(Q,'gF'); Q.ev(`amRecord('gF','見本 花子')`); o.rq=acG(Q,'gF'); Q.ev('amCloseSheet()');
+          /* 同時に 直す */
+          P.be.setOnline(false); Q.be.setOnline(false);
+          P.ev(`(()=>{ amWorksEdit().find(w=>w.id==='gF').gap=20; amSave(); })()`);
+          Q.ev('isAdmin=true;'); Q.ev(`amEditWork('gF')`); await sleep(60); Q.ev(`document.getElementById('amw-name').value='Qで 直した 名前'; amSaveWork('gF')`); Q.ev('isAdmin=false; amCloseSheet()');
+          P.be.setOnline(true); Q.be.setOnline(true); await syncG(D);
+          o.mg=[EG(P,`amWork('gF').gap`), EG(Q,`amWork('gF').gap`), EG(P,`amWork('gF').name`), nzG(P.ev('JSON.stringify(state)'))===nzG(Q.ev('JSON.stringify(state)'))];
+          clkG(Q,7,31); o.cq2=cardG(Q,'gF'); Q.ev('amCloseSheet()');
+          o.lost=lostG();
+        } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
+        checkLG('97zg6','【2台】P の 端末で 決めた あける時間が Q に 届く・P の 7:29 の 記録で Q の 7:31 も 止まる（記録しない）・同時に P が あける時間（20分）、Q が 名前を 直す → 両方 残る（Q の 止まりは 7:49 まで）・2台 同じ・負けた入力 0',[
+            ['1:届く',o.q0===45],['2:Q も 止まる',o.cq.n>=2&&o.cq.dis===o.cq.n&&/8:14 から/.test(o.cq.gap)&&o.rq===1],
+            ['3:両方 残る・同じ',o.mg[0]===20&&o.mg[1]===20&&o.mg[2]==='Qで 直した 名前'&&o.mg[3]===true],
+            ['4:20分 で 止まる',/7:49 から/.test(o.cq2.gap)&&o.cq2.dis===o.cq2.n],['5:負けた入力 0',o.lost===0]],
+          `届く ${o.q0}｜Q ${J(o.cq)} ${o.rq}｜合わせ ${J(o.mg)}｜Q2 ${J(o.cq2)}｜負け ${o.lost}`);
+        for(const d of D) d.close();
+      });
+
+      /* ===== 97zg7：古い版（5.19・5.14）と まざる：古い端末は 止まらない だけ・古い端末が 作業を 直して 保存しても、全部 開いて 保存しても gap が 消えない・3台 同じ ===== */
+      await tryG('97zg7',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGg','ws',stG()), O19=await mkG(cl,'端末OG19','wsold519'), O14=await mkG(cl,'端末OG14','wsold'), D=[P,O19,O14], o={};
+        const sameAll=()=>{ const s0=nzG(P.ev('JSON.stringify(state)')); return D.map(d=>nzG(d.ev('JSON.stringify(state)'))===s0); };
+        try{
+          await syncG(D); o.v=D.map(d=>EG(d,'APP_VERSION'));
+          setWG(P,[fW({gap:45}),oW({gap:15})]); await syncG(D);
+          o.gap=D.map(d=>EG(d,`amWork('gF').gap`));
+          O19.ev('isAdmin=true;'); O19.ev(`amEditWork('gF')`); await sleep(60); O19.ev(`document.getElementById('amw-name').value='古い版で 直した 名前'; amSaveWork('gF')`); O19.ev('isAdmin=false; amCloseSheet()');
+          O14.ev('isAdmin=true;'); for(const id of ['gF','gO']){ O14.ev(`amEditWork(${J(id)})`); await sleep(40); O14.ev(`amSaveWork(${J(id)})`); } O14.ev('isAdmin=false; amCloseSheet()');
+          await syncG(D);
+          o.keep=[EG(P,`amWork('gF').gap`), EG(P,`amWork('gO').gap`), EG(P,`amWork('gF').name`), sameAll()];
+          /* 古い端末は 止まらない（7:29・7:31 と 2回 記録できる）→ P は 7:31 から 45分 止まる */
+          clkG(O19,7,29); O19.ev(`amRecord('gF','見本 太郎')`); clkG(O19,7,31); O19.ev(`amRecord('gF','見本 花子')`); await syncG(D);
+          o.old=[acG(O19,'gF'), acG(P,'gF')];
+          clkG(P,7,32); o.cp=cardG(P,'gF'); P.ev('amCloseSheet()');
+          await syncG(D); o.same=sameAll();
+        } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
+        checkLG('97zg7','【古い版と まざる】5.19・5.14 の 端末に gap が 届く・古い端末で 作業の 名前を 直して 保存・全部 開いて 保存しても gap が 残る・古い端末は 止まらない（7:29・7:31 と 記録できる）・P では 7:31 の 記録から 止まる（⏳ 8:16）・3台 同じ',[
+            ['1:版',o.v[0]==='5.22'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],['2:届く',o.gap.every(x=>x===45)],
+            ['3:古い 保存で 消えない',o.keep[0]===45&&o.keep[1]===15&&o.keep[2]==='古い版で 直した 名前'&&o.keep[3].every(Boolean)],
+            ['4:古い端末は 止まらない',o.old[0]===2&&o.old[1]===2],['5:P は 止まる',o.cp.n>=2&&o.cp.dis===o.cp.n&&/8:16 から/.test(o.cp.gap)],['6:3台 同じ',o.same.every(Boolean)]],
+          `版 ${J(o.v)}｜届く ${J(o.gap)}｜保存 ${J(o.keep)}｜古い記録 ${J(o.old)}｜P ${J(o.cp)}｜同じ ${J(o.same)}`);
+        for(const d of D) d.close();
+      });
+
+      /* ===== 97zg8：数え方が 変わらない（gap を 入れた 作業の 状態・売場以外の 列・📊 の 元・きのうの 抜けを 5.19 と 比べて 1字 同じ）・店の データを 5.22 で 開いて 見るだけ → 何も 書かない・1字 同じ・gap を 足さない ===== */
+      await tryG('97zg8',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGh','ws',stG()), O=await mkG(cl,'端末OGh','wsold519'), o={};
+        try{
+          const xs=[fW({gap:45}),oW({gap:15}),fW({id:'gF4',name:'見本の 4回',sch:[0,0,0,0],sch7:[1,4,2,1,2,3,1],gap:30}),oW({id:'gO3',name:'見本の 3回',times:['06:00','14:00','23:30'],lead:30,grace:60,gap:60})];
+          setWG(P,xs); await syncG([P,O]);
+          /* 記録（前の日 から きょうまで・続けて 押した 分も）*/
+          for(const [h,m,id] of [[6,10,'gF'],[6,12,'gF'],[9,40,'gO'],[9,44,'gO'],[7,0,'gF4'],[7,5,'gF4'],[13,40,'gO3'],[13,50,'gO3']]){ clkG(P,h,m); P.ev(`(()=>{ const r={at:new Date().toISOString(),by:'見本 花子'}; (state.areaChecks[${J(id)}]=state.areaChecks[${J(id)}]||[]).push(r); amLogAdd(${J(id)},r,null,null); amSave(); })()`); }
+          await syncG([P,O]); clkG(P,15,0); clkG(O,15,0);
+          const dump=`(()=>{ const day=amLogDayMs(amLogDay(Date.now())), out=[]; for(let t=day-86400000+3*3600000; t<day+27*3600000; t+=11*60000){ amWorks().forEach(w=>{ const s=amIsOff(w)?amOffNow(w,t):amStatus(w,t); out.push(w.id+':'+s.st+(s.lv||'')+(s.lock?'*':'')); }); }
+            const occ=d=>amDayOcc(d,amOccCtx(d,d,Date.now())).map(x=>[x.w.id,x.st,x.s,x.e,!!x.rec,x.k||''].join(':'));
+            return JSON.stringify({n:out.length,h:out.join('|'),off:amOffList(Date.now()).map(x=>x.w.id+':'+x.k).join('|'),today:occ(day),yest:occ(day-86400000),yd:amYdData().items.map(x=>x.id+':'+x.s)}); })()`;
+          const a=jpG(EG(P,dump),{}), b=jpG(EG(O,dump),{});
+          o.cmp=[a.n>0&&a.n===b.n, a.h===b.h, a.off===b.off, J(a.today)===J(b.today), J(a.yest)===J(b.yest), J(a.yd)===J(b.yd), a.n];
+        } finally { P.ev('amCloseSheet()'); }
+        P.close(); O.close();
+        /* 店の データ（5.19 で 作った）を 5.22 で 開いて 見るだけ */
+        const cl2=new V2.MemoryCloud(), P0=await mkG(cl2,'端末PGi0','wsold519',stG());
+        P0.ev(`(()=>{ state.amWorks=JSON.parse(JSON.stringify(DEFAULT_WORKS)).map((w,i)=>Object.assign(w,{seq:(i+1)*1000})); const day=amLogDayMs(amLogDay(Date.now())), iso=t=>new Date(t).toISOString();
+          state.areaChecks={toilet:[{at:iso(day+10*3600000),by:'見本 花子'}],trash:[{at:iso(day-86400000+13*3600000),by:'見本 太郎'}]};
+          amLogAdd('toilet',{at:iso(day+10*3600000),by:'見本 花子'},null,null); amLogAdd('trash',{at:iso(day-86400000+13*3600000),by:'見本 太郎'},null,null); amSave(); })()`);
+        await syncG([P0]); const s0=nzG(P0.ev('JSON.stringify(state)')); P0.close();
+        const P1=await mkG(cl2,'端末PGi','ws'); await syncG([P1]);
+        try{
+          const cw=cl2.writes, ids=jpG(EG(P1,'JSON.stringify(amWorks().map(w=>w.id))'),[]);
+          P1.ev('renderMapView()'); for(const id of ids.slice(0,10)){ P1.ev(`amOpenArea(${J(id)})`); await sleep(15); P1.ev('amCloseSheet()'); }
+          P1.ev(`isAdmin=true; applyAdminMode(); setView('dashboard');`); await sleep(120); P1.ev(`setView('map'); amOpenWorks();`); await sleep(120);
+          for(const id of ids){ P1.ev(`amEditWork(${J(id)})`); await sleep(10); P1.ev(`amSaveWork(${J(id)})`); }
+          P1.ev('amCloseSheet(); isAdmin=false; applyAdminMode();'); await syncG([P1]);
+          o.r=[nzG(P1.ev('JSON.stringify(state)'))===s0, cl2.writes===cw, Number(EG(P1,`amWorks().filter(w=>'gap' in w).length`)), ids.length];
+        } finally { P1.ev('isAdmin=false; amCloseSheet()'); }
+        checkLG('97zg8','【数え方が 変わらない・今の 作業と 記録が 変わらない】gap を 入れた 4つの 作業（売場・時刻・続けて 押した 記録）で、5.22 と 5.19 の 状態（2日ぶん 11分 ごと）・売場以外の 列・📊 の 元（きょう・きのう）・きのうの 抜けが 1字 同じ／5.19 の 店の データを 5.22 で 開いて 地図・カード・📊・登録の表・全部の 作業を 開いて 保存 → 何も 書かない・1字 同じ・gap を 足さない',[
+            ['1:状態が 同じ',o.cmp[0]===true&&o.cmp[1]===true],['2:売場以外の 列',o.cmp[2]===true],['3:📊 の 元',o.cmp[3]===true&&o.cmp[4]===true],['4:きのうの 抜け',o.cmp[5]===true],
+            ['5:見るだけ・保存 → 同じ・書かない・gap 0',o.r[0]===true&&o.r[1]===true&&o.r[2]===0&&o.r[3]>=10]],
+          `比べ ${J(o.cmp)}｜店の データ ${J(o.r)}`);
+        P1.close();
+      });
+      /* ===== 97zg10：5.22c（テスの △）：①⏳ の 時刻は 分を 切り上げ（7:49:50＋10分 → 8:00 から・7:59:55 も 押せない・8:00 で 押せる）②枠より 長い あける 時間は 保存しない（窓・一覧の −／＋）③済の 行には ⏳ を 出さない ④ほかの 端末の 記録で 開いている カードが すぐ 灰色 ===== */
+      await tryG('97zg10',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGk','ws',stG()), Q=await mkG(cl,'端末QGk','ws'), D=[P,Q], o={};
+        try{
+          /* ① */
+          setWG(P,[fW({gap:10})]); await syncG(D);
+          clkG(P,7,49,50); P.ev(`amRecord('gF','見本 太郎')`); clkG(P,7,50); o.c1=cardG(P,'gF');
+          clkG(P,7,59,55); o.c2=cardG(P,'gF'); P.ev(`amRecord('gF','見本 花子')`); o.r2=acG(P,'gF');
+          clkG(P,8,0,0); o.c3=cardG(P,'gF'); P.ev(`amRecord('gF','見本 花子')`); o.r3=acG(P,'gF'); P.ev('amCloseSheet()');
+          /* ③ 済の 行（8:00:30＝この 枠は 記録ずみ・8:10 まで 止まる）には ⏳ を 出さない／これからの 行には 出す */
+          clkG(P,8,0,30); o.row=[String(EG(P,`amStatus(amWork('gF'),Date.now()).st`)), '', String(EG(P,`(()=>{ const w=amWork('gF'), s=amStatus(w,Date.now()); return (amRowHtml(w,s,true).indexOf('amf-gp')>=0)+'|'+(amFRow(w,s,false).indexOf('amf-gp')>=0)+'|'+(!!amGapLock(w)); })()`)), String(EG(P,`(()=>{ const w=amWork('gF'), s=Object.assign({},amStatus(w,Date.now()),{st:'todo'}); return amRowHtml(w,s,true).indexOf('amf-gp')>=0&&amFRow(w,s,false).indexOf('amf-gp')>=0; })()`))];
+          /* ② 窓：朝を 4回（枠 45分）にして 45分 → 保存しない（理由）・一覧の ＋ で 枠が 45分に なる 時は 増やさない */
+          P.ev(`window.__al=''; window.alert=function(m){ window.__al=String(m); }; isAdmin=true; applyAdminMode();`);
+          P.ev(`(()=>{ amWork('gF').gap=45; amSave(); })()`); const w0=EG(P,`JSON.stringify(amWork('gF'))`);
+          P.ev(`amEditWork('gF')`); await sleep(60); P.ev(`document.getElementById('amw-sch-1').value='4'; amFormSync();`); o.warn=qtG(P,'#amw-gap-warn'); P.ev(`amSaveWork('gF')`);
+          o.save=[String(EG(P,'window.__al')), EG(P,`JSON.stringify(amWork('gF'))`)===w0, String(EG(P,'amSheetName()'))]; P.ev('amCloseSheet()');
+          P.ev(`amOpenWorks(); amStep(null,'gF',1,1);`); o.st3=J(jpG(EG(P,`JSON.stringify(amSch(amWork('gF')))`),[]));
+          P.ev(`amStep(null,'gF',1,1);`); o.st4=[J(jpG(EG(P,`JSON.stringify(amSch(amWork('gF')))`),[])), snG(P)]; P.ev('amCloseSheet(); isAdmin=false; applyAdminMode();');
+          /* ④ 2台：Q が 開いている カード（押せる）→ P が 記録 → 届くと Q の 名前が すぐ 灰色 */
+          P.ev(`(()=>{ const w=amWork('gF'); w.gap=10; w.sch7=[0,2,0,0,0,0,0]; w.sch=amSchFold(w.sch7); amSave(); })()`); await syncG(D);
+          clkG(Q,9,30); clkG(P,9,30); o.q0=cardG(Q,'gF');
+          P.ev(`amRecord('gF','見本 太郎')`); await syncG(D); await sleep(300);
+          o.q1={n:qnG(Q,'#am-sheet button[onclick^="amRecord("]'), dis:qnG(Q,'#am-sheet button[onclick^="amRecord("][disabled]'), gap:qtG(Q,'#am-sheet .am-gap'), sheet:String(EG(Q,'amSheetName()'))};
+        } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
+        checkLG('97zg10','【5.22c】①⏳ の 時刻は 分を 切り上げ（7:49:50 の 記録＋10分 → 「8:00 から」・7:59:55 も 押せない・8:00 で 押せる）②枠より 長い あける 時間は 窓で 保存しない（理由）・一覧の ＋ で 枠が 短く なる 時は 増やさない ③済の 行には ⏳ を 出さない（これからの 行には 出す）④ほかの 端末の 記録が 届くと 開いている カードが すぐ 灰色',[
+            ['1:8:00 から',/8:00 から 押せます/.test(o.c1.gap)&&o.c1.dis===o.c1.n&&o.c1.n>=2],
+            ['1:7:59:55 も 止まる',o.c2.dis===o.c2.n&&o.r2===1],['1:8:00 で 押せる',o.c3.dis===0&&o.r3===2],
+            ['2:窓で 保存しない',/保存できません/.test(o.warn)&&/保存できません/.test(o.save[0])&&o.save[1]===true&&o.save[2]==='edit'],
+            ['2:一覧の ＋',o.st3==='[0,3,0,0,0,0,0]'&&o.st4[0]==='[0,3,0,0,0,0,0]'&&/増やせ|できません/.test(o.st4[1])],
+            ['3:済の 行に ⏳ なし',o.row[0]==='done'&&o.row[2]==='false|false|true'&&o.row[3]==='true'],
+            ['4:すぐ 灰色',o.q0.dis===0&&o.q0.n>=2&&o.q1.sheet==='card'&&o.q1.n>=2&&o.q1.dis===o.q1.n&&/9:40 から/.test(o.q1.gap)]],
+          `① ${J(o.c1)} ${J(o.c2)} ${o.r2} ${J(o.c3)} ${o.r3}｜② 窓「${o.warn}」${J(o.save)}｜一覧 ${o.st3} ${J(o.st4)}｜③ ${J(o.row)}｜④ ${J(o.q0)} → ${J(o.q1)}`);
+        for(const d of D) d.close();
+      });
+      /* ===== 97zg9：テスの △（5.20 の 点検）：360幅で 一覧の 検索欄の 案内の 字が 切れない・🏷 の 窓の 字は 12px 以上・🧰 の 見出しに「種類」 ===== */
+      await tryG('97zg9',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkG(cl,'端末PGj','ws',stG()), o={};
+        P.f.style.width='360px'; P.f.style.height='780px'; await sleep(300);
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); await sleep(150);
+        try{
+          o.w=Number(EG(P,'window.innerWidth'));
+          P.ev('amOpenWorks()'); await sleep(200);
+          o.ph=jpG(EG(P,`(()=>{ const e=document.getElementById('rg-q'); if(!e) return 'null'; const cs=getComputedStyle(e), c=document.createElement('canvas').getContext('2d'); c.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily; return JSON.stringify({ph:e.placeholder, w:Math.ceil(c.measureText(e.placeholder).width), room:Math.floor(e.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)), aria:e.getAttribute('aria-label')}); })()`),null);
+          o.head=qtG(P,'#am-sheet details.amw-tools summary');
+          P.ev('amCloseSheet(); amTagPanel();'); await sleep(200);
+          o.tg=jpG(EG(P,`(()=>{ const L=Array.prototype.filter.call(document.querySelectorAll('#am-sheet *'),e=>{ const r=e.getBoundingClientRect(); return r.width>0&&r.height>0&&Array.prototype.some.call(e.childNodes,n=>n.nodeType===3&&n.textContent.trim()); }).map(e=>({f:parseFloat(getComputedStyle(e).fontSize),t:e.textContent.trim().slice(0,12)})); L.sort((a,b)=>a.f-b.f); return JSON.stringify({n:L.length,min:L.length?L[0]:null}); })()`),{});
+        } finally { P.ev('isAdmin=false; amCloseSheet()'); }
+        checkLG('97zg9','【テスの △（5.20）】360幅：一覧の 検索欄の 薄い 案内の 字が 欄に 収まる（読み上げの 名前は「作業名で さがす」のまま）・🏷 の 窓で いちばん 小さい 字が 12px 以上・🧰 の 見出しに「種類」',[
+            ['1:360幅',o.w===360],
+            ['2:案内の 字が 収まる',!!o.ph&&o.ph.w<=o.ph.room&&/さがす/.test(o.ph.ph)&&o.ph.aria==='作業名で さがす'],
+            ['3:🏷 の 字 12px 以上',o.tg.n>5&&o.tg.min&&o.tg.min.f>=12],
+            ['4:🧰 の 見出し',/おくれの音・種類）/.test(o.head)]],
+          `幅 ${o.w}｜検索 ${J(o.ph)}｜🏷 ${J(o.tg)}｜見出し「${o.head}」`);
         P.close();
       });
     }

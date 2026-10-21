@@ -2657,6 +2657,15 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .am-iso-f{border-radius:10px;overflow:hidden;border:1.5px solid #d6e9dc;line-height:0;background:#f3faf5}
 .am-iso-f.ng{border-color:#f3cfcb;background:#fdf2f1}
 .am-iso-f svg{display:block;width:100%;height:auto}
+/* 5.22：前の 記録から ◯分 あける（カードの下の ⏳） */
+.am-gap{display:flex;gap:10px;align-items:center;border:2px solid #e0a100;background:#fdf0c2;border-radius:12px;padding:8px 12px;margin:2px 0 8px}
+.am-gap-i{font-size:28px;line-height:1;flex:0 0 auto}
+.am-gap-b{min-width:0}
+.am-gap-b>b{display:block;font-size:19px;font-weight:800;color:#3b2f06;line-height:1.35}
+.am-gap-s{font-size:14px;color:#5b4a12;line-height:1.45;margin-top:1px;overflow-wrap:anywhere}
+.am-gap .am-tr{font-size:13px;color:#7586a0;margin-top:1px}
+.am-cd-foot.am-cd-foot-need .am-gap{margin:0 0 6px}
+.amf-gp{display:inline-block;font-size:14px;font-weight:800;color:#5b4a12;background:#fdf0c2;border:1px solid #e0a100;border-radius:6px;padding:0 6px;margin-left:4px;vertical-align:1px;line-height:1.35;white-space:nowrap;font-variant-numeric:tabular-nums}
 /* ===== 5.21：▶ 始める・✓ 終わった・🎯 目標の分（黄＝目標を すぎた。赤は おくれ だけ） ===== */
 .am-goal{display:inline-flex;align-items:center;font-size:15px;font-weight:800;border-radius:8px;padding:3px 9px;background:#e0f2fe;color:#075985;white-space:nowrap;flex-shrink:0}
 .am-cd-foot.am-cd-foot-run{background:#f0fdf4}
@@ -2802,6 +2811,7 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .tg-row.off .rg-t{opacity:.55}
 .tg-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#475569}
 .tg-h .rg-t{font-size:14px}
+.tg-h small{font-size:12px}
 .tg-hid{color:#92400e;font-weight:700}
 .tg-f{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
 .tg-f label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#64748b;min-width:0}
@@ -4147,7 +4157,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.21'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.22'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -11107,7 +11117,7 @@ function amFT(){ return (window.performance&&performance.now)?performance.now():
 function amRowHtml(a,s,tag){
   const z=AM_ZONE[a.zone]||AM_ZONE.none, sub=[z.short?`${z.ico} ${z.short}`:'', amWhenShort(s), amMissText(s)].filter(Boolean).map(p=>`<span class="am-nw">${escapeHtml(p)}</span>`).join('');   // 区切りの途中で行が折れないように
   const tin=tag?`<span class="am-st ${s.st} am-st-in">${AM_ST_L[s.st]||''}</span>`:'';   // せまい画面では、状態の札を名前の下の段に出す
-  return `<button type="button" class="am-wr ${s.st}" onclick="amOpenArea('${a.id}')">${amFNoC(a.id,s.st,'n32')}<span class="am-wr-i">${escapeHtml(a.icon||'')}</span><span class="am-wr-m"><span class="am-wr-n">${escapeHtml(amBaseName(a))}${amIsRep(a)?` <small class="amf-rp">${amRepTag(a)}</small>`:''}</span>${(sub||tin)?`<span class="am-wr-z">${tin}${sub}</span>`:''}</span>${tag?amStTag(s):''}<span class="am-wr-go" aria-hidden="true">›</span></button>`;
+  return `<button type="button" class="am-wr ${s.st}" onclick="amOpenArea('${a.id}')">${amFNoC(a.id,s.st,'n32')}<span class="am-wr-i">${escapeHtml(a.icon||'')}</span><span class="am-wr-m"><span class="am-wr-n">${escapeHtml(amBaseName(a))}${amIsRep(a)?` <small class="amf-rp">${amRepTag(a)}</small>`:''}${s.st==='done'?'':amGapTag(a)}</span>${(sub||tin)?`<span class="am-wr-z">${tin}${sub}</span>`:''}</span>${tag?amStTag(s):''}<span class="am-wr-go" aria-hidden="true">›</span></button>`;
 }
 /* つぎはこれ：一覧（状態 → 番号）のいちばん上。おくれ・そろそろ が無い時は「これから」の中で番号がいちばん小さい物（idle）。
    sec＝もう1人の分。人ではなく持ち場（役割）で書く（画面は、今 だれが使っているかを知らない） */
@@ -11131,7 +11141,7 @@ let _amfOpen=true, _amfSel=null, _amfSelT=null, _amfAt=0;
 /* 列の1行：数字の丸（いま やる順）・絵・作業名・（おくれの時だけ）おくれの印・右はしに「›」（押せる印）。持ち場と「15:00 の 分」は、押して開くカードの中。
    持ち場の札を横に出さないので、作業名は はぶかずに全部出す（床（赤ゾーン）と 床（青ゾーン）を見分けるため） */
 function amFRow(a,s,first){
-  return `<button type="button" class="am-wr amf-r ${s.st}${first?' amf-first':''}${amRunCls(a)}" data-w="${escapeHtml(a.id)}" onclick="amOpenArea('${a.id}')"><span class="amf-ri">${amRunNoC(a)||amFNoC(a.id,s.st,'n32')}<span class="am-wr-i">${escapeHtml(a.icon||'')}</span><span class="am-wr-n">${escapeHtml(a.name||'')}${amIsRep(a)?` <small class="amf-rp">${amRepTag(a)}</small>`:''}${amRunTag(a)}</span>${(s.st==='fire'&&s.carry)?amStTag(s):''}<span class="am-wr-go" aria-hidden="true">›</span></span></button>`;
+  return `<button type="button" class="am-wr amf-r ${s.st}${first?' amf-first':''}${amRunCls(a)}" data-w="${escapeHtml(a.id)}" onclick="amOpenArea('${a.id}')"><span class="amf-ri">${amRunNoC(a)||amFNoC(a.id,s.st,'n32')}<span class="am-wr-i">${escapeHtml(a.icon||'')}</span><span class="am-wr-n">${escapeHtml(a.name||'')}${amIsRep(a)?` <small class="amf-rp">${amRepTag(a)}</small>`:''}${s.st==='done'?'':amGapTag(a)}${amRunTag(a)}</span>${(s.st==='fire'&&s.carry)?amStTag(s):''}<span class="am-wr-go" aria-hidden="true">›</span></span></button>`;
 }
 /* ---- 5.9：右の列を上下に分ける（店長 10/13「半分あたりで区切って、上半分は点検、下半分はマップに無いタスク（返品、納品など）」→「おすすめで」）----
    売場以外の作業が1つでも登録されている店だけ。上＝🧹 点検（地図にある作業＝今までの列。番号 1・2・3…・済のたたみ）／下＝⏰ 地図に ない 作業（売場以外。時刻が先頭・番号なし・おくれ → いま → これから。済は下にたたむ）。
@@ -11145,7 +11155,7 @@ function amOffColData(now){
 }
 function amFOffRow(o){
   const w=o.w, tm=o.t?amHM(o.s):amOccBand(o).label, rp=amRepTag(w);
-  return `<button type="button" class="am-wr amf-r amf-o ${o.k}${o.lock?' lock':''}${o.af?' amf-af':''}" data-w="${escapeHtml(w.id)}" onclick="${amOcOpen(o)}"><span class="amf-ri"><span class="amf-time">${escapeHtml(tm)}</span><span class="am-wr-i">${escapeHtml(w.icon||'⏰')}</span><span class="am-wr-n">${escapeHtml(o.af?o.af.name:(w.name||''))}${o.af?' <small class="amf-rp">➡ あと</small>':''}${o.re?' <small class="amf-rp">🔁</small>':''}${rp?` <small class="amf-rp">${rp}</small>`:''}</span>${o.k==='fire'?amStTag({st:'fire',carry:o.carry}):''}<span class="am-wr-go" aria-hidden="true">${o.k==='done'?'✓':'›'}</span></span></button>`;
+  return `<button type="button" class="am-wr amf-r amf-o ${o.k}${o.lock?' lock':''}${o.af?' amf-af':''}" data-w="${escapeHtml(w.id)}" onclick="${amOcOpen(o)}"><span class="amf-ri"><span class="amf-time">${escapeHtml(tm)}</span><span class="am-wr-i">${escapeHtml(w.icon||'⏰')}</span><span class="am-wr-n">${escapeHtml(o.af?o.af.name:(w.name||''))}${o.af?' <small class="amf-rp">➡ あと</small>':''}${o.re?' <small class="amf-rp">🔁</small>':''}${rp?` <small class="amf-rp">${rp}</small>`:''}${(o.af||o.re||o.k==='done')?'':amGapTag(w)}</span>${o.k==='fire'?amStTag({st:'fire',carry:o.carry}):''}<span class="am-wr-go" aria-hidden="true">${o.k==='done'?'✓':'›'}</span></span></button>`;
 }
 function amFSplitHtml(up, nFireUp, nSoonUp, oc){
   const chips=(f,s)=>`<span class="amf-cs">${f?`<span class="amf-c f">🔥 ${f}</span>`:''}${s?`<span class="amf-c s">🟡 ${s}</span>`:''}</span>`;
@@ -11725,7 +11735,7 @@ function amTplAdd(key){
 /* 登録の表（📝 ワークスケジュール登録）の下の「🧰 道具」（たたんである）：見本から足す・厨房の表・おくれの音。管理者だけ（amOpenWorks は 管理者でなければ 何も しない） */
 function amToolsHtml(){
   const on=amSndOn(), nk=kcList().length;
-  return `<details class="amw-tools"><summary>🧰 道具（見本から 足す・厨房の表・おくれの音）</summary><div class="amw-tools-b">
+  return `<details class="amw-tools"><summary>🧰 道具（見本から 足す・厨房の表・おくれの音・種類）</summary><div class="amw-tools-b">
     <button type="button" class="btn-secondary" onclick="amTplOpen('')">🧩 見本から 足す</button>
     <button type="button" class="btn-secondary" onclick="kcPanel()">🍳 厨房の表${nk?`（${nk}枚）`:''}</button>
     <button type="button" class="btn-secondary" id="snd-toggle" onclick="amSndToggle()" aria-pressed="${on}">🔔 おくれの音：${on?'入':'切'}</button>
@@ -12008,18 +12018,19 @@ function amOpenArea(id, keep){
   const s=amStatus(a,off?Date.now():_amCard.at);
   /* 売場以外の作業：いまの状態（時刻の作業は、回が始まる前は押せない）と、数字の欄（えらぶまで名前は押せない）。売場の作業では dis・needMsg は空＝今までと同じ */
   const os=off?amOffNow(a):null, need=off&&amVals(a).some(d=>typeof _amCard.vals[d.k]!=='number'), lock=!!(os&&os.lock);
+  const gp=lock?null:amGapNow(a,Date.now(),os);   // 5.22：前の 記録から ◯分 あける作業で、まだ その時間が たっていない時（名前は 押せない）
   /* 5.8（店長 10/13「優先度の低いところを行おうとしていたら、最優先で、火が出ているほうを先に完了させてくださいと出るように」）：
      🔥 が1つでも出ている時に、🔥 でない作業のカードを開いたら、見出しのすぐ下に案内（fgHtml）を出し、名前のボタンは「それでも」を押すまで押せない（灰色）。
      出さない時：🔥 の作業そのもののカード／🔥 が1つも無い時／まだ押せない回（lock）。見るのは「今 🔥 が出ているか」だけ（夜中の 🔥 の終わり方は amOffCut のまま）。
      「それでも」を押した事は _amCard.go（メモリの中だけ）。保存する物は無い・記録の形も変えていない */
-  const fire=(!lock&&(off?os.st:s.st)!=='fire')?amFireTop(Date.now()):null, fg=!!(fire&&fire.id!==id&&!_amCard.go&&!amRunsOf(id).length), dis=(need||lock||fg)?' disabled':'';
+  const fire=(!lock&&!gp&&(off?os.st:s.st)!=='fire')?amFireTop(Date.now()):null, fg=!!(fire&&fire.id!==id&&!_amCard.go&&!amRunsOf(id).length), dis=(need||lock||fg||gp)?' disabled':'';
   /* 下の名前の所が「数字をえらぶ」の1行から 名前のボタンに変わる時（最後の数字を押した時）は、もう一度 守りを入れる（同じ所を つづけて押した2回目が、出たばかりの名前に当たらないように）。数字 → 数字 は止めない */
-  const foot=need?'need':fg?'guard':'names'; if(keep&&_amCard.foot&&_amCard.foot!==foot) _amfHold=amFT()+AM_HOLD_MS; _amCard.foot=foot; _amCard.fgOn=fg;   // fgOn：いま 案内を出しているか（amTick30 が「有る・無し」が変わった時だけ描き直すため）
+  const foot=need?'need':fg?'guard':gp?'gap':'names'; _amCard.gpOn=!!gp; _amCard.gpU=gp?gp.until:0; clearTimeout(_amGapT); if(gp){ const gid=id; _amGapT=setTimeout(()=>{ try{ if(_amCard&&_amCard.id===gid&&amSheetName()==='card') amOpenArea(gid,true); }catch(_){} }, Math.max(200,gp.until-Date.now()+300)); }  /* 5.22：押せる 時刻に なったら 描き直す（名前のボタンに 変わる時は 次の 0.5秒の 守りが 入る） */ if(keep&&_amCard.foot&&_amCard.foot!==foot) _amfHold=amFT()+AM_HOLD_MS; _amCard.foot=foot; _amCard.fgOn=fg;   // fgOn：いま 案内を出しているか（amTick30 が「有る・無し」が変わった時だけ描き直すため）
   const hist=(_amChecksRead()[id]||[]).slice(-3).reverse();
   const fmt=iso=>{ const d=new Date(iso); return isNaN(d)?'':`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const names=staffList(), rc=(_amCard.rc||(_amCard.rc=amRecentNames())), rest=names.filter(n=>!rc.includes(n)), open=_amCard.others||!rc.length;   // 5.8：「さいきん押した人」は カードを開いた時の並びのまま（開いている間に ほかの端末の記録が届いても 名前のボタンが入れかわらない）
   const nb=(n,cls)=>`<button type="button" class="am-nm${cls?' '+cls:''}" data-n="${escapeHtml(n)}" onclick="amRecord('${id}',this.dataset.n)"${dis}>${escapeHtml(n)}</button>`;
-  const needMsg=lock?`<div class="am-need">⬜ ${amHM(os.slot.o)} から 記録できます</div>`:need?`<div class="am-need">↑ 先に 上の 数字を えらぶ${amTr2('Pick the number first','पहिले नम्बर छान्नुहोस्')}</div>`:'';
+  const needMsg=(gp?amGapHtml(gp):'')+(lock?`<div class="am-need">⬜ ${amHM(os.slot.o)} から 記録できます</div>`:need?`<div class="am-need">↑ 先に 上の 数字を えらぶ${amTr2('Pick the number first','पहिले नम्बर छान्नुहोस्')}</div>`:'');
   const fgMsg=fg?`<div class="am-need am-fg-need">↑ 先に 🔥 の作業を${amTr2('Do the 🔥 task first','पहिले 🔥 को काम')}</div>`:'';
   const fgHtml=fg?`<aside class="am-fg" role="alert"><div class="am-fg-t">🔥 最優先で、火が出ているほうを先に完了させてください</div>${amTr2('Top priority: finish the task with the fire (🔥) first.','सबैभन्दा पहिले, आगो (🔥) भएको काम पहिले सक्नुहोस्।')}<button type="button" class="am-fg-go" onclick="amFireGo('${fire.id}')">🔥 ${escapeHtml(fire.label)} へ</button><button type="button" class="am-fg-skip" onclick="amFireSkip()"><span>それでも この作業を やる</span>${amTr2('Do this one anyway','तैपनि यही काम गर्छु')}</button></aside>`:'';
   const footHtml=need?needMsg:needMsg+fgMsg+(names.length
@@ -12047,7 +12058,7 @@ function amOpenArea(id, keep){
     ${head}${amStartHtml(a)}${amRepNote(a,s)}${fgHtml}${off?amCardDfHtml(a,os):''}${off?amCardValsHtml(a):''}
     ${a.sub?`<div class="am-sub">${escapeHtml(a.sub)}</div>`:''}
     ${(a.items||[]).length?`<ol class="am-items">${a.items.map(([t,ng])=>`<li><div class="am-it">${escapeHtml(t)}</div>${amIsoFig(t)}${ng?`<div class="am-ng"><span>NG時アクション</span>${escapeHtml(ng)}</div>`:''}</li>`).join('')}</ol>`:''}
-    <div class="am-hist">予定：${escapeHtml(plan)}${a.kind?`　／　種類：${escapeHtml(amKindName(a.kind))}${amKindTr(a.kind)?`（${amKindTr(a.kind)}）`:''}`:''}${hist.length?`<br>これまでの記録：${hist.map(h=>`${fmt(h.at)}${h.by?' '+escapeHtml(h.by):''}`).join('　／　')}`:''}</div></div>
+    <div class="am-hist">予定：${escapeHtml(plan)}${amGapMin(a)?`（前の 記録から ${amGapMin(a)}分 あける）`:''}${a.kind?`　／　種類：${escapeHtml(amKindName(a.kind))}${amKindTr(a.kind)?`（${amKindTr(a.kind)}）`:''}`:''}${hist.length?`<br>これまでの記録：${hist.map(h=>`${fmt(h.at)}${h.by?' '+escapeHtml(h.by):''}`).join('　／　')}`:''}</div></div>
     <div class="am-cd-foot${need?' am-cd-foot-need':''}${gl?' am-cd-foot-run':''}">${gl?amRunFoot(a,id,dis,needMsg+fgMsg):footHtml}</div>`, 'card', 'card');
 }
 function amCardOthers(){ if(!_amCard)return; _amCard.others=!_amCard.others; _amfHold=amFT()+AM_HOLD_MS; if(_amCard.af) return amOpenAfter(_amCard.af.wid,_amCard.af.src,true); amOpenArea(_amCard.id,true); }
@@ -12089,8 +12100,8 @@ function amRecordAfter(wid, src, name){
    売場以外に 🔥 があれば そちらが先（売場以外の帯の「先に」と同じ決まり：時刻のある作業 → ほかの 🔥）。無ければ 売場の列の1番（持ち場の絞りに合わせる。amCmp の並びの先頭） */
 function amFireTop(now){
   now=now||Date.now();
-  if(amOffWorks().length){ const oF=amOffList(now).filter(o=>o.k==='fire'&&!o.af), t=oF.find(o=>o.t)||oF[0]||null; /* 5.10：あとの作業は「火が出ているほうを先に」の案内には入れない */ if(t) return {id:t.w.id, label:`${t.w.icon||''} ${t.t?amHM(t.s)+' ':''}${t.w.name||''}`.trim()}; }
-  const num=amNums(), sts={}, ws=amFloorWorks().filter(amInPatrol); ws.forEach(a=>{ sts[a.id]=amStatus(a,now); });
+  if(amOffWorks().length){ const oF=amOffList(now).filter(o=>o.k==='fire'&&!o.af&&(o.re||!amGapLock(o.w,now))), t=oF.find(o=>o.t)||oF[0]||null; /* 5.10：あとの作業は「火が出ているほうを先に」の案内には入れない */ if(t) return {id:t.w.id, label:`${t.w.icon||''} ${t.t?amHM(t.s)+' ':''}${t.w.name||''}`.trim()}; }
+  const num=amNums(), sts={}, ws=amFloorWorks().filter(amInPatrol).filter(a=>!amGapLock(a,now)); ws.forEach(a=>{ sts[a.id]=amStatus(a,now); });
   const rw=amRunWorks(now), f=ws.filter(a=>sts[a.id].st==='fire'&&!rw[a.id]).sort((a,b)=>amCmp(a,b,sts,num))[0];
   return f?{id:f.id, label:`${f.icon||''} ${f.name||''}`.trim()}:null;
 }
@@ -12112,6 +12123,7 @@ function amRecord(id,name){
     /* 5.8：再チェックを決めている作業。re＝いまの枠が 再チェックの枠（その記録は 再チェックの記録）／df＝カードで「DF中」を押してある（いま押せる回で、再チェックが 2回目より前の時だけ） */
     if(amRecheckMin(a)){ const lv=(os.slot&&os.slot.re)||0, mx=amReMax(a), on=(os.st==='soon'||os.st==='fire')&&lv<mx, df=on&&!!(_amCard&&_amCard.id===id&&_amCard.df); fl={df, re:lv>0}; if(amValsNg(a,v)){ if(on&&!df) fl.ng=1; else if(lv>=mx) fl.stop=1; } }   // 5.15：fl.ng＝数字が範囲の外（「DF中」を押さなくても 自動で再チェック。記録には 印を足さず 読む時に決める）／fl.stop＝回数をこえても まだ範囲の外（お知らせだけ）
   }
+  { const gp=amGapNow(a,Date.now(),amIsOff(a)?amOffNow(a):null); if(gp){ amSnack(`⏳ ${amHM(gp.until)} から 押せます（前の 記録から ${gp.min}分 あけます）`,false); if(_amCard&&_amCard.id===id&&amSheetName()==='card') amOpenArea(id,true); return; } }   // 5.22
   const rec={at:new Date().toISOString(), by:name||''};
   const all=_amChecks(); if(!Array.isArray(all[id])) all[id]=[];
   all[id].push(rec); if(all[id].length>40) all[id]=all[id].slice(-40);
@@ -12196,6 +12208,7 @@ function amRunDoEnd(k,now){
 /* ▶ 始める（カードの 名前のボタン）。同じ人が 別の作業を 始めたままの時は、カードの中で 1回だけ 聞く（amRunAns） */
 function amRunStart(id,name){
   const a=amWork(id); if(!a||amIsOff(a)) return; name=String(name==null?'':name); const now=Date.now();
+  { const gp=amGapLock(a,now); if(gp){ amSnack(`⏳ ${amHM(gp.until)} から 始められます（前の 記録から ${gp.min}分 あけます）`,false); if(_amCard&&_amCard.id===id) amOpenArea(id,true); return; } }   // 5.22
   if(!name&&staffList().length){ amSnack('名前を えらんで 始めてください',false); return; }   // 名簿が ある店は 名前なしで 始めない
   if(name&&amRunsOf(id,now).some(r=>r.by===name)){ amSnack(`${name} は もう 始めています`,false); if(_amCard&&_amCard.id===id) amOpenArea(id,true); return; }
   if(name&&_amCard&&_amCard.id===id){ const prev=amRunActive(now).filter(r=>r.by===name&&r.w!==id); if(prev.length){ _amCard.ask={n:name, ks:prev.map(r=>r.k)}; amOpenArea(id,true); return; } }
@@ -12322,6 +12335,45 @@ function amWhoTimeHtml(names){
     <h4 class="aw-tp-h">👤 人ごと <small>名簿の 順・順位は 出しません。押すと 作業ごと</small></h4>
     ${pRows||'<div class="dash-empty">まだ 計った 記録は ありません</div>'}</div>`;
 }
+/* ========== 5.22（2026-10-20）：前の 記録から ◯分 あける ==========
+   店長（10/20）「スケジュールの間隔設定みたいのってあったっけ？例えば10分間隔とかできれば、その時間帯の点検とかいろんな業務をまとめてやられなくなる」→ 案A（＋本部のおすすめ）。
+   ・保存は、作業に gap（分）を 足すだけ。無い・0・こわれた値は「なし」＝今までどおり（判定も 保存の形も 変わらない）。古い版の端末は gap を 知らない＝止まらないだけ（消さない。欄ごとの合成で 残る）。
+   ・その作業の 前の記録（同じ作業・だれでも。直近40件の いちばん新しい時刻）から gap 分 たつまでは、カードの 名前のボタンを 押せない（灰色）。カードに「⏳ 8:14 から 押せます」（英・ネ）。
+   ・数え方（amStatus・amOffStatus・📊・きのうの抜け）は 変えない。止めるのは 押す所（amRecord・カードの下）だけ。
+   ・止めない物：DF の 再チェックの回（os.slot.re）・あとの作業（amRecordAfter）・▶ 始めた作業の「✓ 終わった」（5.21）。
+   ・🔥 の案内（amFireTop）は、止めている作業を 指さない。
+   ・時計が 大きく 先に 進んだ 端末の 記録（いまより gap 分 以上 先）では 止めない（ずっと 押せなく なるのを 防ぐ）。 */
+const AM_GAP_OPTS=[5,10,15,20,30,45,60];
+var _amGapT=null;
+function amGapMin(w){ const n=+(w&&w.gap); return (isFinite(n)&&n>0)?Math.min(720,Math.round(n)):0; }
+function amGapLast(id){ const arr=_amChecksRead()[id]; let t=-Infinity; if(Array.isArray(arr)) arr.forEach(r=>{ const x=(r&&r.at)?new Date(r.at).getTime():NaN; if(isFinite(x)&&x>t) t=x; }); return t; }
+/* いま 止めているか。止めている時＝{until:押せるように なる時刻, last:前の記録の時刻, min:分}／止めていない時＝null（読むだけ・保存しない） */
+function amGapLock(w, now){
+  const g=amGapMin(w); if(!g) return null; now=now||Date.now();
+  const G=g*60000, lt=amGapLast(w.id); if(!isFinite(lt)||lt>now+G) return null;
+  const until=Math.ceil(Math.floor((lt+G)/1000)*1000/60000)*60000; return now<until?{until, last:lt, min:g}:null;   // 5.22c：分を 切り上げる（見えている 時刻と 押せる 時刻を そろえる。1秒より 細かい 分は 見ない）
+}
+/* os＝売場以外の作業の いまの状態（amOffNow）。DF の 再チェックの回は 止めない */
+function amGapNow(w, now, os){ return (os&&os.slot&&os.slot.re)?null:amGapLock(w,now); }
+function amGapHtml(x){ const u=amHM(x.until); return `<div class="am-gap" role="status"><span class="am-gap-i" aria-hidden="true">⏳</span><div class="am-gap-b"><b>${u} から 押せます</b><div class="am-gap-s">前の 記録（${amHM(x.last)}）から ${x.min}分。いまは ほかの 作業へ</div>${amTr2('You can record from '+u, u+' बाट दर्ता गर्न सकिन्छ')}</div></div>`; }
+/* 登録の窓：いちばん短い 枠（時間帯の回数で 等分した 長さ）・時刻の 間（日の変わり目を またぐ 間も）。分。決まっていない時は Infinity */
+function amGapLimit(timed, times, sb){
+  if(timed){ const ks=(times||[]).map(amTimeKey).sort((a,b)=>a-b); if(!ks.length) return Infinity; if(ks.length<2) return 1440; let m=1440-(ks[ks.length-1]-ks[0]); for(let i=1;i<ks.length;i++) m=Math.min(m,ks[i]-ks[i-1]); return m; }
+  let m=Infinity; AM_BANDS.forEach((b,i)=>{ const n=+(sb&&sb[i])||0; if(n>0) m=Math.min(m,(b.e-b.s)*60/n); }); return m;
+}
+function amGapFormSync(){
+  const g=x=>document.getElementById(x), el=g('amw-gap'); if(!el||!_amForm) return;
+  const timed=_amForm.place==='off'&&_amForm.how==='time', sb=AM_BANDS.map((b,i)=>+((g('amw-sch-'+i)||{}).value)||0), lim=amGapLimit(timed,_amForm.times,sb), cur=+el.value||0, lt=isFinite(lim)?(lim%1?lim.toFixed(1):String(lim)):'';
+  Array.prototype.forEach.call(el.options,o=>{ const n=+o.value||0, bad=n>0&&n>=lim; o.disabled=bad&&n!==cur; o.textContent=n?`${n}分${bad?'（⚠ 長すぎ）':''}`:'なし（今までどおり）'; });
+  const wr=g('amw-gap-warn'); if(wr){ const bad=cur>0&&cur>=lim; wr.style.display=bad?'':'none'; if(bad) wr.textContent=`⚠ ${cur}分は、いちばん 短い ${timed?'時刻の 間':'枠'}（${lt}分）より 長いか 同じです。次の 回が 押せない まま 🔥 に なります。${lt}分より 短く してください（このままでは 保存できません）`; }
+  const nt=g('amw-gap-n'); if(nt) nt.textContent=isFinite(lim)?`えらべるのは、いちばん 短い ${timed?'時刻の 間':'枠'}（${lt}分）より 短い 時間だけ です。`:'';
+}
+/* 列の 行（つぎはこれ を含む）・選ぶ窓の 行：止めている 作業に「⏳ 8:14」を 小さく（並び・数え方は 変えない）。押せる 時刻に なったら 地図を 描き直して 消す（いちばん 早い 時刻に 1つだけ 予約） */
+var _amGapRT=null, _amGapRU=0;
+function amGapTag(w){ const x=amGapLock(w); if(!x) return ''; amGapRowT(x.until); return ` <small class="amf-gp" title="前の 記録から ${x.min}分 あける">⏳ ${amHM(x.until)}</small>`; }
+function amGapRowT(u){ const n=Date.now(); if(_amGapRU&&_amGapRU>n&&_amGapRU<=u) return; clearTimeout(_amGapRT); _amGapRU=u; _amGapRT=setTimeout(()=>{ _amGapRU=0; try{ if(currentView==='map'&&!_amEd) renderMapView(); }catch(_){} }, Math.max(200,u-n+300)); }
+/* 5.22c：ほかの 端末の 記録が 届いた時、開いている カードの「止める・止めない」（と 押せる 時刻）が 変わったら すぐ 描き直す（30秒を 待たない） */
+function amGapRemote(){ if(!_amCard||_amCard.af||amSheetName()!=='card') return; const a=amWork(_amCard.id); if(!a) return; const os=amIsOff(a)?amOffNow(a):null, gp=(os&&os.lock)?null:amGapNow(a,Date.now(),os); if(!!gp!==!!_amCard.gpOn||(gp&&gp.until!==_amCard.gpU)) amOpenArea(_amCard.id,true); }
 /* 下のお知らせ。undo===true＝「取り消す」（記録の取り消し）。label と fn を渡すと、そのボタンを出す（7秒） */
 function amSnack(msg,undo,label,fn){
   let s=document.getElementById('am-snack'); if(!s){ s=document.createElement('div'); s.id='am-snack'; s.className='am-snack'; document.body.appendChild(s); }
@@ -12503,6 +12555,7 @@ function amStep(e,id,i,dv){
   const w=amWorksEdit().find(x=>x&&x.id===id); if(!w) return;
   const a=amSch(w).slice(), c=Math.max(0,Math.min(6,Math.floor(+a[i]||0))), n=Math.max(0,Math.min(Math.max(4,c),c+dv));
   if(n===c) return;
+  { const g=amGapMin(w); if(g&&dv>0&&!amIsTimed(w)){ const lim=amGapLimit(false,[],a.map((x,j)=>j===i?n:x)); if(g>=lim){ amSnack(`⚠ 前の 記録から ${g}分 あける 作業なので、枠が ${Math.round(lim)}分に なる 回数には できません。先に 作業の 内容で あける 時間を 短く してください`,false); return; } } }   // 5.22c
   a[i]=n; amSchSet(w,a); amSave(); amOpenWorks(); renderMapView();
 }
 /* ↑ 上へ／↓ 下へ：いま 見えている 売場の作業の となりと 入れかえる（amMoveBy の 1つ上・1つ下 と 同じ）。番号は amMoveTo が書く（今までと同じ） */
@@ -12530,7 +12583,7 @@ function amOpenWorks(){
   const sortSel=`<select id="rg-sort" aria-label="並べかえ" onchange="amRgSort(this.value)">${[['seq','やる順'],['name','名前'],['time','時刻']].map(([k,l])=>`<option value="${k}"${_amRg.sort===k?' selected':''}>${l}</option>`).join('')}</select>`;
   const cols=`<div class="rg-cols" aria-hidden="true"><span class="rg-c-no">番号</span><span class="rg-c-nm">作業</span><span class="rg-c-bd">${AM_BANDS.map(b=>`<span>${b.label}</span>`).join('')}</span><span class="rg-c-pen"></span></div>`;
   _amSheet(`<div class="rg-top"><div class="rg-ttl"><div class="am-title"><span class="rg-t1">📝 作業の登録</span>${amTr2('Task setup','कार्य दर्ता')}</div><button type="button" class="rg-x" onclick="amCloseSheet()" aria-label="閉じる">×</button></div>
-      <div class="rg-tools"><input type="text" id="rg-q" value="${escapeHtml(_amRg.q)}" placeholder="🔍 作業名で さがす" autocomplete="off" oninput="amRgQ(this.value)" aria-label="作業名で さがす">${amRgKindSel(all)}${sortSel}${_amSeqUndo?'<button type="button" class="rg-undo" onclick="amSeqUndoRun()">↩ 1つ前に戻す</button>':''}</div>
+      <div class="rg-tools"><input type="text" id="rg-q" value="${escapeHtml(_amRg.q)}" placeholder="🔍 さがす" autocomplete="off" oninput="amRgQ(this.value)" aria-label="作業名で さがす">${amRgKindSel(all)}${sortSel}${_amSeqUndo?'<button type="button" class="rg-undo" onclick="amSeqUndoRun()">↩ 1つ前に戻す</button>':''}</div>
       <div class="rg-chips" role="group" aria-label="絞り">${chips}</div></div>
     <div class="rg-body"><div class="rg-hint">番号が 小さい 作業から やります。作業を 押すと 開いて、回数を その場で 直せます。${v.anySeq?'':'最初の 番号は、今までの 高 → 中 → 低 と 登録した 順です。'}</div>
       ${amB7Note()}${cols}<div class="rg-list${mv?' moving':''}" id="rg-list">${amRgListHtml(v,mv)}</div>
@@ -12623,7 +12676,7 @@ function amRemoteRefresh(){
   if(sn&&sn.classList.contains('show')&&_amSnackFn===amSeqUndoRun) amSnack('ほかの端末の変更が届いたので、「元に戻す」は使えなくなりました',false);
   const name=amSheetName();
   /* 点検カードが開いている時：カードは閉じない・描き直さない。丸の数字も、開いた時のまま（列の数字は 届いた後の並びに変わる。カードを閉じて開き直すと、列と同じ数字になる） */
-  if(name==='card'&&_amCard){ amRunRemote(); return; }
+  if(name==='card'&&_amCard){ amGapRemote(); amRunRemote(); return; }
   /* 5.13 D：「作業の内容」の窓を開いている間に、その作業が ほかの端末で 消された時：窓は 描き直さず、窓の中に 黄色で 知らせる（保存する時にも もう一度 聞く） */
   if(name==='edit'&&_amBase&&_amBase.id&&!amWork(_amBase.id)){ const gn=document.getElementById('amw-gone'); if(gn) gn.style.display=''; return; }
   if(name==='tags'&&isAdmin){ const a=document.activeElement, sh=document.getElementById('am-sheet'); if(!(a&&sh&&sh.contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) amTagPanel(); return; }   // 5.20：種類の 窓（打っている 途中は さわらない）
@@ -12673,6 +12726,7 @@ function amFormSum(){
   else { const ps=AM_BANDS.map((b,i)=>{ const c=+v('amw-sch-'+i)||0; return c?`${b.label} ${c}回`:''; }).filter(Boolean); what=ps.length?ps.join('・'):'回数が まだ ありません（どこにも 出ません）'; }
   let t=`${when}　${what}`;
   if(timed) t+=`（${+v('amw-lead')||AM_OFF_LEAD}分前から 押せる・${+v('amw-grace')||AM_OFF_GRACE}分後が 締切）`;
+  { const gv=+v('amw-gap')||0; if(gv>0) t+=`／前の 記録から ${gv}分 あける`; }   // 5.22
   const cont=_amForm.cont||'none';
   if(rk==='d'&&cont==='re'&&timed){ const m=Number(v('amw-recheck').trim()); if(isFinite(m)&&m>=1) t+=`／DF中・範囲の外なら ${Math.round(m)}分後に もう一度（${+v('amw-rcn')||1}回まで）`; else t+='／もう一度：分を 入れてください'; }
   else if(rk==='d'&&cont==='af'){ const nm=v('amw-af-name').trim(), m=Number(v('amw-af-min').trim()); if(nm&&isFinite(m)&&m>=1) t+=`／${Math.round(m)}分後に「${nm}」`; else t+='／別の作業：名前と 分を 入れてください'; }
@@ -12730,6 +12784,8 @@ function amFormOffHtml(w){
       <label class="amw-f"><span>やる事（空なら 出さない）</span><input type="text" id="amw-start" value="${escapeHtml(stt.t==null?'':stt.t)}" placeholder="例：札を『準備中』に"></label>
       <div class="amw-2"><label><span>English（空でも よい）</span><input type="text" id="amw-start-en" value="${escapeHtml(stt.en||'')}"></label><label><span>नेपाली</span><input type="text" id="amw-start-ne" value="${escapeHtml(stt.ne||'')}"></label></div>
       <div class="amw-note">例：中華まん作成 → 札を『準備中』に／油の予熱 → 火を つける／品出し → 台車を 用意する。カードの 確認項目の 上に 出ます。</div></div>`,
+    gap:`<div id="amw-gap-box"><div class="amw-lbl amw-l2">前の 記録から あける 時間（まとめて 押されない ように）</div><label class="amw-f"><span>あける 時間</span><select id="amw-gap" onchange="amFormSync()">${opt([0].concat(AM_GAP_OPTS),w?amGapMin(w):0,n=>n?n+'分':'なし（今までどおり）')}</select></label>
+      <div class="amw-warn" id="amw-gap-warn" style="display:none"></div><div class="amw-note">前の 記録（だれの 記録でも）から この 時間が たつまで、名前の ボタンは 押せません（カードに「⏳ ◯:◯◯ から 押せます」）。DF の 再チェックと あとの 作業は 止めません。<span id="amw-gap-n"></span></div></div>`,
     tr:`<div id="amw-tr-box"><div class="amw-lbl amw-l2">英語・ネパール語の 作業名（空でも よい。⏰ 売場以外と カードに、小さく 出ます）</div><div class="amw-2"><label><span>English</span><input type="text" id="amw-en" value="${escapeHtml((w&&w.en)||'')}"></label><label><span>नेपाली</span><input type="text" id="amw-ne" value="${escapeHtml((w&&w.ne)||'')}"></label></div></div>`,
     rep:`<div id="amw-rep-box"><div class="amw-lbl amw-l2">くり返し</div><div class="am-seg amw-seg rg-seg" id="amw-rep" role="group" aria-label="くり返し"><button type="button" data-v="d" onclick="amFormSeg('rk','d')">毎日</button><button type="button" data-v="w" onclick="amFormSeg('rk','w')">週1</button><button type="button" data-v="m" onclick="amFormSeg('rk','m')">月1</button></div>
       <div id="amw-rep-w" style="display:none"><div class="amw-2"><label><span>始まりの 曜日</span><select id="amw-rep-wd" onchange="amFormSync()">${AM_REP_DOW.split('').map((d,i)=>`<option value="${i}"${i===rwd?' selected':''}>${d}曜日</option>`).join('')}</select></label><label><span>終わりの 曜日（その日だけ なら 同じ日）</span><select id="amw-rep-wt" onchange="amFormSync()"><option value=""${rwt===''?' selected':''}>同じ日（その日だけ）</option>${AM_REP_DOW.split('').map((d,i)=>`<option value="${i}"${i===rwt?' selected':''}>${d}曜日</option>`).join('')}</select></label></div></div>
@@ -12799,7 +12855,7 @@ function amEditWork(id, preset, copyOf, tplKey){
         <div id="amw-items">${(w?w.items||[]:[]).map(([t,ng])=>_amItemRow(t,ng)).join('')}</div>
         <button type="button" class="btn-secondary rg-add-it" onclick="document.getElementById('amw-items').insertAdjacentHTML('beforeend',_amItemRow('',''))">＋ 項目を 足す</button>
         <details class="rg-more" id="amw-more"><summary><span class="rg-more-t">▾ くわしく</span><span class="rg-more-s" id="amw-more-s"></span>${amTr2('Details','विवरण')}</summary><div class="rg-more-b">
-          ${fx.start}${fx.lead}
+          ${fx.start}${fx.lead}${fx.gap}
           <label class="amw-f"><span>対象の説明</span><input type="text" id="amw-sub" value="${escapeHtml(w?w.sub||'':'')}" placeholder="例：前室の床／便器・床・壁"></label>
           ${fx.vals}${fx.tr}</div></details></section>
       <section class="rg-sec rg-last">${sec(5,'続き','記録の ◯分後に 出る・別に 登録しなくて よい','Next','अर्को')}
@@ -12842,10 +12898,12 @@ function amFormSync(){
   [['amw-place','place'],['amw-how','how'],['amw-rep','rk'],['amw-cont','cont']].forEach(([id,key])=>{ const el=g(id), cur=(key==='cont')?(_amForm.cont||'none'):_amForm[key]; if(el) Array.prototype.forEach.call(el.children,b=>{ const on=b.getAttribute('data-v')===cur; b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on)); }); });
   const tl=g('amw-times'); if(tl) tl.innerHTML=_amForm.times.length?_amForm.times.map((t,i)=>`<span class="amw-tchip">${amTimeTxt(t)}<button type="button" onclick="amFormTimeDel(${i})" aria-label="${amTimeTxt(t)} を消す">×</button></span>`).join(''):'<span class="amw-tnone">まだ ありません（下で 時刻を えらんで「＋ 時刻を 足す」）</span>';
   const wn=g('amw-time-warn'); if(wn){ const ws=timed?amFormTimeWarn(_amForm.times,+(g('amw-lead')||{}).value||AM_OFF_LEAD,+(g('amw-grace')||{}).value||AM_OFF_GRACE,Math.max(0,Math.round(Number((g('amw-recheck')||{}).value)||0))):[]; wn.innerHTML=ws.map(s=>`<div>⚠ ${escapeHtml(s)}</div>`).join(''); wn.style.display=ws.length?'':'none'; }
+  amGapFormSync();   // 5.22
   const sm=g('amw-sum'); if(sm) sm.innerHTML=`<b>保存すると こう 出ます</b>${escapeHtml(amFormSum())}`;
   { /* 「くわしく」を たたんでいる時も、中に 入っている物が 分かるように（押せる時間・始める時にやる事・説明・数字・英語/ネパール語） */
     const ms=g('amw-more-s'); if(ms){ const v=x=>((g(x)||{}).value||'').trim(), ps=[];
       if(timed) ps.push(`押せる ${+v('amw-lead')||AM_OFF_LEAD}分前〜${+v('amw-grace')||AM_OFF_GRACE}分後`);
+      { const gv=+v('amw-gap')||0; if(gv>0) ps.push(`あける ${gv}分`); }   // 5.22
       if(v('amw-start')) ps.push('始める時にやる事'); if(v('amw-sub')) ps.push('対象の説明');
       if(off&&Array.prototype.some.call(document.querySelectorAll('#amw-vals-box .amw-v-l'),i=>(i.value||'').trim())) ps.push('数字を残す');
       if(v('amw-en')||v('amw-ne')) ps.push('英語・ネパール語');
@@ -13180,7 +13238,7 @@ function amTick30(){
     const a=amWork(_amCard.id);
     if(a&&amIsOff(a)) amOpenArea(_amCard.id,true);   // 5.7：開いたままの 売場以外のカードは、札（🟡 いま → 🔥 おくれ）も描き直す（えらんだ数字は そのまま）
     else if(a){   // 5.8：開いたままの 売場のカード：🔥 の案内の「有る・無し」が変わった時だけ 描き直す（🔥 が全部片づいたら案内が消えて名前が押せる／新しく 🔥 が出たら案内が出る）。変わらない時は 何もしない＝カードの中身・えらんだ数字・名前の並びは さわらない（名前の並びは 開いた時のまま＝_amCard.rc。状態の札・丸の数字も 開いた時のまま＝_amCard.at・no）
-      const fire=(amStatus(a,_amCard.at).st!=='fire')?amFireTop(Date.now()):null, fg=!!(fire&&fire.id!==a.id&&!_amCard.go);
+      const gpN=!!amGapLock(a,Date.now()), fire=(!gpN&&amStatus(a,_amCard.at).st!=='fire')?amFireTop(Date.now()):null, fg=!!(fire&&fire.id!==a.id&&!_amCard.go); if(gpN!==!!_amCard.gpOn){ amOpenArea(_amCard.id,true); return; }   // 5.22
       if(fg!==!!_amCard.fgOn||_amCard.gk!==undefined) amOpenArea(_amCard.id,true);   // 5.21：目標の分がある作業の カードは、作業中の 分を 描き直す
     }
   }
@@ -13844,6 +13902,8 @@ function amFormOffRead(w){
   { const gEl=g('amw-goal'); if(gEl){ const gv=off?0:amGoalParse(gEl.value); if(gv!==gv) return {err:`目標の 分は、1〜${AM_GOAL_MAX} の 整数で 入れてください（空なら 計りません）`}; if(gv>0) set.goal=gv; else if(w&&('goal' in w)) del.push('goal'); } }   // 5.21：目標の分（売場マップの作業だけ。空なら 項目ごと無し）
   const stt=(g('amw-start').value||'').trim();
   if(stt){ const s={t:stt}, sen=(g('amw-start-en').value||'').trim(), sne=(g('amw-start-ne').value||'').trim(); if(sen) s.en=sen; if(sne) s.ne=sne; set.start=s; } else if(w&&('start' in w)) del.push('start');
+  { const ge=g('amw-gap'), gv=ge?Math.round(+ge.value||0):0; if(gv>0){ const lim=amGapLimit(timed,_amForm.times,AM_BANDS.map((b,i)=>+((g('amw-sch-'+i)||{}).value)||0)); if(gv>=lim) return {err:`前の 記録から あける 時間（${gv}分）は、いちばん 短い ${timed?'時刻の 間':'枠'}（${Math.round(lim)}分）より 短く してください。このままでは 次の 回が 押せないので 保存できません`}; }   // 5.22c
+    if(gv>0) set.gap=Math.min(720,gv); else if(w&&('gap' in w)) del.push('gap'); }   // 5.22：あける 時間（「なし」は 項目ごと 無し＝今までと 同じ形）
   const en=(g('amw-en').value||'').trim(), ne=(g('amw-ne').value||'').trim();
   if(en) set.en=en; else if(w&&('en' in w)) del.push('en');
   if(ne) set.ne=ne; else if(w&&('ne' in w)) del.push('ne');
