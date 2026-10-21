@@ -1487,7 +1487,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.20'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.21'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
@@ -1611,7 +1611,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.20',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.21',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -3008,7 +3008,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same2=[wsj(O5)===wsj(P),wsj(O4)===wsj(P)];
         } finally { for(const d of [P,O5,O4]){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
         checkL7('97l','【古い版（5.14・5.15）の端末と まざる】新しい画面で 足した作業が 古い画面にも 同じ中身で 届く（保存の形は 同じ）・古い画面で 開いて 保存しても 変わらない・同じ作業の 別の欄（説明・名前・締切）を 3台が 同時に 直しても 全部 残る・新しい画面の ＋ と 古い画面の □ は 同じ書き方（sch7 と sch）で 3台が そろう',[
-            ['1:版',o.v[0]==='5.20'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
+            ['1:版',o.v[0]==='5.21'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
             ['2:はじめ そろう',J(o.seed)===J([true,true])],
             ['3:作業が 届く',J(o.arrive)===J([true,true,true,true])],
             ['4:開いて保存＝変わらない',J(o.noop)===J([true,true,true])],
@@ -3488,7 +3488,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.errs=errN8()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL8('97y','【見本「ぜんぶ」・2台と 古い版】A：Q（5.19）が 切れている 間に 回数を 直し 自分の 作業を 足す・P は つながった まま 40件 足す → Q が あとから つながっても、P の 40件・Q の 作業と 回数・今の 作業 21件が 全部 残り、4台（5.19×2・5.14・5.18）の 中身が 同じ。B：P が 切れている 間に 残り 5件を 足し、その間に Q・5.14・5.17 が それぞれ 回数を 直す → P が あとから つながっても 全部 残る（45件・3台の 回数・Q の 作業）。負けた 入力 0。古い版でも 登録の表が 開ける（5.18 は 見本の 一覧が 3つの まま）',[
-            ['1:版',o.v[0]==='5.20'&&o.v[1]==='5.20'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
+            ['1:版',o.v[0]==='5.21'&&o.v[1]==='5.21'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
             ['2:A 4台 同じ',o.A[0].every(x=>x===true)],
             ['3:A 全部 残る',o.addA===40&&o.A[1]===true&&o.A[2]===true&&o.A[3]===40&&o.A[4]===true],
             ['4:B 4台 同じ',o.B[0].every(x=>x===true)],
@@ -3770,7 +3770,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lost9(cl); o.errs=errN9()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('98g','【古い版と まざる】5.20・5.19・5.14 の 3台。5.20 で 種類を 足し（名前を 直し・英語）・前陳を 隠し・作業に「温度」「値引」を 付ける → 古い版にも 種類の 入れ物が そのまま 届く。古い版で 回数を 直す・5.19 で「温度」の 作業を 開くと 札は「温度」（鍵の まま）・選びも「温度」で 選ばれた まま → 何も 変えずに 保存しても kind は 変わらない（「値引」も 同じ）。そのあと 5.20 で 種類を 足しても 消えない・3台の 種類と 作業が 同じ・負けた 入力 0',[
-            ['1:版',o.v[0]==='5.20'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
+            ['1:版',o.v[0]==='5.21'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
             ['2:古い版に 届く',o.got[0]===true&&o.got[1]===true&&o.got[2]==='温度'&&o.got[3]==='値引'],
             ['3:古い版の 札と 選び',o.oCard==='温度'&&J(o.oSel)===J(['温度'])&&J(o.oSel1)===J(['値引'])],
             ['4:3台 同じ',o.end[0].every(x=>x===true)&&o.end[1].every(x=>x===true)],
@@ -3779,6 +3779,440 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             ['7:エラー 0',o.errs===0]],
           `版 ${J(o.v)}｜届く ${J(o.got)}｜5.19 札 ${o.oCard} 選び ${J(o.oSel)} ${J(o.oSel1)}｜おわり ${J(o.end)}｜負け ${o.lost}｜エラー ${o.errs}`);
         for(const d of D) d.close();
+      });
+    }
+    /* ---- 5.21（店長 10/20「ワークスケジュールごとに、時間の開始ボタンをつけてほしい…目標完了時間を設定することで、基準があると現場はうまくいくかも。」
+         →「おすすめで。はじめずに記録だけってのは消して大丈夫じゃない？あとはたまに押し忘れとかあるから押し忘れも誰がなのか記録できるようにして」）：
+         🎯 目標の分（登録の窓）・▶ 始める → ✓ 終わった（かかった分）・目標の無い作業は 今までどおり・始めずに 記録できない・押し忘れ 3通り（名前つき）・
+         行と カードの色・📊・2台・古い版（5.14・5.16・5.19）と まざる・今の作業と記録が 変わらない。作り物のデータだけの 別の枠（保存先も 別の入れ物） ---- */
+    {
+      const mk9=async(cl,name,dir,seed,size)=>{
+        const be=cl.device(), store=new V2.Store({backend:be,space:'T9',device:name,kv:new V2.MemKV(),snapshot:false});
+        const sz=size||[768,900], f=document.createElement('iframe'); f.style.cssText=`display:block;width:${sz[0]}px;height:${sz[1]}px;max-width:none;border:1px solid #cbd5e1;border-radius:8px;background:#fff;margin:8px 0`; document.body.appendChild(f);
+        const win=await load(f,(dir||'ws')+'/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null;
+        await win.__v2go(Object.assign({store,stores,current:'w1'},seed?{state:J(seed)}:{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); await sleep(300);
+        return {f,win,be,store,name,ev:s=>win.eval(s),close:()=>{ try{ f.remove(); }catch(_){} }};
+      };
+      const sync9=async(devs)=>{ for(let i=0;i<3;i++){ for(const d of devs){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(350); };
+      const E9=(d,s)=>{ try{ return d.ev(s); }catch(e){ return '(エラー：'+String(e&&e.message).slice(0,60)+'）'; } };   // 直す前の版に 無い関数を 呼んでも、その試験だけが 不合格になる
+      const jp9=(s,d)=>{ try{ return JSON.parse(s); }catch(e){ return d; } };
+      const qn9=(d,sel)=>Number(E9(d,`document.querySelectorAll(${J(sel)}).length`))||0, qt9=(d,sel)=>String(E9(d,`(document.querySelector(${J(sel)})||{}).textContent||''`)).replace(/\s+/g,' ');
+      const tryB9=async(no,fn)=>{ try{ await fn(); }catch(e){ check(no+'-止','（この 試験は 途中で 止まった＝関数が 無い・エラー）',false,String(e&&e.stack||e).slice(0,400)); } };
+      const checkL9=(no,what,conds,detail)=>{ const bad=conds.filter(c=>!c[1]).map(c=>c[0]); check(no,what,bad.length===0,(bad.length?'【不合格の項目：'+bad.join(' ｜ ')+'】 ':'')+detail); };
+      const H9=3600000, M9=60000;
+      const nzS=s=>{ const o=JSON.parse(s); delete o._modifiedAt; return J(o); };
+      const st9=x=>Object.assign(JSON.parse(J(st)),x||{});
+      const ids9=d=>jp9(E9(d,'JSON.stringify(amFloorWorks().map(w=>w.id))'),[]);
+      const setGoal=(d,id,g)=>d.ev(`(()=>{ const w=amWorksEdit().find(x=>x.id===${J(id)}); w.goal=${J(g)}; amSave(); renderMapView(); })()`);
+      const runs9=d=>jp9(E9(d,'JSON.stringify(state.amRun===undefined?null:state.amRun)'),null);
+      const nRun=d=>{ const r=runs9(d); return r?Object.keys(r).length:-1; };
+      const logs9=d=>jp9(E9(d,`JSON.stringify(Object.keys(state).filter(k=>/^amLog_/.test(k)).reduce((a,k)=>{ Object.keys(state[k]).forEach(id=>a.push(Object.assign({id,key:k},state[k][id]))); return a; },[]))`),[]);
+      const ac9=(d,id)=>Number(E9(d,`((state.areaChecks||{})[${J(id)}]||[]).length`))||0;
+      const iso9=t=>new Date(t).toISOString();
+      const now9=d=>Number(d.ev('Date.now()'));
+      const put9=(d,k,r)=>d.ev(`(()=>{ if(!state.amRun||typeof state.amRun!=='object') state.amRun={}; state.amRun[${J(k)}]=${J(r)}; })()`);   // 作業中の印を 入れる（画面の中だけ・保存は しない）
+      const next3=t=>{ const x=new Date(t-3*H9); x.setHours(0,0,0,0); return x.getTime()+27*H9; };
+      const lostN=cl=>Object.keys(cl.docs).filter(k=>/~l~/.test(k)).reduce((n,k)=>n+(((cl.docs[k]||{}).e)||[]).filter(x=>x.lost).length,0);
+
+      /* ===== 97z1：🎯 目標の分を 登録の窓で 入れる・空に する・まちがった字・売場以外では 出ない・開いて 何も変えずに 保存しても 1字も 変わらない ===== */
+      await tryB9('97z1',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9a','ws',st9()), o={};
+        P.ev(`isAdmin=true; applyAdminMode(); setView('map');`); await sleep(150);
+        try{
+          const [g1]=ids9(P); P.ev('amWorksEdit(); amSave();'); await sync9([P]);
+          const w0=E9(P,'JSON.stringify(state.amWorks)'), cw0=cl.writes;
+          /* 全部の作業を 開いて 何も変えずに 保存 → 1字も 変わらない・何も 書かない */
+          const all=jp9(E9(P,'JSON.stringify(amWorks().map(w=>w.id))'),[]); let nOpen=0;
+          for(const id of all){ P.ev(`amEditWork(${J(id)})`); await sleep(20); P.ev(`amSaveWork(${J(id)})`); nOpen++; }
+          await sync9([P]); o.same=[E9(P,'JSON.stringify(state.amWorks)')===w0, cl.writes===cw0, nOpen];
+          /* 入れる */
+          P.ev(`amEditWork(${J(g1)})`); await sleep(80);
+          o.box=[qn9(P,'#amw-goal-box'), String(E9(P,`getComputedStyle(document.getElementById('amw-goal-box')).display`)), String(E9(P,`document.getElementById('amw-goal').value`))];
+          P.ev(`document.getElementById('amw-goal').value='12'; amFormSync();`); o.sum=qt9(P,'#amw-sum');
+          P.ev(`amSaveWork(${J(g1)})`); await sync9([P]);
+          const wa=jp9(E9(P,`JSON.stringify(amWork(${J(g1)}))`),{}), wb=jp9(w0,[]).find(w=>w.id===g1)||{};
+          o.set=[wa.goal, J(Object.assign({},wa,{goal:undefined}))===J(Object.assign({},wb,{goal:undefined}))];
+          /* 開いて 何も変えずに 保存（目標あり）→ 書かない */
+          const w1=E9(P,'JSON.stringify(state.amWorks)'), cw1=cl.writes; P.ev(`amEditWork(${J(g1)})`); await sleep(50); o.v12=String(E9(P,`document.getElementById('amw-goal').value`)); P.ev(`amSaveWork(${J(g1)})`); await sync9([P]);
+          o.same2=[E9(P,'JSON.stringify(state.amWorks)')===w1, cl.writes===cw1];
+          /* まちがった字 → 保存しない */
+          P.ev(`window.__al=''; window.alert=function(m){ window.__al=String(m); }`);
+          P.ev(`amEditWork(${J(g1)})`); await sleep(50); P.ev(`document.getElementById('amw-goal').value='abc'; amSaveWork(${J(g1)})`);
+          o.bad=[String(E9(P,'window.__al')), E9(P,`amWork(${J(g1)}).goal`)];
+          P.ev(`document.getElementById('amw-goal').value='０９'; amSaveWork(${J(g1)})`); o.zen=E9(P,`amWork(${J(g1)}).goal`);   // 全角の 数字も 読む
+          /* 空に する → 項目ごと 無し */
+          P.ev(`amEditWork(${J(g1)})`); await sleep(50); P.ev(`document.getElementById('amw-goal').value=''; amSaveWork(${J(g1)})`);
+          o.del=E9(P,`('goal' in amWork(${J(g1)}))`);
+          /* 売場以外の作業の窓では 出ない */
+          P.ev(`amEditWork('','off')`); await sleep(50); o.off=String(E9(P,`getComputedStyle(document.getElementById('amw-goal-box')).display`)); P.ev('amCloseSheet()');
+          o.ver=E9(P,'APP_VERSION');
+        } finally { P.ev('isAdmin=false; amCloseSheet()'); }
+        checkL9('97z1','【🎯 目標の分】登録の窓 ③ に 欄が 出る（売場以外では 出ない）・12 を入れると goal だけ 足される・まとめの行に 出る・まちがった字は 保存しない・全角も 読む・空で 項目ごと 消える・全部の作業を 開いて 何も変えずに 保存しても 1字も 変わらず 何も 書かない',[
+            ['1:版 5.21',o.ver==='5.21'],
+            ['2:全部 開いて 保存 → 同じ・書かない',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10],
+            ['3:欄が 出る・はじめは 空',o.box[0]===1&&o.box[1]!=='none'&&o.box[2]===''],
+            ['4:まとめの行',/目標 12分/.test(o.sum)],
+            ['5:goal だけ 足される',o.set[0]===12&&o.set[1]===true],
+            ['6:開いて 保存（目標あり）→ 書かない',o.v12==='12'&&o.same2[0]===true&&o.same2[1]===true],
+            ['7:まちがった字',/1〜180/.test(o.bad[0])&&o.bad[1]===12],
+            ['8:全角',o.zen===9],
+            ['9:空で 消える',o.del===false],
+            ['10:売場以外では 出ない',o.off==='none']],
+          `版 ${o.ver}｜全部 ${J(o.same)}｜欄 ${J(o.box)}｜まとめ「${o.sum}」｜足す ${J(o.set)}｜2回目 ${o.v12} ${J(o.same2)}｜字 ${J(o.bad)}・全角 ${o.zen}｜空 ${o.del}｜売場以外 ${o.off}`);
+        P.close();
+      });
+
+      /* ===== 97z2：▶ 始める → ✓ 終わった。かかった分・記録の形（直近40件＋日ごとの記録に s）・作業中の印は 日ごとの記録に 入れない・取り消し ===== */
+      await tryB9('97z2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9b','ws',st9()), o={};
+        try{
+          const [g1]=ids9(P); setGoal(P,g1,10); await sync9([P]);
+          const a0=ac9(P,g1), l0=logs9(P).length;
+          P.ev(`amOpenArea(${J(g1)})`); await sleep(80);
+          o.card=[qn9(P,'#am-sheet .am-nm-st'), qt9(P,'#am-sheet .am-goal'), /名前なしで 記録/.test(qt9(P,'#am-sheet .am-cd-foot')), /名前なしで 始める/.test(qt9(P,'#am-sheet .am-cd-foot')), qt9(P,'#am-sheet .am-cd-foot')];
+          P.ev(`amRunStart(${J(g1)},'見本 花子')`); await sync9([P]);
+          const r1=runs9(P), k=Object.keys(r1||{})[0]||'';
+          o.start=[Object.keys(r1||{}).length, r1&&r1[k]&&r1[k].w===g1&&r1[k].by==='見本 花子'&&!!r1[k].s&&!!r1[k].d, ac9(P,g1)===a0, logs9(P).length===l0, qt9(P,'#am-snack')];
+          /* 7分 たった ことにする（始めた時刻を 7分 前に） */
+          const t7=now9(P)-7*M9-5000; P.ev(`state.amRun[${J(k)}].s=${J(iso9(t7))}; renderMapView();`);
+          P.ev(`amOpenArea(${J(g1)})`); await sleep(80); o.run=[qn9(P,'#am-sheet .am-run'), qt9(P,'#am-sheet .am-run-t'), qt9(P,'#am-sheet .am-run-w')];
+          P.ev(`amRunEnd(${J(k)})`); await sync9([P]);
+          const L=logs9(P).filter(x=>x.w===g1&&x.s);
+          o.end=[ac9(P,g1)===a0+1, L.length, L[0]&&L[0].id==='x'+k, L[0]&&L[0].by==='見本 花子', L[0]?Math.round((new Date(L[0].at)-new Date(L[0].s))/M9):-1, J(runs9(P)), E9(P,`amStatus(amWork(${J(g1)})).st`), qt9(P,'#am-snack')];
+          /* 取り消す → 記録が 消えて 作業中に 戻る → もう一度 終わった */
+          P.ev('amUndoLast()'); await sync9([P]);
+          o.undo=[ac9(P,g1)===a0, logs9(P).filter(x=>x.w===g1&&x.s).length, nRun(P)];
+          P.ev(`amRunEnd(${J(k)})`); await sync9([P]); o.re=[ac9(P,g1)===a0+1, logs9(P).filter(x=>x.w===g1&&x.s).length, nRun(P)];
+          /* 始めた → 取り消す（お知らせ）→ 印が 消える・記録なし */
+          P.ev(`amRunStart(${J(g1)},'見本 太郎')`); await sleep(50); const n1=nRun(P); P.ev('amUndoLast()'); await sync9([P]);
+          o.undoS=[n1, nRun(P), ac9(P,g1)===a0+1];
+          /* カードの「取り消す」（確かめ つき）→ 印が 消える・記録なし（押し忘れにも しない） */
+          P.ev(`amRunStart(${J(g1)},'見本 太郎')`); await sleep(50); const k2=Object.keys(runs9(P)||{})[0]||''; P.ev(`window.__cf=''; window.confirm=function(m){ window.__cf=m; return true; }`); P.ev(`amOpenArea(${J(g1)})`); P.ev(`amRunCancel(${J(k2)})`); await sync9([P]);
+          o.cancel=[nRun(P), String(E9(P,'window.__cf')).indexOf('取り消しますか')>=0, logs9(P).filter(x=>x.nf).length, ac9(P,g1)===a0+1];
+        } finally { P.ev('amCloseSheet()'); }
+        checkL9('97z2','【▶ 始める → ✓ 終わった】カードは「▶ 名前」と 目標の札（名前なしで 記録 は 無い）・始めると state.amRun に1件（直近40件・日ごとの記録には 入らない）・終わった で 直近40件と 日ごとの記録（id＝x＋印・s つき・7分）に1件・印は 外れて {} が 残る・取り消しで 作業中に 戻る・始めたのを 取り消す（お知らせ・カード）',[
+            ['1:カード',o.card[0]>=2&&/目標 10分/.test(o.card[1])&&o.card[2]===false&&o.card[3]===false],
+            ['2:始める',o.start[0]===1&&o.start[1]===true&&o.start[2]===true&&o.start[3]===true&&/始めました/.test(o.start[4])],
+            ['3:作業中の 表示',o.run[0]===1&&/▶ 7分/.test(o.run[1])&&/見本 花子/.test(o.run[2])],
+            ['4:終わった',o.end[0]===true&&o.end[1]===1&&o.end[2]===true&&o.end[3]===true&&o.end[4]===7&&o.end[5]==='{}'&&o.end[6]==='done'&&/7分/.test(o.end[7])],
+            ['5:取り消し → 作業中',o.undo[0]===true&&o.undo[1]===0&&o.undo[2]===1&&o.re[0]===true&&o.re[1]===1&&o.re[2]===0],
+            ['6:始めたのを 取り消す',o.undoS[0]===1&&o.undoS[1]===0&&o.undoS[2]===true],
+            ['7:カードの 取り消す',o.cancel[0]===0&&o.cancel[1]===true&&o.cancel[2]===0&&o.cancel[3]===true]],
+          `カード ${J(o.card.slice(0,4))}｜始める ${J(o.start)}｜作業中 ${J(o.run)}｜終わった ${J(o.end)}｜取り消し ${J(o.undo)} ${J(o.re)}｜始めた取り消し ${J(o.undoS)}｜カード ${J(o.cancel)}`);
+        P.close();
+      });
+
+      /* ===== 97z3：目標の無い作業は 今までどおり（カード・列・地図が 5.19 と 1字も 同じ・名前を押すと 記録） ===== */
+      await tryB9('97z3',async()=>{
+        const cl=new V2.MemoryCloud(), cl2=new V2.MemoryCloud(), P=await mk9(cl,'端末P9c','ws',st9()), O=await mk9(cl2,'端末O9c','wsold519',st9()), o={};
+        try{
+          const ids=ids9(P);
+          const html=(d,s)=>String(E9(d,s));
+          let tries=0; do{ tries++;
+            P.ev(`renderMapView()`); O.ev(`renderMapView()`);
+            o.map=html(P,`document.getElementById('map-view').innerHTML`)===html(O,`document.getElementById('map-view').innerHTML`);
+            o.cards=ids.slice(0,6).map(id=>{ P.ev(`amOpenArea(${J(id)})`); O.ev(`amOpenArea(${J(id)})`); const a=html(P,`document.getElementById('am-sheet').innerHTML`), b=html(O,`document.getElementById('am-sheet').innerHTML`); P.ev('amCloseSheet()'); O.ev('amCloseSheet()'); return a===b; });
+          } while((!o.map||!o.cards.every(Boolean))&&tries<3&&(await sleep(1500),true));
+          o.tries=tries;
+          const id=ids[1], a0=ac9(P,id);
+          P.ev(`amRecord(${J(id)},'見本 太郎')`); await sync9([P]);
+          o.rec=[ac9(P,id)===a0+1, J(runs9(P)), logs9(P).filter(x=>x.w===id).map(x=>('s' in x)).join(',')];
+        } finally { P.ev('amCloseSheet()'); O.ev('amCloseSheet()'); }
+        checkL9('97z3','【目標の無い作業】売場マップ（地図と列）と カード6つの HTML が 5.19 と 1字も 同じ・名前を押すと 今までどおり 記録（s なし・作業中の印 なし）',[
+            ['1:地図と列 同じ',o.map===true],['2:カード 同じ',o.cards.every(Boolean)],['3:記録',o.rec[0]===true&&o.rec[1]==='null'&&o.rec[2]==='false']],
+          `地図 ${o.map}｜カード ${J(o.cards)}（${o.tries}回目）｜記録 ${J(o.rec)}`);
+        P.close(); O.close();
+      });
+
+      /* ===== 97z4：目標の分がある作業は、始めずに 記録できない（amRecord を 直接 呼んでも 記録しない・カードに 名前だけの ボタンが 無い） ===== */
+      await tryB9('97z4',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9d','ws',st9()), o={};
+        try{
+          const [g1]=ids9(P); setGoal(P,g1,10); await sync9([P]);
+          const a0=ac9(P,g1), l0=logs9(P).length;
+          P.ev(`amRecord(${J(g1)},'見本 花子')`); await sync9([P]);
+          o.rec=[ac9(P,g1)===a0, logs9(P).length===l0, nRun(P)<=0, qt9(P,'#am-snack')];
+          P.ev(`amRunStart(${J(g1)},'')`); await sync9([P]); o.nn=[nRun(P)<=0, qt9(P,'#am-snack')];   // 名簿が ある店は 名前なしで 始めない（10/20 チロル）
+          P.ev(`amOpenArea(${J(g1)})`); await sleep(60);
+          o.btn=jp9(E9(P,`JSON.stringify(Array.from(document.querySelectorAll('#am-sheet .am-cd-foot button')).map(b=>(b.getAttribute('onclick')||'')))`),[]);
+          o.noRec=o.btn.every(s=>!/amRecord\(/.test(s));
+          /* 名簿が 空の店：「✅ やりました」ではなく「▶ 始める」 */
+          P.ev(`state.staff=[]; amOpenArea(${J(g1)})`); await sleep(60); o.empty=[qt9(P,'#am-sheet .am-cd-foot'), qn9(P,'#am-sheet .am-cd-foot .am-nm-st')];
+        } finally { P.ev('amCloseSheet()'); }
+        checkL9('97z4','【始めずに 記録できない】目標の分がある作業は amRecord でも 記録しない（お知らせ）・カードの ボタンに 記録の道が 無い・名簿が 空の店も「▶ 始める」',[
+            ['1:amRecord で 記録しない',o.rec[0]===true&&o.rec[1]===true&&o.rec[2]===true&&/始める/.test(o.rec[3])],
+            ['2:記録の ボタンが 無い（名前なしで 始める も 無い）',o.btn.length>=2&&o.noRec&&o.btn.every(s=>!/amRunStart\('[^']*',''\)/.test(s))],
+            ['4:名前なしで 始めない',o.nn[0]===true&&/名前を えらんで/.test(o.nn[1])],
+            ['3:名簿が 空',/▶ 始める/.test(o.empty[0])&&!/やりました/.test(o.empty[0])&&o.empty[1]===1]],
+          `amRecord ${J(o.rec)}｜ボタン ${o.btn.length}・記録の道 ${!o.noRec}｜名簿なし ${J(o.empty)}`);
+        P.close();
+      });
+
+      /* ===== 97z5：押し忘れ 3通り（目標の3倍・朝3時・同じ人が 別の作業を 始めた時に「終わっていない」）。始めた人の 名前つきで 日ごとの記録に1件（miss:1・nf:1）。済に しない・見るだけ では 書かない ===== */
+      await tryB9('97z5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9e','ws',st9()), o={};
+        try{
+          const [g1,g2,g3]=ids9(P); setGoal(P,g1,10); setGoal(P,g2,60); await sync9([P]);
+          const now=now9(P), a1=ac9(P,g1), a2=ac9(P,g2);
+          /* ① 目標の3倍（10分 → 30分）：40分前に 始めた */
+          const sA=now-40*M9; put9(P,'uA1',{w:g1,s:iso9(sA),by:'見本 花子',d:'dvA'});
+          /* ② 朝3時：きょうの 3:00 の 30分前に 始めた（目標 60分 → 120分 より 3:00 が 先） */
+          const B=Number(P.ev('amLogDayMs(amLogDay(Date.now()))'))+3*H9, sB=B-30*M9; put9(P,'uB1',{w:g2,s:iso9(sB),by:'見本 太郎',d:'dvB'});
+          /* 見るだけ（地図・カード・📊）では 書かない・作業中に 出ない */
+          const cw=cl.writes; P.ev('renderMapView()'); P.ev(`amOpenArea(${J(g1)})`); await sleep(60); o.cardRun=qn9(P,'#am-sheet .am-run'); P.ev('amCloseSheet(); isAdmin=true; applyAdminMode(); setView("dashboard");'); await sleep(100); P.ev('setView("map"); isAdmin=false; applyAdminMode();'); await sleep(50);
+          o.look=[cl.writes===cw, qn9(P,'.amf-shelf.run'), Number(E9(P,'amRunActive().length'))];
+          /* 記録を 足した時に 閉じる（目標の無い 作業の 名前を 押す） */
+          P.ev(`amRecord(${J(g3)},'見本 太郎')`); await sync9([P]);
+          const L=logs9(P), fA=L.find(x=>x.id==='fuA1'), fB=L.find(x=>x.id==='fuB1');
+          const eA=Math.min(sA+30*M9,next3(sA)), wA=(sA+30*M9<next3(sA))?'t':'3';
+          o.t=fA?[fA.w===g1,fA.by==='見本 花子',fA.miss===1&&fA.nf===1,fA.why===wA,new Date(fA.at).getTime()===(wA==='t'?eA:eA-1),fA.s===iso9(sA),fA.d==='dvA']:['無い'];
+          o.three=fB?[fB.w===g2,fB.by==='見本 太郎',fB.why==='3',new Date(fB.at).getTime()===B-1]:['無い'];
+          o.after=[J(runs9(P)), ac9(P,g1)===a1, ac9(P,g2)===a2, Number(E9(P,`amLogRange(Date.now()-3*86400000,Date.now()+3600000).filter(r=>r.w===${J(g1)}||r.w===${J(g2)}).length`))];
+          /* ③ 同じ人が 別の作業を 始めた → 1回だけ 聞く →「終わっていない」＝押し忘れ（q）／「終わった」＝いまの時刻で 記録 */
+          P.ev(`amRunStart(${J(g1)},'見本 花子')`); await sync9([P]); const kq=Object.keys(runs9(P)||{})[0]||'';
+          const cw2=cl.writes; P.ev(`amOpenArea(${J(g2)})`); await sleep(60); P.ev(`amRunStart(${J(g2)},'見本 花子')`); await sleep(60);
+          o.ask=[qn9(P,'#am-sheet .am-rq'), qt9(P,'#am-sheet .am-rq-h'), nRun(P), cl.writes===cw2];
+          P.ev('amRunAns(0)'); await sync9([P]);
+          const fq=logs9(P).find(x=>x.id==='f'+kq), r2=runs9(P)||{}, k2=Object.keys(r2)[0]||'';
+          o.q=[!!fq&&fq.why==='q'&&fq.by==='見本 花子'&&fq.w===g1&&fq.nf===1, Object.keys(r2).length, r2[k2]&&r2[k2].w===g2&&r2[k2].by==='見本 花子', ac9(P,g1)===a1];
+          P.ev(`amOpenArea(${J(g1)})`); await sleep(60); P.ev(`amRunStart(${J(g1)},'見本 花子')`); await sleep(60); o.ask2=qn9(P,'#am-sheet .am-rq');
+          P.ev('amRunAns(1)'); await sync9([P]);
+          const xe=logs9(P).find(x=>x.id==='x'+k2), r3=runs9(P)||{};
+          o.y=[!!xe&&xe.w===g2&&!!xe.s&&!xe.miss, ac9(P,g2)===a2+1, Object.keys(r3).length, Object.values(r3)[0]&&Object.values(r3)[0].w===g1];
+          /* 名前なしで 始めた時は 聞かない・別の人は 聞かない */
+          P.ev(`amOpenArea(${J(g2)})`); await sleep(60); P.ev(`amRunStart(${J(g2)},'見本 太郎')`); await sleep(60); o.other=[qn9(P,'#am-sheet .am-rq'), nRun(P)];
+          o.nfAll=logs9(P).filter(x=>x.nf).map(x=>x.by+':'+x.why).sort().join(',');
+        } finally { P.ev('amCloseSheet()'); }
+        checkL9('97z5','【押し忘れ 3通り】① 目標の3倍（30〜120分）② 朝3時 ③ 同じ人が 別の作業を 始めた時に 1回 聞いて「終わっていない」→ 日ごとの記録に 始めた人の 名前つきで 1件（miss:1・nf:1・わけ t／3／q・始めた時刻）。済に しない（直近40件・記録の読み方に 入らない）・見るだけ では 書かない・作業中に 出ない。「終わった」は いまの時刻で 記録・名前の ちがう人は 聞かない',[
+            ['1:見るだけ',o.look[0]===true&&o.look[1]===0&&o.look[2]===0&&o.cardRun===0],
+            ['2:① 時間切れ',o.t.length===7&&o.t.every(x=>x===true)],
+            ['3:② 朝3時',o.three.length===4&&o.three.every(x=>x===true)],
+            ['4:済に しない',o.after[0]==='{}'&&o.after[1]===true&&o.after[2]===true&&o.after[3]===0],
+            ['5:③ 聞く（まだ 書かない）',o.ask[0]===1&&/見本 花子/.test(o.ask[1])&&o.ask[2]===1&&o.ask[3]===true],
+            ['6:③ 終わっていない',o.q[0]===true&&o.q[1]===1&&o.q[2]===true&&o.q[3]===true],
+            ['7:終わった',o.ask2===1&&o.y[0]===true&&o.y[1]===true&&o.y[2]===1&&o.y[3]===true],
+            ['8:別の人は 聞かない',o.other[0]===0&&o.other[1]===2],
+            ['9:名前つき 3件',o.nfAll==='見本 太郎:3,見本 花子:q,見本 花子:t'||o.nfAll==='見本 太郎:3,見本 花子:3,見本 花子:q']],
+          `見るだけ ${J(o.look)}・カード ${o.cardRun}｜① ${J(o.t)}｜② ${J(o.three)}｜済 ${J(o.after)}｜聞く ${J(o.ask)}｜まだ ${J(o.q)}｜終わった ${o.ask2} ${J(o.y)}｜別の人 ${J(o.other)}｜押し忘れ ${o.nfAll}`);
+        P.close();
+      });
+
+      /* ===== 97z6：列の行と カード：作業中は「▶ 作業中」の棚（▶ と 分。名前は 出さない）・目標を すぎたら 黄色・ほかの 棚と 番号から 外れる ===== */
+      await tryB9('97z6',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9f','ws',st9(),[1024,900]), o={};
+        try{
+          const [g1,g2]=ids9(P); setGoal(P,g1,10); setGoal(P,g2,10); await sync9([P]);
+          const now=now9(P); put9(P,'uO1',{w:g1,s:iso9(now-15*M9),by:'見本 花子',d:'dv1'}); put9(P,'uU1',{w:g2,s:iso9(now-3*M9),by:'見本 太郎',d:'dv2'});
+          P.ev('renderMapView()'); await sleep(60);
+          const row=id=>jp9(E9(P,`JSON.stringify(Array.from(document.querySelectorAll('#amf-col .amf-r[data-w=${J(id)}]')).map(e=>({c:e.className, t:e.textContent.replace(/\\s+/g,' ').trim(), sh:(e.closest('.amf-shelf')||{className:''}).className})))`),[]);
+          const r1=row(g1), r2=row(g2);
+          o.r=[r1.length,r1[0]&&/amf-run/.test(r1[0].c)&&/amf-over/.test(r1[0].c)&&/\brun\b/.test(r1[0].sh)&&/▶ 15分/.test(r1[0].t)&&/目標 10分/.test(r1[0].t), r2.length, r2[0]&&/amf-run/.test(r2[0].c)&&!/amf-over/.test(r2[0].c)&&/▶ 3分/.test(r2[0].t)];
+          o.noName=!/見本/.test(qt9(P,'#amf-col'));
+          o.shh=qt9(P,'.amf-shelf.run .amf-shh');
+          o.noNo=Number(E9(P,`(_amfNo&&(${J(g1)} in _amfNo))?1:0`));
+          o.bg=String(E9(P,`getComputedStyle(document.querySelector('#amf-col .amf-r.amf-over')).backgroundColor`));
+          P.ev(`amOpenArea(${J(g1)})`); await sleep(60); o.card=[qn9(P,'#am-sheet .am-run.over'), /目標を すぎています/.test(qt9(P,'#am-sheet .am-run'))]; P.ev('amCloseSheet()');
+          P.ev(`amOpenArea(${J(g2)})`); await sleep(60); o.card2=[qn9(P,'#am-sheet .am-run'), qn9(P,'#am-sheet .am-run.over'), qn9(P,'#am-sheet .am-run-more')]; P.ev('amRunMore()'); await sleep(60); o.more=qn9(P,'#am-sheet .am-nm-st'); P.ev('amCloseSheet()');
+          /* 🔥 の案内は、だれかが 作業中の 作業を 先に させない */
+          o.fire=String(E9(P,`(()=>{ const f=amFireTop(); return f?f.id:''; })()`))!==g1&&String(E9(P,`(()=>{ const f=amFireTop(); return f?f.id:''; })()`))!==g2;
+        } finally { P.ev('amCloseSheet()'); }
+        checkL9('97z6','【列の行と カード】作業中は「▶ 作業中」の棚に 1回だけ（▶ と 分・目標。名前は 出さない）・目標を すぎた行は 黄色（amf-over）・番号から 外れる・カードの 作業中も 黄色と「目標を すぎています」・目標前は 色なし・「＋ ほかの人も 始める」で 名前が 出る・🔥 の案内に 入らない',[
+            ['1:すぎた 行',o.r[0]===1&&o.r[1]===true],['2:目標前の 行',o.r[2]===1&&o.r[3]===true],['3:名前を 出さない',o.noName===true],['4:棚',/作業中/.test(o.shh)&&o.noNo===0],
+            ['5:黄色',/255, 251, 235/.test(o.bg)],['6:カード',o.card[0]===1&&o.card[1]===true&&o.card2[0]===1&&o.card2[1]===0&&o.card2[2]===1&&o.more>=1],['7:🔥 の案内',o.fire===true]],
+          `行 ${J(o.r)}｜名前なし ${o.noName}｜棚「${o.shh}」番号 ${o.noNo}｜色 ${o.bg}｜カード ${J(o.card)} ${J(o.card2)} ほか ${o.more}｜🔥 ${o.fire}`);
+        P.close();
+      });
+
+      /* ===== 97z7：📊（管理者だけ）：作業ごとの 平均・目標との くらべ・押し忘れ／人ごとの 時間と 押し忘れの 回数（名簿の 順・順位なし）・この日の 記録に「⏱ ◯分」 ===== */
+      await tryB9('97z7',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9g','ws',st9(),[1024,900]), o={};
+        try{
+          const [g1]=ids9(P); setGoal(P,g1,10); await sync9([P]);
+          const now=now9(P);
+          const mkDone=(k,by,min)=>{ put9(P,k,{w:g1,s:iso9(now-min*M9),by,d:'dv'}); P.ev(`amRunEnd(${J(k)})`); };
+          mkDone('uS1','見本 花子',8); mkDone('uS2','見本 太郎',14); mkDone('uS3','見本 花子',0.5);
+          put9(P,'uN1',{w:g1,s:iso9(now-50*M9),by:'見本 太郎',d:'dv'}); put9(P,'uN2',{w:g1,s:iso9(now-45*M9),by:'見本 太郎',d:'dv'}); P.ev('amRunSettle(); amSave();');
+          await sync9([P]);
+          P.ev(`isAdmin=true; applyAdminMode(); setView('dashboard');`); await sleep(150);
+          o.card=qn9(P,'#who-view .aw-time');
+          o.row=qt9(P,'#who-view .aw-tw-row');
+          o.pp=jp9(E9(P,`JSON.stringify(Array.from(document.querySelectorAll('#who-view .aw-tp-row')).map(e=>e.textContent.replace(/\\s+/g,' ').trim()))`),[]);
+          o.rank=/[0-9０-９]+ *位|ランキング|1番/.test(qt9(P,'#who-view .aw-time'));
+          P.ev(`amWho('hk','rec')`); await sleep(80); o.dur=qt9(P,'#who-view .aw-list');
+          P.ev(`amWho('tp','見本 太郎')`); await sleep(80); o.det=qt9(P,'#who-view .aw-tp-d');
+          P.ev(`isAdmin=false; applyAdminMode(); document.getElementById('who-view').innerHTML=''; renderWhoView();`); o.na=qn9(P,'#who-view .aw-time');
+        } finally { P.ev('isAdmin=false; setView("map")'); }
+        checkL9('97z7','【📊】⏱ かかった時間：作業ごと＝目標 10分・平均 11分（8分と 14分。1分より 短い 記録・押し忘れは 入れない）・押し忘れ 2／人ごと＝名簿の 順（花子 → 太郎）・計った回数と 合計・押し忘れの 回数・順位の 字なし・押すと 作業ごと と 押し忘れの 時刻／この日の 記録に「⏱ ◯分」／管理者で なければ 出ない',[
+            ['1:カード',o.card===1],['2:作業ごと',/🎯 10分/.test(o.row)&&/平均 11分/.test(o.row)&&/2回/.test(o.row)&&/押し忘れ 2/.test(o.row)],
+            ['3:人ごと（名簿の順）',o.pp.length>=2&&/見本 花子/.test(o.pp[0])&&/計った 1回/.test(o.pp[0])&&/押し忘れ 0回/.test(o.pp[0])&&/見本 太郎/.test(o.pp[1])&&/計った 1回/.test(o.pp[1])&&/押し忘れ 2回/.test(o.pp[1])],
+            ['4:順位なし',o.rank===false],['5:記録の 分',/⏱ 8分/.test(o.dur)&&/⏱ 14分/.test(o.dur)],['6:人の くわしく',/押し忘れ：/.test(o.det)&&/時間切れ|朝3時/.test(o.det)],['7:管理者だけ',o.na===0]],
+          `カード ${o.card}｜作業「${o.row}」｜人 ${J(o.pp)}｜順位 ${o.rank}｜記録「${o.dur.slice(0,160)}」｜くわしく「${o.det.slice(0,160)}」｜管理者でない ${o.na}`);
+        P.close();
+      });
+
+      /* ===== 97z8：2台：同時に 始める・同じ印を 2台で 終わらせる・ほかの端末で 終わった後に 押す・切れていた端末が 始めた・同じ押し忘れを 2台が 閉じる ===== */
+      await tryB9('97z8',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9h','ws',st9()), Q=await mk9(cl,'端末Q9h','ws'), D=[P,Q], o={};
+        const same9=()=>nzS(P.ev('JSON.stringify(state)'))===nzS(Q.ev('JSON.stringify(state)'));
+        const offA=()=>D.forEach(d=>d.be.setOnline(false)), onA=()=>D.forEach(d=>d.be.setOnline(true));
+        try{
+          await sync9(D); const [g1,g2]=ids9(P); setGoal(P,g1,10); await sync9(D); o.g=E9(Q,`amWork(${J(g1)}).goal`);
+          /* A：2台が 同時に 同じ作業を 始める → 両方 残る */
+          offA(); P.ev(`amRunStart(${J(g1)},'見本 花子')`); Q.ev(`amRunStart(${J(g1)},'見本 太郎')`); onA(); await sync9(D);
+          o.A=[nRun(P), nRun(Q), same9()];
+          /* B：それぞれ 自分の分を 同時に 終わらせる → 印 0・記録 2件（s つき） */
+          const R=runs9(P)||{}, kP=Object.keys(R).find(k=>R[k].by==='見本 花子'), kQ=Object.keys(R).find(k=>R[k].by==='見本 太郎');
+          offA(); P.ev(`amRunEnd(${J(kP)})`); Q.ev(`amRunEnd(${J(kQ)})`); onA(); await sync9(D);
+          o.B=[nRun(P), nRun(Q), logs9(P).filter(x=>x.w===g1&&x.s&&!x.miss).length, same9()];
+          /* C：同じ印を 2台が それぞれ（切れたまま）終わらせる → 日ごとの記録は 1件（id＝x＋印） */
+          P.ev(`amRunStart(${J(g1)},'見本 花子')`); await sync9(D); const kC=Object.keys(runs9(P)||{})[0]||'';
+          const l0=logs9(P).filter(x=>x.w===g1&&x.s&&!x.miss).length, a0=ac9(P,g1);
+          offA(); P.ev(`amRunEnd(${J(kC)})`); await sleep(30); Q.ev(`amRunEnd(${J(kC)})`); onA(); await sync9(D);
+          o.C=[nRun(P), nRun(Q), logs9(P).filter(x=>x.id==='x'+kC).length, logs9(P).filter(x=>x.w===g1&&x.s&&!x.miss).length-l0, ac9(P,g1)-a0, same9()];
+          /* D：ほかの端末で 終わった後に（つながったまま）押す → 「もう 終わっています」・記録は 増えない */
+          P.ev(`amRunStart(${J(g1)},'見本 花子')`); await sync9(D); const kD=Object.keys(runs9(P)||{})[0]||'';
+          P.ev(`amRunEnd(${J(kD)})`); await sync9(D); const n0=logs9(Q).length; Q.ev(`amRunEnd(${J(kD)})`); await sync9(D);
+          o.D=[logs9(Q).length===n0, /もう 終わっています/.test(qt9(Q,'#am-snack')), same9()];
+          /* E：切れていた端末が 始めた → つながると もう1台に 出る（カードの「作業中」も 届いた時に 描き直す） */
+          P.be.setOnline(false); P.ev(`amRunStart(${J(g1)},'見本 太郎')`); Q.ev(`amRecord(${J(ids9(Q)[3])},'見本 花子')`); await sync9([Q]);
+          Q.ev(`amOpenArea(${J(g1)})`); await sleep(60); const c0=qn9(Q,'#am-sheet .am-run');
+          P.be.setOnline(true); await sync9(D); await sleep(300);
+          o.E=[nRun(Q), c0, qn9(Q,'#am-sheet .am-run'), same9()]; Q.ev('amCloseSheet()');
+          /* F：同じ 押し忘れを 2台が（切れたまま）閉じる → 1件 */
+          const now=now9(P); put9(P,'uF1',{w:g1,s:iso9(now-40*M9),by:'見本 花子',d:'dvF'}); P.ev('amSave()'); await sync9(D);
+          offA(); P.ev(`amRecord(${J(ids9(P)[4])},'見本 太郎')`); Q.ev(`amRecord(${J(ids9(Q)[5])},'見本 花子')`); onA(); await sync9(D);
+          o.F=[logs9(P).filter(x=>x.id==='fuF1').length, logs9(Q).filter(x=>x.id==='fuF1').length, J(Object.keys(runs9(P)||{}).filter(k=>k==='uF1')), same9()];
+          o.lost=lostN(cl);
+        } finally { for(const d of D){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
+        checkL9('97z8','【2台】A 同時に 始める → 2件 残る／B それぞれ 終わらせる → 印 0・記録 2件／C 同じ印を 切れた 2台が 終わらせる → 日ごとの記録は 1件（直近40件は 2件＝同じ作業を 2台で 同時に 記録した時と 同じ）／D 終わった後に 押す →「もう 終わっています」で 増えない／E 切れていた端末が 始めた → 届く・開いていた カードも 描き直す／F 同じ押し忘れを 2台が 閉じる → 1件',[
+            ['0:目標が 届く',o.g===10],['1:A',o.A[0]===2&&o.A[1]===2&&o.A[2]===true],['2:B',o.B[0]===0&&o.B[1]===0&&o.B[2]===2&&o.B[3]===true],
+            ['3:C',o.C[0]===0&&o.C[1]===0&&o.C[2]===1&&o.C[3]===1&&o.C[5]===true],['4:D',o.D.every(x=>x===true)],['5:E',o.E[0]===1&&o.E[1]===0&&o.E[2]===1&&o.E[3]===true],['6:F',o.F[0]===1&&o.F[1]===1&&o.F[2]==='[]'&&o.F[3]===true]],
+          `目標 ${o.g}｜A ${J(o.A)}｜B ${J(o.B)}｜C ${J(o.C)}（直近40件 +${o.C[4]}）｜D ${J(o.D)}｜E ${J(o.E)}｜F ${J(o.F)}｜負けた入力 ${o.lost}（C の 同じ1件の 時刻・端末）`);
+        for(const d of D) d.close();
+      });
+
+      /* ===== 97z9：古い版（5.19・5.16・5.14）と まざる：古い端末では ▶ が 出ないだけ。目標・作業中の印・s・押し忘れは 古い端末の 保存で 消えない・古い端末は 押し忘れを 済に 数えない ===== */
+      await tryB9('97z9',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mk9(cl,'端末P9i','ws',st9()), O19=await mk9(cl,'端末O19','wsold519'), O16=await mk9(cl,'端末O16','wsold515'), O14=await mk9(cl,'端末O14','wsold'), D=[P,O19,O16,O14], o={};
+        const sameAll=()=>{ const s0=nzS(P.ev('JSON.stringify(state)')); return D.map(d=>nzS(d.ev('JSON.stringify(state)'))===s0); };
+        try{
+          await sync9(D); o.v=D.map(d=>E9(d,'APP_VERSION'));
+          const [g1,g2,g3]=ids9(P); setGoal(P,g1,10); await sync9(D);
+          o.goal=D.map(d=>E9(d,`amWork(${J(g1)}).goal`));
+          /* 古い版の カード：今までどおり 名前のボタン（▶ は 出ない） */
+          O19.ev(`amOpenArea(${J(g1)})`); await sleep(60); o.oc=[qn9(O19,'#am-sheet .am-nm-st'), /名前なしで 記録/.test(qt9(O19,'#am-sheet .am-cd-foot'))]; O19.ev('amCloseSheet()');
+          /* P が 始める → 古い3台が それぞれ 記録・作業の 名前を 直す（保存）*/
+          P.ev(`amRunStart(${J(g1)},'見本 花子')`); await sync9(D); const k=Object.keys(runs9(P)||{})[0]||'';
+          O19.ev(`amRecord(${J(g2)},'見本 太郎')`); O14.ev(`amRecord(${J(g3)},'見本 花子')`);
+          O16.ev('isAdmin=true;'); O16.ev(`amEditWork(${J(g1)})`); await sleep(60); O16.ev(`document.getElementById('amw-name').value='古い版で 直した名前'; amSaveWork(${J(g1)})`); O16.ev('isAdmin=false; amCloseSheet()');
+          await sync9(D);
+          o.keep=[nRun(P), E9(P,`amWork(${J(g1)}).goal`), E9(P,`amWork(${J(g1)}).name`), sameAll()];
+          /* P が 終わる → 古い端末でも 済（直近40件）・s は 残る */
+          const ac0=ac9(O19,g1); P.ev(`amRunEnd(${J(k)})`); await sync9(D);
+          o.end=[ac9(O19,g1)-ac0, E9(O19,`amStatus(amWork(${J(g1)})).st`), logs9(O14).filter(x=>x.id==='x'+k&&x.s).length];
+          /* 古い端末が 名前で 記録（今までの道）→ P では 済・s なし（平均に 入らない） */
+          O19.ev(`amRecord(${J(g1)},'見本 太郎')`); await sync9(D); o.oldRec=[ac9(P,g1)-ac0, logs9(P).filter(x=>x.w===g1&&!x.s&&!x.miss).length];
+          /* 押し忘れ：P が 閉じる → 古い端末は 済に 数えない（記録の読み方に 入らない） */
+          const now=now9(P); put9(P,'uZ9',{w:g2,s:iso9(now-200*M9),by:'見本 花子',d:'dvZ'}); P.ev('amSave()'); await sync9(D);
+          const rg=d=>Number(E9(d,`amLogRange(Date.now()-3*86400000,Date.now()+3600000).filter(r=>r.w===${J(g2)}).length`)), b0=D.map(rg), st0=E9(O19,`amStatus(amWork(${J(g2)})).st`);
+          P.ev(`amRecord(${J(g3)},'見本 太郎')`); await sync9(D);
+          o.nf=[logs9(O16).filter(x=>x.id==='fuZ9'&&x.nf).length, J(D.map(rg))===J(b0), E9(O19,`amStatus(amWork(${J(g2)})).st`)===st0];
+          /* 古い端末が 保存しても amRun（作業中の印）が 残る */
+          P.ev(`amRunStart(${J(g2)},'見本 太郎')`); await sync9(D); O19.ev(`amRecord(${J(g3)},'見本 花子')`); O16.ev(`amRecord(${J(g3)},'見本 太郎')`); O14.ev(`amRecord(${J(g2)},'見本 花子')`); await sync9(D);
+          o.run=[D.map(d=>nRun(d)).join(','), sameAll().every(Boolean)];
+          o.lost=lostN(cl);
+        } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
+        checkL9('97z9','【古い版と まざる】5.19・5.16・5.14 の 端末：目標が 届く・古い端末の カードは 今までどおり（▶ なし）・P が 始めた 作業中に 古い端末が 記録・作業の名前を 直しても 印・目標が 残る・P が 終わると 古い端末も 済・古い端末の 記録は s なし・押し忘れは 古い端末でも 済に 数えない・4台 同じ・負けた入力 0',[
+            ['1:版',o.v[0]==='5.21'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
+            ['4:古い 保存で 消えない',o.keep[0]===1&&o.keep[1]===10&&o.keep[2]==='古い版で 直した名前'&&o.keep[3].every(Boolean)],
+            ['5:終わる → 古い端末も 済',o.end[0]===1&&o.end[1]==='done'&&o.end[2]===1],['6:古い端末の 記録',o.oldRec[0]===2&&o.oldRec[1]>=1],
+            ['7:押し忘れは 済に しない',o.nf[0]===1&&o.nf[1]===true&&o.nf[2]===true],['8:印が 残る・4台 同じ',o.run[0]==='1,1,1,1'&&o.run[1]===true],['9:負けた入力 0',o.lost===0]],
+          `版 ${J(o.v)}｜目標 ${J(o.goal)}｜古いカード ${J(o.oc)}｜保存 ${J(o.keep)}｜終わる ${J(o.end)}｜古い記録 ${J(o.oldRec)}｜押し忘れ ${J(o.nf)}｜印 ${J(o.run)}｜負け ${o.lost}`);
+        for(const d of D) d.close();
+      });
+
+      /* ===== 97z10：店で 使っている 形（作業の 登録・直近40件・日ごとの記録・地図）を 5.21 で 開く → 開く・描く・カード・📊・登録の表 を 見ても 何も 書かず、中身が 1字も 変わらない ===== */
+      await tryB9('97z10',async()=>{
+        const cl=new V2.MemoryCloud(), P0=await mk9(cl,'端末P9j0','wsold519',st9()), o={};
+        const seedRecs=d=>d.ev(`(()=>{ state.amWorks=JSON.parse(JSON.stringify(DEFAULT_WORKS)).map((w,i)=>Object.assign(w,{seq:(i+1)*1000})); const day=amLogDayMs(amLogDay(Date.now())), iso=t=>new Date(t).toISOString();
+          state.areaChecks={toilet:[{at:iso(day+10*3600000),by:'見本 花子'}],trash:[{at:iso(day-86400000+13*3600000),by:'見本 太郎'}]};
+          amLogAdd('toilet',{at:iso(day+10*3600000),by:'見本 花子'},null,null); amLogAdd('trash',{at:iso(day-86400000+13*3600000),by:'見本 太郎'},null,null); amSave(); })()`);
+        seedRecs(P0); await sync9([P0]); const s0=nzS(P0.ev('JSON.stringify(state)')); P0.close();
+        const P=await mk9(cl,'端末P9j','ws'); await sync9([P]);
+        try{
+          const cw=cl.writes;
+          P.ev('renderMapView()'); for(const id of ids9(P).slice(0,8)){ P.ev(`amOpenArea(${J(id)})`); await sleep(15); P.ev('amCloseSheet()'); }
+          P.ev(`isAdmin=true; applyAdminMode(); setView('dashboard');`); await sleep(120); P.ev(`setView('map'); amOpenWorks();`); await sleep(120); P.ev('amCloseSheet(); isAdmin=false; applyAdminMode();');
+          await sync9([P]);
+          o.r=[nzS(P.ev('JSON.stringify(state)'))===s0, cl.writes===cw, E9(P,'state.amRun===undefined'), Number(E9(P,`amWorks().filter(w=>'goal' in w).length`))];
+        } finally { P.ev('isAdmin=false; amCloseSheet()'); }
+        checkL9('97z10','【今の 作業と 記録が 変わらない】5.19 で 作った 店の データを 5.21 で 開いて 見るだけ（地図・カード8つ・📊・登録の表）→ 何も 書かない・中身が 1字も 同じ・amRun も goal も 足さない',[
+            ['1:中身が 同じ',o.r[0]===true],['2:書かない',o.r[1]===true],['3:amRun を 足さない',o.r[2]===true],['4:goal を 足さない',o.r[3]===0]],
+          J(o.r));
+        P.close();
+      });
+    }
+    /* ---- 5.21b（テスの 点検 D4b・△）：切れていた端末が 閉じた「押し忘れ」と、ほかの端末の「終わった」が 同じ1回に 付いた時、📊 では 押し忘れに 数えない（記録は 消さない）／押す所 44px／目標の札と 分に 英語・ネパール語 ---- */
+    {
+      const mkA=async(cl,name,dir,seed,size)=>{
+        const be=cl.device(), store=new V2.Store({backend:be,space:'TA',device:name,kv:new V2.MemKV(),snapshot:false});
+        const sz=size||[768,900], f=document.createElement('iframe'); f.style.cssText=`display:block;width:${sz[0]}px;height:${sz[1]}px;max-width:none;border:1px solid #cbd5e1;border-radius:8px;background:#fff;margin:8px 0`; document.body.appendChild(f);
+        const win=await load(f,(dir||'ws')+'/index.html?embedded=1&mem=1&wait=1&t='+Date.now()); win.alert=()=>{}; win.confirm=()=>true; win.prompt=()=>null;
+        await win.__v2go(Object.assign({store,stores,current:'w1'},seed?{state:J(seed)}:{})); for(let i=0;i<100&&!win.__v2ready;i++)await sleep(50); await sleep(300);
+        return {f,win,be,store,name,ev:s=>win.eval(s),close:()=>{ try{ f.remove(); }catch(_){} }};
+      };
+      const syncA=async(devs)=>{ for(let i=0;i<3;i++){ for(const d of devs){ if(d.be.online)await d.store.settle(10000); } await sleep(150); } await sleep(350); };
+      const EA=(d,s)=>{ try{ return d.ev(s); }catch(e){ return '(エラー：'+String(e&&e.message).slice(0,60)+'）'; } };
+      const jpA=(s,d)=>{ try{ return JSON.parse(s); }catch(e){ return d; } };
+      const tryBA=async(no,fn)=>{ try{ await fn(); }catch(e){ check(no+'-止','（この 試験は 途中で 止まった＝関数が 無い・エラー）',false,String(e&&e.stack||e).slice(0,400)); } };
+      const checkLA=(no,what,conds,detail)=>{ const bad=conds.filter(c=>!c[1]).map(c=>c[0]); check(no,what,bad.length===0,(bad.length?'【不合格の項目：'+bad.join(' ｜ ')+'】 ':'')+detail); };
+      const nzA=s=>{ const o=JSON.parse(s); delete o._modifiedAt; return J(o); };
+      const stA=()=>JSON.parse(J(st));
+      const idsA=d=>jpA(EA(d,'JSON.stringify(amFloorWorks().map(w=>w.id))'),[]);
+      const goalA=(d,id,g)=>d.ev(`(()=>{ const w=amWorksEdit().find(x=>x.id===${J(id)}); w.goal=${J(g)}; amSave(); renderMapView(); })()`);
+      const logsA=d=>jpA(EA(d,`JSON.stringify(Object.keys(state).filter(k=>/^amLog_/.test(k)).reduce((a,k)=>{ Object.keys(state[k]).forEach(id=>a.push(Object.assign({id},state[k][id]))); return a; },[]))`),[]);
+
+      /* ===== 97z11：A が 5分で ✓ 終わった・切れていた B（作業中を 見たまま）が 30分を すぎてから 別の記録 → つないだ後、📊 で その人に 押し忘れが 付かない（f の 記録は 残る） ===== */
+      await tryBA('97z11',async()=>{
+        const cl=new V2.MemoryCloud(), A=await mkA(cl,'端末A11','ws',stA()), B=await mkA(cl,'端末B11','ws'), o={};
+        try{
+          await syncA([A,B]); const [g1,,g3]=idsA(A); goalA(A,g1,10); await syncA([A,B]);
+          A.ev(`amRunStart(${J(g1)},'見本 花子')`); await syncA([A,B]); const k=Object.keys(jpA(EA(A,'JSON.stringify(state.amRun)'),{}))[0]||'';
+          o.saw=!!(jpA(EA(B,'JSON.stringify(state.amRun||{})'),{}))[k];
+          B.be.setOnline(false);
+          A.ev(`state.amRun[${J(k)}].s=new Date(Date.now()-5*60000).toISOString(); amRunEnd(${J(k)})`); await syncA([A]);
+          B.ev(`(()=>{ const o=Date.now; window.__dn=o; Date.now=function(){ return o()+40*60000; }; })()`);   // B の 時計だけ 40分 先へ（作業中は 30分で 閉じる）
+          B.ev(`amRecord(${J(g3)},'見本 太郎')`); B.ev('Date.now=window.__dn;');
+          B.be.setOnline(true); await syncA([A,B]); await syncA([A,B]);
+          const L=logsA(A).filter(r=>r.id==='x'+k||r.id==='f'+k).map(r=>r.id[0]).sort().join('');
+          const T=jpA(EA(A,`JSON.stringify(amTimeRecs(Date.now()-86400000,Date.now()+7200000))`),{done:[],nf:[]});
+          A.ev(`isAdmin=true; applyAdminMode(); setView('dashboard');`); await sleep(150);
+          o.pp=String(EA(A,`Array.from(document.querySelectorAll('#who-view .aw-tp-row')).map(e=>e.textContent.replace(/\\s+/g,' ')).join('｜')`));
+          o.r=[o.saw, L, T.done.filter(r=>r.w===g1).length, T.nf.length, nzA(A.ev('JSON.stringify(state)'))===nzA(B.ev('JSON.stringify(state)'))];
+        } finally { A.ev('isAdmin=false; setView("map")'); }
+        checkLA('97z11','【押し忘れの 二重】A が 5分で ✓ 終わった・切れていた B（作業中を 見たまま）が 30分を すぎてから 別の記録 → 記録は x と f の 両方 残るが、📊（amTimeRecs）では 終わった 1・押し忘れ 0。人の行に「押し忘れ 1回」が 出ない',[
+            ['1:B に 届いていた',o.r[0]===true],['2:記録は 両方 残る',o.r[1]==='fx'],['3:終わった 1',o.r[2]===1],['4:押し忘れ 0',o.r[3]===0],['5:人の行',/押し忘れ 0回/.test(o.pp)&&!/押し忘れ [1-9]回/.test(o.pp)],['6:2台 同じ',o.r[4]===true]],
+          `${J(o.r)}｜人「${o.pp.slice(0,200)}」`);
+        A.close(); B.close();
+      });
+
+      /* ===== 97z12：押す所の 大きさ（768）：カードの「取り消す」・📊 の 人の行が 44px 以上／目標の札と 作業中の 分に 英語・ネパール語 ===== */
+      await tryBA('97z12',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkA(cl,'端末P12','ws',stA(),[768,1024]), o={};
+        try{
+          const [g1]=idsA(P); goalA(P,g1,10); await syncA([P]);
+          P.ev(`amRunStart(${J(g1)},'見本 花子')`); const k=Object.keys(jpA(EA(P,'JSON.stringify(state.amRun)'),{}))[0]||'';
+          P.ev(`state.amRun[${J(k)}].s=new Date(Date.now()-3*60000).toISOString(); amOpenArea(${J(g1)})`); await sleep(120);
+          o.x=jpA(EA(P,`(()=>{ const r=document.querySelector('#am-sheet .am-run-x').getBoundingClientRect(); return JSON.stringify([Math.round(r.width),Math.round(r.height)]); })()`),[0,0]);
+          o.tr=[String(EA(P,`(document.querySelector('#am-sheet .am-goal')||{}).textContent||''`)), String(EA(P,`(document.querySelector('#am-sheet .am-run-i')||{}).textContent||''`))];
+          P.ev(`amRunEnd(${J(k)}); amCloseSheet();`); await syncA([P]);
+          P.ev(`isAdmin=true; applyAdminMode(); setView('dashboard');`); await sleep(150);
+          o.pp=jpA(EA(P,`JSON.stringify(Array.from(document.querySelectorAll('#who-view .aw-tp-row')).map(e=>Math.round(e.getBoundingClientRect().height)))`),[]);
+        } finally { P.ev('isAdmin=false; setView("map"); amCloseSheet()'); }
+        checkLA('97z12','【押す所 44px・英語/ネパール語】作業中の カードの「取り消す」が 幅も 高さも 44px 以上・📊 の 人の行が 44px 以上（768）・目標の札に Goal と लक्ष्य・作業中の 分に min と मिनेट',[
+            ['1:取り消す',o.x[0]>=44&&o.x[1]>=44],['2:人の行',o.pp.length>=1&&o.pp.every(h=>h>=44)],['3:目標の札',/Goal 10 min/.test(o.tr[0])&&/लक्ष्य/.test(o.tr[0])],['4:分',/3 min \/ goal 10 min/.test(o.tr[1])&&/मिनेट/.test(o.tr[1])]],
+          `取り消す ${J(o.x)}｜人の行 ${J(o.pp)}｜札「${o.tr[0]}」｜分「${o.tr[1].slice(0,120)}」`);
+        P.close();
       });
     }
     check('97','最後に、2台の中身が同じ・未送信なし',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
