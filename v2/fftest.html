@@ -1860,6 +1860,94 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         !o78.err&&!o78.err2&&okTimer&&okPast&&okFuture&&okToday&&okHour&&okCount,
         o78.err||o78.err2||`予約 ${okTimer} ${J(tm)}・${o78.vis}／過ぎた日 ${okPast} ${J(n0)}・${J(n1)}・${J(n2)}・${J(n3)}／あさって以降 ${okFuture} ${J(f0)}・${J(f1)}／今日を見て2晩目 ${okToday} ${J(t0)}・${J(t1)}・${J(t2)}／毎時の描き直しの後でも曜日タブの印 ${okHour} ${J(h0)}${o78.h0n}・${J(h1)}・${J(h2)}${o78.h2n}・${J(h2b)}${o78.h2bn}・${J(h3)}${o78.h3n}／描き直し ${okCount} ${J(ct)}`);
     }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // サーマル番号・解凍番号を出さない（2026-10-21 店長「サーマル番号や解凍番号等の機能を非表示にして」）。表示を止めるだけ：データ（商品の thermalNo・食材の thawNo）は消さない・保存の形は変えない。
+    //   1つの切りかえ（SHOW_NO_TAGS）で出す／出さない。出さない時の画面・印刷は「出す時の画面・印刷から番号の札と入力欄だけを抜いた物」と1字も同じ（作成数・並び・ほかの印は前と同じ）。
+    {
+      const o79={}, W=A.win, S0=()=>A.ev('S');
+      let keep=null;
+      try{
+        const Sx=S0(), p1=Sx.PM.find(p=>p.id==='p1'), p2=Sx.PM.find(p=>p.id==='p2');
+        keep={ex:A.ev('[_expandedCards.has("p1"),_expandedCards.has("p2")]'),c1:p1.category,c2:p2.category,t1:p1.thermalNo,t2:p2.thermalNo,i1:p1.mkIngredients,day:A.ev('currentProdDay'),show:W.SHOW_NO_TAGS};
+        const pend0=A.store.status().pending;
+        // 見本（メモリの中だけ。saveS しない）：商品1＝まちかど厨房（サーマル 12・前日解凍の食材 鶏 No.7／米 番号なし）、商品2＝常温FF（サーマル 34）
+        p1.category='まちかど厨房'; p1.thermalNo='12'; p1.mkIngredients=[{n:'試験の鶏',m:['thaw'],pt:true,thawNo:'7'},{n:'試験の米',m:['thaw'],pt:true}];
+        p2.category='常温FF'; p2.thermalNo='34';
+        const dataJ=()=>J({t1:p1.thermalNo,t2:p2.thermalNo,i1:p1.mkIngredients});
+        A.ev('_expandedCards.add("p1"); _expandedCards.add("p2"); 1');   // 商品設定のカードを開いた形で見る
+        const data0=dataJ(), s0=A.ev('JSON.stringify(S)');
+        const grab=()=>{ const r={}; const d0=W.doPrint; let body=null; W.doPrint=function(h){ body=h; };
+          try{
+            r.card1=W.renderProductCard(p1); r.card2=W.renderProductCard(p2);
+            A.ev('currentProdDay=1; 1');
+            W.renderProdDayContent(1); r.day=W.document.getElementById('prod-day-content').innerHTML;
+            r.slot=W.renderSlotGroupedView(1);
+            r.mk=W.renderMachikadoPrep(1,{slots:[8,12,15],ah:8},[p1]);
+            body=null; W.printMakePlan(); r.print=body;
+            body=null; W.printThawPrep(); r.thaw=body;
+          }finally{ W.doPrint=d0; }
+          return r; };
+        o79.flag=A.ev('typeof SHOW_NO_TAGS==="boolean"?SHOW_NO_TAGS:"なし"');
+        const off=grab();                 // いまの画面（出さない）
+        W.SHOW_NO_TAGS=true; const on=grab(); W.SHOW_NO_TAGS=keep.show;   // 出す時（もどす時の形）
+        const strip=r=>{ const o={};
+          for(const k in r){ let s=String(r[k]||'');
+            s=s.replace(/<div><label>サーマル番号[\s\S]*?<\/div>/g,'')                     // 商品設定の入力欄
+               .replace(/<input [^>]*mkIngThawNo[^>]*>/g,'')                                // 食材の解凍番号の入力欄
+               .replace(/<span title="サーマル番号"[^>]*>No\.[^<]*<\/span>/g,'')              // 作成表の札
+               .replace(/ <span class="pth">No\.[^<]*<\/span>/g,'')                          // 作成の印刷の札
+               .replace(/<span class="pth" style="[^"]*">No\.[^<]*<\/span>/g,'');           // 前日解凍の札（画面・印刷）
+            o[k]=s; } return o; };
+        const has=(r,re)=>Object.keys(r).filter(k=>re.test(String(r[k]||'')));
+        o79.offHas={t12:has(off,/No\.12\b/),t34:has(off,/No\.34\b/),th7:has(off,/No\.7\b/),lbl:has(off,/サーマル番号/),thIn:has(off,/mkIngThawNo/)};
+        o79.onHas={t12:has(on,/No\.12\b/),t34:has(on,/No\.34\b/),th7:has(on,/No\.7\b/),lbl:has(on,/サーマル番号/),thIn:has(on,/mkIngThawNo/)};
+        const so=strip(on); o79.same=Object.keys(off).map(k=>[k,off[k]===so[k],String(off[k]||'').length]);
+        o79.sizes={day:(off.day||'').length,print:(off.print||'').length,thaw:(off.thaw||'').length,mk:(off.mk||'').length};
+        o79.thawItems=[(off.thaw||'').includes('試験の鶏'),(off.thaw||'').includes('試験の米'),(off.mk||'').includes('試験の鶏')];
+        o79.toggle=[(off.card1||'').includes('mkIngFlag(\'p1\',0,\'pt\')')];   // 「❄️前日解凍」のボタンは残す
+        o79.data={same:dataJ()===data0, S:A.ev('JSON.stringify(S)')===s0, pend:A.store.status().pending-pend0, no:A.ev('thawNoOf("試験の鶏")'), t1:p1.thermalNo, t2:p2.thermalNo};
+      }catch(e){ o79.err=String(e&&e.stack||e); }
+      try{ const Sx=S0(), p1=Sx.PM.find(p=>p.id==='p1'), p2=Sx.PM.find(p=>p.id==='p2');
+        p1.category=keep.c1; p2.category=keep.c2; if(keep.t1===undefined)delete p1.thermalNo; else p1.thermalNo=keep.t1; if(keep.t2===undefined)delete p2.thermalNo; else p2.thermalNo=keep.t2;
+        if(keep.i1===undefined)delete p1.mkIngredients; else p1.mkIngredients=keep.i1; W.SHOW_NO_TAGS=keep.show; ['p1','p2'].forEach((id,i)=>{ if(!keep.ex[i])A.ev(`_expandedCards.delete("${id}"); 1`); }); A.ev(`currentProdDay=${keep.day}; renderProdDayContent(currentProdDay); 1`); }catch(e){ o79.err2=String(e&&e.stack||e); }
+      await sync();
+      const oh=o79.offHas||{}, nh=o79.onHas||{}, d=o79.data||{}, E=a=>Array.isArray(a)&&a.length===0;
+      const okOff=o79.flag===false&&E(oh.t12)&&E(oh.t34)&&E(oh.th7)&&E(oh.lbl)&&E(oh.thIn);
+      const okOn=(nh.t12||[]).length>=3&&(nh.t34||[]).length>=3&&(nh.th7||[]).length>=3&&(nh.lbl||[]).length>=4&&(nh.thIn||[]).length>=1;   // 見本が番号を出せる形になっている（試験が空振りしていない）
+      const okSame=(o79.same||[]).length===7&&o79.same.every(x=>x[1]&&x[2]>0);
+      const okData=d.same&&d.S&&d.pend===0&&d.no==='7'&&d.t1==='12'&&d.t2==='34';
+      check('79','【サーマル番号・解凍番号を出さない】商品設定の入力欄（サーマル番号・食材の解凍番号）・作成表のマスと時間帯の一覧の札・作成の印刷・前日解凍の画面と印刷に、番号が出ない／'+
+        '出さない時の画面と印刷は、出す時の物から番号の札と入力欄だけを抜いた物と1字も同じ（作成数・並び・ほかの印・「❄️前日解凍」のボタンは前と同じ）／データ（thermalNo・thawNo）は残る・保存しない',
+        !o79.err&&!o79.err2&&okOff&&okOn&&okSame&&okData&&(o79.thawItems||[]).every(Boolean)&&(o79.toggle||[]).every(Boolean),
+        o79.err||o79.err2||`切りかえ ${J(o79.flag)}／出さない ${okOff} ${J(oh)}／出す ${okOn} ${J(nh)}／同じ ${okSame} ${J(o79.same)}／大きさ ${J(o79.sizes)}／前日解凍の食材 ${J(o79.thawItems)}・ボタン ${J(o79.toggle)}／データ ${okData} ${J(d)}`);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 食材名の欄の幅（2026-10-21 テスの見つけ物：解凍番号の欄を出さなくなった分、768 で食材名の欄がボタンと同じ行に入り、約110px に縮んで長い名前が切れた）。食材名は1行を全部使い、ボタンは次の行。390・768・1024 で見る（保存しない）。
+    {
+      const o80={}, W=A.win, fa=$('fa'), w0=fa.style.width;
+      let keep=null;
+      try{
+        const p1=A.ev('S').PM.find(p=>p.id==='p1');
+        keep={c:p1.category,i:p1.mkIngredients,ex:A.ev('_expandedCards.has("p1")'),tab:A.ev('currentTab')};
+        const s0=A.ev('JSON.stringify(S)'), pend0=A.store.status().pending;
+        p1.category='まちかど厨房'; p1.mkIngredients=[{n:'国産鶏もも肉カット（から揚げ用・大きめ）',m:['thaw'],pt:true,thawNo:'7'}];
+        A.ev('_expandedCards.add("p1"); showTab(1); renderProductCards(); 1');
+        o80.w=[];
+        for(const px of [390,768,1024]){
+          fa.style.width=px+'px'; await sleep(250);
+          o80.w.push(JSON.parse(A.ev(`(()=>{ const c=document.querySelector('[data-pid="p1"]'); [].forEach.call(c.querySelectorAll('details'),d=>d.open=true); const i=[].find.call(c.querySelectorAll('input[placeholder="食材名"]'),x=>true); if(!i)return JSON.stringify({px:${px},none:true}); const row=i.parentElement, r=i.getBoundingClientRect(), rr=row.getBoundingClientRect(), b=row.querySelector('button').getBoundingClientRect(), se=row.querySelector('select[onchange*=mkIngUse]'), xb=[].find.call(row.querySelectorAll('button'),y=>/mkIngDel/.test(y.getAttribute('onclick')||'')), sr=se.getBoundingClientRect(), xr=xb.getBoundingClientRect(); return JSON.stringify({px:${px},xSame:Math.abs((sr.top+sr.bottom)/2-(xr.top+xr.bottom)/2)<6&&xr.left>sr.right,sr:[sr.left,sr.top,sr.right,sr.bottom].map(Math.round),xr:[xr.left,xr.top,xr.right,xr.bottom].map(Math.round),vw:innerWidth,iw:Math.round(r.width),rw:Math.round(rr.width),below:b.top>=r.bottom-1,cut:i.scrollWidth>i.clientWidth+1}); })()`)));
+        }
+        o80.save={S:A.ev('JSON.stringify(S)')===JSON.stringify(Object.assign(JSON.parse(s0),{})),pend:A.store.status().pending-pend0};
+        p1.category=keep.c; if(keep.i===undefined)delete p1.mkIngredients; else p1.mkIngredients=keep.i;
+        o80.save.back=A.ev('JSON.stringify(S)')===s0;
+      }catch(e){ o80.err=String(e&&e.stack||e); }
+      try{ fa.style.width=w0; if(keep){ const p1=A.ev('S').PM.find(p=>p.id==='p1'); p1.category=keep.c; if(keep.i===undefined)delete p1.mkIngredients; else p1.mkIngredients=keep.i; if(!keep.ex)A.ev('_expandedCards.delete("p1"); 1'); A.ev(`showTab(${keep.tab}); 1`); } }catch(e){ o80.err2=String(e&&e.stack||e); }
+      await sync();
+      const ws=o80.w||[], okW=ws.length===3&&ws.every(x=>!x.none&&x.iw>=x.rw-2&&x.below&&x.xSame)&&ws.filter(x=>x.px>=768).every(x=>!x.cut);
+      const okS=o80.save&&o80.save.pend===0&&o80.save.back;
+      check('80','【食材名の欄の幅】商品設定の「使用食材」で、食材名の欄は1行を全部使い、調理方法のボタンは次の行（390・768・1024）。768 と 1024 では長い名前が切れない。消す ✕ は使用量の右に同じ行（✕ だけ折れない）。保存しない',
+        !o80.err&&!o80.err2&&okW&&okS, o80.err||o80.err2||`幅 ${okW} ${J(ws)}／保存 ${okS} ${J(o80.save)}`);
+    }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;
