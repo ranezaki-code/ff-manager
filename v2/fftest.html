@@ -1948,6 +1948,81 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       check('80','【食材名の欄の幅】商品設定の「使用食材」で、食材名の欄は1行を全部使い、調理方法のボタンは次の行（390・768・1024）。768 と 1024 では長い名前が切れない。消す ✕ は使用量の右に同じ行（✕ だけ折れない）。保存しない',
         !o80.err&&!o80.err2&&okW&&okS, o80.err||o80.err2||`幅 ${okW} ${J(ws)}／保存 ${okS} ${J(o80.save)}`);
     }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 品切れ防止の商品に撤退の印を出さない（2026-10-22 店長「FFの撤退は品切れ防止時は出さない」）。印だけ：作成数は変えない。
+    //   同じ商品（その時に並ぶホットFFの1品）を 品切れ防止 ON／OFF × 新しい決まり（withdrawMark）／前の決まり（withdrawMark＝withdrawInfo）の4通りで描いて比べる。メモリの中だけ（saveS しない）。
+    {
+      const o81={}, W=A.win;
+      let keep=null;
+      try{
+        const nat=p=>{ let n=0; for(let d=0;d<7;d++)(A.ev('S').catCfg[p.category]||{slots:[]}).slots.forEach(h=>{ n+=W.getProdCntDetail(p.id,d,h).natural; }); return n; };
+        const p3=A.ev('S').PM.filter(p=>p.enabled&&!W.isPackParent(p)&&!W.packParentOf(p)&&!W._wdSoldRecent(p.id)&&!W.withdrawRatio(p.id)).sort((a,b)=>nat(b)-nat(a))[0], P3=p3.id;   // その時に並ぶ商品のうち、自然算出がいちばん多い1品（前の試験で商品が入れかわるため）
+        keep={pid:P3,cost:p3.cost,ns:p3.noStockout,day:A.ev('currentProdDay'),tab:A.ev('currentTab'),mark:W.withdrawMark,gw:W.getWithdraw};
+        const s0=A.ev('JSON.stringify(S)'), pend0=A.store.status().pending;
+        W.getWithdraw=pid=>pid===P3?1e6:keep.gw(pid);   // 見本：この商品だけ撤退客数をとても大きくして、全部のマスを撤退ライン以下にする（判定 withdrawInfo はそのまま）
+        const grab=(flag,oldRule)=>{ p3.noStockout=flag; W.withdrawMark=oldRule?W.withdrawInfo:keep.mark; A.ev('clearAllocCache(); 1');
+          return JSON.parse(A.ev(`(()=>{ const o={cnt:{},day:{},print:{},menu:{}};
+            S.PM.forEach(p=>{ const cfg=S.catCfg[p.category]; if(!cfg)return; for(let d=0;d<7;d++)cfg.slots.forEach(h=>{ const x=getProdCntDetail(p.id,d,h); o.cnt[d+'_'+h+'_'+p.id]=[x.total,x.natural,x.forced,getInvestExtra(p.id,d,h)]; }); });
+            for(let d=0;d<7;d++){ renderProdDayContent(d); o.day[d]=document.getElementById('prod-day-content').innerHTML;
+              currentProdDay=d; const d0=doPrint; let body=null; doPrint=function(h){ body=h; }; try{ printMakePlan(); }finally{ doPrint=d0; } o.print[d]=body||''; }
+            Object.keys(o.cnt).forEach(k=>{ const c=o.cnt[k]; if(c[0]+c[3]<=0)return; const [d,h,pid]=k.split('_'); openCellMenu(pid,+d,+h); const m=document.getElementById('cellMenuModal'); o.menu[k]=m?m.innerHTML:''; closeCellMenu(); });
+            return JSON.stringify(o); })()`)); };
+        const G1=grab(true,false), G0=grab(true,true), F1=grab(false,false), F0=grab(false,true);
+        W.getWithdraw=keep.gw; if(keep.ns===undefined)delete p3.noStockout; else p3.noStockout=keep.ns; W.withdrawMark=keep.mark; A.ev('clearAllocCache(); 1');
+        const BADGE=/<span title="[^"]*" style="[^"]*">⤵撤退<\/span>/g, PWD=/ <span class="pwd">⤵撤退<\/span>/g, MENU=/<br><span style="color:#6b21a8;font-weight:700">⤵ [^<]*<\/span>/g, TIP=/撤退客数：[^\n]*\n/g;
+        const p3Cells=g=>{ let n=0; for(let d=0;d<7;d++){ const dv=document.createElement('div'); dv.innerHTML=g.day[d]; [].forEach.call(dv.querySelectorAll('td.check-cell'),td=>{ const bt=td.querySelector('button[onclick^="openCellMenu(\''+P3+'\'"]'); if(bt&&/⤵撤退/.test(td.innerHTML))n++; }); } return n; };
+        const p3Print=g=>{ let n=0; for(let d=0;d<7;d++){ const dv=document.createElement('div'); dv.innerHTML=g.print[d]; [].forEach.call(dv.querySelectorAll('td.pname'),td=>{ if(td.textContent.indexOf(p3.name)===0&&/⤵撤退/.test(td.innerHTML))n++; }); } return n; };
+        const p3Menu=g=>Object.keys(g.menu).filter(k=>k.endsWith('_'+P3)&&g.menu[k].indexOf('font-weight:700">⤵ ')>=0).length;
+        const allB=g=>{ let n=0; for(let d=0;d<7;d++)n+=(g.day[d].match(BADGE)||[]).length; return n; };
+        const strip=g=>J({day:Object.keys(g.day).map(d=>g.day[d].replace(BADGE,'').replace(TIP,'')),print:Object.keys(g.print).map(d=>g.print[d].replace(PWD,'')),menu:Object.keys(g.menu).map(k=>k+g.menu[k].replace(MENU,''))});
+        o81.n={G0:[p3Cells(G0),p3Print(G0),p3Menu(G0),allB(G0)],G1:[p3Cells(G1),p3Print(G1),p3Menu(G1),allB(G1)],F0:[p3Cells(F0),p3Print(F0),p3Menu(F0),allB(F0)],F1:[p3Cells(F1),p3Print(F1),p3Menu(F1),allB(F1)]};
+        o81.cnt=[J(G1.cnt)===J(G0.cnt),J(F1.cnt)===J(F0.cnt),Object.keys(G1.cnt).length];
+        o81.shape=[strip(G1)===strip(G0),J(F1)===J(F0)];
+        o81.tip=(Object.values(G1.day).join('').match(/撤退ライン以下（品切れ防止ONのため印なし）/g)||[]).length;
+        o81.save={S:A.ev('JSON.stringify(S)')===s0,pend:A.store.status().pending-pend0};
+      }catch(e){ o81.err=String(e&&e.stack||e); }
+      try{ if(keep){ const p3=A.ev('S').PM.find(p=>p.id===keep.pid); W.getWithdraw=keep.gw; if(keep.ns===undefined)delete p3.noStockout; else p3.noStockout=keep.ns; W.withdrawMark=keep.mark; A.ev(`clearAllocCache(); currentProdDay=${keep.day}; showTab(${keep.tab}); 1`); } }catch(e){ o81.err2=String(e&&e.stack||e); }
+      await sync();
+      const n=o81.n||{}, z=a=>a&&a[0]===0&&a[1]===0&&a[2]===0, pos=a=>a&&a[0]>0&&a[1]>0&&a[2]>0;
+      const ok=!o81.err&&!o81.err2&&pos(n.G0)&&z(n.G1)&&pos(n.F1)&&J(n.F1)===J(n.F0)&&n.G1[3]===n.G0[3]-n.G0[0]&&(o81.cnt||[]).slice(0,2).every(Boolean)&&(o81.cnt||[])[2]>0&&(o81.shape||[]).every(Boolean)&&o81.tip>0&&o81.save&&o81.save.S&&o81.save.pend===0;
+      check('81','【撤退の印と品切れ防止】品切れ防止ONの商品は、作成表のマス・作成の印刷・マスの記録メニューに撤退の印を出さない（前の決まりでは出ていた）／OFFの商品は前と1字も同じ／'+
+        '作成数（全商品×曜日×時間帯）は前の決まりと全部同じ・印を抜いた画面と印刷は1字も同じ・吹き出しに「品切れ防止ONのため印なし」・保存しない',
+        ok, o81.err||o81.err2||`商品の印［マス・印刷・メニュー・全部の札］ ${J(n)}／作成数 ${J(o81.cnt)}／形 ${J(o81.shape)}／吹き出し ${o81.tip}／保存 ${J(o81.save)}`);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 最低陳列数を画面から隠す（2026-10-22 店長「最低陳列の機能いる？」→「おすすめで」）。欄（詳細設定の🗄️陳列）と印（マスの右下）を出さない。
+    //   保存されている p.minDisplay は消さない・書きかえない。作成数は変わらない。1つの切りかえ（SHOW_MIN_DISPLAY）で戻せる。
+    {
+      const o82={}, W=A.win;
+      let keep=null;
+      try{
+        const nat=p=>{ let n=0; for(let d=0;d<7;d++)(A.ev('S').catCfg[p.category]||{slots:[]}).slots.forEach(h=>{ n+=W.getProdCntDetail(p.id,d,h).total; }); return n; };
+        const p=A.ev('S').PM.filter(x=>x.enabled&&!W.isPackParent(x)).sort((a,b)=>nat(b)-nat(a))[0], P=p.id;
+        keep={pid:P,md:p.minDisplay,show:W.SHOW_MIN_DISPLAY,ex:A.ev(`_expandedCards.has(${J(P)})`),adv:A.ev(`_advOpen.has(${J(P+':adv')})`),tab:A.ev('currentTab'),day:A.ev('currentProdDay')};
+        A.ev(`(()=>{ const p=S.PM.find(x=>x.id===${J(P)}); p.minDisplay=99; saveS(); })()`); await sync();   // 値を入れて保存（2台に届く）
+        A.ev(`_expandedCards.add(${J(P)}); _advOpen.add(${J(P+':adv')}); 1`);
+        const grab=()=>JSON.parse(A.ev(`(()=>{ const o={cnt:{},day:'',card:''}; const p=S.PM.find(x=>x.id===${J(P)});
+          S.PM.forEach(q=>{ const cfg=S.catCfg[q.category]; if(!cfg)return; for(let d=0;d<7;d++)cfg.slots.forEach(h=>{ const x=getProdCntDetail(q.id,d,h); o.cnt[d+'_'+h+'_'+q.id]=[x.total,x.natural,x.forced,getInvestExtra(q.id,d,h)]; }); });
+          for(let d=0;d<7;d++){ renderProdDayContent(d); o.day+=document.getElementById('prod-day-content').innerHTML; }
+          o.card=renderProductCard(p); return JSON.stringify(o); })()`));
+        const off=grab(); W.SHOW_MIN_DISPLAY=true; const on=grab(); W.SHOW_MIN_DISPLAY=keep.show;
+        const MDB=/<span title="最低陳列数 \d+ 未満[^"]*" style="[^"]*">[^<]*<\/span>/g, LIFE=/<div style="grid-column:span 2;background:#ecfeff[\s\S]*?個<\/label>\s*<\/div><\/div>/g;
+        o82.off={badge:(off.day.match(MDB)||[]).length,field:/最低陳列数|minDisplay/.test(off.card)};
+        o82.on={badge:(on.day.match(MDB)||[]).length,field:/最低陳列数 <input/.test(on.card)};
+        o82.same={cnt:J(off.cnt)===J(on.cnt)&&Object.keys(off.cnt).length>0,day:on.day.replace(MDB,'')===off.day,card:on.card.replace(LIFE,'')===off.card};
+        // ほかの欄を変えて保存しても、値は残る（2台とも）
+        setP(A,P,'cost',(p.cost||100)+1); await sync();
+        o82.kept={A:prod(A,P).minDisplay,B:prod(B,P).minDisplay,same:same()};
+        A.ev(`(()=>{ const p=S.PM.find(x=>x.id===${J(P)}); p.cost=p.cost-1; ${keep.md===undefined?'delete p.minDisplay':'p.minDisplay='+J(keep.md)}; saveS(); })()`); await sync();
+        o82.back={md:prod(B,P).minDisplay===keep.md||(prod(B,P).minDisplay==null&&keep.md==null),same:same()};
+      }catch(e){ o82.err=String(e&&e.stack||e); }
+      try{ if(keep){ W.SHOW_MIN_DISPLAY=keep.show; if(!keep.ex)A.ev(`_expandedCards.delete(${J(keep.pid)}); 1`); if(!keep.adv)A.ev(`_advOpen.delete(${J(keep.pid+':adv')}); 1`); A.ev(`currentProdDay=${keep.day}; showTab(${keep.tab}); 1`); } }catch(e){ o82.err2=String(e&&e.stack||e); }
+      await sync();
+      const ok=!o82.err&&!o82.err2&&o82.off.badge===0&&!o82.off.field&&o82.on.badge>0&&o82.on.field&&o82.same.cnt&&o82.same.day&&o82.same.card&&o82.kept.A===99&&o82.kept.B===99&&o82.kept.same&&o82.back.md&&o82.back.same;
+      check('82','【最低陳列数を隠す】最低陳列数が入った商品でも、商品設定の欄（🗄️陳列）と作成表の印が出ない（切りかえを戻すと出る＝試験が空振りしていない）／'+
+        '作成数（全商品×曜日×時間帯）は前後同じ・作成表と商品カードは欄と印を抜いた形と1字も同じ／ほかの欄を変えて保存しても値は2台に残る',
+        ok, o82.err||o82.err2||`隠す ${J(o82.off)}／出す ${J(o82.on)}／同じ ${J(o82.same)}／値 ${J(o82.kept)}／戻し ${J(o82.back)}`);
+    }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;

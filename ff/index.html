@@ -4464,10 +4464,14 @@ function prodOffDayText(p,dayIdx){
   if(s==='ended')return t('make.dateEnded').replace('{0}',_mdwOf(q.endDate));
   return '';
 }
+// SHOW_MIN_DISPLAY: 最低陳列数の欄（詳細設定の「🗄️ 陳列」）と印（マスの右下）を出すか（2026-10-22 店長「最低陳列の機能いる？」→「おすすめで」＝隠す）。
+//   保存されている p.minDisplay は消さない・書きかえない（読み書きと作成数の計算は前のまま）。戻す時は true。
+var SHOW_MIN_DISPLAY=false;
 // 最低陳列数の印（マスの右下。数は変えない）
-function minDisplayBadge(p,cnt){ const m=Math.round(Number(p&&p.minDisplay)||0); if(!m||cnt<=0||cnt>=m)return ''; return `<span title="最低陳列数 ${m} 未満（いまは印だけ。数は変えていません）" style="position:absolute;right:2px;bottom:2px;z-index:1;font-size:9px;font-weight:800;color:#0e7490;background:#ecfeff;border:1px solid #67e8f9;border-radius:6px;padding:0 3px;white-space:nowrap;line-height:1.4">${tf('mk.minDisp',m)}</span>`; }
+function minDisplayBadge(p,cnt){ if(!SHOW_MIN_DISPLAY)return ''; const m=Math.round(Number(p&&p.minDisplay)||0); if(!m||cnt<=0||cnt>=m)return ''; return `<span title="最低陳列数 ${m} 未満（いまは印だけ。数は変えていません）" style="position:absolute;right:2px;bottom:2px;z-index:1;font-size:9px;font-weight:800;color:#0e7490;background:#ecfeff;border:1px solid #67e8f9;border-radius:6px;padding:0 3px;white-space:nowrap;line-height:1.4">${tf('mk.minDisp',m)}</span>`; }
 // 詳細設定の中：最低陳列数だけ（販売期間はカードのすぐ見える所 periodSettingHtml へ移した。2026-10-09）
 function lifeSettingHtml(p){
+  if(!SHOW_MIN_DISPLAY)return '';
   return `<div style="grid-column:span 2;background:#ecfeff;border:1px solid #a5f3fc;border-radius:6px;padding:8px 10px">
     <div style="font-size:11px;color:#0e7490;font-weight:700;margin-bottom:6px">🗄️ 陳列 <span class="info" title="最低陳列数：マスの数がこれより少ない時に印（いまは印だけ）">ℹ️</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:12px">
@@ -4576,6 +4580,10 @@ function withdrawInfo(pid,dayIdx,slotH){
   out.below=sc<wl&&!out.sold;
   return out;
 }
+// 作成表（画面・マスの記録メニュー・印刷）に出す撤退の印（2026-10-22 店長「FFの撤退は品切れ防止時は出さない」）
+//   品切れ防止がONの商品は、作る時間帯のマスに撤退の印を出さない（below=false・guard=true）。作成数は変えない（印だけ）。
+//   ランキングの「撤退ライン以下の割合」（withdrawRatio）は客数の事実なので、今までどおり withdrawInfo のまま。
+function withdrawMark(pid,dayIdx,slotH){ const w=withdrawInfo(pid,dayIdx,slotH); const p=getP(pid); if(w.below&&p&&p.noStockout){ w.below=false; w.guard=true; } return w; }
 function withdrawText(w){ return tf('mk.wdText',Math.round(w.sc),Math.round(w.wl)); }
 // マスの左下の小さな印（調整の印＝左上、サーマル＝右上と重ねない）
 function withdrawBadge(w,abs){ if(!w||!w.below)return ''; return `<span title="${withdrawText(w)}" style="${abs?'position:absolute;left:2px;bottom:2px;z-index:1;':''}font-size:9px;font-weight:800;color:#6b21a8;background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:0 3px;white-space:nowrap;line-height:1.4">${t('mk.wdBadge')}</span>`; }
@@ -5140,7 +5148,7 @@ function openCellMenu(pid,dayIdx,slotH){
   const plan=getProdCnt(pid,dayIdx,slotH)+getInvestExtra(pid,dayIdx,slotH);
   const li=getLearnInfo(pid,dayIdx,slotH);
   const k=getSlotCoef(p.category,slotH);
-  const wd=withdrawInfo(pid,dayIdx,slotH);
+  const wd=withdrawMark(pid,dayIdx,slotH);
   const isSkip=false;   // 撤退ラインは印だけ（2026-10-06 店長の決定 B）。数は減らさない
   const row=(act,icon,label,desc,on,onColor)=>`<button type="button" data-act="${act}" onclick="cellMenuAct('${act}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;min-height:64px;border-radius:12px;cursor:pointer;font-family:inherit;border:2px solid ${on?onColor:'#e2e8f0'};background:${on?onColor+'1a':'#fff'}">
       <span style="font-size:26px;flex-shrink:0;width:34px;text-align:center;color:${onColor}">${icon}</span>
@@ -8502,7 +8510,7 @@ function printMakePlan(){
         </div>
         <table class="ptbl">
           <thead><tr><th class="pname">商品名</th><th class="pcnt">作成数</th><th class="pchk">作成</th></tr></thead>
-          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}${(()=>{ const g=gaibuPct(cat,di,slotH); return g?` <span class="pgb">調整 ${_gbFmt(g)}</span>`:''; })()}${SHOW_NO_TAGS&&hasThermal(o.p)&&(o.p.thermalNo||'').trim()?` <span class="pth">No.${escapeHtmlP(o.p.thermalNo)}</span>`:''}${withdrawInfo(o.p.id,di,slotH).below?` <span class="pwd">⤵撤退</span>`:''}${prodDateState(o.p,dt)==='ended'?' <span class="pwd" style="color:#991b1b;border-color:#fca5a5">終売</span>':prodDateState(o.p,dt)==='notyet'?' <span class="pwd" style="color:#374151;border-color:#d1d5db">未投入</span>':''}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
+          <tbody>${rows.map(o=>`<tr><td class="pname">${escapeHtmlP(o.p.name)}${(()=>{ const g=gaibuPct(cat,di,slotH); return g?` <span class="pgb">調整 ${_gbFmt(g)}</span>`:''; })()}${SHOW_NO_TAGS&&hasThermal(o.p)&&(o.p.thermalNo||'').trim()?` <span class="pth">No.${escapeHtmlP(o.p.thermalNo)}</span>`:''}${withdrawMark(o.p.id,di,slotH).below?` <span class="pwd">⤵撤退</span>`:''}${prodDateState(o.p,dt)==='ended'?' <span class="pwd" style="color:#991b1b;border-color:#fca5a5">終売</span>':prodDateState(o.p,dt)==='notyet'?' <span class="pwd" style="color:#374151;border-color:#d1d5db">未投入</span>':''}</td><td class="pcnt">${o.cnt}</td><td class="pchk">□</td></tr>`).join('')}</tbody>
         </table>
       </div>`;
     });
@@ -9501,7 +9509,7 @@ function renderProdDayContent(dayIdx){
         const wl=getWithdraw(p.id);
         const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲
         const sc=range?getSlotCust(dayIdx,range[0],range[1]):0;
-        const wd=withdrawInfo(p.id,dayIdx,slotH);
+        const wd=withdrawMark(p.id,dayIdx,slotH);
         const isSkip=false;   // 撤退ラインは印だけ（2026-10-06 店長の決定 B）。数は減らさない・「—」にしない
         const mdTime=getMarkdownTime(cat,slotH);
         const baseJi=S.ji[p.id]?.teika||0;
@@ -9521,7 +9529,7 @@ function renderProdDayContent(dayIdx){
           (slotK!==1?`時間帯購入率の係数：×${slotK.toFixed(2)}\n`:'')+
           (learnAdj!==1?`学習（完売/余り）：×${learnAdj.toFixed(2)}\n`:'')+
           (gaibuPct(cat,dayIdx,slotH)?`天気・イベント調整：${_gbFmt(gaibuPct(cat,dayIdx,slotH))}\n`:'')+
-          `撤退客数：${Math.round(wl)}人（この範囲の客数${Math.round(sc)}人${wd.below?' → 撤退ライン以下（数は減らしていません）':wd.sold?' / 直近4週に完売あり':wl>0?' / OK':''}）\n`+
+          `撤退客数：${Math.round(wl)}人（この範囲の客数${Math.round(sc)}人${wd.below?' → 撤退ライン以下（数は減らしていません）':wd.guard?' → 撤退ライン以下（品切れ防止ONのため印なし）':wd.sold?' / 直近4週に完売あり':wl>0?' / OK':''}）\n`+
           (discOn?`値引開始：${fmtHour(mdTime)}`:`値引：なし（この曜日は値引OFF）`);
         // 完売イベント（追加作成履歴）
         const soEvents=getSoldOutEvents(p.id,dayIdx,slotH);
