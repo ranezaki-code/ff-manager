@@ -2023,6 +2023,90 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         '作成数（全商品×曜日×時間帯）は前後同じ・作成表と商品カードは欄と印を抜いた形と1字も同じ／ほかの欄を変えて保存しても値は2台に残る',
         ok, o82.err||o82.err2||`隠す ${J(o82.off)}／出す ${J(o82.on)}／同じ ${J(o82.same)}／値 ${J(o82.kept)}／戻し ${J(o82.back)}`);
     }
+    // 作成時間帯・許容時間を変えた時（2026-10-22 店長「FFのカテゴリ別で時間設定を変えた時、既にチェックしていた表までは変えないで欲しくて、その時間以降のを変更されるようにしてほしい」）の試験 83。
+    //   時計は固定（今日＝10/06 火＝曜日0）。12:30 に ホットFF の 10時→11時・14時→15時 に変える。もう始まっていた 6時・10時の枠（チェック済み）は前の設定のまま、14時より後は新しい設定。
+    //   見るもの：記録（hist）の形・その日の時刻の列・数・チェック・投資の1日の数・値引の時刻・次の日は全部新しい設定・端末Bにも届く・同じ分の2回目と時計が戻った時は足さない・前の週は前の設定・後始末。
+    {
+      const o83={}, W=A.win, conf0=W.confirm;
+      const T=(ymd,h)=>{ W._dateTodayOverride=ymd; if(h==null)delete W._soNowOverride; else W._soNowOverride=h; };
+      const keep=JSON.parse(A.ev('JSON.stringify({cfg:S.catCfg,checks:Object.keys(S.checks),day:currentProdDay,mode:_prodSortMode,tab:currentTab,inv:S.budget.investCounts||{},invD:S.budget.investDays||{},pm:S.PM,ji:S.ji,wji:S.weeks[S.activeWeek].ji})'));
+      const cnt=(d,hs)=>JSON.parse(A.ev(`JSON.stringify(${J(hs)}.map(h=>["q1","q2","q3"].map(id=>[getProdCnt(id,${d},h),getInvestExtra(id,${d},h)])))`));
+      // 「hist が無かったら」の数（今の設定だけで計算した数。比べる元）
+      const plain=(d,hs)=>JSON.parse(A.ev(`(()=>{ const H={}; Object.keys(S.catCfg).forEach(c=>{ if(S.catCfg[c].hist){ H[c]=S.catCfg[c].hist; delete S.catCfg[c].hist; } }); clearAllocCache(); try{ return JSON.stringify(${J(hs)}.map(h=>["q1","q2","q3"].map(id=>[getProdCnt(id,${d},h),getInvestExtra(id,${d},h)]))); }finally{ Object.keys(H).forEach(c=>S.catCfg[c].hist=H[c]); clearAllocCache(); } })()`));
+      const dom=d=>JSON.parse(A.ev(`(()=>{ currentProdDay=${d}; _prodSortMode='default'; renderProdDayContent(${d}); const host=document.getElementById('prod-day-content');
+        const ks=[...host.querySelectorAll('input[type=checkbox]')].filter(i=>/^confirmCreate\\(/.test(i.getAttribute('onchange')||'')).map(i=>({k:((i.getAttribute('onchange')||'').split("'")[1])||'',c:i.checked}));
+        _prodSortMode='slot'; renderProdDayContent(${d}); const sv=[...host.querySelectorAll('input[type=checkbox]')].filter(i=>/^confirmCreate\\(/.test(i.getAttribute('onchange')||'')).map(i=>((i.getAttribute('onchange')||'').split("'")[1])||'');
+        _prodSortMode='default'; return JSON.stringify({ks,sv}); })()`));
+      try{
+        W.confirm=()=>false;   // 「作らない」の引き継ぎの質問には「引き継がない」（商品の設定を変えない）
+        A.ev(`(()=>{ const mk=(id,x)=>Object.assign({id,name:"試験83の"+id,category:"ホットFF",cost:100,stdPrice:200,shopPrice:200,disc:25,minCount:1,tags:"",order:900,enabled:true,isNew:false,newDays:0,isInvest:false,timeStart:6,timeEnd:22},x||{}); S.PM.push(mk("q1"),mk("q2"),mk("q3",{isInvest:true})); ["q1","q2","q3"].forEach((id,i)=>{ const j={teika:30-i*8,nebiki:2,haiki:1}; S.ji[id]=Object.assign({},j); S.weeks[S.activeWeek].ji[id]=Object.assign({},j); }); S.budget.investCounts=Object.assign({},S.budget.investCounts,{q3:4}); S.budget.investDays=Object.assign({},S.budget.investDays,{q3:[0,1,2,3,4,5,6]});
+          S.catCfg['ホットFF'].slots=[6,10,14,17]; S.catCfg['ホットFF'].ah=6; delete S.catCfg['ホットFF'].hist; S.catCfg['ホットFF新商品'].slots=[6,10,14,17]; S.catCfg['ホットFF新商品'].ah=6; delete S.catCfg['ホットFF新商品'].hist; showTab(3); saveS(); })()`);
+        await sync();
+        T('2026-10-06',12.5);
+        A.ev('(()=>{ const q=S.PM.find(p=>p.id==="q2"); q.cost=190; clearAllocCache(); })()');
+        const wdJ=`JSON.stringify([6,10].map(h=>["q1","q2","q3"].map(id=>withdrawInfo(id,0,h))))`;
+        o83.wd0=A.ev(wdJ); o83.col0=A.ev('JSON.stringify([6,10,14,17].map(h=>slotSeqColor("ホットFF",h)))');
+        const b0=cnt(0,[6,10,14,17]);
+        A.ev('setCheck("0_6_q1",true); setCheck("0_10_q1",true); setCheck("0_10_q3",true); 1');
+        const b0c=cnt(0,[6,10,14,17]);   // チェックで投資の数が固定された後
+        // 変える（12:30）：10時→11時、14時→15時（2回ずつ押す。同じ分なので記録は1つ）
+        A.ev(`toggleCatSlot('ホットFF',10,false); toggleCatSlot('ホットFF',11,true); toggleCatSlot('ホットFF',14,false); toggleCatSlot('ホットFF',15,true); 1`);
+        await sleep(30);
+        o83.hist=JSON.parse(A.ev('JSON.stringify([S.catCfg["ホットFF"].hist,S.catCfg["ホットFF新商品"].hist,S.catCfg["ホットFF"].slots])'));
+        o83.slotsD=JSON.parse(A.ev('JSON.stringify([_slotsD("ホットFF",0),_slotsD("ホットFF",1),_slotsD("ホットFF",6)])'));
+        o83.a0=cnt(0,[6,10,15,17]); o83.p0=plain(0,[15,17]); o83.a1=cnt(1,[6,11,15,17]); o83.p1=plain(1,[6,11,15,17]);
+        o83.old=[b0c[0],b0c[1]];   // 6時・10時（前の数）
+        o83.gone=cnt(0,[11,14]);   // 11時（もう始まっていた。前の設定に無い）・14時（前の設定のまま、今は無い）＝0
+        o83.inv0=+A.ev('_slotsD("ホットFF",0).reduce((s,h)=>s+getInvestExtra("q3",0,h),0)'); o83.inv1=+A.ev('_slotsD("ホットFF",1).reduce((s,h)=>s+getInvestExtra("q3",1,h),0)');
+        o83.dom0=dom(0); o83.dom1=dom(1);
+        await sync();
+        o83.B=JSON.parse(B.ev(`(()=>{ window._dateTodayOverride='2026-10-06'; window._soNowOverride=12.5; clearAllocCache(); const r=JSON.stringify({d:[_slotsD("ホットFF",0),_slotsD("ホットFF",1)],c:[6,10,15,17].map(h=>["q1","q2","q3"].map(id=>[getProdCnt(id,0,h),getInvestExtra(id,0,h)])),h:S.catCfg["ホットFF"].hist}); delete window._soNowOverride; return r; })()`));
+        // 許容時間を 13:10 に 6→4：前に始まった枠は 6 のまま（値引＝開始+1+許容−2）
+        T('2026-10-06',13+10/60); A.ev(`setCatCfg('ホットFF','ah',4); 1`);
+        o83.ah=JSON.parse(A.ev('JSON.stringify({n:S.catCfg["ホットFF"].hist.length,last:S.catCfg["ホットFF"].hist[1],md:[getMarkdownTime("ホットFF",10,0),getMarkdownTime("ホットFF",15,0),getMarkdownTime("ホットFF",15,1),getMarkdownTime("ホットFF",10)],a0:[6,10,15,17].map(h=>getProdCnt("q1",0,h))})'));
+        // 同じ分の2回目・時計が戻った時は足さない
+        A.ev(`setCatCfg('ホットFF','ah',5); 1`); T('2026-10-06',9); A.ev(`setCatCfg('ホットFF','ah',4); 1`);
+        o83.noAdd=+A.ev('S.catCfg["ホットFF"].hist.length');
+        // 前の週（9/29〜）を見た時：全部の枠が前の設定（10/06 12:30 より前）
+        o83.prevWeek=JSON.parse(A.ev(`(()=>{ const ws=S.weekStart; S.weekStart='2026-09-29'; try{ return JSON.stringify([_slotsD("ホットFF",0),_slotsD("ホットFF",6),_ffEraOf("ホットFF",3,14)]); }finally{ S.weekStart=ws; } })()`));
+        o83.nextWeek=JSON.parse(A.ev(`(()=>{ const ws=S.weekStart; S.weekStart='2026-10-13'; try{ return JSON.stringify([_ffHistDay("ホットFF",0),_slotsD("ホットFF",0)===S.catCfg["ホットFF"].slots]); }finally{ S.weekStart=ws; } })()`));
+        // テスの点検の後：撤退の印（前の設定の枠）・シールの色・発注の表
+        T('2026-10-06',12.5); A.ev('clearAllocCache(); 1');
+        o83.wd1=A.ev(wdJ); o83.q2below=A.ev('withdrawInfo("q2",0,10).below');
+        o83.menu10=A.ev('(()=>{ openCellMenu("q2",0,10); const m=document.getElementById("cellMenuModal"); const r=m?m.innerHTML:""; closeCellMenu(); return /⤵/.test(r); })()');
+        o83.print0=A.ev('(()=>{ currentProdDay=0; const d0=doPrint; let b=""; doPrint=h=>{ b=h; }; try{ printMakePlan(); }finally{ doPrint=d0; } return b.indexOf("試験83のq2")>=0&&/⤵撤退/.test(b); })()');
+        o83.col1=A.ev('JSON.stringify([[6,10,15,17].map(h=>slotSeqColor("ホットFF",h,0)),[6,11,15,17].map(h=>slotSeqColor("ホットFF",h,1)),STICKER_EXTRA])');
+        o83.ord=A.ev('(()=>{ try{ renderOrderTable(); const t=(document.getElementById("order-table-content")||{}).textContent||""; return t.indexOf("試験83のq1")>=0?"ok":"noname"; }catch(e){ return "ERR "+e; } })()');
+        o83.ordWeek=A.ev('JSON.stringify(_ffWeekSlots("ホットFF"))');
+        o83.pend=A.store.status().pending;
+      }catch(e){ o83.err=String(e&&e.stack||e); }
+      // 後始末：設定・チェック・投資・時計・並びを元に戻す
+      try{ W.confirm=conf0; T('2026-10-06',null);
+        A.ev(`(()=>{ const k=${J(keep)}; S.catCfg=k.cfg; Object.keys(S.checks).filter(x=>k.checks.indexOf(x)<0).forEach(x=>{ delete S.checks[x]; _investFixByKey(x); }); S.budget.investCounts=k.inv; S.budget.investDays=k.invD; S.PM=k.pm; S.ji=k.ji; S.weeks[S.activeWeek].ji=k.wji; const w=S.weeks[S.activeWeek]; if(w&&w.investDone){ ["q1","q2","q3"].forEach(id=>delete w.investDone[id]); if(!Object.keys(w.investDone).length)delete w.investDone; } _prodSortMode=k.mode; currentProdDay=k.day; saveS(); showTab(k.tab); })()`);
+      }catch(e){ o83.err2=String(e&&e.stack||e); }
+      await sync();
+      const H=o83.hist||[], h0=(H[0]||[])[0]||{};
+      const okHist=H[0]&&H[0].length===1&&h0.to==='2026-10-06 12:30'&&J(h0.slots)===J([6,10,14,17])&&h0.ah===6&&H[1]&&H[1].length===1&&J(H[1][0].slots)===J([6,10,14,17])&&J(H[2])===J([6,11,15,17]);
+      const okSlots=J(o83.slotsD)===J([[6,10,15,17],[6,11,15,17],[6,11,15,17]]);
+      const okCnt=J(o83.a0&&o83.a0.slice(0,2))===J(o83.old)&&J(o83.a0&&o83.a0.slice(2))===J(o83.p0)&&J(o83.a1)===J(o83.p1)&&J(o83.gone)===J([[[0,0],[0,0],[0,0]],[[0,0],[0,0],[0,0]]]);
+      const okInv=o83.inv0===4&&o83.inv1===4;
+      const d0=o83.dom0||{ks:[],sv:[]}, chk=d0.ks.filter(x=>x.c).map(x=>x.k).sort();
+      const okDom=J(chk)===J(['0_10_q1','0_10_q3','0_6_q1'])&&d0.ks.every(x=>/^0_(6|10|15|17)_/.test(x.k))&&d0.ks.some(x=>/^0_15_/.test(x.k))&&!d0.ks.some(x=>/^0_(11|14)_/.test(x.k))&&d0.sv.length>0&&d0.sv.every(k=>/^0_(6|10|15|17)_/.test(k))&&
+        (o83.dom1||{ks:[]}).ks.every(x=>/^1_(6|11|15|17)_/.test(x.k))&&(o83.dom1||{ks:[]}).ks.some(x=>/^1_11_/.test(x.k));
+      const okB=o83.B&&J(o83.B.d)===J([[6,10,15,17],[6,11,15,17]])&&J(o83.B.c)===J(o83.a0);
+      const okAh=o83.ah&&o83.ah.n===2&&o83.ah.last&&o83.ah.last.to==='2026-10-06 13:10'&&o83.ah.last.ah===6&&J(o83.ah.md)===J([15,18,18,13])&&J(o83.ah.a0)===J((o83.a0||[]).map(r=>r[0][0]));
+      const okNoAdd=o83.noAdd===2, okWeeks=J(o83.prevWeek)===J([[6,10,14,17],[6,10,14,17],0])&&J(o83.nextWeek)===J([false,true]);
+      const C1=JSON.parse(o83.col1||"[[],[],null]"), C0=JSON.parse(o83.col0||"[]");
+      const okWd=!!o83.wd0&&o83.wd0===o83.wd1&&o83.q2below===true&&o83.menu10===true&&o83.print0===true;
+      const okCol=C0.length===4&&J(C1[0].slice(0,2))===J(C0.slice(0,2))&&C1[0].every(c=>c!==C1[2])&&C1[1].every(c=>c!==C1[2])&&J(C1[0].slice(2))===J(C1[1].slice(2));
+      const okOrd=o83.ordWeek===J([6,10,11,15,17])&&o83.ord==="ok";
+      const okBack=!o83.err2&&A.ev('JSON.stringify(S.catCfg)')===J(keep.cfg)&&same()&&A.store.status().pending===0;
+      check('83','【時間設定を変えた時は、その時刻より後から】12:30 に ホットFF を 10時→11時・14時→15時 に変える：記録は「変えた時刻・前の時刻・前の許容時間」を1つ（新商品にも）・'+
+        '撤退の印・シールの色も前の枠はそのまま・その日の列は 6・10（前の設定・チェックはそのまま見える）＋15・17（新しい設定）、11時と14時は出ない・前の数は1つも変わらない・15時と17時と次の日は新しい設定だけの数と同じ・投資は1日4のまま・'+
+        '端末Bにも同じ・13:10 に許容時間を変えると前に始まった枠は前の値引の時刻・同じ分の2回目と時計が戻った時は足さない・前の週は前の設定／次の週は今までどおり・後始末',
+        !o83.err&&okWd&&okCol&&okOrd&&okHist&&okSlots&&okCnt&&okInv&&okDom&&okB&&okAh&&okNoAdd&&okWeeks&&okBack,
+        o83.err||o83.err2||`記録 ${okHist} ${J(H).slice(0,200)}／列 ${okSlots} ${J(o83.slotsD)}／数 ${okCnt} 前${J(o83.old)} 後${J(o83.a0)} 新だけ${J(o83.p0)} 次の日${J(o83.a1)}=${J(o83.p1)} 消${J(o83.gone)}／投資 ${okInv} ${o83.inv0},${o83.inv1}／画面 ${okDom} ${J(chk)} ${J(d0.ks.map(x=>x.k)).slice(0,160)}／B ${okB} ${J(o83.B).slice(0,160)}／許容 ${okAh} ${J(o83.ah)}／足さない ${okNoAdd} ${o83.noAdd}／週 ${okWeeks} ${J(o83.prevWeek)} ${J(o83.nextWeek)}／撤退 ${okWd} ${o83.q2below},${o83.menu10},${o83.print0},${o83.wd0===o83.wd1} ${o83.wd0} ${o83.wd1}／色 ${okCol} ${o83.col0} ${o83.col1}／発注 ${okOrd} ${o83.ordWeek} ${o83.ord}／後始末 ${okBack}`);
+    }
     check('56','最後に、2台の中身が同じ',same()&&A.store.status().pending===0&&B.store.status().pending===0,'未送信 A:'+A.store.status().pending+' B:'+B.store.status().pending);
   }catch(e){ check('—','試験の途中で止まった',false,String(e&&e.stack||e)); }
   const ng=R.filter(r=>!r.ok).length;

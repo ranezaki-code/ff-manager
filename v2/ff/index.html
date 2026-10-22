@@ -3930,12 +3930,13 @@ function finishSetup(){
   S.storeName=document.getElementById('setup-store-name').value||'店舗';
   // 新商品カテゴリが本体と同じ設定だった場合は、本体の変更に付いていく（新商品だけ古い時間のまま取り残さない）。
   // 設定画面で新商品カテゴリ自体を変えた時は「別の時間にする」と明示したものとして扱う
-  const _wasSame={}, _oldNew={};
+  const _wasSame={}, _oldNew={}, _ffB=_ffCfgSnap();
   CATS.filter(c=>!c.endsWith('新商品')).forEach(c=>{ const n=S.catCfg[c+'新商品']; if(!n)return; _wasSame[c]=_newCatSame(c); _oldNew[c]=JSON.stringify([n.ah,n.slots]); });
   CATS.forEach(c=>{S.catOn[c]=setupCatOn[c];S.catCfg[c]={...setupCatCfg[c],slots:[...setupCatCfg[c].slots]};});
   Object.keys(_wasSame).forEach(c=>{ const n=S.catCfg[c+'新商品'], m=S.catCfg[c]; if(!n||!m||!_wasSame[c])return;
     if(JSON.stringify([n.ah,n.slots])===_oldNew[c]){ n.ah=m.ah; n.slots=[...m.slots]; }
     else if(n.ah!==m.ah||JSON.stringify(n.slots)!==JSON.stringify(m.slots)) n.sameAsMain=false; });
+  _ffHistMark(_ffB);
   if(!S.PM||S.PM.length===0) S.PM=DEF_PRODUCTS.map(p=>({...p}));
   localStorage.setItem('ffv6_setup_'+currentStoreId,'1');
   // storeList の name を更新
@@ -4128,6 +4129,92 @@ function getSlotCust(dayIdx,hs,he){
   return sum;
 }
 
+// ---------- 作成時間帯・許容時間を変えた時は「変えた時刻より後に始まる枠」から（2026-10-22 店長「FFのカテゴリ別で時間設定を変えた時、既にチェックしていた表までは変えないで欲しくて、その時間以降のを変更されるようにしてほしい」） ----------
+//   変える前の設定を、カテゴリ設定の中に足していく：S.catCfg[カテゴリ].hist＝[{to:'YYYY-MM-DD HH:MM'（変えた時刻）, slots:[変える前の時刻], ah:変える前の許容時間}]（古い順。足すだけ・30件まで）。
+//   枠（その日の日付＋開始の時刻）が to より前か同じ（＝変えた時にはもう始まっていた）なら、その枠は前の設定のまま：時刻の列・数・値引の時刻。チェックの記録（S.checks）はさわらない。
+//   前の設定の枠の数＝前の設定で週を計算した数（_ffEraTab。設定だけ前に戻し、覚え書き（配り方など）は別の入れ物にして計算する）。to より後の枠は今の設定で今までどおり。
+//   hist が無い・見ている日が全部 to より後なら、今までと同じ計算（早道。_ffHistDay が false）。
+//   古い版の端末は hist を読まない（今までどおり全部が新しい設定）。カテゴリ設定はまるごと保存・同期されるので、古い版で時刻を変えても hist は消えない（足されないだけ）。
+var FF_HIST_MAX=30, _ffSandbox=0, _ffEraMemo=new Map(), _ffEraQueued=false;
+function clearFfEraMemo(){ _ffEraMemo.clear(); }
+function _ffHistOk(e){ return !!e&&typeof e.to==='string'&&/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(e.to)&&Array.isArray(e.slots)&&e.slots.every(h=>Number.isInteger(h)&&h>=0&&h<24); }
+function _ffHist(cat){ const c=S.catCfg&&S.catCfg[cat], H=c&&c.hist; return (Array.isArray(H)&&H.length)?H:null; }
+function _ffDayYmd(d){ try{ const ws=String(S.weekStart||''); if(!/^\d{4}-\d{2}-\d{2}$/.test(ws)||_ymdOf(parseLocalDate(ws))!==ws)return null; const y=_addDaysYmd(ws,Number(d)); return /^\d{4}-\d{2}-\d{2}$/.test(y)?y:null; }catch(_){ return null; } }
+function _ffCellTs(d,h){ const y=_ffDayYmd(d); return (y&&Number.isInteger(Number(h)))?y+' '+String(h).padStart(2,'0')+':00':null; }
+// この日に「前の設定の枠」があり得るか（無ければ今までと同じ計算）
+function _ffHistDay(cat,d){ if(_ffSandbox)return false; const H=_ffHist(cat); if(!H)return false; const y=_ffDayYmd(d); if(!y)return false; const t0=y+' 00:00'; return H.some(e=>_ffHistOk(e)&&e.to>=t0); }
+// 枠の設定：-1＝今の設定／0以上＝hist の何番目（その枠が始まった時に効いていた設定）
+function _ffEraOf(cat,d,h){ if(_ffSandbox)return -1; const H=_ffHist(cat); if(!H)return -1; const ts=_ffCellTs(d,h); if(!ts)return -1; for(let i=0;i<H.length;i++){ const e=H[i]; if(_ffHistOk(e)&&ts<=e.to)return i; } return -1; }
+function _ffEraAh(cat,i){ const c=S.catCfg[cat]||{}; if(i<0)return c.ah; const a=Number(_ffHist(cat)[i].ah); return isFinite(a)?a:c.ah; }
+// その日の作成時間帯（前の設定の枠＋今の設定の枠。昇順）。前の設定の枠が無い日は今の設定の配列そのもの
+function _slotsD(cat,d){
+  const c=S.catCfg[cat]; if(!c||!Array.isArray(c.slots))return [];
+  if(!_ffHistDay(cat,d))return c.slots;
+  const s=new Set(); c.slots.forEach(h=>{ if(_ffEraOf(cat,d,h)<0)s.add(h); });
+  _ffHist(cat).forEach((e,i)=>{ if(_ffHistOk(e))e.slots.forEach(h=>{ if(_ffEraOf(cat,d,h)===i)s.add(h); }); });
+  return [...s].sort((a,b)=>a-b);
+}
+// 週の7日に出る時刻の全部（発注の表の時刻ごとの行）。前の設定の枠が無い週は今の設定の配列そのもの
+function _ffWeekSlots(cat){ const c=S.catCfg[cat]; if(!c||!Array.isArray(c.slots))return []; let any=false; for(let d=0;d<7;d++)if(_ffHistDay(cat,d)){ any=true; break; } if(!any)return c.slots; const s=new Set(); for(let d=0;d<7;d++)_slotsD(cat,d).forEach(h=>s.add(h)); return [...s].sort((a,b)=>a-b); }
+function _ffSlotOn(cat,d,h){ const c=S.catCfg[cat]; if(!c||!Array.isArray(c.slots))return false; return _ffHistDay(cat,d)?_slotsD(cat,d).includes(h):c.slots.includes(h); }
+function _ffSlotsCur(cat,d){ const c=S.catCfg[cat]; if(!_ffHistDay(cat,d))return c.slots; return c.slots.filter(h=>_ffEraOf(cat,d,h)<0); }   // 今の設定の枠だけ
+function _ffDayCfg(cat,d){ const c=S.catCfg[cat]; if(!c||!_ffHistDay(cat,d))return c; return Object.assign({},c,{slots:_slotsD(cat,d)}); }   // 画面の列用（保存しない）
+function _ffAh(cat,d,h){ const c=S.catCfg[cat]||{}; if(!_ffHistDay(cat,d))return c.ah; return _ffEraAh(cat,_ffEraOf(cat,d,h)); }
+// 商品ごとの範囲を「その日の作成時間帯」で（次の時間帯まで）。前の設定の枠が無い日は今までと同じ
+function _ffProdRangeD(p,slotH,d){
+  const cat=p&&p.category; if(!cat||!_ffHistDay(cat,d))return getProdSlotRange(p,slotH);
+  const real=S.catCfg[cat]; S.catCfg[cat]=Object.assign({},real,{slots:_slotsD(cat,d)});
+  try{ return getProdSlotRange(p,slotH); }finally{ S.catCfg[cat]=real; }
+}
+// ある時刻に効いていた設定（hist の写し。今の設定なら今の物）
+function _ffCfgAt(c,ts){ const H=_ffHist(c), cur=S.catCfg[c]; if(H)for(let i=0;i<H.length;i++){ const e=H[i]; if(_ffHistOk(e)&&ts<=e.to){ const a=Number(e.ah); return Object.assign({},cur,{slots:e.slots.slice(),ah:isFinite(a)?a:cur.ah}); } } return cur; }
+// 前の設定 i の、この週の全部の枠の数（{'曜日|時刻|商品ID':{b:{total,natural,forced},x:投資}}）。同じ処理の間だけ覚える
+function _ffEraTab(cat,i){
+  const key=String(S.activeWeek)+'|'+String(S.weekStart)+'|'+cat+'|'+i;
+  if(_ffEraMemo.has(key))return _ffEraMemo.get(key);
+  const ts=_ffHist(cat)[i].to, tab={}, real={}, at={};
+  Object.keys(S.catCfg).forEach(c=>{ if(_ffHist(c)){ const x=_ffCfgAt(c,ts); if(x!==S.catCfg[c])at[c]=x; } });   // 全部のカテゴリを、その時刻の設定に（新商品と本体の客数のつながりもそろう）
+  const keep=[_allocCache,_skuCache,_riceCache,_custFillCache,_soMeasMemo,_zeroMemo,_wdSoldCache];
+  _ffSandbox++;
+  try{
+    Object.keys(at).forEach(c=>{ real[c]=S.catCfg[c]; S.catCfg[c]=at[c]; });
+    _allocCache=new Map(); _skuCache=new Map(); _riceCache=new Map(); _custFillCache=null; _soMeasMemo=null; _zeroMemo=null; _wdSoldCache=new Map();
+    const sl=(S.catCfg[cat]&&S.catCfg[cat].slots)||[];
+    (S.PM||[]).forEach(p=>{ if(!p||p.category!==cat)return; const wl=getWithdraw(p.id), so=_wdSoldRecent(p.id);   // 撤退の印も前の設定の撤退客数で
+      for(let d=0;d<7;d++)sl.forEach(h=>{ tab[d+'|'+h+'|'+p.id]={b:_prodCntBase0(p.id,d,h),x:getInvestExtra0(p.id,d,h),wl,so}; }); });
+  }finally{
+    Object.keys(real).forEach(c=>{ S.catCfg[c]=real[c]; });
+    [_allocCache,_skuCache,_riceCache,_custFillCache,_soMeasMemo,_zeroMemo,_wdSoldCache]=keep;
+    _ffSandbox--;
+  }
+  _ffEraMemo.set(key,tab);
+  if(!_ffEraQueued){ _ffEraQueued=true; Promise.resolve().then(()=>{ _ffEraQueued=false; _ffEraMemo.clear(); }); }
+  return tab;
+}
+// 前の設定の枠なら、その枠の数（{b,x}）。今の設定の枠なら null（今までどおり計算する）
+function _ffEraCell(pid,d,h){
+  const p=getP(pid), cat=p&&p.category; if(!cat||!_ffHistDay(cat,d))return null;
+  const e=_ffEraOf(cat,d,h); if(e<0)return null;
+  if(!_ffHist(cat)[e].slots.includes(h))return {b:{total:0,natural:0,forced:0},x:0};   // 前の設定には無い時刻（変えた後に足した時刻の、もう始まっていた枠）
+  return _ffEraTab(cat,e)[d+'|'+h+'|'+pid]||{b:{total:0,natural:0,forced:0},x:0};
+}
+// この日の、前の設定の枠に置いた投資の数（今の設定の枠への配り残しを出すため）
+function _ffInvOld(p,d){ if(!p||!_ffHistDay(p.category,d))return 0; let s=0; _slotsD(p.category,d).forEach(h=>{ if(_ffEraOf(p.category,d,h)>=0){ const e=_ffEraCell(p.id,d,h); if(e)s+=e.x; } }); return s; }
+// 設定を変える前に今の設定を控え、変えた後に、変わったカテゴリへ「変える前の設定」を足す
+function _ffNowTs(){ try{ const y=_todayYmdP(); if(!/^\d{4}-\d{2}-\d{2}$/.test(String(y)))return null; const x=_soNowH(); if(!isFinite(x)||x<0||x>=24)return null; const m=Math.floor(x*60+1e-6); return y+' '+String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }catch(_){ return null; } }
+function _ffCfgSnap(){ const o={}; Object.keys(S.catCfg||{}).forEach(c=>{ const x=S.catCfg[c]; if(x&&Array.isArray(x.slots))o[c]={slots:x.slots.slice(),ah:x.ah}; }); return o; }
+function _ffHistMark(before){
+  const to=_ffNowTs(); if(!to||!before)return;
+  Object.keys(before).forEach(c=>{ const x=S.catCfg[c], b=before[c]; if(!x||!Array.isArray(x.slots))return;
+    if(JSON.stringify(x.slots)===JSON.stringify(b.slots)&&x.ah===b.ah)return;
+    if(!Array.isArray(x.hist))x.hist=[];
+    const H=x.hist, last=H.length?H[H.length-1]:null;
+    if(last&&_ffHistOk(last)&&last.to>=to)return;   // 同じ分の2回目（10時を外して11時を足す 等）：もう始まっていた枠は1回目の前の設定のまま。時計が戻った時も足さない
+    H.push({to,slots:b.slots.slice(),ah:b.ah});
+    while(H.length>FF_HIST_MAX)H.shift();
+  });
+}
+
 function getCatSlotRange(cat,slotH){
   const cfg=S.catCfg[cat];if(!cfg)return null;
   const idx=cfg.slots.indexOf(slotH);if(idx<0)return null;
@@ -4176,7 +4263,7 @@ function getProdWeekTotalWeighted(p,dw){
   return s;
 }
 // 画面の説明用：「10〜16時のぶん」
-function fmtProdRange(p,slotH){ const r=getProdSlotRange(p,slotH); return r?`${fmtHour(r[0])}〜${fmtHour(r[1])}`:''; }
+function fmtProdRange(p,slotH,dayIdx){ const r=dayIdx==null?getProdSlotRange(p,slotH):_ffProdRangeD(p,slotH,dayIdx); return r?`${fmtHour(r[0])}〜${fmtHour(r[1])}`:''; }
 
 // ---------- カテゴリが「売っている時間」の客数（FF計画シートの「算出範囲」に相当） ----------
 // 作成時間帯ごとのカバー範囲（getCatSlotRange）の合計＝そのカテゴリの商品が実際に売られている時間の客数。
@@ -4225,8 +4312,9 @@ function getWeekTargetBase(pid){
 // 作成開始から売場陳列完了までの所要時間（時間）
 const PREP_HOURS=1;
 
-function getMarkdownTime(cat,slotH){
+function getMarkdownTime(cat,slotH,dayIdx){
   const cfg=S.catCfg[cat];if(!cfg)return null;
+  if(dayIdx!=null&&_ffHistDay(cat,dayIdx))return slotH+PREP_HOURS+_ffAh(cat,dayIdx,slotH)-2;   // 前の設定の枠は前の許容時間で（2026-10-22）
   // 売場陳列完了(=slotH+PREP_HOURS)から販売許容時間(cfg.ah)経過で廃棄
   // 値引きは廃棄の2時間前 → slotH + PREP_HOURS + cfg.ah - 2
   return slotH+PREP_HOURS+cfg.ah-2;
@@ -4278,7 +4366,7 @@ function roundCnt(v){
 //   計算の結果は同じ処理の間だけ覚える（saveS と、処理が終わった直後に消す）。
 let _allocCache=new Map(), _allocClearQueued=false;
 let _skuCache=new Map(), _skuClearQueued=false;   // SKU の数の覚え書き（skuActual／skuLineup。同じ処理の間だけ）
-function clearAllocCache(){ _allocCache.clear(); _skuCache.clear(); _soMeasMemo=null; }
+function clearAllocCache(){ _allocCache.clear(); _skuCache.clear(); _soMeasMemo=null; if(typeof clearFfEraMemo==='function')clearFfEraMemo(); }
 function getProdWeekAlloc(pid){
   const hit=_allocCache.get(pid); if(hit)return hit;
   const a={};
@@ -4577,10 +4665,10 @@ function _wdSoldRecent(pid){
 function withdrawInfo(pid,dayIdx,slotH){
   const p=getP(pid); const out={below:false,wl:0,sc:0,sold:false};
   if(!p||!p.enabled||!S.catOn[p.category])return out;
-  const cfg=S.catCfg[p.category]; if(!cfg||!cfg.slots.includes(slotH)||!getSlotMake(p,slotH))return out;
-  const wl=getWithdraw(pid); if(!(wl>0))return out;
-  const r=getProdSlotRange(p,slotH); const sc=r?getSlotCust(dayIdx,r[0],r[1]):0;
-  out.wl=wl; out.sc=sc; out.sold=_wdSoldRecent(pid);
+  const cfg=S.catCfg[p.category]; if(!cfg||!_ffSlotOn(p.category,dayIdx,slotH)||!getSlotMake(p,slotH))return out;   // 前の設定の枠（今は無い時刻）でも印を出す（2026-10-22）
+  const _fe=_ffEraCell(pid,dayIdx,slotH), wl=(_fe&&_fe.wl!=null)?_fe.wl:getWithdraw(pid); if(!(wl>0))return out;   // 前の設定の枠は、前の設定の撤退客数で
+  const r=_ffProdRangeD(p,slotH,dayIdx); const sc=r?getSlotCust(dayIdx,r[0],r[1]):0;
+  out.wl=wl; out.sc=sc; out.sold=(_fe&&_fe.so!=null)?_fe.so:_wdSoldRecent(pid);
   out.below=sc<wl&&!out.sold;
   return out;
 }
@@ -4629,7 +4717,7 @@ function riceAdjMap(dayIdx,slotH){
   const m={}; const rec=riceRec(dayIdx,slotH);
   if(rec){ const step=RICE_LEVELS[rec.level].d, n=Math.max(1,Math.round(Number(rec.amount)||1));
     if(step!==0){
-      const cands=(S.PM||[]).filter(p=>p&&p.enabled&&S.catOn[p.category]&&riceUses(p)&&S.catCfg[p.category]&&S.catCfg[p.category].slots.includes(slotH)&&getSlotMake(p,slotH)&&!isPackParent(p)&&prodOnDay(p,dayIdx))   // 販売期間の外の日の商品には足さない（2026-10-09）
+      const cands=(S.PM||[]).filter(p=>p&&p.enabled&&S.catOn[p.category]&&riceUses(p)&&S.catCfg[p.category]&&_ffSlotOn(p.category,dayIdx,slotH)&&getSlotMake(p,slotH)&&!isPackParent(p)&&prodOnDay(p,dayIdx))   // 販売期間の外の日の商品には足さない（2026-10-09）
         .map(p=>({p,base:_prodCntBase(p.id,dayIdx,slotH).total})).sort((a,b)=>(b.base-a.base)||((a.p.order??0)-(b.p.order??0)));
       let left=n; for(let i=0;cands.length&&i<cands.length*n&&left>0;i++){ const c=cands[i%cands.length]; const cur=c.base+(m[c.p.id]||0); if(step>0){ m[c.p.id]=(m[c.p.id]||0)+1; left--; } else if(cur>0){ m[c.p.id]=(m[c.p.id]||0)-1; left--; } }
     } }
@@ -4654,7 +4742,8 @@ function getProdCntDetail(pid,dayIdx,slotH){
   const b=_prodCntBase(pid,dayIdx,slotH); const r=riceAdj(pid,dayIdx,slotH); if(!r)return b;
   const total=Math.max(0,b.total+r); return {total,natural:b.natural,forced:Math.max(0,total-b.natural),rice:r};
 }
-function _prodCntBase(pid,dayIdx,slotH){
+function _prodCntBase(pid,dayIdx,slotH){ const _e=_ffEraCell(pid,dayIdx,slotH); return _e?{total:_e.b.total,natural:_e.b.natural,forced:_e.b.forced}:_prodCntBase0(pid,dayIdx,slotH); }   // 前の設定の枠は前の設定の数（2026-10-22）
+function _prodCntBase0(pid,dayIdx,slotH){
   const ZERO={total:0,natural:0,forced:0};
   const p=getP(pid);if(!p||!p.enabled)return ZERO;
   if(!prodOnDay(p,dayIdx))return ZERO;    // 販売期間（投入日より前・終売日より後）の外の日は作らない。品切れ防止の最低も置かない（2026-10-09）
@@ -4698,7 +4787,7 @@ function getZeroMakeList(){
     if(!p||!p.enabled||!S.catOn[p.category])return;
     const cfg=S.catCfg[p.category]; if(!cfg||!cfg.slots||!cfg.slots.length)return;
     let week=0;
-    for(let d=0;d<7&&week===0;d++){ for(const h of cfg.slots){ week+=getProdCntDetail(p.id,d,h).total+getInvestExtra(p.id,d,h); if(week>0)break; } }
+    for(let d=0;d<7&&week===0;d++){ for(const h of _slotsD(p.category,d)){ week+=getProdCntDetail(p.id,d,h).total+getInvestExtra(p.id,d,h); if(week>0)break; } }
     if(week>0)return;
     const reasons=[]; let gray=false;
     if(isPackParent(p)){ reasons.push({k:'parent',t:tf('zero.rParent',packCountWord(p))}); gray=true; }
@@ -5172,7 +5261,7 @@ function openCellMenu(pid,dayIdx,slotH){
   const adjTxt=li.adj!==1?tf('cell.adj',(li.adj>1?'+':'')+Math.round((li.adj-1)*100)):t('cell.adjNone');
   m.innerHTML=`<div style="background:#fff;border-radius:16px;padding:18px;width:100%;max-width:420px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box;margin:auto">
     <div style="font-weight:800;font-size:17px;color:#0f172a">${escapeHtmlP(p.name)}</div>
-    <div style="font-size:13px;color:#64748b;margin:2px 0 14px">${tf('cell.head',tDayLbl(dayIdx),fmtHour(slotH),fmtProdRange(p,slotH))}　${t('cell.plan')} <b style="color:#1d4ed8;font-size:15px">${isSkip?'—':plan}</b>${isSkip?'':t('cell.pcs')}${soSum?`　${tf('cell.extra',soSum)}`:''}</div>
+    <div style="font-size:13px;color:#64748b;margin:2px 0 14px">${tf('cell.head',tDayLbl(dayIdx),fmtHour(slotH),fmtProdRange(p,slotH,dayIdx))}　${t('cell.plan')} <b style="color:#1d4ed8;font-size:15px">${isSkip?'—':plan}</b>${isSkip?'':t('cell.pcs')}${soSum?`　${tf('cell.extra',soSum)}`:''}</div>
     ${rows}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;font-size:12px;color:#475569;line-height:1.7;margin-top:4px">
       ${t('cell.learn')}<br>
@@ -5278,13 +5367,14 @@ function investKind(p){
 function getInvestWeekCnt(pid){
   const p=getP(pid); if(!p||!p.enabled||!S.catOn[p.category])return 0;
   const cfg=S.catCfg[p.category]; if(!cfg)return 0;
-  let s=0; for(let d=0;d<7;d++)cfg.slots.forEach(h=>{s+=getInvestExtra(pid,d,h);});
+  let s=0; for(let d=0;d<7;d++)_slotsD(p.category,d).forEach(h=>{s+=getInvestExtra(pid,d,h);});
   return s;
 }
 // この時間帯の表・印刷にその商品を出すか：「作る」時間帯、または投資の数が置かれている時間帯（作る時間帯が1つも無い商品の投資を、画面によって出したり消したりしない）
 function slotShows(p,dayIdx,slotH){ return prodOnDay(p,dayIdx)&&(getSlotMake(p,slotH)||getInvestExtra(p.id,dayIdx,slotH)>0); }   // 販売期間の外の日は出さない（2026-10-09）
 
-function getInvestExtra(pid,dayIdx,slotH){
+function getInvestExtra(pid,dayIdx,slotH){ const _e=_ffEraCell(pid,dayIdx,slotH); return _e?_e.x:getInvestExtra0(pid,dayIdx,slotH); }   // 前の設定の枠は前の設定の数（2026-10-22）
+function getInvestExtra0(pid,dayIdx,slotH){
   const p=getP(pid);if(!p||!p.enabled)return 0;
   if(isPackParent(p))return 0;   // 本数の商品（親）には投資を置かない（子に置く）
   if(!prodOnDay(p,dayIdx))return 0;   // 販売期間の外の日には置かない（週の投資＝並ぶ日数 × 1日の数。2026-10-09）
@@ -5312,8 +5402,8 @@ function getInvestExtra(pid,dayIdx,slotH){
   //   まとめ単位がある時は、まとめ単位の数で同じ配り方。今週のマス目に手で入れた商品はここに来ない（上で返している）。
   // 穴埋め（2026-10-08）：この日のチェック済み（固定）のマスの数を 1日の数から引き、残りだけを未チェックの時間帯に同じ配り方で配る。
   //   固定の合計が 1日の数を超えていれば残りは 0（作った物は減らせない。その日は固定の合計のまま）。
-  let fixedSum=0; cfg.slots.forEach(h=>{ const f=investFixed(pid,dayIdx,h); if(f!=null)fixedSum+=f; });
-  const slots=getInvestSlots(p).filter(h=>investFixed(pid,dayIdx,h)==null);
+  let fixedSum=_ffInvOld(p,dayIdx); _ffSlotsCur(p.category,dayIdx).forEach(h=>{ const f=investFixed(pid,dayIdx,h); if(f!=null)fixedSum+=f; });   // 前の設定の枠の数も「もう置いた数」に（2026-10-22。前の設定の枠が無い日は今までと同じ）
+  const slots=getInvestSlots(p).filter(h=>investFixed(pid,dayIdx,h)==null&&_ffEraOf(p.category,dayIdx,h)<0);
   const slotIdx=slots.indexOf(slotH);if(slotIdx<0)return 0;
   const remain=Math.max(0,perDay-fixedSum);
   if(!remain)return 0;
@@ -5341,7 +5431,7 @@ function suggestInvestPerDay(pid){
   const cfg=S.catCfg[p.category];if(!cfg)return 1;
   const ji=getJiAllWeeks(pid);
   // 日平均計画作成数
-  const avgDay=DAYS.reduce((s,_,di)=>s+cfg.slots.reduce((ss,h)=>ss+getProdCnt(pid,di,h),0),0)/Math.max(1,prodOnDays(p).filter(Boolean).length);   // 並ぶ日の平均（販売期間。日付の無い商品は /7 のまま）
+  const avgDay=DAYS.reduce((s,_,di)=>s+_slotsD(p.category,di).reduce((ss,h)=>ss+getProdCnt(pid,di,h),0),0)/Math.max(1,prodOnDays(p).filter(Boolean).length);   // 並ぶ日の平均（販売期間。日付の無い商品は /7 のまま）
   if(!ji.total)return 1; // 実績なし → 保守的に1個/日
   const haikiR=ji.haiki/ji.total;
   const sellR=(ji.teika+ji.nebiki)/ji.total;
@@ -6289,14 +6379,15 @@ function _syncNewCat(c,same){
   const n=S.catCfg[_newCatOf(c)], m=S.catCfg[c]; if(!n||!m)return;
   n.ah=m.ah; n.slots=[...m.slots];
 }
-function setNewCatSame(c,same){ const n=S.catCfg[_newCatOf(c)]; if(!n)return; n.sameAsMain=same; if(same)_syncNewCat(c); saveS(); renderCatCfgArea(); }
+function setNewCatSame(c,same){ const n=S.catCfg[_newCatOf(c)]; if(!n)return; const _ffB=_ffCfgSnap(); n.sameAsMain=same; if(same)_syncNewCat(c); _ffHistMark(_ffB); saveS(); renderCatCfgArea(); }
 // 「本体にそろえる」：新商品カテゴリの作成時間帯・許容時間を本体と同じにする（押した時だけ。勝手にはそろえない）
 function alignNewCat(c){
   const nc=_newCatOf(c), n=S.catCfg[nc], m=S.catCfg[c]; if(!n||!m)return;
   if(!confirm(`「${tCat(nc)}」の作成時間帯を、本体と同じ（${m.slots.map(h=>h+'時').join('・')||'未設定'}／許容 ${m.ah}時間）にします。\n\nよろしいですか？`))return;
-  const old=[...n.slots];
+  const old=[...n.slots], _ffB=_ffCfgSnap();
   n.sameAsMain=true; _syncNewCat(c,true);
   _carrySlotChange([nc],old,n.slots);
+  _ffHistMark(_ffB);
   saveS(); renderCatCfgArea(); if(typeof renderProductCards==='function')renderProductCards();
 }
 
@@ -6395,16 +6486,19 @@ function renderCatCfgArea(){
 }
 
 function setCatCfg(cat,key,val){
+  const _ffB=_ffCfgSnap();
   const same=_newCatSameBefore(cat);
-  S.catCfg[cat][key]=val;_syncNewCat(cat,same);saveS();renderCatCfgArea();
+  S.catCfg[cat][key]=val;_syncNewCat(cat,same);_ffHistMark(_ffB);saveS();renderCatCfgArea();
 }
 function toggleCatSlot(cat,h,on){
+  const _ffB=_ffCfgSnap();                    // 変える前の設定（変えた時刻より前に始まった枠は、この設定のまま。2026-10-22）
   const same=_newCatSameBefore(cat);          // 変える前に「新商品は本体と同じか」を見ておく
   const s=S.catCfg[cat].slots;
   if(on){if(!s.includes(h))s.push(h);s.sort((a,b)=>a-b);}
   else{const i=s.indexOf(h);if(i>=0)s.splice(i,1);}
   _syncNewCat(cat,same);
   _carryOnToggle(cat,h,on,same);              // 商品ごとの「この時間は作らない」を新しい時刻へ引き継ぐか聞く
+  _ffHistMark(_ffB);
   saveS();renderCatCfgArea();
 }
 
@@ -6426,9 +6520,11 @@ function suggestSlots(cat){
 }
 
 function adoptSuggest(cat,slots){
+  const _ffB=_ffCfgSnap();
   const same=_newCatSameBefore(cat), old=[...S.catCfg[cat].slots];
   S.catCfg[cat].slots=slots.sort((a,b)=>a-b);_syncNewCat(cat,same);
   _carrySlotChange(_slotCats(cat,same),old,S.catCfg[cat].slots);
+  _ffHistMark(_ffB);
   saveS();renderCatCfgArea();
 }
 
@@ -8324,9 +8420,9 @@ const STICKER_SEQ=[
 const STICKER_EXTRA={bg:'#111827',name:'黒',fg:'#ffffff'};
 function seqColor(ord){ return (ord>=1&&ord<=STICKER_SEQ.length)?STICKER_SEQ[ord-1]:STICKER_EXTRA; }
 // カテゴリの作成スロットを時刻順に並べ、そのh が何回目の作成かで色を返す（全カテゴリ共通）
-function slotSeqColor(cat,h){
+function slotSeqColor(cat,h,dayIdx){
   const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots) return STICKER_EXTRA;
-  const ord=[...cfg.slots].sort((a,b)=>a-b).indexOf(h)+1;
+  const ord=[...(dayIdx==null?cfg.slots:_slotsD(cat,dayIdx))].sort((a,b)=>a-b).indexOf(h)+1;   // 日を渡した時は、その日の時刻の並びで数える（前の設定の枠の色が変わらない。2026-10-22）
   return ord>0?seqColor(ord):STICKER_EXTRA;
 }
 function buildSlotColorMap(){}                 // 互換用（作成回数ベースへ移行）
@@ -8339,7 +8435,7 @@ function mkPrepPrintRows(di,slotH){
   const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={}, breadCnt={};
   let bento=0, hasMk=false;
   mkCats.forEach(cat=>{
-    if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+    if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!_ffSlotOn(cat,di,slotH))return;
     S.PM.filter(p=>p.enabled&&p.category===cat&&slotShows(p,di,slotH)).forEach(p=>{
       const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
       hasMk=true;
@@ -8376,7 +8472,7 @@ function printMachikadoPrep(){
   const storeName=(S.storeName||'').trim();
   const mkCats=['まちかど厨房','まちかど厨房新商品'];
   const slotSet=new Set();
-  mkCats.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) cfg.slots.forEach(h=>slotSet.add(h)); });
+  mkCats.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) _slotsD(cat,di).forEach(h=>slotSet.add(h)); });
   const slots=[...slotSet].sort((a,b)=>a-b);
   // 時間帯ごとにブロック化し、1ページに詰めて流し込む（各スロットはページ途中で割れない）
   let blocks='';
@@ -8403,7 +8499,7 @@ function thawTomorrowAgg(dayIdx){
   ['まちかど厨房','まちかど厨房新商品'].forEach(cat=>{
     if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots)return;
     S.PM.filter(p=>p.enabled&&p.category===cat).forEach(p=>{
-      let tot=0; cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));
+      let tot=0; _slotsD(cat,nd).forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));
       if(tot<=0)return;
       getIngs(p).forEach(ing=>{ if(ing.pt){ const u=ingUse(ing); if(u!=='tekiryo') agg[ing.n]=(agg[ing.n]||0)+tot*(_USE_FACTOR[u]||1); } });
     });
@@ -8492,19 +8588,19 @@ function printMakePlan(){
   const storeName=(S.storeName||'').trim();
   // 全有効カテゴリの作成スロットの和集合（時刻昇順）
   const slotSet=new Set();
-  CATS.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) cfg.slots.forEach(h=>slotSet.add(h)); });
+  CATS.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) _slotsD(cat,di).forEach(h=>slotSet.add(h)); });
   const slots=[...slotSet].sort((a,b)=>a-b);
   let pages='';
   slots.forEach(slotH=>{
     let body='';
     CATS.forEach(cat=>{
       if(!S.catOn[cat])return;
-      const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+      const cfg=S.catCfg[cat]; if(!cfg||!_ffSlotOn(cat,di,slotH))return;
       const rows=S.PM.filter(p=>p.enabled&&p.category===cat&&slotShows(p,di,slotH))
         .map(p=>({p,cnt:getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH)}))
         .filter(o=>o.cnt>0);
       if(!rows.length)return;
-      const doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah, md=getMarkdownTime(cat,slotH);
+      const doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+_ffAh(cat,di,slotH), md=getMarkdownTime(cat,slotH,di);
       const _cc=caseCapInfo(cat,di,slotH);
       const meta=`完成 ${fmtHour(doneH)}　廃棄 ${fmtHour(disposeH)}${isDiscountOn(cat,di)?`　値引 ${fmtHour(md)}〜`:''}${_cc?`　${_cc.over?'⚠ ':''}合計${_cc.total}／容量${_cc.cap}`:''}`;
       body+=`<div class="pcat">
@@ -8805,7 +8901,7 @@ function renderMachikadoPrep(dayIdx,cfg,prods){
   let thawHtml='';
   if(dayIdx<6){
     const nd=dayIdx+1,thawAgg={};
-    prods.forEach(p=>{let tot=0;cfg.slots.forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));if(tot<=0)return;getIngs(p).forEach(ing=>{if(ing.pt){const u=ingUse(ing);if(u!=='tekiryo')thawAgg[ing.n]=(thawAgg[ing.n]||0)+tot*(_USE_FACTOR[u]||1);}});});
+    prods.forEach(p=>{let tot=0;_slotsD(p.category,nd).forEach(h=>tot+=getProdCnt(p.id,nd,h)+getInvestExtra(p.id,nd,h));if(tot<=0)return;getIngs(p).forEach(ing=>{if(ing.pt){const u=ingUse(ing);if(u!=='tekiryo')thawAgg[ing.n]=(thawAgg[ing.n]||0)+tot*(_USE_FACTOR[u]||1);}});});
     // 食材は必ず 1食材＝1行（縦並び）。横に「、」でつながない
     const thawItems=Object.keys(thawAgg).sort(thawCmp).map(n=>`<div data-thaw-item style="padding:1px 0">${thawLabel(n)}<span style="color:#1d4ed8;font-weight:700"> ×${_fmtQ(thawAgg[n])}</span></div>`);
     if(thawItems.length)thawHtml=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 11px;margin-top:10px">
@@ -8879,7 +8975,7 @@ function buildSlotBatches(dayIdx,slotH){
   const items=[];
   S.PM.forEach(p=>{
     if(!p.enabled||!S.catOn[p.category])return;
-    const cfg=S.catCfg[p.category];if(!cfg||!cfg.slots.includes(slotH))return;
+    const cfg=S.catCfg[p.category];if(!cfg||!_ffSlotOn(p.category,dayIdx,slotH))return;
     const baseQty=getProdCnt(p.id,dayIdx,slotH);
     const extra=getInvestExtra(p.id,dayIdx,slotH);
     const soSum=getSoldOutTotal(p.id,dayIdx,slotH);
@@ -8987,7 +9083,7 @@ function mkSlotPrepRows(dayIdx,slotH){
   const mAgg={thaw:{},wash:{},fry:{},range:{},other:{},post:{},none:{}}, contCnt={}, seals={}, breadCnt={};
   let bento=0, hasMk=false;
   mkCats.forEach(cat=>{
-    if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!cfg.slots.includes(slotH))return;
+    if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(!cfg||!_ffSlotOn(cat,di,slotH))return;
     S.PM.filter(p=>p.enabled&&p.category===cat&&slotShows(p,di,slotH)).forEach(p=>{
       const cnt=getProdCnt(p.id,di,slotH)+getInvestExtra(p.id,di,slotH); if(cnt<=0)return;
       hasMk=true;
@@ -9018,7 +9114,7 @@ function mkSlotPrepRows(dayIdx,slotH){
 function renderSlotGroupedView(dayIdx){
   const di=dayIdx, soNowOn=_soNowOn(dayIdx);   // soNowOn＝「+N 作る予定」の印に使う「今」（この描画で1回だけ出す。2026-10-10）
   const slotSet=new Set();
-  CATS.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) cfg.slots.forEach(h=>slotSet.add(h)); });
+  CATS.forEach(cat=>{ if(!S.catOn[cat])return; const cfg=S.catCfg[cat]; if(cfg&&cfg.slots) _slotsD(cat,di).forEach(h=>slotSet.add(h)); });
   const slots=[...slotSet].sort((a,b)=>a-b);
   if(!slots.length) return '<div class="card" style="text-align:center;color:#9ca3af;padding:20px">'+t('mk.noSlots')+'</div>';
   let out='';
@@ -9026,7 +9122,7 @@ function renderSlotGroupedView(dayIdx){
     let cats='';
     const _lk=_ffSlotLock(di,slotH); let _lkN=0;   // 開始の時刻まで押せない（2026-10-17）。カードの見出しに1つだけ「🔒 ◯:◯◯から」
     CATS.filter(c=>!c.endsWith('新商品')).forEach(cat=>{   // 本体と新商品を1つの見出しにまとめる（新商品は先頭の行・札「新商品」。2026-10-16）
-      const gcats=[cat+'新商品',cat].filter(c=>S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots.includes(slotH));
+      const gcats=[cat+'新商品',cat].filter(c=>S.catOn[c]&&S.catCfg[c]&&_ffSlotOn(c,di,slotH));
       if(!gcats.length)return;
       const cfg=S.catCfg[gcats[gcats.length-1]];   // 見出しの時刻（完成・廃棄）は本体の設定（本体が無ければ新商品の設定）
       const rows=[];
@@ -9036,7 +9132,7 @@ function renderSlotGroupedView(dayIdx){
         rows.push({p,grandTotal,extra:getInvestExtra(p.id,di,slotH)});
       });
       if(!rows.length)return;
-      const sc=slotSeqColor(gcats[gcats.length-1],slotH), doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+cfg.ah;
+      const sc=slotSeqColor(gcats[gcats.length-1],slotH,di), doneH=slotH+PREP_HOURS, disposeH=slotH+PREP_HOURS+_ffAh(gcats[gcats.length-1],di,slotH);
       const _hasGrp=catHasGroups(cat);
       const _isNewC=c=>String(c||'').endsWith('新商品');
       const _sortedRows=[...rows].sort((a,b)=>{   // 新商品が先頭（小分類の見出しの前）。そのあとは今までどおり（小分類のあるカテゴリは小分類→並び順）
@@ -9050,7 +9146,7 @@ function renderSlotGroupedView(dayIdx){
         const _lockRow=!!_lk&&!checked&&!skipped; if(_lockRow)_lkN++;
         let _grpHdr='';
         const _nt=_isNewC(p.category)?`<div style="margin-top:2px">${_ffNewTag()}</div>`:'';   // 札「新商品」
-        const _pah=S.catCfg[p.category]&&S.catCfg[p.category].ah, _pdisp=(_pah!=null&&_pah!==cfg.ah)?`<span style="font-size:10px;color:#64748b;margin-left:6px">${tf('mk.doneDispose',fmtHour(doneH),fmtHour(slotH+PREP_HOURS+_pah))}</span>`:'';   // 本体と新商品で許容時間がちがう時だけ、その行に廃棄の時刻を出す
+        const _pah=S.catCfg[p.category]&&_ffAh(p.category,di,slotH), _pdisp=(_pah!=null&&_pah!==_ffAh(gcats[gcats.length-1],di,slotH))?`<span style="font-size:10px;color:#64748b;margin-left:6px">${tf('mk.doneDispose',fmtHour(doneH),fmtHour(slotH+PREP_HOURS+_pah))}</span>`:'';   // 本体と新商品で許容時間がちがう時だけ、その行に廃棄の時刻を出す
         if(_hasGrp&&!_isNewC(p.category)){const _g=prodGroup(p); if(_g&&_g.key!==_lastGrp){_lastGrp=_g.key; _grpHdr=`<div style="background:#fde8c8;color:#7c2d12;font-weight:700;font-size:12px;padding:4px 9px;margin:8px 0 3px;border-radius:5px;border-left:3px solid #f59e0b">${_g.label}</div>`;}}
         return _grpHdr+`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;${checked?'opacity:.5;background:#ecfdf5':''}">
           <input type="checkbox" ${checked?'checked':''} ${skipped?'disabled':''}${_lockRow?' class="ff-locked" aria-disabled="true"':''} onchange="confirmCreate('${chkKey}','${p.id}',this)" style="width:19px;height:19px;flex-shrink:0;cursor:pointer">
@@ -9149,7 +9245,7 @@ function _catStatus(cat,dayIdx){
   const prods=S.PM.filter(p=>p.enabled&&p.category===cat);
   // 各スロットの状態
   const slots=[];
-  cfg.slots.forEach(slotH=>{
+  _slotsD(cat,dayIdx).forEach(slotH=>{
     let total=0,done=0;
     prods.forEach(p=>{
       const cnt=getProdCnt(p.id,dayIdx,slotH);
@@ -9272,13 +9368,13 @@ function _ffCardGroups(dayIdx,nowOn){
   const lists=eff?CATS.map(c=>[c]):CATS.filter(c=>!c.endsWith('新商品')).map(c=>[c+'新商品',c]);
   const out=[];
   lists.forEach(list=>{
-    const cats=list.filter(c=>S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots&&S.catCfg[c].slots.length);
+    const cats=list.filter(c=>S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots&&_slotsD(c,dayIdx).length);
     if(!cats.length)return;
-    const slotSet=new Set(); cats.forEach(c=>S.catCfg[c].slots.forEach(h=>slotSet.add(h)));
+    const slotSet=new Set(); cats.forEach(c=>_slotsD(c,dayIdx).forEach(h=>slotSet.add(h)));
     const g={key:list[list.length-1],cats,slots:[...slotSet].sort((a,b)=>a-b),due:0,late:0,made:0,next:null,today:nowOn!=null};
     S.PM.forEach(p=>{
       if(!p||!p.enabled||cats.indexOf(p.category)<0||isPackParent(p)||!prodOnDay(p,dayIdx))return;
-      S.catCfg[p.category].slots.forEach(h=>{
+      _slotsD(p.category,dayIdx).forEach(h=>{
         const st=_ffCellState(p,dayIdx,h,nowOn);
         if(st==='late'){ g.due++; g.late++; }
         else if(st==='done')g.made++;
@@ -9357,7 +9453,7 @@ function renderProdDayContent(dayIdx){
   // 効率順モード時：スロット別作成手順カード
   if(_prodSortMode==='efficient'){
     const slotCards=ALL_SLOTS.map(slotH=>{
-      const someActive=S.PM.some(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]?.slots.includes(slotH));
+      const someActive=S.PM.some(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]&&_ffSlotOn(p.category,dayIdx,slotH));
       if(!someActive)return '';
       return renderSlotSchedule(dayIdx,slotH);
     }).filter(Boolean).join('');
@@ -9458,8 +9554,8 @@ function renderProdDayContent(dayIdx){
     html+=`<div class="overflow-auto"><table style="min-width:${100+cfg.slots.length*90}px">`;
     html+=`<thead><tr><th style="width:110px;text-align:left">${t('mk.colName')}</th>`;
     cfg.slots.forEach(h=>{
-      const hcs=g.cats.filter(c=>S.catCfg[c].slots.includes(h));   // この時刻に作るカテゴリ（本体・新商品）
-      const mds=[...new Set(hcs.filter(c=>isDiscountOn(c,dayIdx)).map(c=>getMarkdownTime(c,h)))];   // 本体と新商品で値引の時刻がちがう時は両方出す
+      const hcs=g.cats.filter(c=>_ffSlotOn(c,dayIdx,h));   // この時刻に作るカテゴリ（本体・新商品）
+      const mds=[...new Set(hcs.filter(c=>isDiscountOn(c,dayIdx)).map(c=>getMarkdownTime(c,h,dayIdx)))];   // 本体と新商品で値引の時刻がちがう時は両方出す
       const doneH=h+PREP_HOURS;
       const nowCol=g.today&&Math.floor(_nowOn)===h;   // いまの枠の列見出しは黄色「▼ いま」
       html+=`<th style="width:90px;padding:6px 2px${nowCol?';background:#fef3c7;color:#92400e':''}">
@@ -9481,7 +9577,7 @@ function renderProdDayContent(dayIdx){
     const _mkColspan=1+cfg.slots.length;
     let _mkLastGrp=null;
     _rowProds.forEach((p,pi)=>{
-      const cat=p.category, pcfg=S.catCfg[cat], discOn=isDiscountOn(cat,dayIdx);   // 本体と新商品は別のカテゴリ設定（時間帯・値引）なので、行ごとに持つ
+      const cat=p.category, pcfg=_ffDayCfg(cat,dayIdx), discOn=isDiscountOn(cat,dayIdx);   // 本体と新商品は別のカテゴリ設定（時間帯・値引）なので、行ごとに持つ
       const rowLate=g.today&&pcfg.slots.some(h=>_ffCellState(p,dayIdx,h,_nowOn)==='late');   // 時間すぎの未チェックがある行は、名前も赤い地
       if(_hasGrp&&!_lead(p)){
         const _g=prodGroup(p);
@@ -9511,11 +9607,11 @@ function renderProdDayContent(dayIdx){
         const checked=!!S.checks[chkKey];
         const skipped=!!(S.skipped&&S.skipped[chkKey]); // 在庫切れ等で「作れなかった」
         const wl=getWithdraw(p.id);
-        const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲
+        const range=_ffProdRangeD(p,slotH,dayIdx);   // 商品ごとの範囲
         const sc=range?getSlotCust(dayIdx,range[0],range[1]):0;
         const wd=withdrawMark(p.id,dayIdx,slotH);
         const isSkip=false;   // 撤退ラインは印だけ（2026-10-06 店長の決定 B）。数は減らさない・「—」にしない
-        const mdTime=getMarkdownTime(cat,slotH);
+        const mdTime=getMarkdownTime(cat,slotH,dayIdx);
         const baseJi=S.ji[p.id]?.teika||0;
         const wkTotal=getCatWeekTotal(cat)||1;
         const slotCust=range?getSlotCust(dayIdx,range[0],range[1]):0;
@@ -9525,7 +9621,7 @@ function renderProdDayContent(dayIdx){
         const leftover=!!(S.leftovers&&S.leftovers[chkKey]);
         // ツールチップで詳細情報（基準作成数・差分・最低引出客数・値引時間）を表示
         const tip=`【${p.name} ${SLOT_LABELS[slotH]}】\n`+
-          `この作成で売る時間：${fmtProdRange(p,slotH)}のぶん
+          `この作成で売る時間：${fmtProdRange(p,slotH,dayIdx)}のぶん
 `+
           `作成数：${isSkip?'なし':totalCnt}個${extra>0?`（通常${cnt}＋投資${extra}）`:''}\n`+
           `基準作成数：${baseCnt}個（実績×客数比）\n`+
@@ -9582,7 +9678,7 @@ function renderProdDayContent(dayIdx){
     // Category daily total
     let catDayHigh=0;
     prods.forEach(p=>{
-      S.catCfg[p.category].slots.forEach(h=>{
+      _slotsD(p.category,dayIdx).forEach(h=>{
         catDayHigh+=getProdCnt(p.id,dayIdx,h)*p.shopPrice;
       });
     });
@@ -9594,7 +9690,7 @@ function renderProdDayContent(dayIdx){
   if(S.catOn['まちかど厨房']||S.catOn['まちかど厨房新商品']){
     const mkProds=S.PM.filter(p=>p.enabled&&(p.category==='まちかど厨房'||p.category==='まちかど厨房新商品'));
     const _ss=new Set();
-    ['まちかど厨房','まちかど厨房新商品'].forEach(c=>{ if(S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots) S.catCfg[c].slots.forEach(h=>_ss.add(h)); });
+    ['まちかど厨房','まちかど厨房新商品'].forEach(c=>{ if(S.catOn[c]&&S.catCfg[c]&&S.catCfg[c].slots) _slotsD(c,dayIdx).forEach(h=>_ss.add(h)); });
     const _mcfg={slots:[..._ss].sort((a,b)=>a-b), ah:(S.catCfg['まちかど厨房']&&S.catCfg['まちかど厨房'].ah)||8};
     if(mkProds.length && _mcfg.slots.length) html+=`<div class="card">${renderMachikadoPrep(dayIdx,_mcfg,mkProds)}</div>`;
   }
@@ -10207,7 +10303,7 @@ function soShelfAsk(pid,dayIdx,slotH,nowH){
 function calcSoldOutSuggestion(pid,dayIdx,slotH,nowH,leadMin,shelfAt,remain){
   const p=getP(pid);if(!p)return{error:t('sold.errProd')};
   if(!prodOnDay(p,dayIdx))return{error:prodOffDayText(p,dayIdx)||t('so2.errNoQty')};   // 販売期間の外の日は追加作成を出さない（2026-10-09）
-  const range=getProdSlotRange(p,slotH);   // 商品ごとの範囲（この商品が次に作る時間帯まで。2026-10-06）
+  const range=_ffProdRangeD(p,slotH,dayIdx);   // 商品ごとの範囲（この商品が次に作る時間帯まで。2026-10-06）
   if(!range)return{error:t('so2.errRange')};
   const cfg=S.catCfg[p.category]||{};
   const main=mainCatOf(p.category);
@@ -10503,7 +10599,7 @@ function soLeadParts(LM,dayIdx,g,c){ const ck=LM.cook?_soCookMin(LM.cook,c):0, a
 //   （関数の文字を前の版と同じに保つため、中の覚え書きは直していない）。
 function _soRpInputs(pid,dayIdx,slotH){
   const p=getP(pid); if(!p||!p.enabled||!S.catOn[p.category]||!prodOnDay(p,dayIdx))return null;
-  const range=getProdSlotRange(p,slotH); if(!range)return null;
+  const range=_ffProdRangeD(p,slotH,dayIdx); if(!range)return null;
   const LM=soLeadModel(p); if(!LM||!LM.meas)return null;   // 実測（並べるまでの記録）が SO_MEAS_MIN 件たまるまでは出さない。作り方だけだと並べるまでを0分と数えて、遅めの合図になる（推測で出さない。2026-10-09）
   const cfg=S.catCfg[p.category]||{}, main=mainCatOf(p.category), calcMax=CALC_MAX_HOURS[main]||4;
   const ds=slotH+PREP_HOURS, slotEnd=Math.min(range[1]+PREP_HOURS,ds+calcMax);
@@ -11026,7 +11122,7 @@ function checkCurrentSlot(){
   const h=Math.floor(_soNowH());
   let slot=6;
   if(h>=17)slot=17;else if(h>=14)slot=14;else if(h>=10)slot=10;
-  const prods=S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]?.slots.includes(slot));
+  const prods=S.PM.filter(p=>p.enabled&&S.catOn[p.category]&&S.catCfg[p.category]&&_ffSlotOn(p.category,currentProdDay,slot));
   let done=0, skip=0;
   prods.forEach(p=>{const k=`${currentProdDay}_${slot}_${p.id}`; if(_ffKeyLock(k)){ skip++; return; } S.checks[k]=true; _investFixByKey(k); done++;});
   if(done){ saveS();renderProdDayContent(currentProdDay); }
@@ -11228,7 +11324,7 @@ function calcPlanBreakdown(){
     const nr=hasJi?ji.nebiki/ji.total:0;        // 実績値引率
     const perDay=DAYS.map((_,di)=>{
       let nat=0,forced=0,extra=0;
-      cfg.slots.forEach(h=>{const d=getProdCntDetail(p.id,di,h);nat+=d.natural;forced+=d.forced;extra+=getInvestExtra(p.id,di,h);});
+      _slotsD(p.category,di).forEach(h=>{const d=getProdCntDetail(p.id,di,h);nat+=d.natural;forced+=d.forced;extra+=getInvestExtra(p.id,di,h);});
       const cnt=nat+forced+extra;
       const make=cnt*p.shopPrice, cost=cnt*p.cost, baseCost=(nat+forced)*p.cost, baseMake=(nat+forced)*p.shopPrice;
       const waste=nat*hr*p.shopPrice+(forced+extra)*p.shopPrice;
@@ -12006,7 +12102,7 @@ function _legacyRemoved(){
 
       // 曜日別合計を計算
       const dayTotals=DAYS.map((_,di)=>{
-        let base=0,extra=0; cfg.slots.forEach(h=>{ const o=orderCnt(p.id,di,h); base+=o.base; extra+=o.extra; });   // 親は子の作成数×本/パック
+        let base=0,extra=0; _slotsD(p.category,di).forEach(h=>{ const o=orderCnt(p.id,di,h); base+=o.base; extra+=o.extra; });   // 親は子の作成数×本/パック
         return{base,extra,total:base+extra};
       });
       const weekTotal=dayTotals.reduce((s,d)=>s+d.total,0);
@@ -12035,7 +12131,7 @@ function _legacyRemoved(){
 
       // スロット別展開
       if(orderSlotMode){
-        cfg.slots.forEach(slotH=>{
+        _ffWeekSlots(p.category).forEach(slotH=>{
           const slotDayVals=DAYS.map((_,di)=>{
             const base=getProdCnt(p.id,di,slotH);
             const extra=getInvestExtra(p.id,di,slotH);
@@ -12179,7 +12275,7 @@ function getOrderCheckProgress(){
         if(col.noOrder)return;
         const covers=ORDER_COL_COVERS[col.id];if(!covers)return;
         const qty=covers.reduce((sum,di)=>{
-          return sum+cfg.slots.reduce((s,h)=>{ const o=orderCnt(p.id,di,h); return s+o.base+o.extra; },0);
+          return sum+_slotsD(cat,di).reduce((s,h)=>{ const o=orderCnt(p.id,di,h); return s+o.base+o.extra; },0);
         },0);
         if(qty>0){
           const checked=!!(S.orderChecks||{})[`${p.id}_${col.id}`];
@@ -12269,7 +12365,7 @@ function buildOrderScheduleHTML(dates, activeCats){
         const covers = ORDER_COL_COVERS[col.id];
         if(!covers) return 0;
         return covers.reduce((sum,createDayIdx)=>{
-          let base=0,extra=0; cfg.slots.forEach(h=>{ const o=orderCnt(p.id,createDayIdx,h); base+=o.base; extra+=o.extra; });   // 親は子の作成数×本/パック
+          let base=0,extra=0; _slotsD(p.category,createDayIdx).forEach(h=>{ const o=orderCnt(p.id,createDayIdx,h); base+=o.base; extra+=o.extra; });   // 親は子の作成数×本/パック
           return sum+base+extra;
         },0);
       });
