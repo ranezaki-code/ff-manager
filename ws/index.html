@@ -4597,7 +4597,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.27'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.27.1'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -7721,6 +7721,7 @@ function openAdminPwModal(){
   setTimeout(() => inp?.focus(), 50);
 }
 function closeAdminPwModal(){
+  if(_pwFor==='names'){ _pwFor=''; try{ const H=window.parent!==window&&window.parent.V2APP; if(H&&H.namesDone) H.namesDone(); }catch(_){} }   // 5.27.1（テス △3）：名前の 合言葉を やめた（キャンセル）→ 入口の タブを ワークスケジュールに 戻す
   document.getElementById('admin-pw-modal').classList.remove('show');
 }
 async function submitAdminPw(){
@@ -13249,6 +13250,10 @@ function amNxRowHtml(x,rk,now,ph,isSel){
   const dm=amNxDormOfId(x.id,now), cn=(!x.af&&amCkOn(x.w))?amCkNow(x.w,now):null, sub=dm.length?`<span class="sb">⏸ ${escapeHtml(dm.map(r=>r.by||'名前なし').join('・'))} の 途中${(cn&&cn.n)?`・✓ ${cn.n}／${cn.keys.length}`:''}</span>`:'';   // だれでもに 戻った 作業：途中の 人と ✓ の 数
   return `<button type="button" class="nxb nxa-it ${cls}${isSel?' sel':''}${rk===1?' first':''}" data-w="${escapeHtml(x.id)}" onclick="amNxSel(this.dataset.w)"><span class="rk num">${rk}</span>${amNxStamp(x.tag,ph?24:28)}<span class="tx"><span class="nm">${escapeHtml(x.base||x.name)}${(x.base&&x.name.length>x.base.length)?`<small class="zs">${escapeHtml(x.name.slice(x.base.length))}</small>`:''}${mk}</span>${sub}</span><span class="tm num">${escapeHtml(amNxWhen(x,now))}</span></button>`;
 }
+/* 5.27.1（テス △1）：今いる人の 並び。きょうの 人（交代・朝3時の 後に 入った 人。入った 順）→ 前からの 人（新しい 順）。 */
+function amNxHereOrd(here,now){ const c=amNxCut(now), t=here.filter(h=>h.at>=c), r=here.filter(h=>h.at<c).sort((a,b)=>(b.at-a.at)||(a.n<b.n?-1:1)); return t.concat(r); }
+/* 「だれが やる？」に 大きく 出す 人：きょうの 人（6人まで）。きょうの 人が いない 時は 前からの 人の 新しい 4人 */
+function amNxHerePri(here,now){ const c=amNxCut(now), t=here.filter(h=>h.at>=c); return t.length?t.slice(0,6):amNxHereOrd(here,now).slice(0,4); }
 /* 押した 行の 下に 開く：場所・種類・始める 時に やる事・飛ばした 時の 注意・だれが やる？（今いる人。2つの 人は 押せない）・ほかの人・くわしく・とじる */
 function amNxOpenHtml(x,q,here,hold,now){
   const pl=x.cells.length?amNxPlace(x.w):(amIsOff(x.w)?'売場以外':''), st=x.af?null:amStartOf(x.w), dm=amNxDormOfId(x.id,now);
@@ -13258,9 +13263,10 @@ function amNxOpenHtml(x,q,here,hold,now){
   let who;
   if(x.lock) who=`<div class="nxa-lockn">🔒 ${isFinite(x.lockAt)?amHM(x.lockAt)+' から ':''}始められます${amTr2('Not yet','अझै होइन')}</div>`;
   else if(!here.length) who=`<div class="q">だれが やる？<small>Who starts? / कसले सुरु गर्ने?</small></div><button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.id)}" onclick="amNxPick(this.dataset.w,true)">▶ 名前を えらんで 始める</button>`;
-  else who=`<div class="q">だれが やる？<small>Who starts? / कसले सुरु गर्ने?</small></div><div class="nxa-btns">${here.map(h=>{ const full=(hold[h.n]||0)>=AM_NX_HOLD, c=amNxCol(h.n);
+  const pri=amNxHerePri(here,now);   // 5.27.1（テス △1）：きょうの 人（交代の 後に 入った 人）だけ 大きく。ほかは「ほかの人 ▾」に たたむ（名前が 12人でも 困った・とじる が 下へ 行かない）
+  if(x.lock||!here.length){} else who=`<div class="q">だれが やる？<small>Who starts? / कसले सुरु गर्ने?</small></div><div class="nxa-btns">${pri.map(h=>{ const full=(hold[h.n]||0)>=AM_NX_HOLD, c=amNxCol(h.n);
       return `<button type="button" class="nxb nxa-who${full?' full':''}" style="--pc:${c}" data-w="${escapeHtml(x.id)}" data-n="${escapeHtml(h.n)}" onclick="amNxWhoTap(this)"${full?' disabled':''}>${amNxAv2(h.n,40)}<span class="wt"><b>${full?`${escapeHtml(h.n)}：いま ${hold[h.n]}つ`:`▶ ${escapeHtml(h.n)} が やる`}</b><small>${full?`${AM_NX_HOLD}つまで ／ Max ${AM_NX_HOLD} / बढीमा २`:'Start / सुरु'}</small></span></button>`; }).join('')}</div>`;
-  const others=!x.lock&&here.length&&staffList().some(n=>!here.some(h=>h.n===n));
+  const others=!x.lock&&here.length&&(here.length>pri.length||staffList().some(n=>!here.some(h=>h.n===n)));
   const more=x.af?`amOpenAfter('${escapeHtml(String(x.w.id))}',${x.o.src})`:`amOpenArea(this.dataset.w)`;
   return `<div class="nxa-open">${meta}${stH}${amNxSkipHtml(amNxSkip(x.id,q))}${dmH}${who}<div class="nxa-acts">${x.lock?'':`<button type="button" class="nxb nxa-cl trb" data-w="${escapeHtml(x.id)}" onclick="amNxTrbAskI(this.dataset.w)">! 困った</button>`}${others?`<button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.id)}" onclick="amNxPick(this.dataset.w,true)">ほかの人 ▾</button>`:''}<button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.w.id)}" onclick="${more}">くわしく</button><button type="button" class="nxb nxa-cl" onclick="amNxShut()">とじる</button></div></div>`;
 }
@@ -13320,7 +13326,7 @@ function amNxRender(view){
   /* 上の 1行 */
   const used=amTagUse(), tagsUsed=amTagSorted().filter(t=>used[t.k]).slice(0,5);
   const ord=tagsUsed.length>1?`<div class="nxa-ord"${isAdmin?' onclick="amNxOrderPanel()" style="cursor:pointer"':''}><span class="lab">同じ急ぎなら</span>${tagsUsed.map(t=>`<span class="ol">${amNxStamp(t.k,20)}<b style="color:${amTagLook(t.k).c}">${escapeHtml(t.n)}</b></span>`).join('<span class="gt">›</span>')}</div>`:'';
-  const chips=here.map(h=>{ const n=hold[h.n]||0, c=amNxCol(h.n); return `<button type="button" class="nxb nxa-pc${n?'':' free'}" data-k="${escapeHtml(h.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxHereTap(this.dataset.k)">${amNxAv2(h.n,ph?32:36)}<span><b>${escapeHtml(ph?amNxIni(h.n):h.n)}</b><small>${n?n+'つ 取りかかり中':'あいている'}</small></span></button>`; }).join('');
+  const chips=amNxHereOrd(here,now).map(h=>{ /* 5.27.1（テス △1）：きょうの 人を 先に */ const n=hold[h.n]||0, c=amNxCol(h.n); return `<button type="button" class="nxb nxa-pc${n?'':' free'}" data-k="${escapeHtml(h.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxHereTap(this.dataset.k)">${amNxAv2(h.n,ph?32:36)}<span><b>${escapeHtml(ph?amNxIni(h.n):h.n)}</b><small>${n?n+'つ 取りかかり中':'あいている'}</small></span></button>`; }).join('');
   let h=`<div class="nxa ${ph?'ph':port?'port':'land'}${q.length>9?' many':''}" id="nx-wrap" style="height:${H}px">`;
   if(isAdmin) h+=`<div class="nxa-ad"><button type="button" class="am-cfgbtn nxa-trbad${T.band.length?' on':''}" id="nxt-open" onclick="amNxTrbList()">⚠ 困った ${T.band.length}</button><button type="button" class="am-cfgbtn" onclick="amOpenWorks()">📝 ワークスケジュール登録</button><button type="button" class="am-cfgbtn" onclick="amEditMap()">🗺 マップ登録</button><button type="button" class="am-cfgbtn" id="nxo-open2" onclick="amNxOrderPanel()">↕ やる順</button></div>`;   // 5.27：⚠ 困った（店長 待ちの 数。押すと 一覧）
   h+=`<div class="nxa-top"><div class="nxa-clk num">${amHM(now)}</div><div class="nxa-pp">${chips}</div><button type="button" class="nxb nxa-plus" onclick="amNxAdd()" aria-label="入る（今いる人に 足す）">＋</button><div class="nxa-dn">${amNxIco('check',18,'#2F8F5B')}済 ${amNxDoneN(now)}</div>${ord}</div>`;
@@ -13523,7 +13529,7 @@ function amNxPkBtn(n,on,act){
 /* 「やる」：今いる人が 1人なら すぐ。2人以上・0人なら 名前を 聞く */
 function amNxDo(id){ if(!amNxItemOf(id)) return; const n=amNxSolo(Date.now()); if(n) return amNxGo(id,n); amNxPick(id,false); }   // 5.26：売場以外・あとの作業も
 function amNxPick(id,more){
-  const it=amNxItemOf(id); if(!it) return; _amfHold=amFT()+AM_HOLD_MS; const now=Date.now(), h=amNxHere(now), act=amRunActive(now), names=staffList(), rest=names.filter(n=>!h.some(x=>x.n===n)), eid=escapeHtml(id);
+  const it=amNxItemOf(id); if(!it) return; _amfHold=amFT()+AM_HOLD_MS; const now=Date.now(), h=amNxHereOrd(amNxHere(now),now), act=amRunActive(now), names=staffList(), rest=names.filter(n=>!h.some(x=>x.n===n)), eid=escapeHtml(id);
   const btn=n=>amNxPkBtn(n,`amNxGo(this.dataset.w,this.dataset.n)`,act).replace('<button type="button" class="nx-pk',`<button type="button" data-w="${eid}" class="nx-pk`);
   const q=h.length?`だれが やる？${amNxTr('Who?','कसले?')}`:`だれが やる？（入って すぐ 始まる）${amNxTr('Who is starting?','को सुरु गर्दै?')}`;
   _amSheet(`<div class="nx-sh"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="nx-sh-t"><span aria-hidden="true">${escapeHtml(it.icon||'')}</span> ${escapeHtml(it.name||'')}</div><div class="nx-sh-q">${q}</div>
@@ -13693,13 +13699,16 @@ function amNxTrbCells(qid,now){ const it=amNxItemOf(qid,now); if(!it) return [];
 function amNxTrbAsk(k,id){
   const now=Date.now(); let nm='', by='';
   if(k){ const r=amRunMap()[k]; if(!amRunOk(r)){ amCloseSheet(); _amNx.ck=''; renderMapView(); amSnack('もう ありません（ほかの 端末で 終わったか、取り消されました）',false); return; } nm=amNxRunLabel(r).full; by=String(r.by||''); }
-  else { const it=amNxItemOf(id,now); if(!it) return; nm=it.name||''; by=amNxSolo(now); }
+  else { const it=amNxItemOf(id,now); if(!it) return; nm=it.name||''; by=amNxTrbWho(now); }
   _amNx.trbSrc={k:String(k||''), id:k?'':String(id||'')}; _amfHold=amFT()+AM_HOLD_MS;
   const bt=AM_NX_TRB.map(d=>`<button type="button" class="nxt-b${d.band?'':' calm'}" data-y="${d.y}" onclick="amNxTrbPut(this.dataset.y)"><span class="ic" aria-hidden="true">${d.ic}</span><span class="tx"><b>${d.t}</b><small>${d.en} / ${d.ne}</small><em>→ ${d.hint}</em></span></button>`).join('');
   _amSheet(`<div class="nx-sh nxt"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="nxt-h"><span class="ex" aria-hidden="true">!</span><div><b>どうして できない？</b><small>Why can't you do it? / किन गर्न सकिँदैन?</small></div><span class="one">1つ 押すだけ</span></div>
     <div class="nxt-w">${by?amNxAv(by,'')+' ':''}<span>${escapeHtml(nm)}</span></div><div class="nxt-g">${bt}</div>
     <div class="nxt-f"><span>字は 打たない。くわしい事は 店長が あとで 聞く</span><button type="button" class="nx-sub" onclick="amCloseSheet()">まちがえた（もどる）</button></div></div>`,'card','nxtrb');
 }
+/* 5.27.1（テス TQ1）：まだ 始めていない 行の「困った」を だれが 押したか。名前が 1つしか 出ていなくて、その人が 交代・朝3時の 後に 入った 時だけ その 名前。
+   ほかは 空（交代の 前からの 人が 押した かも しれない＝別の 人の 名前を 入れない。聞くと 押す 回数が 3回に なるので 聞かない） */
+function amNxTrbWho(now){ const h=amNxHere(now); return (h.length===1&&h[0].at>=amNxCut(now))?h[0].n:''; }
 function amNxTrbAskT(k){ if(amFT()<(_amNx.hold||0)) return; amNxTrbAsk(k,''); }
 function amNxTrbAskI(id){ if(amFT()<(_amNx.hold||0)) return; amNxTrbAsk('',id); }
 /* 理由を 押した：日ごとの記録に 1件・▶ の 印を 外す・保存。取り消せる（下の お知らせ） */
@@ -13709,7 +13718,7 @@ function amNxTrbPut(y){
   if(k){ const r=amRunMap()[k]; if(!amRunOk(r)){ amCloseSheet(); _amNx.ck=''; renderMapView(); amSnack('もう ありません（ほかの 端末で 終わったか、取り消されました）',false); return; }
     run=JSON.parse(JSON.stringify(r)); rec={p:1, w:String(r.w), t:new Date(now).toISOString(), by:String(r.by||''), d:amDevId(), y:d.y, rs:String(r.s)}; if(r.sa) rec.sa=String(r.sa); }
   else { const it=amNxItemOf(src.id,now); if(!it||amNxItemDone(it,now)){ amCloseSheet(); _amNx.sel=''; renderMapView(); amSnack('この 作業は もう ありません（済）',false); return; }
-    rec={p:1, w:it.af?String(it.w.id)+'#af':String(it.id), t:new Date(now).toISOString(), by:amNxSolo(now)||'', d:amDevId(), y:d.y}; if(it.af) rec.sa=new Date(it.o.src).toISOString(); }
+    rec={p:1, w:it.af?String(it.w.id)+'#af':String(it.id), t:new Date(now).toISOString(), by:amNxTrbWho(now), d:amDevId(), y:d.y}; if(it.af) rec.sa=new Date(it.o.src).toISOString(); }   // 5.27.1（テス TQ1）：だれが 押したか 分からない 時は 空（別の 人の 名前を 入れない）
   const nm=amNxTrbName(amNxTrbQid(rec),now)||(run?amNxRunLabel(run).name:''), key=AM_LOG_PRE+amLogDay(now);
   if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key])) state[key]={};
   let id=k?'p'+String(k).replace(/[^0-9A-Za-z_]/g,''):''; if(!id||(id in state[key])){ do{ id='p'+now.toString(36)+Math.random().toString(36).slice(2,6); }while(id in state[key]); }
@@ -13740,7 +13749,7 @@ function amNxTrbTap(qid,step){
 function amNxTrbGo(qid,how){
   const now=Date.now(), h=amNxHere(now);
   if(isAdmin) return amNxTrbOk(qid,how,'管理者');
-  if(h.length===1&&!(how==='again'&&(amNxHoldMap(now)[h[0].n]||0)>=AM_NX_HOLD)) return amNxTrbOk(qid,how,h[0].n);
+  { const s=amNxSolo(now); if(s&&!(how==='again'&&(amNxHoldMap(now)[s]||0)>=AM_NX_HOLD)) return amNxTrbOk(qid,how,s); }   // 5.27.1（テス TQ2）：名前を 聞かずに 進むのは「交代・朝3時の 後に 入った 人が 1人」の 時だけ（7日 残る 名前では 数えない）
   if(!h.length&&!staffList().length) return amNxTrbOk(qid,how,'');
   amNxTrbTap(qid,how);
 }
@@ -15448,10 +15457,10 @@ function amWhoChip(by, names){ const i=by?names.indexOf(by):-1; return `<span cl
 /* 5.27：📊 の 上の 4つの 数（時間内・遅れ・抜け・困った）。白い 地・青の 数（赤は 抜け・困った が ある 時だけ） */
 function amWhoTiles(s,isToday,anon,trb){
   const t=(cls,big,lab,sub)=>`<div class="aw2-t ${cls}"><b>${big}</b><span>${lab}</span><small>${sub}</small></div>`;
-  return `<div class="aw2-tiles">${t('ok',s.rate==null?'—':s.rate+'<small>%</small>','時間内',`${s.on} / ${s.due} 枠${isToday?'（いままで）':''}`)}${t(s.late?'lt':'z',s.late,'遅れ','あとで 記録')}${t(s.miss?'ms':'z',s.miss,'抜け','記録なし（🔥）')}${t(trb?'ms':'z',trb,'困った','店長に 知らせた 数')}</div>${anon?`<div class="aw-knote">名前なしの 記録 ${anon}回</div>`:''}`;
+  return `<div class="aw2-tiles">${t('ok',s.rate==null?'—':s.rate+'<small>%</small>','時間内',`${s.on} / ${s.due} 枠${isToday?'（いままで）':''}`)}${t(s.late?'lt':'z',s.late,'遅れ','あとで 記録')}${t(s.miss?'ms':'z',s.miss,'抜け','記録なし（🔥）')}${t(trb.b?'ms':'z',trb.b,'困った',`店長に 知らせた 数${trb.te?`・手が 足りない ${trb.te}回`:''}`)}</div>${anon?`<div class="aw-knote">名前なしの 記録 ${anon}回</div>`:''}`;
 }
 /* その日（3:00 始まり）の 困った の 数（手が 足りない も 入れる）。読むだけ */
-function amNxTrbDayN(dayMs){ const o=state[AM_LOG_PRE+amLogDay(dayMs+12*3600000)]; if(!o||typeof o!=='object') return 0; return Object.keys(o).filter(id=>id.charAt(0)==='p'&&o[id]&&o[id].p).length; }
+function amNxTrbDayN(dayMs){ const o=state[AM_LOG_PRE+amLogDay(dayMs+12*3600000)], r={b:0, te:0}; if(!o||typeof o!=='object') return r; Object.keys(o).forEach(id=>{ const x=o[id]; if(id.charAt(0)!=='p'||!x||!x.p) return; if(String(x.y)==='te') r.te++; else r.b++; }); return r; }   // 5.27.1（テス △2）：帯に なる 困った（b）と 手が 足りない（te）を 分けて 数える
 function amWho(k,v){
   if(k==='who'){ _who.who=(_who.who===v)?'':v; if(_who.who) _who.hk='rec'; }
   else if(k==='shift'){ _who.day=Math.max(-(AM_LOG_DAYS-1),Math.min(0,_who.day+v)); _who.sel=''; }
