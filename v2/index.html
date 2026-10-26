@@ -145,6 +145,63 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
 <script src="core.js"></script>
 <script src="ffspec.js"></script>
 <script src="wsspec.js"></script>
+<style>
+/* ===== ホーム（線画・2026-10-26 店長「これで作ろう」）。見本帳：白い地・青 #1f5fbf・線 1.5px #d6e2f2・面 #f5f8fd・角 32/16/10px・字 BIZ UDPゴシック ===== */
+#home{position:absolute;inset:0;display:none;flex-direction:column;background:#fff;overflow:auto;font-family:"BIZ UDPGothic","BIZ UDPゴシック","Hiragino Sans","Yu Gothic UI",sans-serif;color:#1d2b40}
+#home.on{display:flex}
+.hm-top{display:flex;align-items:center;gap:12px;padding:16px 24px 0}
+.hm-prog{font-size:15px;font-weight:700;color:#5a6a80}.hm-prog b{font-size:24px;color:#1f5fbf}
+.hm-role{margin-left:auto;height:44px;padding:0 14px;border:1.5px solid #d6e2f2;border-radius:10px;background:#fff;font:inherit;font-size:15px;font-weight:700;color:#1f5fbf;cursor:pointer}
+.hm-next{margin:16px 24px 0;display:flex;align-items:center;gap:16px;border:1.5px solid #d6e2f2;border-radius:16px;padding:12px 12px 12px 20px;min-height:68px}
+.hm-next .lead{font-size:13px;font-weight:700;color:#1f5fbf;flex:none}
+.hm-next .say{font-size:24px;font-weight:700;flex:1;min-width:0}
+.hm-next .chip{font-size:13px;font-weight:700;border-radius:8px;padding:3px 10px;flex:none;background:#fbeceb;color:#c8322a}
+.hm-next .chip.b{background:#e8f0fb;color:#1f5fbf}
+.hm-go{height:44px;padding:0 24px;border:none;border-radius:10px;background:#1f5fbf;color:#fff;font:inherit;font-size:16px;font-weight:700;cursor:pointer;flex:none}
+.hm-icons{flex:1;display:grid;grid-template-columns:repeat(var(--c,5),136px);gap:32px 64px;place-content:center;padding:24px}
+.hm-ic{display:flex;flex-direction:column;align-items:center;gap:10px;background:none;border:none;font:inherit;color:inherit;cursor:pointer;padding:0}
+.hm-tile{position:relative;width:136px;height:136px;background:#f5f8fd;border:1.5px solid #d6e2f2;border-radius:32px;display:grid;place-items:center}
+.hm-ic:active .hm-tile{background:#e8f0fb}
+.hm-ic:focus-visible{outline:none}.hm-ic:focus-visible .hm-tile{outline:3px solid #1f5fbf;outline-offset:3px}
+.hm-tile svg{width:84px;height:84px}
+.hm-lbl{font-size:18px;font-weight:700}
+.hm-badge{position:absolute;top:-10px;right:-10px;min-width:36px;height:30px;padding:0 9px;border-radius:10px;border:3px solid #fff;color:#fff;font-size:16px;font-weight:700;display:grid;place-items:center;background:#1f5fbf}
+.hm-badge.r{background:#c8322a}.hm-badge.y{background:#f2c14e;color:#4a3a00}
+.hm-bar{display:none;margin:12px 14px 0;align-items:center;gap:10px;font-size:14px;font-weight:700;color:#5a6a80}
+.hm-bar span{flex:1;height:8px;border-radius:4px;background:#f5f8fd;border:1px solid #d6e2f2;overflow:hidden}.hm-bar i{display:block;height:100%;background:#1f5fbf}
+@media (min-width:621px) and (max-width:1000px){ .hm-icons{grid-template-columns:repeat(3,136px);gap:28px 44px} }
+@media (max-width:620px){
+  .hm-top{padding:12px 14px 0}.hm-prog{display:none}.hm-role{height:44px;padding:0 10px;font-size:14px}
+  .hm-next{margin:12px 14px 0;flex-wrap:wrap;gap:6px 10px;padding:12px 14px}.hm-next .say{font-size:20px;flex-basis:100%}.hm-go{margin-left:auto}
+  .hm-bar{display:flex}
+  .hm-icons{grid-template-columns:repeat(3,96px);gap:22px 18px;align-content:center;padding:16px 8px}
+  .hm-tile{width:96px;height:96px;border-radius:24px}.hm-tile svg{width:58px;height:58px}.hm-lbl{font-size:15px}
+  .hm-badge{min-width:30px;height:26px;font-size:14px;top:-8px;right:-8px}
+}
+/* 窓（合言葉・店の切り替えの確かめ・設定） */
+.hm-ov{position:fixed;inset:0;background:rgba(29,43,64,.28);display:none;align-items:center;justify-content:center;z-index:300;font-family:"BIZ UDPGothic",sans-serif;color:#1d2b40}
+.hm-ov.show{display:flex}
+.hm-box{width:min(440px,calc(100vw - 20px));background:#fff;border:1.5px solid #d6e2f2;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 28px rgba(29,43,64,.16)}
+.hm-box h3{font-size:19px}.hm-box p{font-size:14px;color:#5a6a80;line-height:1.5}
+.hm-in{height:48px;border:1.5px solid #d6e2f2;border-radius:10px;padding:0 14px;font:inherit;font-size:20px;letter-spacing:.2em}
+.hm-row2{display:flex;gap:10px}
+.hm-btn{height:44px;padding:0 20px;border-radius:10px;font:inherit;font-size:16px;font-weight:700;cursor:pointer;border:1.5px solid #1f5fbf;background:#fff;color:#1f5fbf}
+.hm-btn.p{background:#1f5fbf;color:#fff;flex:1}
+.hm-msg{font-size:14px;color:#c8322a;min-height:1em}
+.hm-set{width:min(860px,calc(100vw - 20px));max-height:calc(100vh - 24px);overflow:auto}
+.hm-foot{position:sticky;bottom:-20px;background:#fff;padding:10px 0 4px;margin-bottom:-4px}
+.hm-srow{flex:none}
+.hm-srow{display:grid;grid-template-columns:92px 52px 1fr 190px 60px;align-items:center;gap:12px;min-height:60px;padding:6px 12px;border:1.5px solid #d6e2f2;border-radius:12px}
+.hm-srow.off{background:#f5f8fd;color:#9aa8bb}
+.hm-mv{display:flex;gap:4px}.hm-mv button{width:44px;height:44px;border:1.5px solid #d6e2f2;border-radius:10px;background:#fff;color:#1f5fbf;font-size:15px;cursor:pointer}
+.hm-sti{width:52px;height:44px;background:#f5f8fd;border:1.5px solid #d6e2f2;border-radius:12px;display:grid;place-items:center}.hm-sti svg{width:28px;height:28px}
+.hm-srow input[type=text],.hm-srow select,.hm-sname{height:44px;flex:none;border:1.5px solid #d6e2f2;border-radius:10px;padding:0 10px;font:inherit;font-size:15px;min-width:0;background:#fff}
+.hm-sw{width:56px;height:32px;border-radius:16px;background:#1f5fbf;position:relative;border:none;cursor:pointer}.hm-sw::after{content:"";position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:50%;background:#fff}
+.hm-sw.o{background:#d6e2f2}.hm-sw.o::after{right:auto;left:4px}
+.hm-sh{display:grid;grid-template-columns:92px 52px 1fr 190px 60px;gap:12px;padding:0 12px;font-size:13px;color:#5a6a80;font-weight:700}
+@media (max-width:620px){ .hm-srow,.hm-sh{grid-template-columns:92px 1fr 60px}.hm-sti,.hm-srow select{display:none}.hm-sh span:nth-child(2),.hm-sh span:nth-child(4){display:none} }
+.store-item .lockd{font-size:12px;color:#5a6a80}
+</style>
 </head>
 <body>
 
@@ -164,6 +221,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
 </header>
 
 <nav class="tabs" id="tabs">
+  <button class="tab" data-sys="home"><span class="emoji">🏠</span>ホーム</button><!-- 2026-10-26：線画のホーム（今のタブは そのまま 残す） -->
   <button class="tab active" data-sys="ff"><span class="emoji">🍗</span>FF管理</button>
   <button class="tab" data-sys="ws"><span class="emoji">📋</span>ワークスケジュール</button>
   <button class="tab" data-sys="cal"><span class="emoji">📅</span>カレンダー</button>
@@ -173,6 +231,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
 
 <main id="main">
   <div class="frame-loading" id="frame-loading">読み込み中…</div>
+  <section id="home" aria-label="ホーム"></section>
 </main>
 
 <div class="overlay" id="pass-overlay">
@@ -208,6 +267,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
   </div>
 </div>
 
+<div class="hm-ov" id="hm-ov"><div class="hm-box" id="hm-box"></div></div>
 <script>
 // =====================================================================
 // 新しいシステムの入口。画面の並びは いまの統合アプリ（app.html）と同じ。
@@ -240,6 +300,174 @@ function openNames(){
   go();
 }
 
+// =====================================================================
+// ホーム（2026-10-26 店長「これで作ろう。点検は、やることにしよう一旦。できたらそのまま公開して」）
+// ・見るだけ：ワークスケジュールの画面（中の窓）の関数と表示を 読むだけ。何も書きこまない。
+// ・設定：meta の「home_<店のid>」1件（店ごと）。古い版は この件を知らないので 読まない・消さない（meta は 1項目＝1件）。
+// ・店長：ワークスケジュールの 管理者の合言葉（ADMIN_PW_HASH）で 照らす。値は どこにも書かない。合えば 10分（メモリの中だけ）。
+// =====================================================================
+const HM_ICON={
+ ws:'<rect x="7" y="20" width="34" height="16" rx="3"/><path d="M7 28h34"/><path d="M33 20V7l8 3-8 3"/><rect x="11" y="13" width="5" height="7" rx="1"/><rect x="19" y="13" width="5" height="7" rx="1"/>',
+ ff:'<rect x="7" y="16" width="34" height="20" rx="3"/><path d="M7 28h34"/><circle cx="16" cy="22" r="2.5"/><circle cx="24" cy="22" r="2.5"/><circle cx="32" cy="22" r="2.5"/><path d="M17 11c0-2 2-2 2-4M24 11c0-2 2-2 2-4M31 11c0-2 2-2 2-4"/>',
+ cal:'<rect x="8" y="11" width="32" height="28" rx="4"/><path d="M8 19h32M16 7v7M32 7v7"/><path d="M15 26h4M22 26h4M29 26h4M15 32h4M22 32h4"/>',
+ crew:'<circle cx="18" cy="17" r="6"/><circle cx="32" cy="19" r="5"/><path d="M6 39c0-7 5-12 12-12s12 5 12 12"/><path d="M30 28c6 0 12 4 12 11"/>',
+ kit:'<rect x="8" y="20" width="32" height="18" rx="3"/><path d="M12 24h24"/><path d="M17 20l-3-12M31 20l3-12"/>',
+ adm:'<rect x="7" y="18" width="34" height="20" rx="3"/><path d="M18 18v-5h12v5M7 27h34"/><rect x="21" y="25" width="6" height="5" rx="1"/>',
+ set:'<path d="M8 14h32M8 24h32M8 34h32"/><circle cx="17" cy="14" r="4" fill="#f5f8fd"/><circle cx="31" cy="24" r="4" fill="#f5f8fd"/><circle cx="21" cy="34" r="4" fill="#f5f8fd"/>'};
+// 初期の並び（店の設定が無い店）。boss＝店長の時だけ出す
+const HM_DEFAULT=[{k:'ws',name:'やること',badge:'late',on:1},{k:'ff',name:'FF',badge:'ffnext',on:1},{k:'cal',name:'予定',badge:'none',on:1},{k:'crew',name:'クルー',badge:'none',on:1},{k:'kit',name:'厨房',badge:'none',on:1},{k:'adm',name:'管理',badge:'none',on:1,boss:1},{k:'set',name:'設定',badge:'none',on:1,boss:1}];
+const HM_BADGES={none:'出さない',late:'おくれの数',ffnext:'FF の次の時間帯',left:'のこりの作業の数'};
+const HM_FF_SLOTS=[6,10,14,17];   // FF の時間帯の始まり（ff/index.html の checkCurrentSlot と同じ）
+let _hmBossUntil=0; const _hmWsEmpty={};
+function hmBoss(){ return Date.now()<_hmBossUntil; }
+function hmSvg(k,w){ return `<svg viewBox="0 0 48 48" fill="none" stroke="#1f5fbf" stroke-width="${w||2.4}" stroke-linecap="round" stroke-linejoin="round">${HM_ICON[k]||HM_ICON.set}</svg>`; }
+function hmCfg(){   // 店の設定（無ければ 初期の並び）。足りない物は 初期の並びから 補う
+  const m=meta?meta.getState():{}, c=m['home_'+curStore], got=(c&&Array.isArray(c.icons))?c.icons.filter(x=>x&&HM_ICON[x.k]):[];
+  const ks=got.map(x=>x.k), out=got.map(x=>Object.assign({},HM_DEFAULT.find(d=>d.k===x.k)||{},x));
+  HM_DEFAULT.forEach(d=>{ if(ks.indexOf(d.k)<0) out.push(Object.assign({},d)); });
+  return out;
+}
+function hmWs(){   // ワークスケジュールの 中の窓を 読むだけ（無い・まだの時は null）
+  try{ const w=frames.ws&&frames.ws.contentWindow; if(!w||!w.__v2ready||typeof w.amFloorWorks!=='function') return null;
+    const now=Date.now(), ws=w.amFloorWorks(); let done=0,total=0;
+    ws.forEach(a=>{ const st=w.amStatus(a,now).st; if(st==='none')return; total++; if(st==='done')done++; });
+    const b=w.document.getElementById('tab-map-badge'), late=(b&&b.style.display!=='none')?(parseInt(b.textContent,10)||0):0;
+    // つぎ：おくれが あれば WS の「先にやる」（amFireTop）。無ければ 列の「もうすぐ」の1行目。列が無い見かた（厨房・新しい画面）でも うそを言わない
+    const clean=s=>String(s||'').replace(/^[\s⏳▶⏸]+/,'').trim();
+    let next=null;
+    if(late&&typeof w.amFireTop==='function'){ const f=w.amFireTop(now); if(f&&f.label) next={name:clean(f.label),late:true}; }
+    if(!next){ const r=w.document.querySelector('#amf-col .amf-r.soon'), nm=r&&r.querySelector('.am-wr-n'); if(nm) next={name:clean(nm.textContent),soon:true}; }
+    return {done,total,late,next};
+  }catch(e){ console.error('home ws',e); return null; }
+}
+function hmEnsureWs(){   // 数を出すため、ワークスケジュールを 見えない所で 開いておく（中身が ある店だけ。空の店では 開かない＝何も 作らない）
+  if(frames.ws||!store||!curStore) return;
+  const sid=curStore;
+  store.open('ws~'+sid,SYSTEMS.ws.spec).then(c=>{
+    if(c.synced&&!Object.keys(c.view()).length&&curStore===sid){ _hmWsEmpty[sid]=1; if(activeSys==='home') hmRender(); }
+    if(frames.ws||curStore!==sid||!c.synced||!Object.keys(c.view()).length) return;
+    ffStartOk['ws|'+sid]=1;
+    const ifr=document.createElement('iframe'); ifr.className='frame'; ifr.src=sysUrl('ws'); $('main').appendChild(ifr); frames.ws=ifr;
+    let n=0; const t=setInterval(()=>{ if(++n>120||hmWs()){ clearInterval(t); if(activeSys==='home') hmRender(); } },500);
+  }).catch(()=>{});
+}
+function hmFfNext(){ const h=new Date().getHours()+new Date().getMinutes()/60, s=HM_FF_SLOTS.find(x=>x>h); return s==null?'':s+':00'; }
+function hmRender(){
+  const box=$('home'); if(!box||activeSys!=='home') return;
+  if(!curStore){ box.innerHTML='<div class="hm-next" style="margin-top:40px"><span class="say">店舗がまだありません。左上の「▼」から 店を足してください。</span></div>'; return; }
+  const boss=hmBoss(), w=hmWs(), icons=hmCfg().filter(x=>x.on&&(!x.boss||boss));
+  const badge=x=>{ let v='',c='';
+    if(x.badge==='late'&&w&&w.late){ v=w.late; c='r'; }
+    else if(x.badge==='ffnext'){ v=hmFfNext(); }
+    else if(x.badge==='left'&&w&&w.total){ v=w.total-w.done; }
+    return v===''?'':`<span class="hm-badge ${c}">${escapeHtml(String(v))}</span>`; };
+  const nx=w&&w.next, wsName=(icons.find(x=>x.k==='ws')||{}).name||'やること';
+  const say=nx?(boss&&nx.late?`${escapeHtml(nx.name)} が おくれ`:`${escapeHtml(nx.name)}`)
+    :(w&&w.late?`おくれが ${w.late}件 あります`:w?'いまは 間に合っています':_hmWsEmpty[curStore]?'まだ 作業が ありません（やること から 登録できます）':'読み込み中…');
+  const chip=(nx&&nx.late&&!boss)?'<span class="chip">おくれ</span>':nx&&nx.soon?'<span class="chip b">もうすぐ</span>':'';
+  const goBtn=(nx||(w&&w.late));
+  const cols=Math.min(icons.length>5?4:icons.length,5)||1;
+  box.innerHTML=`<div class="hm-top"><span class="hm-prog">${w&&w.total?`今日の作業 <b>${w.done}</b> / ${w.total} できた`:''}</span><button class="hm-role" data-hm="role" type="button">${boss?'店長（押すと戻る）':'🔒 店長'}</button></div>
+  <div class="hm-next"><span class="lead">${boss?'いま 先に':'つぎは これ'}</span><span class="say">${say}</span>${chip}${goBtn?`<button class="hm-go" data-hm="ws" type="button">${boss?'見る':'行く'}</button>`:''}</div>
+  ${w&&w.total?`<div class="hm-bar">今日の作業 ${w.done} / ${w.total}<span><i style="width:${Math.round(w.done*100/w.total)}%"></i></span></div>`:''}
+  <div class="hm-icons" style="--c:${cols}">${icons.map(x=>`<button class="hm-ic" data-hm="${x.k}" type="button"><span class="hm-tile">${hmSvg(x.k)}${badge(x)}</span><span class="hm-lbl">${escapeHtml(x.name)}</span></button>`).join('')}</div>`;
+}
+function hmOpenIn(sys,fn){   // 中の画面を開いて、用意ができたら 中の関数を 呼ぶ（名前の窓・厨房の表）
+  showSystem(sys); let n=0;
+  const go=()=>{ const w=frames[sys]&&frames[sys].contentWindow; try{ if(w&&w.__v2ready&&typeof w[fn]==='function'){ w[fn](); return; } }catch(_){} if(++n<240&&activeSys===sys) setTimeout(go,250); };
+  go();
+}
+function hmClick(e){
+  const b=e.target.closest('[data-hm]'); if(!b) return; const k=b.dataset.hm;
+  if(k==='ws') return showSystem('ws');
+  if(k==='ff') return showSystem('ff');
+  if(k==='cal') return showSystem('cal');
+  if(k==='crew') return openNames();
+  if(k==='kit') return hmOpenIn('ws','kcOpen');
+  if(k==='adm') return $('settings-btn').click();
+  if(k==='set') return hmAskBoss(hmSettings);
+  if(k==='role'){ if(hmBoss()){ _hmBossUntil=0; renderSwitcher(); hmRender(); } else hmAskBoss(()=>{ renderSwitcher(); hmRender(); }); }
+}
+// ---- 窓 ----
+let _hmOk=null, _hmPick='';
+function hmOv(html){ $('hm-box').className='hm-box'+(html.indexOf('hm-sh')>=0?' hm-set':''); $('hm-box').innerHTML=html; $('hm-ov').classList.add('show'); }
+function hmClose(){ $('hm-ov').classList.remove('show'); $('hm-box').innerHTML=''; _hmOk=null; }
+function hmAskBoss(ok){
+  if(hmBoss()) return ok();
+  _hmOk=ok;
+  hmOv(`<h3>店長だけが 変えられます</h3><p>ワークスケジュールの 管理者の合言葉を 入れてください</p><input class="hm-in" id="hm-pw" type="password" inputmode="numeric" autocomplete="off"><div class="hm-msg" id="hm-msg"></div><div class="hm-row2"><button class="hm-btn p" data-o="pw" type="button">ひらく</button><button class="hm-btn" data-o="x" type="button">やめる</button></div>`);
+  setTimeout(()=>{ try{ $('hm-pw').focus(); $('hm-pw').onkeydown=ev=>{ if(ev.key==='Enter'&&!ev.isComposing) hmCheckPw(); }; }catch(_){} },50);
+}
+async function hmCheckPwFile(pw){   // 照らし方は WS の checkAdminPw と 同じ（PBKDF2・同じ salt・200000回）。合言葉の値は どこにも 書かない
+  let hash='';
+  try{ const t=await (await fetch(SYSTEMS.ws.url+'?v='+BUILD,{cache:'no-store'})).text(); const mm=t.match(/const ADMIN_PW_HASH\s*=\s*'([0-9a-f]{64})'/); hash=mm?mm[1]:''; }catch(_){}
+  if(!hash) return 'nofile';
+  try{
+    const enc=new TextEncoder(), key=await crypto.subtle.importKey('raw',enc.encode(String(pw||'')),'PBKDF2',false,['deriveBits']);
+    const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode('ff-manager::admin-lock::v1'),iterations:200000,hash:'SHA-256'},key,256);
+    return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('')===hash;
+  }catch(e){ return null; }
+}
+async function hmCheckPw(){
+  const v=($('hm-pw')||{}).value||'', m=$('hm-msg'); if(!v){ m.textContent='合言葉を 入れてください'; return; }
+  m.textContent='照らしています…';
+  const w=frames.ws&&frames.ws.contentWindow; let r;
+  if(w&&w.__v2ready&&typeof w.checkAdminPw==='function') r=await w.checkAdminPw(v);
+  else r=await hmCheckPwFile(v);   // WS を開いていない（空の店・店なし）：WS の ファイルから 照らし方の印（ADMIN_PW_HASH）を 読んで、ここで 照らす（WS は 開かない＝何も作らない）
+  if(r==='nofile'){ m.textContent='照らすための 読み込みが できません（ネットを確かめてください）'; return; }
+  if(r===true){ _hmBossUntil=Date.now()+10*60*1000; const ok=_hmOk; hmClose(); if(ok) ok(); }
+  else m.textContent=(r===null)?'この画面では 照らせません（https で開いてください）':'合言葉が ちがいます';
+}
+function hmPickStore(id){
+  if(id===curStore) return;
+  const s=stores().find(x=>x.id===id); if(!s) return;
+  const fixed=ls('v2_store_fixed');
+  if(hmBoss()) return setCurrent(id);
+  if(fixed&&fixed!==id) return hmAskBoss(()=>setCurrent(id));   // この端末は 固定：店長の 合言葉
+  _hmPick=id;
+  hmOv(`<h3>${escapeHtml(s.name)} に 切り替えますか？</h3><p>この端末の画面が、すべて ${escapeHtml(s.name)} に 変わります。</p><div class="hm-row2"><button class="hm-btn p" data-o="pick" type="button">切り替える</button><button class="hm-btn" data-o="x" type="button">やめる</button></div>`);
+}
+// ---- 設定の画面（店長だけ）。書くのは meta の home_<店のid> と 店の名前だけ ----
+let _hmEdit=null;
+function hmSettings(){
+  const s=stores().find(x=>x.id===curStore)||{};
+  _hmEdit={name:s.name||'',icons:hmCfg().map(x=>({k:x.k,name:x.name,badge:x.badge,on:x.on?1:0,boss:x.boss?1:0}))};
+  hmSetDraw();
+}
+function hmSetDraw(){
+  const e=_hmEdit;
+  hmOv(`<h3>設定（${escapeHtml(e.name)}）</h3><p>ホームに出す アイコンの並び・名前・右上の数・出す／出さない。この店だけに 効きます。</p>
+  <label style="font-size:13px;font-weight:700;color:#5a6a80">店の名前</label><input class="hm-sname" data-f="sname" value="${escapeHtml(e.name)}">
+  <div class="hm-sh"><span>並び</span><span></span><span>名前</span><span>右上に出す数</span><span>出す</span></div>
+  ${e.icons.map((x,i)=>`<div class="hm-srow${x.on?'':' off'}"><span class="hm-mv"><button data-o="up" data-i="${i}" type="button">▲</button><button data-o="dn" data-i="${i}" type="button">▼</button></span><span class="hm-sti">${hmSvg(x.k,2.6)}</span>
+   <input type="text" data-f="name" data-i="${i}" value="${escapeHtml(x.name)}" maxlength="12"><select data-f="badge" data-i="${i}">${Object.keys(HM_BADGES).map(b=>`<option value="${b}"${b===x.badge?' selected':''}>${HM_BADGES[b]}</option>`).join('')}</select>
+   <button class="hm-sw${x.on?'':' o'}" data-o="tg" data-i="${i}" type="button" aria-label="出す" ${x.k==='set'?'disabled title="設定は 消せません"':''}></button></div>`).join('')}
+  <p>${'設定'}・${'管理'} は 店長のホームだけに 出ます。厨房の無い店は 厨房を「出さない」に。</p>
+  <div class="hm-foot"><div class="hm-msg" id="hm-msg"></div><div class="hm-row2"><button class="hm-btn p" data-o="save" type="button">保存する</button><button class="hm-btn" data-o="x" type="button">やめる</button></div></div>`);
+  $('hm-box').oninput=ev=>{ const t=ev.target, i=+t.dataset.i; if(t.dataset.f==='name') _hmEdit.icons[i].name=t.value; else if(t.dataset.f==='badge') _hmEdit.icons[i].badge=t.value; else if(t.dataset.f==='sname') _hmEdit.name=t.value; };
+  $('hm-box').onchange=$('hm-box').oninput;
+}
+function hmSave(){
+  if(!hmBoss()) return hmAskBoss(hmSave);
+  const e=_hmEdit, m=meta.getState(), icons=e.icons.map(x=>({k:x.k,name:(String(x.name||'').trim()||(HM_DEFAULT.find(d=>d.k===x.k)||{}).name||x.k).slice(0,12),badge:HM_BADGES[x.badge]?x.badge:'none',on:x.k==='set'?1:(x.on?1:0)}));
+  m['home_'+curStore]={icons,at:Date.now()};
+  const nm=String(e.name||'').trim(), list=Array.isArray(m.stores)?m.stores.slice():[], s=list.find(x=>x.id===curStore);
+  if(nm&&s&&s.name!==nm){ list[list.indexOf(s)]=Object.assign({},s,{name:nm}); m.stores=list; }
+  meta.setState(m); hmClose(); renderSwitcher(); hmRender();
+}
+function hmOvClick(ev){
+  if(ev.target===$('hm-ov')) return hmClose();
+  const b=ev.target.closest('[data-o]'); if(!b) return; const o=b.dataset.o, i=+b.dataset.i;
+  if(o==='x') return hmClose();
+  if(o==='pw') return hmCheckPw();
+  if(o==='pick'){ const id=_hmPick; hmClose(); return setCurrent(id); }
+  if(o==='save') return hmSave();
+  const a=_hmEdit&&_hmEdit.icons; if(!a) return;
+  if(o==='up'&&i>0){ [a[i-1],a[i]]=[a[i],a[i-1]]; hmSetDraw(); }
+  if(o==='dn'&&i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; hmSetDraw(); }
+  if(o==='tg'&&a[i].k!=='set'){ a[i].on=a[i].on?0:1; hmSetDraw(); }
+}
+
 // ---------- 店舗 ----------
 function stores(){ const m=meta?meta.getState():{}; return Array.isArray(m.stores)?m.stores:[]; }
 function saveStores(list){ const m=meta.getState(); m.stores=list; meta.setState(m); }
@@ -247,10 +475,13 @@ function renderSwitcher(){
   const list=stores();
   if(!curStore||!list.find(s=>s.id===curStore))curStore=(list[0]||{}).id||'';
   $('store-name').textContent=(list.find(s=>s.id===curStore)||{}).name||'(店舗なし)';
+  const boss=hmBoss(), fixed=ls('v2_store_fixed');
   $('store-menu').innerHTML=list.map(s=>`<div class="store-item ${s.id===curStore?'current':''}" data-id="${escapeHtml(s.id)}">
-      <span class="check">${s.id===curStore?'✓':''}</span><span style="flex:1">${escapeHtml(s.name)}</span>
-      <span class="ico-rename" data-id="${escapeHtml(s.id)}" style="opacity:.5;cursor:pointer;font-size:13px;padding:2px 6px">✏️</span></div>`).join('')+
-    `<div class="store-divider"></div><div class="store-action" id="add-store-btn"><span>＋</span>店舗を追加</div>`;
+      <span class="check">${s.id===curStore?'✓':''}</span><span style="flex:1">${escapeHtml(s.name)}${fixed===s.id?' <span class="lockd">（この端末に固定）</span>':''}</span>
+      ${boss?`<span class="ico-rename" data-id="${escapeHtml(s.id)}" style="opacity:.5;cursor:pointer;font-size:13px;padding:2px 6px">✏️</span>`:''}</div>`).join('')+
+    (boss?`<div class="store-divider"></div><div class="store-action" id="add-store-btn"><span>＋</span>店舗を追加</div><div class="store-action" id="fix-store-btn"><span>📌</span>${fixed?'この端末の 固定を やめる':'この端末を この店に 固定する'}</div>`
+         :`<div class="store-divider"></div><div class="store-action" id="boss-btn"><span>🔒</span>店長（名前の変更・店の追加）</div>`);
+  hmRender();
 }
 function setCurrent(id){ if(!stores().find(s=>s.id===id))return; curStore=id; ls('v2_store',id); renderSwitcher(); reloadFrames(); }
 function addStore(name){ const list=stores(); const id='store_'+Date.now(); list.push({id,name:(name||'').trim()||'新店舗',createdAt:Date.now()}); saveStores(list); setCurrent(id); }
@@ -263,6 +494,8 @@ function showSystem(sys){
   document.body.classList.toggle('ws-compact',true);   // 5.11：上の見出しを1行にたたむ。5.29（店長 10/26「上のタブをFF開いてる時もワークスケジュール開いてるときも同じにして」）：どのタブでも 同じ 1行（前は ワークスケジュールの 時だけ）
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.sys===sys));
   Object.values(frames).forEach(f=>f.classList.remove('active'));
+  const hb=$('home'); if(hb) hb.classList.toggle('on',sys==='home');   // ホーム：中の画面は 消さずに 隠すだけ
+  if(sys==='home'){ $('frame-loading').style.display='none'; hmRender(); hmEnsureWs(); return; }
   if(!curStore){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='店舗がまだありません。<br>左上の「▼」から「＋ 店舗を追加」を押すか、⚙️ →「いまのアプリのデータを写す」で写してください。'; return; }
   // FF がまだ空の店舗：いきなり「ようこそ」の初期設定を出さず、先に「データを写す」を案内する
   if((sys==='ff'||sys==='ws')&&!frames[sys]&&!ffStartOk[sys+'|'+curStore]){   // FF・ワークスケジュール共通
@@ -309,10 +542,10 @@ async function start(pass){
     old=old.filter(s=>s&&s.id).map(s=>({id:s.id,name:s.name||'店舗',createdAt:s.createdAt||0}));
     if(old.length)saveStores(old);
   }
-  curStore=ls('v2_store')||ls('current_store_id')||'';
+  curStore=ls('v2_store_fixed')||ls('v2_store')||ls('current_store_id')||'';   // この端末を 店に 固定した時は、開いた時も その店
   meta.onChange(()=>{ const before=curStore; renderSwitcher(); if(before!==curStore||!frames[activeSys])showSystem(activeSys); });
   renderSwitcher();
-  let init='ff'; try{ const q=new URLSearchParams(location.search).get('sys'); if(q&&SYSTEMS[q])init=q; }catch(_){}
+  let init='home'; try{ const q=new URLSearchParams(location.search).get('sys'); if(q&&(SYSTEMS[q]||q==='home'))init=q; }catch(_){}
   showSystem(init);
   renderStatus(store.status());
   if(!meta.synced){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='ネットにつながっていないため、まだ読み込めていません。<br>つながると自動で表示します。'; }
@@ -327,11 +560,12 @@ async function boot(){
 // ---------- 履歴・前の状態に戻す ----------
 const OPS={add:'追加',edit:'変更',del:'削除',lost:'負けた入力'};
 function fmtT(t){ const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; }
-function curColl(){ return store.open(activeSys+'~'+curStore,SYSTEMS[activeSys].spec); }
+function dataSys(){ return SYSTEMS[activeSys]?activeSys:'ws'; }   // ホーム（home）は 中の画面ではないので、履歴は ワークスケジュールを見る
+function curColl(){ const s=dataSys(); return store.open(s+'~'+curStore,SYSTEMS[s].spec); }
 let _hist=[];
 async function openHistory(){
   closeOverlay('settings-overlay'); openOverlay('history-overlay');
-  $('history-sub').textContent=`${(stores().find(s=>s.id===curStore)||{}).name||''}・${SYSTEMS[activeSys].label}　直近7日の変更（新しい順）`;
+  $('history-sub').textContent=`${(stores().find(s=>s.id===curStore)||{}).name||''}・${SYSTEMS[dataSys()].label}　直近7日の変更（新しい順）`;
   $('history-body').textContent='読み込み中…';
   try{
     const c=await curColl(); const [ch,snaps]=await Promise.all([c.changes(7),c.snapshots(30)]); _hist=ch;
@@ -376,15 +610,19 @@ async function doExport(){
 
 document.addEventListener('DOMContentLoaded',()=>{
   $('tabs').addEventListener('click',e=>{ const t=e.target.closest('.tab'); if(!t) return; if(t.dataset.sys==='names') return openNames(); showSystem(t.dataset.sys); });
+  $('home').addEventListener('click',hmClick); $('hm-ov').addEventListener('click',hmOvClick);
+  setInterval(()=>{ if(activeSys==='home'&&!document.hidden) hmRender(); },20000);
   const sw=$('store-switcher');
   $('store-trigger').addEventListener('click',e=>{ e.stopPropagation(); sw.classList.toggle('open'); });
   document.addEventListener('click',e=>{ if(!sw.contains(e.target))sw.classList.remove('open'); });
   $('store-menu').addEventListener('click',e=>{
     e.stopPropagation(); if(!meta)return;
     const rn=e.target.closest('.ico-rename');
-    if(rn){ const cur=stores().find(s=>s.id===rn.dataset.id); const nn=prompt('店舗名を変更',cur?cur.name:''); if(nn!==null&&nn.trim())renameStore(rn.dataset.id,nn); return; }
-    const item=e.target.closest('.store-item'); if(item){ setCurrent(item.dataset.id); sw.classList.remove('open'); return; }
-    if(e.target.closest('#add-store-btn')){ const n=prompt('追加する店舗名を入力'); if(n&&n.trim())addStore(n); sw.classList.remove('open'); }
+    if(rn){ if(!hmBoss())return; const cur=stores().find(s=>s.id===rn.dataset.id); const nn=prompt('店舗名を変更',cur?cur.name:''); if(nn!==null&&nn.trim())renameStore(rn.dataset.id,nn); return; }
+    const item=e.target.closest('.store-item'); if(item){ sw.classList.remove('open'); hmPickStore(item.dataset.id); return; }
+    if(e.target.closest('#add-store-btn')){ if(!hmBoss())return; const n=prompt('追加する店舗名を入力'); if(n&&n.trim())addStore(n); sw.classList.remove('open'); return; }
+    if(e.target.closest('#fix-store-btn')){ if(!hmBoss())return; ls('v2_store_fixed',ls('v2_store_fixed')?null:curStore); renderSwitcher(); return; }
+    if(e.target.closest('#boss-btn')){ sw.classList.remove('open'); hmAskBoss(()=>{ renderSwitcher(); sw.classList.add('open'); }); return; }
   });
   const openSettings=()=>{ $('devname-desc').textContent='履歴に「だれの端末か」として出ます（いま：'+deviceLabel()+'）'; $('settings-status').textContent=''; openOverlay('settings-overlay'); };
   $('sync').addEventListener('click',openSettings); $('settings-btn').addEventListener('click',openSettings);
