@@ -166,6 +166,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
   <button class="tab active" data-sys="ff"><span class="emoji">🍗</span>FF管理</button>
   <button class="tab" data-sys="ws"><span class="emoji">📋</span>ワークスケジュール</button>
   <button class="tab" data-sys="cal"><span class="emoji">📅</span>カレンダー</button>
+  <button class="tab" data-sys="names"><span class="emoji">👤</span>クルーの名前</button><!-- 5.27：ワークスケジュールの 画面の「名前の 窓」を 開く（合言葉つき） -->
   <span class="tab-note">ほかの画面は、順番に入ります</span>
 </nav>
 
@@ -227,8 +228,16 @@ window.V2APP={
   open:sys=>store.open(sys+'~'+curStore,SYSTEMS[sys].spec),
   store:()=>store,
   stores:()=>stores(),
-  openStore:(sys,id)=>store.open(sys+'~'+id,SYSTEMS[sys].spec)
+  openStore:(sys,id)=>store.open(sys+'~'+id,SYSTEMS[sys].spec),
+  namesDone:()=>{ if(activeSys==='ws') markTab('ws'); }   // 5.27：名前の 窓を 閉じた
 };
+// 5.27：👤 クルーの名前（店長 10/26）。別の 画面は 作らず、ワークスケジュールの 画面の 中の 窓（合言葉つき）を 開く。名前の 保存先は ワークスケジュールの 従業員の 一覧
+function markTab(sys){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.sys===sys)); }
+function openNames(){
+  showSystem('ws'); markTab('names'); let n=0;
+  const go=()=>{ const w=frames.ws&&frames.ws.contentWindow; try{ if(w&&w.__v2ready&&typeof w.amNamesOpen==='function'){ w.amNamesOpen(); return; } }catch(_){} if(++n<240&&activeSys==='ws') setTimeout(go,250); };
+  go();
+}
 
 // ---------- 店舗 ----------
 function stores(){ const m=meta?meta.getState():{}; return Array.isArray(m.stores)?m.stores:[]; }
@@ -365,7 +374,7 @@ async function doExport(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  $('tabs').addEventListener('click',e=>{ const t=e.target.closest('.tab'); if(t)showSystem(t.dataset.sys); });
+  $('tabs').addEventListener('click',e=>{ const t=e.target.closest('.tab'); if(!t) return; if(t.dataset.sys==='names') return openNames(); showSystem(t.dataset.sys); });
   const sw=$('store-switcher');
   $('store-trigger').addEventListener('click',e=>{ e.stopPropagation(); sw.classList.toggle('open'); });
   document.addEventListener('click',e=>{ if(!sw.contains(e.target))sw.classList.remove('open'); });
