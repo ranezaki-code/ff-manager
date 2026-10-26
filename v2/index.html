@@ -201,6 +201,10 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
 .hm-sh{display:grid;grid-template-columns:92px 52px 1fr 190px 60px;gap:12px;padding:0 12px;font-size:13px;color:#5a6a80;font-weight:700}
 @media (max-width:620px){ .hm-srow,.hm-sh{grid-template-columns:92px 1fr 60px}.hm-sti,.hm-srow select{display:none}.hm-sh span:nth-child(2),.hm-sh span:nth-child(4){display:none} }
 .store-item .lockd{font-size:12px;color:#5a6a80}
+@media (min-width:521px) and (max-width:900px){ body.ws-compact .tab{padding:0 8px;font-size:12px;gap:4px} body.ws-compact .tab .emoji{font-size:14px} body.ws-compact .store-switcher{max-width:190px} body.ws-compact .sync span.txt{display:none} body.ws-compact .sync{padding:0 8px;min-width:40px;justify-content:center}
+  body.ws-compact .sync[data-short]:not(.has):not(.err)::after{display:none}
+}   /* ホーム（10/27）：744〜810 幅で「👤 名前」が 保存の印の下に 隠れない */
+.hm-sw::before{content:"";position:absolute;inset:-6px -2px}   /* 「出す」の切りかえ：見た目は そのまま、押せる所を 44px に */
 </style>
 </head>
 <body>
@@ -335,6 +339,11 @@ function hmWs(){   // ワークスケジュールの 中の窓を 読むだけ�
     // つぎ：おくれが あれば WS の「先にやる」（amFireTop）。無ければ 列の「もうすぐ」の1行目。列が無い見かた（厨房・新しい画面）でも うそを言わない
     const clean=s=>String(s||'').replace(/^[\s⏳▶⏸]+/,'').trim();
     let next=null;
+    // WS 5.31：新しい画面の時は「急ぐ順」(amNxQueue) から。諦めた・取りかかり中・困った は WS が外している（WS の 画面と 同じ 数・同じ 先頭）
+    if(typeof w.amNxOn==='function'&&w.amNxOn()&&typeof w.amNxQueue==='function'){
+      const q=w.amNxQueue(now).filter(x=>!x.lock), f=q.filter(x=>x.k==='fire').length, t=q.find(x=>x.k==='fire'||x.k==='soon');
+      return {done,total,late:f,next:t?{name:clean(t.name),late:t.k==='fire',soon:t.k==='soon'}:null};
+    }
     if(late&&typeof w.amFireTop==='function'){ const f=w.amFireTop(now); if(f&&f.label) next={name:clean(f.label),late:true}; }
     if(!next){ const r=w.document.querySelector('#amf-col .amf-r.soon'), nm=r&&r.querySelector('.am-wr-n'); if(nm) next={name:clean(nm.textContent),soon:true}; }
     return {done,total,late,next};
