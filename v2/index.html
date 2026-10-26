@@ -260,7 +260,7 @@ function renameStore(id,n){ const list=stores(); const s=list.find(x=>x.id===id)
 function sysUrl(sys){return SYSTEMS[sys].url+'?embedded=1&v='+BUILD;}
 function showSystem(sys){
   activeSys=sys;
-  document.body.classList.toggle('ws-compact',sys==='ws');   // 5.11：ワークスケジュールの時だけ、上の見出しを1行にたたむ
+  document.body.classList.toggle('ws-compact',true);   // 5.11：上の見出しを1行にたたむ。5.29（店長 10/26「上のタブをFF開いてる時もワークスケジュール開いてるときも同じにして」）：どのタブでも 同じ 1行（前は ワークスケジュールの 時だけ）
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.sys===sys));
   Object.values(frames).forEach(f=>f.classList.remove('active'));
   if(!curStore){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='店舗がまだありません。<br>左上の「▼」から「＋ 店舗を追加」を押すか、⚙️ →「いまのアプリのデータを写す」で写してください。'; return; }

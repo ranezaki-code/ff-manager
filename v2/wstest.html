@@ -435,7 +435,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         mine[1]==='見本 花子'&&theirs[1]==='見本 太郎'&&todayN(A)===t0+1&&todayN(B)===t0+1&&lb.length===la.length-1&&lb[lb.length-1][0]===theirs[0]&&!lb.some(x=>x[0]===mine[0])&&n(A,wid)===a1-1&&n(B,wid)===a1-1&&same(),`きょうの記録 ${t0+2} → ${todayN(B)} 件・直近 ${a1} → ${n(B,wid)} 件`); }
     { // 売場以外の作業を足す → 売場の番号・🔥・赤い数字は変わらない
       const badge=d=>d.ev(`(updateMapBadge(), (b=>b.style.display==='none'?'':b.textContent)(document.getElementById('tab-map-badge')))`), fs=d=>d.ev(`JSON.stringify(amFloorWorks().map(w=>{ const s=amStatus(w); return [w.id,s.st,s.lv,s.deadline||0]; }))`);
-      const mapHtml=d=>d.ev(`(renderMapView(), (m=>m?m.innerHTML:'')(document.getElementById('amf-map'))+'|'+(c=>c?c.innerHTML:'')(document.querySelector('#amf-col .amf-up .amf-sb')||document.getElementById('amf-col')))`);   // 5.9：売場以外の作業を足すと 右の列が 上下に分かれる。比べるのは 地図と、上の列（今までの行）だけ
+      const mapHtml=d=>d.ev(`(renderMapView(), (m=>m?m.innerHTML:'')(document.getElementById('amf-map'))+'|'+(c=>c?c.innerHTML.replace(/<div class="amf-rule"[^]*?<\\/span><\\/div>/,''):'')(document.querySelector('#amf-col .amf-up .amf-sb')||document.getElementById('amf-col')))`);   // 5.29：列の いちばん 下の 決まりの 文は 比べない（上下に 分かれると 下の 枠の 外に なる）   // 5.9：売場以外の作業を足すと 右の列が 上下に分かれる。比べるのは 地図と、上の列（今までの行）だけ
       await sync(); const o0=ord(A), b0=badge(A), f0=fs(A), h0=mapHtml(A), bar0=A.ev('amOffBarHtml(Date.now())');
       A.ev(`amWorksEdit().push({id:'w_tt1',place:'off',name:'試験の時刻の作業',icon:'⏰',kind:'点検',zone:'blue',sub:'',sch:[0,0,0,0],days:null,times:(()=>{ const a=[]; for(let h=0;h<24;h++) a.push(String(h).padStart(2,'0')+':00'); return a; })(),lead:60,grace:60,vals:[{k:'a',label:'試験の数字',unit:'℃',max:10}],items:[]}); amSave(); renderMapView();`); await sync();
       const inv=ord(A)===o0&&ord(B)===o0&&badge(A)===b0&&badge(B)===b0&&fs(A)===f0&&fs(B)===f0&&mapHtml(A)===h0&&numOf(A,'w_tt1')===undefined&&B.ev('amOffWorks().length')===1&&bar0===''&&/ao-xbar/.test(B.ev('amOffBarHtml(Date.now())'));
@@ -1487,11 +1487,11 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.28'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.29'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
-      const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*s).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
-      check('96b','作業のあるマスの字（5.11）：画面にかいた字は ぜんぶ 画面で 11px 以上（小さい物は 札＋細い線に出す）・作業のあるマスで 11px 未満の字は 0',
-        t.n>0&&t.min>=11&&t.wkSmall===0&&t.wkN>0,`字 ${t.n}個・いちばん小さい ${t.min}px・作業のあるマス ${t.wkN}（11px未満 ${t.wkSmall}・置けなかった札 ${t.lost}）・縮尺 ${t.scale}`);
+      const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*(t.getScreenCTM()?Math.hypot(t.getScreenCTM().a,t.getScreenCTM().b):s)).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<9.9).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
+      check('96b','作業のあるマスの字（5.11・5.29）：画面にかいた字は ぜんぶ 読める 下限（10px）以上・地図 全体で 1つの 大きさ（5.29：札と 線は 出さない。入らない マスは 字を 出さない）',
+        t.wkSmall===0&&t.wkN>0&&(t.n>0?t.min>=9.9:t.scale<0.15), /* 5.29：地図が とても 小さい（1単位 0.15px 未満）枠では 下限の 字が どの マスにも 入らない＝字を 出さない（外の 札は 出さない） */`字 ${t.n}個・いちばん小さい ${t.min}px・作業のあるマス ${t.wkN}（11px未満 ${t.wkSmall}・置けなかった札 ${t.lost}）・縮尺 ${t.scale}`);
       /* 入口（v2/index.html）の読み取りだけ（入口そのものは 開かない＝本物の保存先に つながない）。FF管理・カレンダーの時の上の形は 1字も変えない＝「<style> の中で 5.11 のたたみの部分を除いた物」が 5.10 の物と同じ */
       let sh=null; try{ const x=new XMLHttpRequest(); x.open('GET','index.html?t='+Date.now(),false); x.send(); sh=(x.status===200||x.status===0)?x.responseText:null; }catch(e){ sh=null; }
       let oks=false, d96c='入口の文字を読めなかった';
@@ -1499,11 +1499,11 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const txt=sh.replace(/\r\n/g,'\n'), m=txt.match(/<style>\n([\s\S]*?)\n<\/style>\n<script src="https:\/\/www\.gstatic/); const css=m?m[1]:'', at=css.indexOf('/* 5.11：ワークスケジュールを開いている時だけ');
         const L5271='@media (max-width:420px){ nav.tabs{gap:0;padding:0 2px} .tab{padding:11px 5px;font-size:12px;gap:3px;letter-spacing:-.02em} .tab .emoji{font-size:14px} }   /* 5.27.1：390 幅でも 4つの タブ（👤 名前 まで）が 横に 入る */', has5271=css.indexOf('\n'+L5271+'\n')>=0;   // 5.27.1：420px 以下の タブを 詰める 1行だけは 足した（テス △3）。それを 抜いて 5.10 と 1字も 同じかを 見る
         const base=(at>0?css.slice(0,at-1):css).replace('\n'+L5271,''), blk=at>0?css.slice(at):'', sels=blk.split('\n').filter(l=>/\{/.test(l)&&!/^\s*@media|^\s*\/\*/.test(l)).map(l=>l.trim()), allWs=sels.length>0&&sels.every(l=>/^body\.ws-compact/.test(l));
-        const tog=/function showSystem\(sys\)\{\n  activeSys=sys;\n  document\.body\.classList\.toggle\('ws-compact',sys==='ws'\);/.test(txt), cnt=(txt.match(/ws-compact/g)||[]).length;
+        const tog=/function showSystem\(sys\)\{\n  activeSys=sys;\n  document\.body\.classList\.toggle\('ws-compact',true\);/.test(txt), cnt=(txt.match(/ws-compact/g)||[]).length;   // 5.29（店長 10/26）：どのタブでも 同じ 1行（前は sys==='ws' の 時だけ）
         oks=at>0&&has5271&&dj(base)===227124069&&allWs&&tog&&!/classList\.add\('ws-compact'\)/.test(txt);
         d96c=`たたむ部分を除いた <style> の並び ${dj(base)}（5.10 は 227124069）・たたむ規則 ${sels.length}本（ぜんぶ body.ws-compact から）・showSystem の切りかえ ${tog}・ws-compact の字 ${cnt}か所`;
       }
-      check('96c','入口の上の見出し（5.11）：ワークスケジュールを開いている時だけ 1行にたたむ（body.ws-compact の規則だけ）。FF管理・カレンダーを開いた時は 印が付かず、<style> の ほかの部分は 5.10 と 1字も同じ',oks,d96c);
+      check('96c','入口の上の見出し（5.11・5.29）：どのタブ（FF管理・ワークスケジュール・カレンダー）でも 同じ 1行に たたむ（body.ws-compact の規則だけ）。<style> の ほかの部分は 5.10 と 1字も同じ',oks,d96c);
     }
     /* ---- 5.11 の仕上げ（点検 r3 の直し）。2台の試験とは別に、作り物のデータだけの別の枠を 1つずつ 開いて確かめる（ネット上の保存先は 別の入れ物＝2台の中身・未送信には 関わらない）。
          P1 スマホで「作業を 見る」→「地図を 見る」に替えた直後の字／P6 字が マスからはみ出さない（1024×768）／P2 管理者モードで 右上の2つが タブに かぶらない／P3 入口の短い言い方 ---- */
@@ -1520,15 +1520,15 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       P.ev(`window.__rs=0; window.addEventListener('resize',()=>{ window.__rs++; }); setView('map')`); await sleep(500);
       const p1pre=JSON.parse(P.ev(`JSON.stringify({open:document.getElementById('amf-wrap').classList.contains('amf-open'), s:(window.__m5&&window.__m5.S.s)||0})`));
       P.ev(`document.getElementById('amf-tab').click()`); await sleep(300);
-      const p1=JSON.parse(P.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), ctm=svg&&svg.getScreenCTM(), sc=ctm?ctm.a:0, tx=svg?[].slice.call(svg.querySelectorAll('text')):[], px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*sc).filter(Boolean).sort((a,b)=>a-b), z=document.querySelector('.am-zoombtn'), cells=(window.__m5&&window.__m5.info().cells)||[];
-        return JSON.stringify({open:document.getElementById('amf-wrap').classList.contains('amf-open'), n:px.length, min:px.length?Math.round(px[0]*100)/100:0, sc:sc, s:window.__m5?window.__m5.S.s:0, rs:window.__rs, zoomHidden:!z||getComputedStyle(z).display==='none', wkSmall:cells.filter(x=>x.wk&&x.fs>0&&x.fs<11).length, lost:cells.filter(x=>x.mode==='lost').length}); })()`));
+      const p1=JSON.parse(P.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), ctm=svg&&svg.getScreenCTM(), sc=ctm?ctm.a:0, tx=svg?[].slice.call(svg.querySelectorAll('text')):[], px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*(t.getScreenCTM()?Math.hypot(t.getScreenCTM().a,t.getScreenCTM().b):sc)).filter(Boolean).sort((a,b)=>a-b), z=document.querySelector('.am-zoombtn'), cells=(window.__m5&&window.__m5.info().cells)||[];
+        return JSON.stringify({open:document.getElementById('amf-wrap').classList.contains('amf-open'), n:px.length, min:px.length?Math.round(px[0]*100)/100:0, sc:sc, s:window.__m5?window.__m5.S.s:0, rs:window.__rs, zoomHidden:!z||getComputedStyle(z).display==='none', wkSmall:cells.filter(x=>x.wk&&x.fs>0&&x.fs<8.9).length, lost:cells.filter(x=>x.mode==='lost').length}); })()`));
       check('96d','スマホ幅（390）で「作業を 見る」の画面から「地図を 見る」に替えた直後（大きさを変える合図は 送らない）：地図の字は ぜんぶ 画面で 11px 以上・作業のあるマスで 11px 未満は 0・「拡大する」は出ない（点検 r3 の P1。前は 3.5〜4.4px で、次の描き直し（最大30秒後）まで 直らなかった）',
-        p1pre.open===true&&p1.open===false&&p1.n>20&&p1.min>=11&&p1.wkSmall===0&&p1.rs===0&&p1.zoomHidden&&p1.s>0,
+        p1pre.open===true&&p1.open===false&&p1.n===0&&p1.rs===0&&p1.zoomHidden&&p1.s>0, /* 5.29（店長 10/26「スマホでは、マスには名前なしで大丈夫」）：幅 420 以下は 名前を 出さない */
         `前：列が出ている=${p1pre.open}・縮尺 ${p1pre.s}｜直後：地図が出ている=${!p1.open}・字 ${p1.n}個・いちばん小さい ${p1.min}px・縮尺 ${(+p1.sc).toFixed(3)}・大きさを変える合図 ${p1.rs}回・置けなかった札 ${p1.lost}`);
       /* 列に戻して もう1回 地図に替えても 同じ（描き直しで 字が 小さくならない） */
       P.ev(`document.getElementById('amf-tab').click()`); await sleep(250); P.ev(`document.getElementById('amf-tab').click()`); await sleep(300);
-      const p1b=JSON.parse(P.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), sc=svg?svg.getScreenCTM().a:0, px=[].slice.call(svg?svg.querySelectorAll('text'):[]).map(t=>(parseFloat(t.getAttribute('font-size'))||0)*sc).filter(Boolean).sort((a,b)=>a-b); return JSON.stringify({open:document.getElementById('amf-wrap').classList.contains('amf-open'), min:px.length?Math.round(px[0]*100)/100:0, rs:window.__rs}); })()`));
-      check('96d2','（96d の続き）列に戻して もう1回 地図に替えても、字は 11px 以上のまま・大きさを変える合図は 0回',p1b.open===false&&p1b.min>=11&&p1b.rs===0,`字の最小 ${p1b.min}px・合図 ${p1b.rs}回`);
+      const p1b=JSON.parse(P.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), sc=svg?svg.getScreenCTM().a:0, px=[].slice.call(svg?svg.querySelectorAll('text'):[]).map(t=>(parseFloat(t.getAttribute('font-size'))||0)*(t.getScreenCTM()?Math.hypot(t.getScreenCTM().a,t.getScreenCTM().b):sc)).filter(Boolean).sort((a,b)=>a-b); return JSON.stringify({open:document.getElementById('amf-wrap').classList.contains('amf-open'), min:px.length?Math.round(px[0]*100)/100:0, rs:window.__rs}); })()`));
+      check('96d2','（96d の続き）列に戻して もう1回 地図に替えても、名前は 出ないまま（5.29：幅 420 以下）・大きさを変える合図は 0回',p1b.open===false&&p1b.min===0&&p1b.rs===0,`字の最小 ${p1b.min}px・合図 ${p1b.rs}回`);
       P.close();
       /* P6：幅 1024×768 の枠。字（札に出した字は 札）が 自分の枠から 1.5px 以上 はみ出す物は 0 */
       const Q=await mkSolo(1024,768);
@@ -1538,7 +1538,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         out.sort((a,b)=>b[1]-a[1]); const inf=(window.__m5&&window.__m5.info().cells)||[];
         return JSON.stringify({n:out.length, over:out.filter(x=>x[1]>1.5).map(x=>x[0]+':'+x[1].toFixed(1)), worst:out.slice(0,2).map(x=>x[0]+':'+x[1].toFixed(1)), lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96e','地図の字が マスから はみ出さない（点検 r3 の P6）：幅 1024×768 で、字が 自分の枠（マス・札）から 1.5px 以上 はみ出す物は 0（前は「ATM」が 約3px）・置けなかった札は 0',
-        p6.n>30&&p6.over.length===0&&p6.lost===0,`字 ${p6.n}個・はみ出し 1.5px 以上 ${p6.over.length}個 ${p6.over.join(',')}・いちばん大きい ${p6.worst.join(' ')}・置けなかった札 ${p6.lost}`);
+        p6.n>30&&p6.over.length===0&&p6.lost<=10, /* 5.29：入らない マス（字を 出さない）は 1024×768 で 7（コピー機×2・Loppi など）。10 まで */`字 ${p6.n}個・はみ出し 1.5px 以上 ${p6.over.length}個 ${p6.over.join(',')}・いちばん大きい ${p6.worst.join(' ')}・置けなかった札 ${p6.lost}`);
       /* P2：同じ 枠（高さ 768）の幅を 変えながら、管理者モード・従業員で、右上の 2つ（管理者／同期）が タブに かぶらないか。タブを いちばん右まで送っても かぶらない・最後の タブが 右上の 2つの手前まで 出る・右上の 管理者ボタンが 押せる（上に別の物が かぶっていない） */
       const hdrJs=`(()=>{ const g=id=>document.getElementById(id), tabs=g('view-tabs'), tr=tabs.getBoundingClientRect(), hs=['admin-toggle','sync-indicator'].map(g).filter(e=>{ const r=e.getBoundingClientRect(); return r.width>0&&r.height>0; });
         const vb=[].slice.call(document.querySelectorAll('#view-tabs button')).filter(b=>{ const r=b.getBoundingClientRect(); return r.width>0&&r.height>0; });
@@ -1612,7 +1612,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.28',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.29',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -1645,14 +1645,14 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const KU=await mkSolo(768,1024);
       KU.ev(`setView('map')`); await sleep(700);
       const ku=JSON.parse(KU.ev(`(()=>{ const svg=document.querySelector('#map-view svg.am-svg'), sc=svg.getScreenCTM().a, gs=[].slice.call(svg.querySelectorAll('g.am-cell')), tx=[].slice.call(svg.querySelectorAll('text'));
-        const w=tx.map(t=>+getComputedStyle(t).fontWeight), px=tx.map(t=>parseFloat(t.getAttribute('font-size'))*sc), outs=[], cells=[], tags=[];
+        const w=tx.map(t=>+getComputedStyle(t).fontWeight), px=tx.map(t=>{ const m=t.getScreenCTM(); return parseFloat(t.getAttribute('font-size'))*(m?Math.hypot(m.a,m.b):sc); }), outs=[], cells=[], tags=[];
         gs.forEach(g=>{ const rc=g.querySelector('rect:not([fill-opacity="0.01"])'); if(!rc) return; const cr=rc.getBoundingClientRect(), ln=g.querySelector('line'), rs=g.querySelectorAll('rect'); cells.push({g:g,x:cr.left,y:cr.top,w:cr.width,h:cr.height});
           [].slice.call(g.querySelectorAll('text')).forEach(t=>{ const r=t.getBoundingClientRect(); if(ln){ const tr=rs[rs.length-1].getBoundingClientRect(); tags.push({g:g,t:t.textContent,x:tr.left,y:tr.top,w:tr.width,h:tr.height}); } else if(r.left<cr.left-.6||r.right>cr.right+.6||r.top<cr.top-.6||r.bottom>cr.bottom+.6) outs.push(t.textContent); }); });
         let tc=0, tt=0; tags.forEach((a,i)=>{ cells.forEach(c=>{ if(c.g!==a.g&&a.x<c.x+c.w-.8&&c.x<a.x+a.w-.8&&a.y<c.y+c.h-.8&&c.y<a.y+a.h-.8) tc++; }); tags.slice(i+1).forEach(b=>{ if(a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h) tt++; }); });
         const fr=svg.querySelector('g.am-cell > rect[fill="#fdeceb"]'), sw=fr?parseFloat(fr.getAttribute('stroke-width'))*sc:0, pins=[].slice.call(svg.querySelectorAll('g.am-cell')).filter(g=>/^床$/.test((g.textContent||'').trim())).map(g=>parseFloat(g.querySelector('text').getAttribute('font-size'))*sc);
         return JSON.stringify({n:tx.length, wmax:Math.max.apply(null,w), pmin:Math.min.apply(null,px), pmax:Math.max.apply(null,px), outs:outs, tags:tags.length, tc:tc, tt:tt, sw:sw, pins:pins, url:svg.querySelectorAll('[fill="url(#am-fire)"]').length}); })()`));
-      check('96s2','売場マップの字（5.16）：字の太さは 600 まで（前は 800）・大きさは 11px〜12px（前は 11〜14）・マスの中の字は マスからはみ出さない・外の札は マスにも ほかの札にも かぶらない・赤い斜線は使わない・おくれの枠は 2px 以下・「床」は 11.5px 以下',
-        ku.n>20&&ku.wmax<=600&&ku.pmin>=11&&ku.pmax<=12.1&&ku.outs.length===0&&ku.tc===0&&ku.tt===0&&ku.url===0&&ku.sw>0&&ku.sw<=2&&ku.pins.every(p=>p<=11.5),
+      check('96s2','売場マップの字（5.16・5.29）：字の太さは 600 まで・大きさは 地図 全体で 1つ（5.29）で 読める 下限 10px 以上・マスの中の字は マスからはみ出さない・外の札は 出さない（5.29）・赤い斜線は使わない・おくれの枠は 2px 以下',
+        ku.n>20&&ku.wmax<=600&&ku.pmin>=9.9&&ku.pmax-ku.pmin<0.1&&ku.outs.length===0&&ku.tags===0&&ku.url===0&&ku.sw>0&&ku.sw<=2,
         `字 ${ku.n}個・太さ 最大 ${ku.wmax}・大きさ ${Math.round(ku.pmin*10)/10}〜${Math.round(ku.pmax*10)/10}px・はみ出し ${ku.outs.join('、')||'なし'}・外の札 ${ku.tags}（マスに かぶる ${ku.tc}・札どうし ${ku.tt}）・斜線 ${ku.url}・おくれの枠 ${Math.round(ku.sw*10)/10}px・床 ${ku.pins.map(p=>Math.round(p*10)/10).join('/')}px`);
       /* 96s3：引き出し線（マスのはしから 外の札まで）が ほかの札・字・ほかの線に ぶつからない。広い画面は 0。スマホは 置ける場所が少ないので「ゆるめて 置く」（5.15 より 大きく へる）。
          測る関数は 枠の中で動かす（作り物のデータだけ。画面の絵は 変えない） */
@@ -1681,8 +1681,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
          数は 置き方の中の数（引き出し線が ほかの線・札・マスの中の字と ぶつかる数＝線の長さの見積りで決まる物。字体に よらない）。画面で測った数（字体で変わる）は 参考に 出すだけ */
       const fewer=p=>!!(p&&p.now&&p.blind)&&(p.blind.cross>0?p.now.cross<p.blind.cross:p.now.cross===0)&&p.now.lost<=p.blind.lost;
       const prS=p=>p&&p.now?`ぶつかり ${p.now.cross}（5.15 の置き方 ${p.blind.cross}）・置けない ${p.now.lost}（5.15 の置き方 ${p.blind.lost}）`:'（試験の窓が無い）';
-      check('96s3','地図の引き出し線（5.16）：外の札につなぐ細い線が ほかの札・字・ほかの線に ぶつからない。1100×900＝0本・置けない 0／幅390・360＝同じ画面の「線を見ない 5.15 の置き方」より ぶつかりが 少ない・置けない札は 5.15 の置き方より 多くない・390 は 置けない 0（決まった本数では 端末や字体で 変わるので、比べで見る）',
-        kl1.tags>5&&!!pr1&&pr1.now.cross===0&&pr1.now.lost===0&&kl2.tags>10&&fewer(pr2)&&pr2.now.lost===0&&kl3.tags>10&&fewer(pr3),
+      check('96s3','地図の引き出し線（5.16 → 5.29 で やめた）：札も 線も 0（1100×900・390・360）。前は：外の札につなぐ細い線が ほかの札・字・ほかの線に ぶつからない。1100×900＝0本・置けない 0／幅390・360＝同じ画面の「線を見ない 5.15 の置き方」より ぶつかりが 少ない・置けない札は 5.15 の置き方より 多くない・390 は 置けない 0（決まった本数では 端末や字体で 変わるので、比べで見る）',
+        kl1.tags===0&&kl2.tags===0&&kl3.tags===0&&kl1.tot===0&&kl2.tot===0&&kl3.tot===0,   // 5.29（店長 10/26「マスの外には表示させたくない」）：札と 線は 出さない
         `1100：札 ${kl1.tags}・${prS(pr1)}・画面で測った ぶつかり ${kl1.tot}｜390：札 ${kl2.tags}・${prS(pr2)}・画面で測った ${kl2.tot}｜360：札 ${kl3.tags}・${prS(pr3)}・画面で測った ${kl3.tot}`);
       /* 96s4：縦に並べた字は 言葉の途中で 切らない（登録に「ゴミ箱／レンジ」のように 改行がある物だけが 2列。自動の分け方は 横だけ）。外わくの黒い太線は 灰色。地図を描いても 保存する物は 無い（state が変わらない） */
       const vJs='('+function(){
@@ -1690,7 +1690,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         [].slice.call(svg.querySelectorAll('g.am-cell')).forEach(function(g){ var vs=[].slice.call(g.querySelectorAll('text')).filter(function(t){ return t.getAttribute('writing-mode')==='vertical-rl'&&!g.querySelector('line'); }).map(function(t){ return t.textContent; }); if(vs.length>1) out.push(vs.join('\n')); });
         var allowed=[]; amMap().cells.forEach(function(c){ if(/\n/.test(c.label||'')) allowed.push(String(c.label)); });
         ['ゴミ箱\nレンジ','シーズン\nエンド①','コーヒー\nマシン','冷蔵\nケース','冷凍\nアイス②'].forEach(function(a){ allowed.push(a); });   // 名前を短くした物（登録の文字ではなく 画面の ALT）も 手で区切った物
-        var bad=out.filter(function(o){ return allowed.indexOf(o)<0; });
+        var bad=out.filter(function(o){ if(allowed.indexOf(o)>=0) return false; var j=o.replace(/\n/g,''); return !amMap().cells.some(function(c){ return String(c.label||'').replace(/\n/g,'')===j; })&&!Object.keys(AM_LBL_ALT).some(function(k){ return AM_LBL_ALT[k].some(function(a){ return a.replace(/\n/g,'')===j; }); }); });   // 5.29：言葉の 切れ目で 縦に 分けた 物（字を 落とさない）も よい
         var s0=JSON.stringify(state), ls0=0; try{ ls0=localStorage.length; }catch(e){}
         renderMapView(); var s1=JSON.stringify(state);
         return JSON.stringify({groups:out, bad:bad, black:!!svg.querySelector('rect[stroke="#111827"]'), gray:!!document.querySelector('#map-view svg.am-svg rect[stroke="#64748b"]'), same:s0===s1});
@@ -1710,7 +1710,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         for(i=0;i<7;i++){ S.layK='x'; var t0=performance.now(); renderMapView(); full.push(performance.now()-t0); }
         for(i=0;i<7;i++){ var t1=performance.now(); renderMapView(); cached.push(performance.now()-t1); }
         var inf=window.__m5.info().cells||[], pr=window.__m5.probe?window.__m5.probe():null;
-        return JSON.stringify({w:innerWidth,h:innerHeight,full:mn(full),cached:mn(cached),ratio:Math.round(mn(full)/Math.max(mn(cached),0.5)*10)/10,tags:inf.filter(function(x){ return x.mode==='tag'||x.mode==='lost'; }).length,lost:inf.filter(function(x){ return x.mode==='lost'; }).length,cross:pr?pr.now.cross:-1,lostOld:pr?pr.blind.lost:-1});
+        return JSON.stringify({w:innerWidth,h:innerHeight,full:mn(full),cached:mn(cached),ratio:Math.round(mn(full)/Math.max(mn(cached),0.5)*10)/10,tags:inf.filter(function(x){ return x.mode==='tag'; }).length,lost:inf.filter(function(x){ return x.mode==='lost'; }).length,cross:pr?pr.now.cross:-1,lostOld:pr?pr.blind.lost:-1});
       }.toString()+')()';
       const KP1=await mkSolo(390,844);
       KP1.ev(`setView('map')`); await sleep(500); KP1.ev(`document.getElementById('amf-tab').click()`); await sleep(600);
@@ -1719,7 +1719,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       KP2.ev(`setView('map')`); await sleep(500); KP2.ev(`document.getElementById('amf-tab').click()`); await sleep(600);
       const kp2=JSON.parse(KP2.ev(perfJs)); KP2.close();
       check('96s6','地図の置き方の重さ（5.16 の直し）：幅 390×844 では 置き方を作り直す描き直しは「描き直しだけ」の 8倍 まで（直す前の 5.16 は 20倍・直した後は 4倍・5.15 は 2倍）・幅 320×640（置けない札が 出る いちばん重い所）は 16倍 まで（直す前は 60倍・直した後は 8倍・5.15 は 8倍）・置けない札は 同じ画面の「線を見ない 5.15 の置き方」より 多くない（決まった数は 端末で変わる＝テスの PC では 320 幅で 10）・札は 10 以上',
-        kp1.tags>=10&&kp1.lostOld>=0&&kp1.lost<=kp1.lostOld&&kp1.ratio<=8&&kp2.tags>=10&&kp2.lostOld>=0&&kp2.lost<=kp2.lostOld&&kp2.ratio<=16,
+        kp1.tags===0&&kp1.ratio<=8&&kp2.tags===0&&kp2.ratio<=16,   // 5.29：札は 0（出さない）
         `390：作り直し ${kp1.full}ms／描き直しだけ ${kp1.cached}ms＝${kp1.ratio}倍・札 ${kp1.tags}・置けない ${kp1.lost}（5.15 の置き方 ${kp1.lostOld}）・ぶつかり ${kp1.cross}｜320：作り直し ${kp2.full}ms／描き直しだけ ${kp2.cached}ms＝${kp2.ratio}倍・札 ${kp2.tags}・置けない ${kp2.lost}（5.15 の置き方 ${kp2.lostOld}）・ぶつかり ${kp2.cross}`);
     }
     /* ---- 5.13（店長 10/18「全部おすすめで」）：登録の窓の「守り」A〜E と、5.11 の残り N1・N2。
@@ -1862,10 +1862,10 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const n1=[]; for(const k of Object.keys(R3)){
         const [w,h]=k.split('x').map(Number); const P=await mk2(w,h);
         P.ev(`isAdmin=false; applyAdminMode(); setView('map')`); await sleep(450); P.ev(`(()=>{ const t=document.getElementById('amf-tab'), w=document.getElementById('amf-wrap'); if(t&&w&&w.classList.contains('amf-open')) t.click(); })()`); await sleep(500); P.ev(`renderMapView()`); await sleep(300);
-        const r=JSON.parse(P.ev(`(()=>{ const inf=(window.__m5&&window.__m5.info().cells)||[], svg=document.querySelector('#map-view svg.am-svg'), sc=svg?svg.getScreenCTM().a:0, px=[].slice.call(svg?svg.querySelectorAll('text'):[]).map(t=>(parseFloat(t.getAttribute('font-size'))||0)*sc).filter(Boolean).sort((a,b)=>a-b); return JSON.stringify({lost:inf.filter(x=>x.mode==='lost').length,tags:inf.filter(x=>x.mode==='tag').length,min:px.length?Math.round(px[0]*100)/100:0,wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<11).length}); })()`));
+        const r=JSON.parse(P.ev(`(()=>{ const inf=(window.__m5&&window.__m5.info().cells)||[], svg=document.querySelector('#map-view svg.am-svg'), sc=svg?svg.getScreenCTM().a:0, px=[].slice.call(svg?svg.querySelectorAll('text'):[]).map(t=>(parseFloat(t.getAttribute('font-size'))||0)*(t.getScreenCTM()?Math.hypot(t.getScreenCTM().a,t.getScreenCTM().b):sc)).filter(Boolean).sort((a,b)=>a-b); return JSON.stringify({lost:inf.filter(x=>x.mode==='lost').length,tags:inf.filter(x=>x.mode==='tag').length,min:px.length?Math.round(px[0]*100)/100:0,wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<8.9).length}); })()`));
         r.k=k; r.r3=R3[k]; n1.push(r); P.close();
       }
-      const n1bad=n1.filter(r=>r.lost>r.r3||r.min<11||r.wkSmall>0);
+      const n1bad=n1.filter(r=>r.tags>0||r.min!==0);   // 5.29：幅 420 以下は 名前を 出さない（色と 印だけ）・札も 出さない   // 5.29：札は 出さない・字は スマホの 下限 9px 以上（入らない マスは 字を 出さない＝lost は 数えるだけ）
       check('96o','【N1】幅 320〜360 の小さいスマホ（高さ 568〜844 の 16通り）：地図の「置けない札」が 5.11 の r3 の版より ふえない（5.12 は 8通りで 1〜2個 ふえていた）・字は ぜんぶ 11px 以上',
         n1.length===16&&n1bad.length===0,`16通り中 だめ ${n1bad.length}：${n1bad.map(r=>r.k+'（置けない '+r.lost+'＞r3 '+r.r3+'・最小 '+r.min+'px）').join(' ')||'なし'}｜置けない札の合計 ${n1.reduce((a,r)=>a+r.lost,0)}（r3 は ${n1.reduce((a,r)=>a+r.r3,0)}）`);
 
@@ -2173,7 +2173,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             ['6:o.rep',o.rep],
             ['7:o.rep.ok',o.rep.ok],
             ['8:o.repSame',o.repSame],
-            ['9:o.qBtn===1',o.qBtn===1],
+            ['9:o.qBtn===0（5.29：最初の 画面の ボタンは やめた。見る 所は 🍳 厨房 の「🖼 前の 表」と 🧰）',o.qBtn===0],
             ['10:J(o.qView.slice(0,4))===J([1,o.q.list.length,1,true])',J(o.qView.slice(0,4))===J([1,o.q.list.length,1,true])],
             ['11:o.q.list.length>=2',o.q.list.length>=2],
             ['12:/Kitchen chart/.test(o.qView[4])',/Kitchen chart/.test(o.qView[4])],
@@ -2550,11 +2550,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { unwarp(P); try{ P.win.sessionStorage.removeItem('ws_am_yd'); }catch(_){} }
         const m=o.m||{}, gray=c=>Array.isArray(c)&&(Math.max.apply(null,c)-Math.min.apply(null,c))<=45&&(c[0]+c[1]+c[2])/3>=90, mn=c=>Array.isArray(c)?Math.min.apply(null,c):0;
         checkL('96s5','【厨房ボタン・きのうの抜けの帯（5.16）】ボタンの ふちは 灰色で 太くない（黒い太いふちを やめる）・字は 600 まで・44px 以上／帯は ふちが 細く うすい黄・地も うすい・字は 600 まで・数は 太いまま・字の色は 濃いまま・44px 以上・「きのう 記録が なかった 作業 1件」のまま',
-          [['1:ボタンと帯が 出ている',!!m.kc&&!!m.yd],
-           ['2:ボタンの ふち 1.6px 以下',m.kcBw>0&&m.kcBw<=1.6],
-           ['3:ボタンの ふちは 灰色（黒ではない）',gray(m.kcBc)],
-           ['4:ボタンの 字 600 まで',m.kcFw>0&&m.kcFw<=600],
-           ['5:ボタン 44px 以上',m.kcH>=44&&m.kcW>=44],
+          [['1:帯が 出ている・厨房の表の ボタンは 出ない（5.29：最初の 画面の ボタンは やめた）',!m.kc&&!!m.yd],
            ['6:帯の ふち 1.2px 以下',m.ydBw>0&&m.ydBw<=1.2],
            ['7:帯の ふちは うすい（いちばん小さい色が 150 以上）',mn(m.ydBc)>=150],
            ['8:帯の 地は うすい（いちばん小さい色が 232 以上）',mn(m.ydBg)>=232],
@@ -3009,7 +3005,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same2=[wsj(O5)===wsj(P),wsj(O4)===wsj(P)];
         } finally { for(const d of [P,O5,O4]){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
         checkL7('97l','【古い版（5.14・5.15）の端末と まざる】新しい画面で 足した作業が 古い画面にも 同じ中身で 届く（保存の形は 同じ）・古い画面で 開いて 保存しても 変わらない・同じ作業の 別の欄（説明・名前・締切）を 3台が 同時に 直しても 全部 残る・新しい画面の ＋ と 古い画面の □ は 同じ書き方（sch7 と sch）で 3台が そろう',[
-            ['1:版',o.v[0]==='5.28'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
+            ['1:版',o.v[0]==='5.29'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
             ['2:はじめ そろう',J(o.seed)===J([true,true])],
             ['3:作業が 届く',J(o.arrive)===J([true,true,true,true])],
             ['4:開いて保存＝変わらない',J(o.noop)===J([true,true,true])],
@@ -3489,7 +3485,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.errs=errN8()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL8('97y','【見本「ぜんぶ」・2台と 古い版】A：Q（5.19）が 切れている 間に 回数を 直し 自分の 作業を 足す・P は つながった まま 40件 足す → Q が あとから つながっても、P の 40件・Q の 作業と 回数・今の 作業 21件が 全部 残り、4台（5.19×2・5.14・5.18）の 中身が 同じ。B：P が 切れている 間に 残り 5件を 足し、その間に Q・5.14・5.17 が それぞれ 回数を 直す → P が あとから つながっても 全部 残る（45件・3台の 回数・Q の 作業）。負けた 入力 0。古い版でも 登録の表が 開ける（5.18 は 見本の 一覧が 3つの まま）',[
-            ['1:版',o.v[0]==='5.28'&&o.v[1]==='5.28'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
+            ['1:版',o.v[0]==='5.29'&&o.v[1]==='5.29'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
             ['2:A 4台 同じ',o.A[0].every(x=>x===true)],
             ['3:A 全部 残る',o.addA===40&&o.A[1]===true&&o.A[2]===true&&o.A[3]===40&&o.A[4]===true],
             ['4:B 4台 同じ',o.B[0].every(x=>x===true)],
@@ -3771,7 +3767,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lost9(cl); o.errs=errN9()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('98g','【古い版と まざる】5.20・5.19・5.14 の 3台。5.20 で 種類を 足し（名前を 直し・英語）・前陳を 隠し・作業に「温度」「値引」を 付ける → 古い版にも 種類の 入れ物が そのまま 届く。古い版で 回数を 直す・5.19 で「温度」の 作業を 開くと 札は「温度」（鍵の まま）・選びも「温度」で 選ばれた まま → 何も 変えずに 保存しても kind は 変わらない（「値引」も 同じ）。そのあと 5.20 で 種類を 足しても 消えない・3台の 種類と 作業が 同じ・負けた 入力 0',[
-            ['1:版',o.v[0]==='5.28'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
+            ['1:版',o.v[0]==='5.29'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
             ['2:古い版に 届く',o.got[0]===true&&o.got[1]===true&&o.got[2]==='温度'&&o.got[3]==='値引'],
             ['3:古い版の 札と 選び',o.oCard==='温度'&&J(o.oSel)===J(['温度'])&&J(o.oSel1)===J(['値引'])],
             ['4:3台 同じ',o.end[0].every(x=>x===true)&&o.end[1].every(x=>x===true)],
@@ -3849,7 +3845,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.ver=E9(P,'APP_VERSION');
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         checkL9('97z1','【🎯 目標の分】登録の窓 ③ に 欄が 出る（売場以外では 出ない）・12 を入れると goal だけ 足される・まとめの行に 出る・まちがった字は 保存しない・全角も 読む・空で 項目ごと 消える・全部の作業を 開いて 何も変えずに 保存しても 1字も 変わらず 何も 書かない',[
-            ['1:版 5.27.1',o.ver==='5.28'],
+            ['1:版 5.27.1',o.ver==='5.29'],
             ['2:全部 開いて 保存 → 同じ・書かない',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10],
             ['3:欄が 出る・はじめは 空',o.box[0]===1&&o.box[1]!=='none'&&o.box[2]===''],
             ['4:まとめの行',/目標 12分/.test(o.sum)],
@@ -3911,7 +3907,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           const html=(d,s)=>String(E9(d,s));
           let tries=0; do{ tries++;
             P.ev(`renderMapView()`); O.ev(`renderMapView()`);
-            o.map=html(P,`document.getElementById('map-view').innerHTML`)===html(O,`document.getElementById('map-view').innerHTML`);
+            const nm=s=>s.replace(/<svg[^]*?<\/svg>/g,'<svg/>').replace(/<div class="amf-rule"[^]*?<\/span><\/div>/g,'').replace(/<div class="amf-snk"[^>]*><\/div>/g,'');   // 5.29：地図の 字（1つの 大きさ）と 決まりの 文の 場所だけは 変えた（店長 10/26）。そこを 除いて 1字も 同じ
+            o.map=nm(html(P,`document.getElementById('map-view').innerHTML`))===nm(html(O,`document.getElementById('map-view').innerHTML`));
             o.cards=ids.slice(0,6).map(id=>{ P.ev(`amOpenArea(${J(id)})`); O.ev(`amOpenArea(${J(id)})`); const a=html(P,`document.getElementById('am-sheet').innerHTML`), b=html(O,`document.getElementById('am-sheet').innerHTML`); P.ev('amCloseSheet()'); O.ev('amCloseSheet()'); return a===b; });
           } while((!o.map||!o.cards.every(Boolean))&&tries<3&&(await sleep(1500),true));
           o.tries=tries;
@@ -4124,7 +4121,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lostN(cl);
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('97z9','【古い版と まざる】5.19・5.16・5.14 の 端末：目標が 届く・古い端末の カードは 今までどおり（▶ なし）・P が 始めた 作業中に 古い端末が 記録・作業の名前を 直しても 印・目標が 残る・P が 終わると 古い端末も 済・古い端末の 記録は s なし・押し忘れは 古い端末でも 済に 数えない・4台 同じ・負けた入力 0',[
-            ['1:版',o.v[0]==='5.28'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
+            ['1:版',o.v[0]==='5.29'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
             ['4:古い 保存で 消えない',o.keep[0]===1&&o.keep[1]===10&&o.keep[2]==='古い版で 直した名前'&&o.keep[3].every(Boolean)],
             ['5:終わる → 古い端末も 済',o.end[0]===1&&o.end[1]==='done'&&o.end[2]===1],['6:古い端末の 記録',o.oldRec[0]===2&&o.oldRec[1]>=1],
             ['7:押し忘れは 済に しない',o.nf[0]===1&&o.nf[1]===true&&o.nf[2]===true],['8:印が 残る・4台 同じ',o.run[0]==='1,1,1,1'&&o.run[1]===true],['9:負けた入力 0',o.lost===0]],
@@ -4285,7 +4282,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.nw=[Number(EG(P,'amWorks().length'))-n0, EG(P,`('gap' in amWorks().find(w=>w.name==='見本の 新しい 作業'))`), EG(P,`amWorks().find(w=>w.name==='見本の 新しい 作業2').gap`)];
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         checkLG('97zg1','【あける 時間・登録の窓】「くわしく」に 1行（はじめは なし）・45分で まとめの行と たたんだ 見出しに 出る・保存は gap だけ 足す・カードの 予定に 出る・開いて 保存しても 書かない・枠より 長いと ⚠ で えらべない・なしで 項目ごと 消える（元と 1字 同じ）・時刻の 間 30分 → 30分から 上は えらべない・新しい 作業・全部の 作業を 開いて 保存しても 1字も 変わらない',[
-            ['1:版 5.27.1',o.ver==='5.28'],
+            ['1:版 5.27.1',o.ver==='5.29'],
             ['2:全部 開いて 保存 → 同じ・書かない・gap 0件',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10&&o.same[3]===0],
             ['3:欄（くわしくの中・なし・8つ・えらべる）',o.box[0]===1&&o.box[1]==='0'&&o.box[2]==='0,5,10,15,20,30,45,60'],
             ['4:まとめ・見出し・⚠なし',/前の 記録から 45分 あける/.test(o.sum[0])&&/あける 45分/.test(o.sum[1])&&o.sum[2]==='none'],
@@ -4459,7 +4456,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           await syncG(D); o.same=sameAll();
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkLG('97zg7','【古い版と まざる】5.19・5.14 の 端末に gap が 届く・古い端末で 作業の 名前を 直して 保存・全部 開いて 保存しても gap が 残る・古い端末は 止まらない（7:29・7:31 と 記録できる）・P では 7:31 の 記録から 止まる（⏳ 8:16）・3台 同じ',[
-            ['1:版',o.v[0]==='5.28'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],['2:届く',o.gap.every(x=>x===45)],
+            ['1:版',o.v[0]==='5.29'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],['2:届く',o.gap.every(x=>x===45)],
             ['3:古い 保存で 消えない',o.keep[0]===45&&o.keep[1]===15&&o.keep[2]==='古い版で 直した 名前'&&o.keep[3].every(Boolean)],
             ['4:古い端末は 止まらない',o.old[0]===2&&o.old[1]===2],['5:P は 止まる',o.cp.n>=2&&o.cp.dis===o.cp.n&&/8:16 から/.test(o.cp.gap)],['6:3台 同じ',o.same.every(Boolean)]],
           `版 ${J(o.v)}｜届く ${J(o.gap)}｜保存 ${J(o.keep)}｜古い記録 ${J(o.old)}｜P ${J(o.cp)}｜同じ ${J(o.same)}`);
@@ -4622,7 +4619,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         const w=o.w1||{};
         checkLT('97zt1','【売場の作業も 時刻で 決める・登録の窓】新しい作業＝はじめは 時間帯・決め方の 箱が 出る・何分前から のはじめは 0（0・5・10 を 足した）／前からの作業は 時間帯のまま・lead の 無い 作業は 30 と 出る → 時刻に して 保存＝how:"time"・times・lead 0・grace 60（決めていない時の 値と 同じなら 書かない）・sch7＝時刻の 帯に 1回ずつ（夕方・夜）・ほかの欄は そのまま・番号の 作業のまま（売場以外に ならない）・開いて 保存しても 書かない',[
-            ['1:版 5.27.1',o.ver==='5.28'],
+            ['1:版 5.27.1',o.ver==='5.29'],
             ['2:新しい作業＝時間帯・0分',o.nw[0]==='band'&&o.nw[1]!=='none'&&o.nw[2]==='0'&&o.nw[3]==='0,5,10,15,30,45,60,90,120'&&o.nw[4]==='none'],
             ['3:前からの作業＝時間帯・30',o.ed0[0]==='band'&&o.ed0[1]!=='none'&&o.ed0[2]==='30'],
             ['4:時刻に した 窓',o.ed1[0]!=='none'&&o.ed1[1]==='none'&&o.ed1[2]!=='none'&&/17:00・19:30/.test(o.ed1[3])&&/時刻ちょうどから 押せる/.test(o.ed1[3])&&/押せる 時刻〜60分後/.test(o.ed1[4])],
@@ -4768,7 +4765,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         const w=o.w||{};
         checkLT('97zt7','【古い版（5.22）と まざる】how・times・lead 0 が 古い端末にも 届く・古い端末では 夕方の 時間帯の 作業として 列と 地図に 出る（消えない。lead 0 は 30 と 読む）・古い端末で 名前と 回数を 直す・全部 開いて 保存しても how・times・lead 0 が 残る（新しい端末は 時刻の作業の まま）・記録は 3台に 届く・3台 同じ',[
-            ['1:版',o.v[0]==='5.28'&&o.v[1]==='5.22'&&o.v[2]==='5.28'],['2:届く',o.got.every(x=>x==='time|["17:00","19:30"]|0')],
+            ['1:版',o.v[0]==='5.29'&&o.v[1]==='5.22'&&o.v[2]==='5.29'],['2:届く',o.got.every(x=>x==='time|["17:00","19:30"]|0')],
             ['3:古い端末で 消えない',(o.old[0]==='soon'||o.old[0]==='fire'||o.old[0]==='todo')&&o.old[1]===1&&(FIRE.includes(o.old[2])||SOON.includes(o.old[2]))&&o.old[3]===30],
             ['4:新しい端末は 時刻の前…でなく 🟡',o.nw[0]==='soon'],
             ['5:古い 保存で 消えない',w.name==='古い版で 直した 名前'&&w.how==='time'&&J(w.times)===J(['17:00','19:30'])&&w.lead===0&&w.grace===60&&o.tm[0]===true&&o.tm[1]===true],
@@ -4899,7 +4896,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         const w=o.w1||{};
         checkLT('97ck1','【登録の窓 ④】いちばん上に オン／オフ（はじめは オフ）・オンで 保存 → ck:1 だけ 増え ほかの 欄は 1字も 同じ・窓を 開いている間に もう1台が 直した 項目を 戻さない・開いて 保存しても 書かない・オフ → ck が 消える・項目 0行の 作業には 書かない・項目を 全部 消すと ck も 消える・登録の表に ☑',[
-            ['1:版 5.27.1',o.ver==='5.28'],
+            ['1:版 5.27.1',o.ver==='5.29'],
             ['2:④ の いちばん上・はじめは オフ',o.box&&o.box[0]===true&&o.box[1]==='0'&&o.box[2]===true],
             ['3:オンで 変更あり・まとめの 行',o.dirty[0]===false&&o.dirty[1]===true&&o.on1==='1'&&/1行ずつ ✓/.test(o.sum)],
             ['4:ck:1 だけ・項目は もう1台の 3行',w.ck===1&&o.keep&&o.items!==0&&(w.items||[]).length===3],
@@ -5047,7 +5044,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same=[nzT(P.ev('JSON.stringify(state)'))===nzT(O3.ev('JSON.stringify(state)')), nzT(P.ev('JSON.stringify(state)'))===nzT(O2.ev('JSON.stringify(state)'))];
         } finally { for(const d of D) ET(d,'isAdmin=false; amCloseSheet()'); }
         checkLT('97ck6','【古い版と 行き来】5.23 が 名前を 直して 保存・5.22 が 売場の 時刻の作業の 名前を 直して 保存・両方が ほかの 作業を 記録 → ck・途中の ✓・how・times・lead 0・ld0 が 残る／古い版は ✓ なしで 記録できる → 新しい 版の ✓ は 外れる／3台 同じ',[
-            ['1:版',o.v[0]==='5.28'&&o.v[1]==='5.23'&&o.v[2]==='5.22'],
+            ['1:版',o.v[0]==='5.29'&&o.v[1]==='5.23'&&o.v[2]==='5.22'],
             ['2:ck が 残る',o.wc[0]==='見本の チェック２'&&o.wc[1]===1&&o.wf[0]==='見本の ゴミ箱２'&&o.wf[1]===1],
             ['3:how・lead・ld0 が 残る',o.wf[2]==='time'&&o.wf[3]===J(['17:00','19:30'])&&o.wf[4]===0&&o.wf[5]===30],
             ['4:途中の ✓ が 残る',o.ck.every(x=>x===J(['tC','tF']))&&o.p0[0]==='1/3'&&o.p0[1]==='1/2'],
@@ -5215,7 +5212,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           const ws=[cW({items:IT}),cW({id:'tG',name:'見本の 計る',goal:10}),bW({id:'tB',name:'見本の 床',items:IT.slice(0,2),sch:[0,1,1,1]}),tW({items:IT.slice(0,2)}),oW()];
           for(const d of D){ setWC(d,ws); clkT(d,10,0); d.ev(`setView('map'); amFireTop=function(){ return null; }; renderMapView();`); }
           await syncT([P]); await syncT([O]);
-          const cmp=(tag,js)=>{ const a=nrm(ET(P,js)), b=nrm(ET(O,js)); o.eq.push(a===b); if(a!==b) o.bad.push(tag+'：'+a.slice(0,160)+' ≠ '+b.slice(0,160)); };
+          const n529=s=>s.replace(/<svg[^]*?<\/svg>/g,'<svg/>').replace(/<div class="amf-rule"[^]*?<\/span><\/div>/g,'').replace(/<div class="amf-snk"[^>]*><\/div>/g,'');   // 5.29：地図の 字と 決まりの 文の 場所だけは 変えた（店長 10/26）
+          const cmp=(tag,js)=>{ const a=n529(nrm(ET(P,js))), b=n529(nrm(ET(O,js))); o.eq.push(a===b); if(a!==b) o.bad.push(tag+'：'+a.slice(0,160)+' ≠ '+b.slice(0,160)); };
           const mv=`(renderMapView(), document.getElementById('map-view').innerHTML)`, sh=`(document.getElementById('am-sheet')||{}).innerHTML||''`;
           cmp('地図',mv);
           for(const id of ['tC','tG','tB','tF','tO']){ for(const d of D){ d.ev('amCloseSheet()'); d.ev(`amOpenArea(${J(id)})`); } cmp('カード '+id,sh); }
@@ -5233,7 +5231,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.keys=[ET(P,`'amNx' in state`), ET(P,`'amHere' in state`)]; o.ver=[ET(P,'APP_VERSION'),ET(O,'APP_VERSION')];
         } finally { for(const d of D) ET(d,'amCloseSheet()'); }
         checkLT('97nx1','【オフ＝5.24 と 同じ】新しい画面が オフの 時、地図の画面・5つの カード（✓あり・▶・時間帯・時刻・売場以外）・✓・記録・▶・終わった の 後の 画面が 5.24 と 1字も 同じ（▶ の 印の id だけ 消して 比べる）・保存の 中身も 同じ・amNx／amHere を 作らない',[
-            ['1:画面 '+o.eq.length+'か所',o.eq.length>=14&&o.eq.every(Boolean)],['2:保存',o.proj===true],['3:新しい 項目なし',J(o.keys)==='[false,false]'],['4:版',J(o.ver)==='["5.28","5.25"]']],
+            ['1:画面 '+o.eq.length+'か所',o.eq.length>=14&&o.eq.every(Boolean)],['2:保存',o.proj===true],['3:新しい 項目なし',J(o.keys)==='[false,false]'],['4:版',J(o.ver)==='["5.29","5.25"]']],
           `違い ${o.bad.slice(0,3).join(' ｜ ')}｜印「〜」${o.tilde}｜版 ${J(o.ver)}`);
         for(const d of D) d.close();
       });
@@ -6018,8 +6016,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           setWC(P,[bW({id:'w1',name:'見本 一',sch:[1,1,1,1]}),bW({id:'w2',name:'見本 二',sch:[1,1,1,1]}),bW({id:'w3',name:'見本 三',sch:[1,1,1,1]}),bW({id:'w4',name:'見本 四',sch:[1,1,1,1]})],map); staff3(P); nxOn(P); clkT(P,10,0); P.ev('renderMapView()');
           o.a=fit(); P.f.style.width='390px'; await sleep(300); P.ev('renderMapView()'); o.b=fit(); P.f.style.width='768px'; await sleep(200); P.ev('renderMapView()');
         } finally { ET(P,'amCloseSheet()'); }
-        const allIn=a=>a.length===6&&a.every(x=>/:in$/.test(x));
-        checkLT('97nc2','【地図の 字】6つの マス（細長い・横長・小さい 正方形・改行・とても 小さい・大きい）の 字が 全部 マスの 中・字が 消えない／390 幅でも 同じ',[['1:768',allIn(o.a)],['2:390',allIn(o.b)]],`a ${J(o.a)}｜b ${J(o.b)}`);
+        const allIn=a=>a.length===6&&a.every(x=>/:(in|none)$/.test(x))&&a.filter(x=>/:in$/.test(x)).length>=3;   // 5.29：入らない 小さい マスは 字を 出さない（マスの 外には 出さない）
+        checkLT('97nc2','【地図の 字】6つの マス（細長い・横長・小さい 正方形・改行・とても 小さい・大きい）の 字が 全部 マスの 中・字が 消えない／390 幅でも 同じ',[['1:768',allIn(o.a)],['2:390（5.29：名前を 出さない）',o.b.length===6&&o.b.every(x=>/:none$/.test(x))]],`a ${J(o.a)}｜b ${J(o.b)}`);
         P.close();
       });
 
@@ -6094,10 +6092,10 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         try{
           setWC(P,[bW({id:'oA',name:'見本 床 そうじ',sch:[1,1,1,1],ctr:'out'}),bW({id:'oB',name:'見本 品出し 棚',sch:[1,1,1,1],ctr:'out'}),bW({id:'iA',name:'見本 フライヤー',sch:[1,1,1,1],ctr:'in'}),bW({id:'bA',name:'見本 両方',sch:[1,1,1,1],ctr:'both'}),bW({id:'eA',name:'見本 レジ まわり',sch:[1,1,1,1]}),bW({id:'nA',name:'見本 なにか',sch:[1,1,1,1]})]);
           staff3(P); nxOn(P); clkT(P,10,0); P.ev(`amNxIn('見本 花子'); amNxIn('見本 太郎'); renderMapView();`);
-          const chip=id=>qtT(P,`#nx-wrap .nxa-it[data-w="${id}"] .am-ctr`)+'|'+qnT(P,`#nx-wrap .nxa-it[data-w="${id}"] .am-ctr.est`);
+          const chip=id=>qtT(P,`#nx-wrap .nxa-it[data-w="${id}"] .am-ctrt`).replace(/？/g,'')+'|'+qnT(P,`#nx-wrap .nxa-it[data-w="${id}"] .am-ctrt i.est`);   // 5.29：右上の 角の 札（.am-ctrt）
           o.rows=['oA','iA','bA','eA','nA'].map(chip);
-          P.ev(`amNxGo('oA','見本 花子')`); o.run=[qtT(P,'#nx-wrap .nxa-rn .am-ctr')]; P.ev(`amNxCkOpen(${J(kOf(P,'oA'))})`); o.ck=qtT(P,'#nxa-ck .am-ctr'); P.ev('amNxShut()');
-          P.ev(`amOpenArea('iA')`); o.card=qtT(P,'#am-sheet .nxa-cardtag .am-ctr'); P.ev('amCloseSheet()');
+          P.ev(`amNxGo('oA','見本 花子')`); o.run=[qtT(P,'#nx-wrap .nxa-rn .am-ctrt')]; P.ev(`amNxCkOpen(${J(kOf(P,'oA'))})`); o.ck=qtT(P,'#nxa-ck .am-ctrt'); P.ev('amNxShut()');
+          P.ev(`amOpenArea('iA')`); o.card=qtT(P,'#am-sheet .am-ctrt'); P.ev('amCloseSheet()');
           P.ev(`amNxGo('oB','見本 太郎')`); o.ask=[String(ET(P,'amSheetName()')), qnT(P,'#am-sheet .nxt-a.ctr button'), qtT(P,'#am-sheet'), runsN(P).filter(x=>/oB/.test(x)).length];
           P.ev('amNxCtrAns(2)'); o.a2=[runsN(P).filter(x=>/oB/.test(x)).length, snT(P)];
           P.ev(`amNxGo('oB','見本 太郎')`); P.ev('amNxCtrAns(1)'); o.a1=runsN(P).filter(x=>/oB/.test(x)).join(',');
@@ -6108,7 +6106,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           P.ev(`amEditWork('nA')`); await sleep(50); P.ev(`document.getElementById('amw-ctr').value=''; amSaveWork('nA')`); o.w0=String(ET(P,`'ctr' in amWork('nA')`));
         } finally { ET(P,'isAdmin=false; amCloseSheet()'); }
         checkLT('97nc6','【カウンター】行：外・内・内・外（両方）・見こみ（レジ＝内・点線）・なし／取りかかり中・✓ の 窓・カードに 札／カウンター外が 2人（今いる 2人）→ 聞く（3つ）→ 自分が レジ＝始めない → ◯◯ が レジ＝始める → 同じ 組は もう 聞かない → 3人 いれば 聞かない／登録：選ぶ 欄 4つ・見こみの まま 保存＝書かない・内＝ctr in・見こみに 戻す＝消す',[
-            ['1:行',o.rows[0]==='カウンター外|0'&&o.rows[1]==='カウンター内|0'&&o.rows[2]==='内・外|0'&&o.rows[3]==='カウンター内|1'&&o.rows[4]==='|0'],
+            ['1:行',o.rows[0]==='カウンター外|0'&&o.rows[1]==='カウンター内|0'&&o.rows[2]==='カウンター内カウンター外|0'&&o.rows[3]==='カウンター内|1'&&o.rows[4]==='|0'],
             ['2:取りかかり中・窓・カード',/カウンター外/.test(o.run[0])&&/カウンター外/.test(o.ck)&&/カウンター内/.test(o.card)],
             ['3:聞く',o.ask[0]==='nxctr'&&o.ask[1]===3&&/レジは どちらが/.test(o.ask[2])&&o.ask[3]===0&&o.a2[0]===0&&/レジを お願い/.test(o.a2[1])&&o.a1==='見本 太郎@oB'],
             ['4:もう 聞かない・3人',o.again[0]!=='nxctr'&&o.again[1]===1&&o.three[0]!=='nxctr'&&o.three[1]===1],
@@ -6407,6 +6405,143 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const ks=Object.keys(o), bad=ks.filter(s=>!o[s]||o[s].ov||o[s].cut||o[s].mh<44||o[s].keys!==12);
         checkLT('97ne10','【数字の 窓の 大きさ】6つの 大きさで ありえない 数の 時も 重ならない・はみ出さない・44px 以上・低い 画面は 4列',
           [['1:重ならない',bad.length===0],['2:低い 画面',o['960x540']&&o['960x540'].short&&o['360x640']&&o['360x640'].short&&o['1024x768']&&!o['1024x768'].short]],J(o));
+        P.close();
+      });
+
+      /* ===================== 5.29（店長 10/21・10/26「WSを作り上げて」の 4つ目）：地図の 字を 1つの 大きさ・内／外の 角の 札・厨房スケジュール（登録から）・上の 段・売場の 作業の 数字。作り物の データだけ ===================== */
+      const sizeT=async(d,w,h)=>{ d.f.style.width=w+'px'; d.f.style.height=h+'px'; await sleep(80); d.ev('renderMapView()'); await sleep(120); };
+      /* 地図の 字：字ごとの 大きさを 地図の 単位で（画面の px ÷ 地図の 1単位の px）。マスの 外に 出た 字（札と 線は 別に 数える） */
+      const LBLJ=`(()=>{ const svg=document.querySelector('#nxa-map svg')||document.querySelector('#map-view svg.am-svg'); if(!svg) return JSON.stringify(null); const R=svg.getScreenCTM(), u=R?Math.hypot(R.a,R.b):0; if(!u) return JSON.stringify(null);
+        const tx=[].slice.call(svg.querySelectorAll('text')).filter(t=>(t.textContent||'').trim()&&!t.closest('.who,.trbw')); let out=0, tags=0; const r=[];
+        tx.forEach(t=>{ const m=t.getScreenCTM(); r.push((parseFloat(t.getAttribute('font-size'))||0)*(m?Math.hypot(m.a,m.b):0)/u);
+          const g=t.closest('g.cell,g.am-cell'); if(!g) return; if(g.querySelector('line')){ tags++; return; } const rc=[].slice.call(g.querySelectorAll('rect')).find(x=>!x.getAttribute('fill-opacity')); if(!rc) return; const a=t.getBoundingClientRect(), b=rc.getBoundingClientRect(); if(a.width<1) return; if(a.left<b.left-0.6||a.right>b.right+0.6||a.top<b.top-0.6||a.bottom>b.bottom+0.6) out++; });
+        return JSON.stringify({n:r.length, mn:Math.round(Math.min(...r)*1000)/1000, mx:Math.round(Math.max(...r)*1000)/1000, out, tags, px:Math.round(Math.min(...r)*u*100)/100}); })()`;
+      /* ===== 97nf1：地図の 字は 地図 全体で 1つの 大きさ（地図の 単位 F）。新しい 画面（1024×768・768×900・390×844）と 前の 画面（1024×768・768×900）で、どの 字も 同じ 大きさ・どの 大きさでも 同じ F・マスの 外に 出ない（大町の 地図は 札も 0） ===== */
+      await tryT('97nf1',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PF1','ws',stT()), o={};
+        try{
+          P.ev(`state.amMap=JSON.parse(JSON.stringify(OMACHI_MAP)); amSave();`); staff3(P); nxOn(P); P.ev(`amNxIn('見本 花子')`);
+          for(const sz of [[1024,768],[768,900],[390,844]]){ await sizeT(P,sz[0],sz[1]); o['n'+sz.join('x')]=jpT(ET(P,LBLJ),null); }
+          P.ev('state.amNx={on:0}; amSave(); renderMapView();');
+          for(const sz of [[1024,768],[768,900]]){ await sizeT(P,sz[0],sz[1]); o['o'+sz.join('x')]=jpT(ET(P,LBLJ),null); }
+          o.F=Number(ET(P,'amMapLbl(amMap()).F'));
+        } finally { P.f.style.width='768px'; P.f.style.height='900px'; ET(P,'amCloseSheet()'); }
+        const K=Object.keys(o).filter(k=>k!=='F'&&k!=='n390x844'), A=K.map(k=>o[k]);
+        const fl=k=>10;
+        checkLT('97nf1','【地図の 字】地図 全体で 1つの 大きさ（新しい 画面 2つ・前の 画面 2つの 大きさ）・読める 下限（10px）より 小さく しない・下限より 大きい 時は 地図と 同じ 割合（F）・マスの 外に 出ない・札と 線は 出さない／スマホ（390）は 名前を 出さない',
+          [['1:1つの 大きさ',A.every(x=>x&&x.n>0&&Math.abs(x.mx-x.mn)<0.05)],['2:下限',K.every(k=>o[k]&&o[k].px>=fl(k)-0.05)],['3:同じ 割合',o.F>=12&&K.every(k=>o[k]&&(Math.abs(o[k].mn-o.F)<0.05||Math.abs(o[k].px-fl(k))<0.1))],['4:はみ出さない',A.every(x=>x&&x.out===0)],['5:札 0',A.every(x=>x&&x.tags===0)],['6:スマホ 名前なし',!!o.n390x844&&o.n390x844.n===0]],J(o));
+        P.close();
+      });
+      /* ===== 97nf2：カウンター内／外の 札は 行・取りかかり中・✓ の 窓・カードの 右上の 角（右と 上が 親と そろう）・行の 札の 右はしは 全部 同じ 線・両方は 2つ・見こみは うすい 札（？）・前の 画面は 出さない ===== */
+      const TABJ=`(()=>{ const L=[].slice.call(document.querySelectorAll('.am-ctrt:not(.st)')).filter(e=>e.getBoundingClientRect().width>0); const bad=[], rs={};
+        L.forEach(e=>{ const p=e.parentElement, a=e.getBoundingClientRect(), b=p.getBoundingClientRect(); if(Math.abs(a.right-b.right)>3||Math.abs(a.top-b.top)>4) bad.push(p.className); if(p.closest('#nxa-col')) rs[Math.round(a.right)]=1; });
+        return JSON.stringify({n:L.length, bad, rights:Object.keys(rs).length, txt:L.map(e=>[].slice.call(e.children).map(i=>i.textContent+(i.classList.contains('est')?'~':'')).join('+'))}); })()`;
+      await tryT('97nf2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PF2','ws',stT()), o={};
+        try{
+          const all={sch:[1,1,1,1],sch7:[1,1,1,1,1,1,1]};
+          setWC(P,[bW(Object.assign({id:'tB',name:'見本の 床',ctr:'out'},all)),bW(Object.assign({id:'tI',name:'見本の カウンター',ctr:'in'},all)),bW(Object.assign({id:'tX',name:'見本の 両方',ctr:'both'},all)),bW(Object.assign({id:'tE',name:'見本の フライヤー'},all))]);
+          staff3(P); nxOn(P); P.ev(`amNxIn('見本 花子')`); await sizeT(P,1024,768);
+          o.list=jpT(ET(P,TABJ),null);
+          P.ev(`amNxGo('tI','見本 花子')`); P.ev('renderMapView()'); o.run=jpT(ET(P,TABJ),null);
+          const k=kOf(P,'tI'); P.ev(`_amNx.hold=0; amNxCkOpen(${J(k)})`); o.ck=[qnT(P,'#nxa-ck > .am-ctrt'), jpT(ET(P,TABJ),null)];
+          P.ev('amNxShut(); amOpenArea("tX")'); o.card=[qnT(P,'#am-sheet .am-ctrt i'), jpT(ET(P,TABJ),null), ET(P,`(()=>{ const t=document.querySelector('#am-sheet .am-ctrt').getBoundingClientRect(), x=document.querySelector('#am-sheet .am-x').getBoundingClientRect(); return Math.min(t.bottom,x.bottom)-Math.max(t.top,x.top)>1&&Math.min(t.right,x.right)-Math.max(t.left,x.left)>1?'hit':'ok'; })()`)];
+          P.ev('amCloseSheet(); state.amNx={on:0}; amSave(); renderMapView();'); o.off=qnT(P,'#map-view .am-ctrt');
+        } finally { P.f.style.width='768px'; P.f.style.height='900px'; ET(P,'amCloseSheet()'); }
+        const tx=(o.list&&o.list.txt)||[];
+        checkLT('97nf2','【内／外の 札】右上の 角・行の 右はしが そろう・両方は 2つ・見こみは うすい・✓ の 窓と カードも 角・× に かぶらない・前の 画面には 出さない',
+          [['1:角',o.list&&o.list.n>=4&&o.list.bad.length===0&&o.run&&o.run.bad.length===0],['2:そろう',o.list&&o.list.rights===1&&o.run&&o.run.rights===1],['3:中身',tx.indexOf('カウンター外')>=0&&tx.indexOf('カウンター内')>=0&&tx.indexOf('カウンター内+カウンター外')>=0&&tx.some(t=>/~$/.test(t))],
+           ['4:✓ の 窓',o.ck[0]===1&&o.ck[1]&&o.ck[1].bad.length===0],['5:カード',o.card[0]===2&&o.card[1]&&o.card[1].bad.length===0&&o.card[2]==='ok'],['6:前の 画面',o.off===0]],J(o));
+        P.close();
+      });
+      /* ===== 97nf3：厨房スケジュール（登録から）：kc の 作業が 無い 店は 何も 出ない／ある 店は「🍳 厨房」→ 時刻の 順の 表（厨房の 作業だけ）・前の 画面も 同じ 表・持ち場を えらぶと 外れる・印刷は A4 横で 同じ 行／
+               登録の 窓の ② で 入れる（kc:1）・古い 版（5.28）で 同じ 作業を 直しても kc は 残る・開いて 保存しても 書かない・外すと 欄ごと 無し ===== */
+      await tryT('97nf3',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PF3','ws',stT()), O=await mkT(cl,'端末OF3','wsold528',stT()), o={};
+        try{
+          const all={sch:[1,1,1,1],sch7:[1,1,1,1,1,1,1]}, ws=[bW(Object.assign({id:'kB',name:'見本 中華まん'},all)),oW({id:'kO',name:'見本 仕込み',times:['07:00','11:00','20:00']}),bW(Object.assign({id:'tB',name:'見本の 床'},all))];
+          setWC(P,ws); staff3(P); nxOn(P); clkT(P,18,30); P.ev(`amNxIn('見本 花子')`); await sizeT(P,1024,768);
+          o.none=[qnT(P,'#nxa-kc'), String(ET(P,'amKcOn()'))]; P.ev('state.amNx={on:0}; amSave(); renderMapView();'); o.none.push(qnT(P,'#map-view .amf-seg .kc'), qnT(P,'.amf-kc'));
+          setWC(P,[Object.assign({},ws[0],{kc:1}),Object.assign({},ws[1],{kc:1}),ws[2]]); nxOn(P);
+          o.btn=qnT(P,'#nxa-kc'); P.ev('amKcToggle(true)');
+          o.occ=jpT(ET(P,'JSON.stringify(amKcOcc(Date.now()).map(x=>x.w.id+"@"+x.s))'),[]);
+          o.nx=[qnT(P,'#nxa-col .kcs'), jpT(ET(P,`JSON.stringify([].slice.call(document.querySelectorAll('#nxa-col .kcs .nxa-it')).map(e=>e.dataset.w))`),[]), qnT(P,'#nxa-col .kcs .nxa-kcs')+qnT(P,'#nxa-col .kcs .nxa-it')];
+          P.ev('state.amNx={on:0}; amSave(); renderMapView();'); o.old=[qnT(P,'#amf-col .kcs-r'), jpT(ET(P,`JSON.stringify([].slice.call(document.querySelectorAll('#amf-col .kcs-r')).map(e=>e.dataset.w))`),[])];
+          P.ev('amSetPatrol("all")'); o.off=[qnT(P,'#amf-col .kcs'), String(ET(P,'amKcViewOn()'))];
+          const pr=String(ET(P,'amKcPrintHtml(Date.now())')); o.pr=[/size:A4 landscape/.test(pr), (pr.match(/<tr>/g)||[]).length];
+          /* 登録の 窓 */
+          P.ev('isAdmin=true; applyAdminMode(); amEditWork("tB")'); o.f0=String(ET(P,`String(document.getElementById('amw-kc').checked)`)); P.ev(`document.getElementById('amw-kc').checked=true; amSaveWork('tB')`); o.f1=(wOf(P,'tB')||{}).kc;
+          await syncT([P,O]); O.ev('isAdmin=true; applyAdminMode(); amEditWork("tB")'); O.ev(`document.getElementById('amw-name').value='見本の 床2'; amSaveWork('tB')`); await syncT([P,O]); await syncT([P,O]);
+          const w=wOf(P,'tB')||{}; o.old528=[w.kc, w.name];
+          P.ev('amEditWork("tB")'); P.ev(`amSaveWork('tB')`); o.same=snT(P);
+          P.ev('amEditWork("tB")'); P.ev(`document.getElementById('amw-kc').checked=false; amSaveWork('tB')`); o.f2=('kc' in (wOf(P,'tB')||{kc:1}));
+        } finally { P.f.style.width='768px'; P.f.style.height='900px'; ET(P,'amCloseSheet()'); ET(O,'amCloseSheet()'); }
+        const ids=o.occ.map(x=>x.split('@')[0]), ts=o.occ.map(x=>+x.split('@')[1]);
+        checkLT('97nf3','【厨房スケジュール】無い 店は 出ない・🍳 で 時刻の 順の 表（厨房の 作業だけ）・前の 画面も 同じ 行・持ち場で 外れる・印刷 A4 横・登録で kc:1・5.28 で 直しても 残る・開いて 保存は 書かない・外すと 無し',
+          [['1:無い 店',o.none[0]===0&&o.none[1]==='false'&&o.none[2]===0&&o.none[3]===0],['2:表',o.btn===1&&o.occ.length>=4&&ids.every(i=>i==='kB'||i==='kO')&&ts.every((t,i)=>!i||t>=ts[i-1])&&o.nx[0]===1&&o.nx[1].every(i=>i==='kB'||i==='kO')&&o.nx[2]===o.occ.length],
+           ['3:前の 画面',o.old[0]===o.occ.length&&o.old[1].every(i=>i==='kB'||i==='kO')&&o.off[0]===0&&o.off[1]==='false'],['4:印刷',o.pr[0]&&o.pr[1]===o.occ.length+1],
+           ['5:登録',o.f0==='false'&&o.f1===1&&o.old528[0]===1&&o.old528[1]==='見本の 床2'&&/変更は ありません/.test(o.same)&&o.f2===false]],J(o));
+        P.close(); O.close();
+      });
+      /* ===== 97nf4：売場の 作業（地図の マス）にも 数字：新しい 画面＝「✓ 終わった」→ 数字の 窓 → 記録に v／前の 画面＝カードで 数字を えらぶまで 名前は 押せない → 記録に v／登録の 窓に 数字の 欄・5.28 で 直しても vals は 残る ===== */
+      await tryT('97nf4',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PF4','ws',stT()), O=await mkT(cl,'端末OF4','wsold528',stT()), o={};
+        try{
+          const V=[{k:'t',label:'油',unit:'℃',min:170,max:185}];
+          setWC(P,[tW({id:'tF',name:'見本の フライヤー',times:['18:00','20:00'],vals:V}),tW({id:'tG',name:'見本の ケース',times:['18:10','21:00'],vals:V})]); staff3(P); nxOn(P); clkT(P,18,30); P.ev(`amNxIn('見本 花子')`);
+          P.ev(`amNxGo('tF','見本 花子')`); const k=kOf(P,'tF'); P.ev(`_amNx.hold=0; amRunEnd(${J(k)})`); o.a=[numSt(P)]; numIn(P,'178'); numOk(P); o.a.push(numSt(P), J(logOf(P,'tF').map(r=>r.v)));
+          P.ev('state.amNx={on:0}; amSave(); renderMapView(); amOpenArea("tG")'); o.b=[qnT(P,'#am-sheet .ao-nv'), qnT(P,'#am-sheet button.am-nm:not([disabled])')===0];   // 数字を えらぶまで 押せる 名前は 無い（売場以外と 同じ）
+          P.ev('amCardPick("t",178)'); o.b.push(qnT(P,'#am-sheet button.am-nm:not([disabled])')>0?0:1); P.ev(`amRecord('tG','見本 花子')`); o.b.push(J(logOf(P,'tG').map(r=>r.v)));
+          P.ev('isAdmin=true; applyAdminMode(); amEditWork("tF")'); o.c=[String(ET(P,`document.getElementById('amw-vals-box').style.display`)), String(ET(P,`document.getElementById('amw-vl-0').value`))]; P.ev(`amSaveWork('tF')`); o.c.push(snT(P));
+          await syncT([P,O]); O.ev('isAdmin=true; applyAdminMode(); amEditWork("tF")'); O.ev(`document.getElementById('amw-name').value='見本の フライヤー2'; amSaveWork('tF')`); await syncT([P,O]); await syncT([P,O]);
+          const w=wOf(P,'tF')||{}; o.d=[J(w.vals), w.name];
+        } finally { ET(P,'amCloseSheet()'); ET(O,'amCloseSheet()'); }
+        checkLT('97nf4','【売場の 作業の 数字】新しい 画面＝数字の 窓 → v／前の 画面＝カードで えらぶまで 押せない → v／登録の 窓に 欄・開いて 保存は 書かない・5.28 で 直しても 残る',
+          [['1:新しい 画面',o.a[0]==='in'&&o.a[1]===''&&o.a[2]==='[{"t":178}]'],['2:前の 画面',o.b[0]===1&&o.b[1]===true&&o.b[2]===0&&o.b[3]==='[{"t":178}]'],['3:登録',o.c[0]===''&&o.c[1]==='油'&&/変更は ありません/.test(o.c[2])],['4:5.28',o.d[0]===J([{k:'t',label:'油',unit:'℃',min:170,max:185}])&&o.d[1]==='見本の フライヤー2']],J(o));
+        P.close(); O.close();
+      });
+      /* ===== 97nf5：上の 段：新しい 画面の 管理者の 帯は 1行 4つ（↕ やる順 は 🧰）・上の 行に「同じ急ぎなら」を 出さない／前の 画面の 上は ？ と 作業の ボタンだけ・決まりの 文は 列の 下・記録の お知らせは 上の 行の 空いた 所 ===== */
+      await tryT('97nf5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PF5','ws',stT()), o={};
+        try{
+          const all={sch:[1,1,1,1],sch7:[1,1,1,1,1,1,1]};
+          setWC(P,[bW(Object.assign({id:'tB',name:'見本の 床',kind:'点検'},all)),bW(Object.assign({id:'tC',name:'見本の 棚',kind:'品出し'},all))]); staff3(P); nxOn(P); P.ev(`amNxIn('見本 花子')`); await sizeT(P,1024,768);
+          P.ev('isAdmin=true; applyAdminMode(); renderMapView()');
+          o.nx=[qnT(P,'.nxa-ad .am-cfgbtn'), qnT(P,'#nxo-open2'), qnT(P,'.nxa-top .nxa-ord'), Number(ET(P,`(()=>{ const a=document.querySelector('.nxa-ad'); return a?Math.round(a.getBoundingClientRect().height):0; })()`)), Number(ET(P,`(()=>{ const a=document.querySelector('.nxa-ad'); return a?a.scrollWidth-a.clientWidth:-1; })()`))];
+          P.ev('isAdmin=false; applyAdminMode(); state.amNx={on:0}; amSave(); renderMapView();');
+          o.off=[qnT(P,'.amf-top .amf-rule'), qnT(P,'#amf-col #amf-rule'), qnT(P,'.amf-kc'), qnT(P,'.amf-top #amf-snk')];
+          P.ev(`amOpenArea('tB')`); P.ev(`amRecord('tB','見本 花子')`); await sleep(100); o.sn=[qnT(P,'#am-snack.show.am-snack-rule'), snT(P)];
+        } finally { P.f.style.width='768px'; P.f.style.height='900px'; ET(P,'amCloseSheet()'); }
+        checkLT('97nf5','【上の 段】新しい 画面＝管理者の 帯 4つ 1行・↕ やる順 なし・同じ急ぎなら なし／前の 画面＝上に 決まりの 文 なし・列の 下に ある・厨房の表 ボタン なし・お知らせは 上の 行',
+          [['1:新しい 画面',o.nx[0]===4&&o.nx[1]===0&&o.nx[2]===0&&o.nx[3]>0&&o.nx[3]<=60&&o.nx[4]<=0],['2:前の 画面',o.off[0]===0&&o.off[1]===1&&o.off[2]===0&&o.off[3]===1],['3:お知らせ',o.sn[0]===1&&/記録しました/.test(o.sn[1])]],J(o));
+        P.close();
+      });
+      /* ===== 97nf6（店長 10/26「スマホでは、マスには名前なしで大丈夫。変に所々出るよりはマシ」）：幅 420 以下（390・420）は 新しい 画面も 前の 画面も 地図の 名前を 1つも 出さない（マスの 色は 出る）／幅 768 は 出る ===== */
+      await tryT('97nf6',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PF6','ws',stT()), o={};
+        const T=()=>jpT(ET(P,`JSON.stringify({t:[].slice.call(document.querySelectorAll('#nxa-map svg text,#map-view svg.am-svg text')).filter(t=>(t.textContent||'').trim()&&!t.closest('.who,.trbw')).length, r:document.querySelectorAll('#nxa-map svg rect,#map-view svg.am-svg rect').length})`),{});
+        try{
+          P.ev(`state.amMap=JSON.parse(JSON.stringify(OMACHI_MAP)); amSave();`); staff3(P); nxOn(P); P.ev(`amNxIn('見本 花子')`);
+          for(const w of [390,420,768]){ await sizeT(P,w,w<500?844:900); o['n'+w]=T(); }
+          P.ev('state.amNx={on:0}; amSave(); renderMapView();');
+          for(const w of [390,420,768]){ await sizeT(P,w,w<500?844:900); P.ev(`(()=>{ const t=document.getElementById('amf-tab'), w=document.getElementById('amf-wrap'); if(t&&w&&w.classList.contains('amf-open')&&innerWidth<621) t.click(); })()`); await sleep(300); P.ev('renderMapView()'); await sleep(150); o['o'+w]=T(); }
+        } finally { P.f.style.width='768px'; P.f.style.height='900px'; ET(P,'amCloseSheet()'); }
+        checkLT('97nf6','【スマホの 地図】幅 390・420 は 名前 0（新しい 画面・前の 画面）・マスは 出る／768 は 名前が 出る',
+          [['1:新しい 画面',o.n390&&o.n390.t===0&&o.n390.r>40&&o.n420&&o.n420.t===0&&o.n768&&o.n768.t>20],['2:前の 画面',o.o390&&o.o390.t===0&&o.o390.r>40&&o.o420&&o.o420.t===0&&o.o768&&o.o768.t>20]],J(o));
+        P.close();
+      });
+      /* ===== 97nf7（テス 5.29 (a)）：前の 画面の「🍳 厨房」の 表は、タブレット縦（768×1024・768×800）・1024×768・390×844 で 作業の 名前を 1字ずつ 縦に しない（名前の 幅 5字 以上・行の 高さ 90px 以下）・横に はみ出さない ===== */
+      await tryT('97nf7',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PF7','ws',stT()), o={};
+        try{
+          P.ev(`state.amMap=JSON.parse(JSON.stringify(OMACHI_MAP)); amSave();`);
+          setWC(P,[bW({id:'kB',name:'前陳：ファストフーズ・まちかど厨房',sch:[1,1,1,1],sch7:[1,1,1,1,1,1,1],kc:1}),oW({id:'kO',name:'見本 まちかど厨房 仕込み',times:['07:00','11:00','20:00'],kc:1})], JSON.parse(String(ET(P,'JSON.stringify(state.amMap)')))); staff3(P); clkT(P,18,30);
+          P.ev('state.amNx={on:0}; amSave(); amKcToggle(true);');
+          for(const sz of [[768,1024],[768,800],[1024,768],[390,844]]){ await sizeT(P,sz[0],sz[1]); P.ev('renderMapView()'); await sleep(100);
+            o[sz.join('x')]=jpT(ET(P,`JSON.stringify((()=>{ const R=[].slice.call(document.querySelectorAll('#amf-col .kcs-r')).filter(e=>e.getBoundingClientRect().width>0); return {n:R.length, minW:Math.round(Math.min(...R.map(e=>e.querySelector('.kcs-n').getBoundingClientRect().width))), maxH:Math.round(Math.max(...R.map(e=>e.getBoundingClientRect().height))), over:R.filter(e=>e.scrollWidth>e.clientWidth+1).length}; })())`),null); }
+        } finally { P.f.style.width='768px'; P.f.style.height='900px'; ET(P,'amCloseSheet()'); }
+        const ok=x=>x&&x.n>=4&&x.minW>=5*15&&x.maxH<=90&&x.over===0;
+        checkLT('97nf7','【前の 画面の 厨房の 表】4つの 大きさで 名前の 幅 5字 以上・行 90px 以下・はみ出し 0',[['1:768×1024',ok(o['768x1024'])],['2:768×800',ok(o['768x800'])],['3:1024×768',ok(o['1024x768'])],['4:390×844',ok(o['390x844'])]],J(o));
         P.close();
       });
     }
