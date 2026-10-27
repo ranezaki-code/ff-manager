@@ -205,6 +205,21 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
   body.ws-compact .sync[data-short]:not(.has):not(.err)::after{display:none}
 }   /* ホーム（10/27）：744〜810 幅で「👤 名前」が 保存の印の下に 隠れない */
 .hm-sw::before{content:"";position:absolute;inset:-6px -2px}   /* 「出す」の切りかえ：見た目は そのまま、押せる所を 44px に */
+.settings-row .btn{min-height:44px}.settings-row .desc{font-size:13px}   /* △（10/27 テス）：⚙ の ボタン 44px・説明の字 13px */
+/* 🏳 諦めるボタンの 設定（10/27） */
+.hm-box.gv{max-height:calc(100vh - 24px);overflow:auto}
+.gv-seg{display:flex;border:1.5px solid #1f5fbf;border-radius:10px;overflow:hidden}
+.gv-seg button{flex:1;height:44px;border:0;background:#fff;color:#1f5fbf;font:inherit;font-size:16px;font-weight:700;cursor:pointer}
+.gv-seg button.on{background:#1f5fbf;color:#fff}
+.gv-h{font-size:15px;font-weight:700;color:#1d2b40;margin-top:4px}
+.hm-box p.gv-note{font-size:13px}
+.gv-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.gv-list.dim{opacity:.55}
+.gv-k{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:1.5px solid #d6e2f2;border-radius:10px;background:#f5f8fd;font-size:15px;cursor:pointer}
+.gv-k input{width:20px;height:20px;accent-color:#1f5fbf;flex:none;margin:0}
+.gv-k:has(input:checked){border-color:#1f5fbf;background:#fff;font-weight:700}
+.hm-box p.gv-warn{color:#c8322a}
+.hm-box.gv .hm-msg.gv-info{color:#1f5fbf}.hm-box.gv .hm-foot .hm-msg:not(:empty){margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -216,7 +231,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
     </button>
     <div class="store-menu" id="store-menu"></div>
   </div>
-  <span class="trial" title="いまのアプリとは別の、新しい保存のしくみで動いています。いまのアプリのデータは変わりません"><span class="tl">新しいシステム（試し中）</span><span class="ts">新・試し中</span></span>
+  <span class="trial" title="古いアプリとは別の、新しい保存のしくみで動いています。古いアプリのデータは変わりません"><span class="tl">新しいシステム（試し中）</span><span class="ts">新・試し中</span></span>
   <div class="spacer"></div>
   <div class="sync off" id="sync" title="タップで設定を開く">
     <span class="dot"></span><span class="txt" id="sync-text">接続前</span>
@@ -241,7 +256,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
 <div class="overlay" id="pass-overlay">
   <div class="modal pass-card">
     <h2>🔐 合言葉を入力</h2>
-    <p>いまのアプリと<b>同じ合言葉</b>を入れてください。同じ合言葉を入れた端末どうしで、同じデータを見ます。<br>（新しいシステムのデータは、いまのアプリとは別の場所に保存されます。いまのアプリのデータは変わりません）</p>
+    <p>古いアプリと<b>同じ合言葉</b>を入れてください。同じ合言葉を入れた端末どうしで、同じデータを見ます。<br>（新しいシステムのデータは、古いアプリとは別の場所に保存されます。古いアプリのデータは変わりません）</p>
     <input type="text" class="pass-input" id="pass-input" placeholder="あいことば" autocomplete="off" autocapitalize="off" spellcheck="false">
     <button class="btn btn-primary" id="pass-go-btn">✅ 開始</button>
     <div class="warn-box" id="pass-status" style="display:none"></div>
@@ -255,9 +270,10 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
     <div class="settings-row"><div><div class="label">🕘 履歴・前の状態に戻す</div><div class="desc">だれが・いつ・何を変えたか。まちがえた変更を、前の状態に戻せます</div></div><button class="btn btn-ghost" id="history-btn">開く</button></div>
     <div class="settings-row"><div><div class="label">この端末の名前</div><div class="desc" id="devname-desc">履歴に「だれの端末か」として出ます</div></div><button class="btn btn-ghost" id="devname-btn">変更</button></div>
     <div class="settings-row"><div><div class="label">控えを書き出す</div><div class="desc">新しいシステムの、いま開いている店舗のデータを1つのファイルに</div></div><button class="btn btn-ghost" id="export-btn">📤 書出</button></div>
-    <div class="settings-row"><div><div class="label">いまのアプリのデータを写す</div><div class="desc">書き出したファイルを読んで、新しいシステムへ写します（元は変わりません）</div></div><a class="btn btn-ghost" href="migrate.html" target="_blank" rel="noopener" style="text-decoration:none">開く</a></div>
+    <div class="settings-row"><div><div class="label">古いアプリのデータを写す</div><div class="desc">書き出したファイルを読んで、新しいシステムへ写します（元は変わりません）</div></div><a class="btn btn-ghost" href="migrate.html" target="_blank" rel="noopener" style="text-decoration:none">開く</a></div>
     <div class="settings-row"><div><div class="label">🔐 合言葉を入れ直す</div><div class="desc">別の合言葉の場所に切り替えます</div></div><button class="btn btn-ghost" id="change-pass-btn">変更</button></div>
-    <div class="settings-row"><div><div class="label">古いアプリについて</div><div class="desc">古いアプリ（FF・WS）は、この新しい入口に移りました</div></div></div>
+    <div class="settings-row" id="gv-row" style="display:none"><div><div class="label">🏳 諦めるボタン</div><div class="desc" id="gv-desc">使うか・諦められない札（店長だけ）</div></div><button class="btn btn-ghost" id="gv-btn">変更</button></div>
+    <div class="settings-row"><div><div class="label">古いアプリ（FF・WS）</div><div class="desc">この新しい入口に移りました</div></div></div>
     <div class="muted" id="settings-status"></div>
   </div>
 </div>
@@ -323,7 +339,8 @@ const HM_DEFAULT=[{k:'ws',name:'やること',badge:'late',on:1},{k:'ff',name:'F
 const HM_BADGES={none:'出さない',late:'おくれの数',ffnext:'FF の次の時間帯',left:'のこりの作業の数'};
 const HM_FF_SLOTS=[6,10,14,17];   // FF の時間帯の始まり（ff/index.html の checkCurrentSlot と同じ）
 let _hmBossUntil=0; const _hmWsEmpty={};
-function hmBoss(){ return Date.now()<_hmBossUntil; }
+let _hmPw='';   // 諦めるの 保存で WS（amGvSet）に 渡すためだけ。メモリの中・店長の 10分の間・保存したら 捨てる（どこにも 書かない）
+function hmBoss(){ const b=Date.now()<_hmBossUntil; if(!b&&_hmPw) _hmPw=''; return b; }   // 切れたら 合言葉も 捨てる（テス 10/27）
 function hmSvg(k,w){ return `<svg viewBox="0 0 48 48" fill="none" stroke="#1f5fbf" stroke-width="${w||2.4}" stroke-linecap="round" stroke-linejoin="round">${HM_ICON[k]||HM_ICON.set}</svg>`; }
 function hmCfg(){   // 店の設定（無ければ 初期の並び）。足りない物は 初期の並びから 補う
   const m=meta?meta.getState():{}, c=m['home_'+curStore], got=(c&&Array.isArray(c.icons))?c.icons.filter(x=>x&&HM_ICON[x.k]):[];
@@ -395,14 +412,14 @@ function hmClick(e){
   if(k==='kit') return hmOpenIn('ws','kcOpen');
   if(k==='adm') return $('settings-btn').click();
   if(k==='set') return hmAskBoss(hmSettings);
-  if(k==='role'){ if(hmBoss()){ _hmBossUntil=0; renderSwitcher(); hmRender(); } else hmAskBoss(()=>{ renderSwitcher(); hmRender(); }); }
+  if(k==='role'){ if(hmBoss()){ _hmBossUntil=0; _hmPw=''; renderSwitcher(); hmRender(); } else hmAskBoss(()=>{ renderSwitcher(); hmRender(); }); }
 }
 // ---- 窓 ----
 let _hmOk=null, _hmPick='';
 function hmOv(html){ $('hm-box').className='hm-box'+(html.indexOf('hm-sh')>=0?' hm-set':''); $('hm-box').innerHTML=html; $('hm-ov').classList.add('show'); }
 function hmClose(){ $('hm-ov').classList.remove('show'); $('hm-box').innerHTML=''; _hmOk=null; }
-function hmAskBoss(ok){
-  if(hmBoss()) return ok();
+function hmAskBoss(ok,again){   // again：店長の 間でも もう一度 聞く（諦めるの 保存で 合言葉を 捨てた 後）
+  if(hmBoss()&&!again) return ok();
   _hmOk=ok;
   hmOv(`<h3>店長だけが 変えられます</h3><p>ワークスケジュールの 管理者の合言葉を 入れてください</p><input class="hm-in" id="hm-pw" type="password" inputmode="numeric" autocomplete="off"><div class="hm-msg" id="hm-msg"></div><div class="hm-row2"><button class="hm-btn p" data-o="pw" type="button">ひらく</button><button class="hm-btn" data-o="x" type="button">やめる</button></div>`);
   setTimeout(()=>{ try{ $('hm-pw').focus(); $('hm-pw').onkeydown=ev=>{ if(ev.key==='Enter'&&!ev.isComposing) hmCheckPw(); }; }catch(_){} },50);
@@ -424,7 +441,7 @@ async function hmCheckPw(){
   if(w&&w.__v2ready&&typeof w.checkAdminPw==='function') r=await w.checkAdminPw(v);
   else r=await hmCheckPwFile(v);   // WS を開いていない（空の店・店なし）：WS の ファイルから 照らし方の印（ADMIN_PW_HASH）を 読んで、ここで 照らす（WS は 開かない＝何も作らない）
   if(r==='nofile'){ m.textContent='照らすための 読み込みが できません（ネットを確かめてください）'; return; }
-  if(r===true){ _hmBossUntil=Date.now()+10*60*1000; const ok=_hmOk; hmClose(); if(ok) ok(); }
+  if(r===true){ _hmBossUntil=Date.now()+10*60*1000; _hmPw=v; const ok=_hmOk; hmClose(); if(ok) ok(); }
   else m.textContent=(r===null)?'この画面では 照らせません（https で開いてください）':'合言葉が ちがいます';
 }
 function hmPickStore(id){
@@ -471,10 +488,74 @@ function hmOvClick(ev){
   if(o==='pw') return hmCheckPw();
   if(o==='pick'){ const id=_hmPick; hmClose(); return setCurrent(id); }
   if(o==='save') return hmSave();
+  if(o==='gvon'||o==='gvoff'){ if(_gv){ _gv.off=o==='gvoff'?1:0; gvDraw(); } return; }
+  if(o==='gvsave') return gvSave();
   const a=_hmEdit&&_hmEdit.icons; if(!a) return;
   if(o==='up'&&i>0){ [a[i-1],a[i]]=[a[i],a[i-1]]; hmSetDraw(); }
   if(o==='dn'&&i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; hmSetDraw(); }
   if(o==='tg'&&a[i].k!=='set'){ a[i].on=a[i].on?0:1; hmSetDraw(); }
+}
+
+// ---- 🏳 諦めるボタンの 設定（WS 5.32・店長 10/27「諦めるは設定に足して」）。店長だけ。読み書きは WS の amGvCfg／amGvKinds／amGvSet だけ（入口は 何も 保存しない）。
+//      設定が 無い店（set:false）は 既定を 出すだけで、店長が「保存する」を 押すまで amGvSet を 呼ばない ----
+let _gv=null;
+function gvWin(){ try{ const w=frames.ws&&frames.ws.contentWindow; return (w&&w.__v2ready&&typeof w.amGvCfg==='function'&&typeof w.amGvKinds==='function'&&typeof w.amGvSet==='function')?w:null; }catch(_){ return null; } }
+function gvOpen(){
+  if(!hmBoss()) return hmAskBoss(gvOpen);
+  closeOverlay('settings-overlay'); _gv=null;
+  const sid=curStore; if(!sid) return;
+  if(_hmWsEmpty[sid]) return hmOv(`<h3>🏳 諦めるボタン</h3><p>この店の ワークスケジュールは まだ 空です。作業を 入れてから 設定してください。</p><div class="hm-row2"><button class="hm-btn" data-o="x" type="button">閉じる</button></div>`);
+  hmOv(`<h3>🏳 諦めるボタン</h3><p>読み込んでいます…</p><div class="hm-row2"><button class="hm-btn" data-o="x" type="button">やめる</button></div>`); $('hm-box').classList.add('gv-load');
+  hmEnsureWs(); let n=0;
+  const go=()=>{
+    if(!$('hm-ov').classList.contains('show')||curStore!==sid) return;
+    const w=gvWin();
+    if(w){ try{ const c=w.amGvCfg(); _gv={sid,off:c.off?1:0,set:!!c.set,kinds:(w.amGvKinds()||[]).filter(x=>x&&x.k!=null&&String(x.k)).map(x=>({k:String(x.k),name:String(x.name||x.k),ng:!!x.ng}))}; _gv.init=gvKey(_gv); _gv.legacy=Array.isArray(c.legacy)?c.legacy.map(x=>String(x==null?'':x)).filter(Boolean):null; }catch(_){ _gv=null; } if(_gv) return gvDraw(); }
+    if(_hmWsEmpty[sid]) return gvOpen();
+    if(++n<80) return setTimeout(go,250);
+    hmOv(`<h3>🏳 諦めるボタン</h3><p>ワークスケジュールを 読み込めませんでした。ネットを 確かめて、画面を 開き直してから もう一度 開いてください。</p><div class="hm-row2"><button class="hm-btn" data-o="x" type="button">閉じる</button></div>`);
+  };
+  go();
+}
+function gvDraw(msg,info){
+  const g=_gv; if(!g) return;
+  const s=stores().find(x=>x.id===g.sid)||{};
+  hmOv(`<h3>🏳 諦めるボタン（${escapeHtml(s.name||'')}）</h3><p>保存すると、この店の すべての 端末に 効きます（ほかの店は 変わりません）。</p>
+  <div class="gv-seg" role="group" aria-label="諦めるボタン"><button type="button" data-o="gvon" class="${g.off?'':'on'}" aria-pressed="${g.off?'false':'true'}">使う</button><button type="button" data-o="gvoff" class="${g.off?'on':''}" aria-pressed="${g.off?'true':'false'}">使わない</button></div>
+  <p class="gv-note">${g.off?'作業の 窓と 🧰 に「諦める」が 出なくなります。これまでの 記録は そのまま 残ります。':'作業の 窓と 🧰 に「諦める」が 出ます。'}</p>
+  <div class="gv-h">諦められない 札</div><p class="gv-note">印を つけた 札の 作業は「諦める」を 押せません。</p>
+  <div class="gv-list${g.off?' dim':''}">${g.kinds.length?g.kinds.map((x,i)=>`<label class="gv-k"><input type="checkbox" data-gv="${i}"${x.ng?' checked':''}><span>${escapeHtml(x.name)}</span></label>`).join(''):'<p class="gv-note">札が まだ ありません</p>'}</div>
+  ${g.set?'':'<p class="gv-note">まだ 保存していません。いまは はじめの形（使う・鮮度管理だけ 諦められない）で 動いています。</p>'+gvWarn(g)}
+  <div class="hm-foot"><div class="hm-msg${info?' gv-info':''}" id="hm-msg">${msg?escapeHtml(msg):''}</div><div class="hm-row2"><button class="hm-btn p" data-o="gvsave" type="button">保存する</button><button class="hm-btn" data-o="x" type="button">やめる</button></div></div>`);
+  $('hm-box').classList.add('gv');
+  $('hm-box').oninput=null;
+  $('hm-box').onchange=ev=>{ const t=ev.target; if(t&&t.dataset&&t.dataset.gv!=null&&_gv){ const k=_gv.kinds[+t.dataset.gv]; if(k) k.ng=!!t.checked; } };
+}
+async function gvSave(){
+  if(!hmBoss()) return hmAskBoss(gvSave);
+  const g=_gv; if(!g||g.sid!==curStore) return hmClose();
+  const w=gvWin(); if(!w) return gvDraw('ワークスケジュールが まだ 読めません。少し 待って もう一度 押してください');
+  if(!g.set&&gvKey(g)===g.init) return gvDraw('何も 変えていないので、保存しませんでした（はじめの形のまま）',1);   // 既定のまま 保存しない（テス 10/27）
+  const pw=hmBoss()?_hmPw:'';
+  if(!pw) return hmAskBoss(gvSave,true);   // 合言葉を 捨てた 後・店長の 時間が 切れた：もう一度 聞く
+  gvDraw('保存しています…',1);
+  let r=false; try{ r=await w.amGvSet({off:g.off?1:0,ng:g.kinds.filter(x=>x.ng).map(x=>x.k)},pw); }catch(_){ r=false; }
+  _hmPw='';   // 保存したら 捨てる（うまく いかなかった 時も。次は もう一度 聞く）
+  if(r!==true){ if(!$('hm-ov').classList.contains('show')) return; return gvDraw('保存できませんでした。もう一度「保存する」を 押して、店長の 合言葉を 入れてください'); }
+  _gv=null; hmClose(); hmRender();
+}
+function gvWarn(g){   // 保存すると 守りが 外れる 作業（WS 5.32.1 の legacy）
+  if(g.legacy===null) return '<p class="gv-note gv-warn">⚠ 札の無い「鮮度管理」の 作業は、保存すると 諦められるように なります。守るなら、その 作業に 札を 付けてください。</p>';
+  if(!g.legacy.length) return '';
+  const a=g.legacy.filter((x,i,l)=>l.indexOf(x)===i), nm=a.slice(0,5).map(x=>escapeHtml(x)).join('・')+(a.length>5?' ほか '+(a.length-5)+'件':'');
+  return '<p class="gv-note gv-warn">⚠ 「'+nm+'」は、保存すると 諦められるように なります。守るなら、その 作業に 札を 付けてください。</p>';
+}
+function gvKey(g){ return JSON.stringify({off:g.off?1:0,ng:g.kinds.filter(x=>x.ng).map(x=>String(x.k)).sort()}); }
+function gvRow(){   // ⚙ の「🏳 諦めるボタン」の行：店長の時だけ 出す。説明は WS が 読めれば 今の 設定
+  const r=$('gv-row'); if(!r) return; r.style.display=(hmBoss()&&curStore)?'':'none'; if(r.style.display) return;
+  let d='使うか・諦められない札（店長だけ）'; const w=gvWin();
+  try{ if(w){ const c=w.amGvCfg(), ng=(w.amGvKinds()||[]).filter(x=>x.ng).map(x=>x.name); d=c.set?(c.off?'使わない':'使う')+'／諦められない札：'+(ng.join('・')||'なし'):'使う／はじめの形（鮮度管理だけ 諦められない）'; } }catch(_){}
+  $('gv-desc').textContent=d;
 }
 
 // ---------- 店舗 ----------
@@ -492,7 +573,7 @@ function renderSwitcher(){
          :`<div class="store-divider"></div><div class="store-action" id="boss-btn"><span>🔒</span>店長（名前の変更・店の追加）</div>`);
   hmRender();
 }
-function setCurrent(id){ if(!stores().find(s=>s.id===id))return; curStore=id; ls('v2_store',id); renderSwitcher(); reloadFrames(); }
+function setCurrent(id){ if(!stores().find(s=>s.id===id))return; if(_gv||$('hm-box').classList.contains('gv-load')){ _gv=null; _hmPw=''; hmClose(); } curStore=id; ls('v2_store',id); renderSwitcher(); reloadFrames(); }
 function addStore(name){ const list=stores(); const id='store_'+Date.now(); list.push({id,name:(name||'').trim()||'新店舗',createdAt:Date.now()}); saveStores(list); setCurrent(id); }
 function renameStore(id,n){ const list=stores(); const s=list.find(x=>x.id===id); if(!s)return; s.name=(n||'').trim()||s.name; saveStores(list); renderSwitcher(); }
 
@@ -505,7 +586,7 @@ function showSystem(sys){
   Object.values(frames).forEach(f=>f.classList.remove('active'));
   const hb=$('home'); if(hb) hb.classList.toggle('on',sys==='home');   // ホーム：中の画面は 消さずに 隠すだけ
   if(sys==='home'){ $('frame-loading').style.display='none'; hmRender(); hmEnsureWs(); return; }
-  if(!curStore){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='店舗がまだありません。<br>左上の「▼」から「＋ 店舗を追加」を押すか、⚙️ →「いまのアプリのデータを写す」で写してください。'; return; }
+  if(!curStore){ $('frame-loading').style.display='flex'; $('frame-loading').innerHTML='店舗がまだありません。<br>左上の「▼」から「＋ 店舗を追加」を押すか、⚙️ →「古いアプリのデータを写す」で写してください。'; return; }
   // FF がまだ空の店舗：いきなり「ようこそ」の初期設定を出さず、先に「データを写す」を案内する
   if((sys==='ff'||sys==='ws')&&!frames[sys]&&!ffStartOk[sys+'|'+curStore]){   // FF・ワークスケジュール共通
     const sid=curStore; $('frame-loading').style.display='flex'; $('frame-loading').textContent='読み込み中…';
@@ -513,7 +594,7 @@ function showSystem(sys){
       if(activeSys!==sys||curStore!==sid)return;
       if(!c.synced){ $('frame-loading').innerHTML='ネットにつながっていないため、まだ読み込めていません。<br>つながってから、開き直してください。'; return; }
       if(Object.keys(c.view()).length){ ffStartOk[sys+'|'+sid]=1; showSystem(sys); return; }
-      $('frame-loading').innerHTML='<div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px">この店舗の '+SYSTEMS[sys].label+'は、まだ空です</div>いまのアプリのデータは、自動では入りません。下のボタンで写してください。<br>（写すだけです。いまのアプリのデータは変わりません）<br><a class="btn btn-primary" href="migrate.html" target="_blank" rel="noopener" style="display:inline-block;width:auto;margin-top:12px;text-decoration:none">📦 いまのアプリのデータを写す</a><br><button class="btn btn-ghost" id="ff-fresh" style="margin-top:10px">写した後、ここを押して開き直す</button><br><span id="ff-new" style="display:inline-block;margin-top:14px;font-size:12px;text-decoration:underline;cursor:pointer">新しい店舗なので、空のまま始める</span></div>';
+      $('frame-loading').innerHTML='<div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px">この店舗の '+SYSTEMS[sys].label+'は、まだ空です</div>古いアプリのデータは、自動では入りません。下のボタンで写してください。<br>（写すだけです。古いアプリのデータは変わりません）<br><a class="btn btn-primary" href="migrate.html" target="_blank" rel="noopener" style="display:inline-block;width:auto;margin-top:12px;text-decoration:none">📦 古いアプリのデータを写す</a><br><button class="btn btn-ghost" id="ff-fresh" style="margin-top:10px">写した後、ここを押して開き直す</button><br><span id="ff-new" style="display:inline-block;margin-top:14px;font-size:12px;text-decoration:underline;cursor:pointer">新しい店舗なので、空のまま始める</span></div>';
       $('ff-fresh').onclick=()=>location.reload();
       $('ff-new').onclick=()=>{ ffStartOk[sys+'|'+sid]=1; showSystem(sys); };
     }).catch(e=>{ $('frame-loading').textContent='読み込めませんでした：'+(e&&e.message||e); });
@@ -633,8 +714,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.target.closest('#fix-store-btn')){ if(!hmBoss())return; ls('v2_store_fixed',ls('v2_store_fixed')?null:curStore); renderSwitcher(); return; }
     if(e.target.closest('#boss-btn')){ sw.classList.remove('open'); hmAskBoss(()=>{ renderSwitcher(); sw.classList.add('open'); }); return; }
   });
-  const openSettings=()=>{ $('devname-desc').textContent='履歴に「だれの端末か」として出ます（いま：'+deviceLabel()+'）'; $('settings-status').textContent=''; openOverlay('settings-overlay'); };
+  const openSettings=()=>{ $('devname-desc').textContent='履歴に「だれの端末か」として出ます（いま：'+deviceLabel()+'）'; $('settings-status').textContent=''; gvRow(); openOverlay('settings-overlay'); };
   $('sync').addEventListener('click',openSettings); $('settings-btn').addEventListener('click',openSettings);
+  $('gv-btn').addEventListener('click',gvOpen);
   document.addEventListener('click',e=>{ const c=e.target.closest('[data-close]'); if(c)closeOverlay(c.dataset.close); });
   $('history-btn').addEventListener('click',()=>{ if(store&&curStore)openHistory(); });
   $('history-body').addEventListener('click',onHistoryClick);
