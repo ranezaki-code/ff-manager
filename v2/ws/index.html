@@ -2842,6 +2842,7 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .nm .nm-x{flex:none;min-height:44px;min-width:64px;border:2px solid #F4C7C2;border-radius:10px;background:#fff;color:#B42318;font:inherit;font-weight:800;cursor:pointer}
 .nm .nm-ud{flex:none;min-height:44px;min-width:44px;padding:0;border:2px solid #D3DAE4;border-radius:10px;background:#fff;color:#13294B;font:inherit;font-size:20px;font-weight:800;cursor:pointer}   /* 5.31.3：並び順の ↑↓ */
 .nm .nm-ud:disabled{opacity:.3;cursor:default}
+@media(max-width:420px){ .nm .nm-r{gap:6px;padding-right:6px} .nm .nm-n{font-size:16px} .nm .nm-ud{min-width:40px} .nm .nm-x{min-width:52px;padding:0 6px} .nm .nm-r small{font-size:12px} }   /* 5.32（テス △2）：390 で 名前の 欄を 広く（5〜6字が 1行に） */
 .nx-cfg-seg{margin:10px 0 6px}
 .nx-cfg-f{display:block;margin-top:14px}
 .nx-cfg-f input{width:100%;max-width:420px}
@@ -2959,7 +2960,7 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .nxa .nxa-acts{display:flex;gap:8px;flex-wrap:wrap}
 /* 5.31.3：開いた 窓の 上の ボタン（列の 中で 貼り付く。top は 描いた 後に 取りかかり中の 貼り付きの 高さを 入れる）と、全員の 名前の 一覧 */
 .nxa .nxa-open{padding-top:0}
-.nxa .nxa-acts.top{position:sticky;top:0;z-index:5;background:#fff;margin:0 -12px;padding:10px 12px 8px;border-bottom:2px solid var(--line);flex-wrap:nowrap}
+.nxa .nxa-acts.top{position:sticky;top:0;z-index:5;background:#fff;margin:0 -12px;padding:10px 12px 8px;border-bottom:2px solid var(--line);flex-wrap:nowrap;box-shadow:0 -8px 0 0 #fff}   /* 5.32（テス △1）：上の すき間を 白で ふさぐ */
 .nxa .nxa-acts.top .nxa-cl{flex:1 1 0;min-width:0;padding:0 4px;font-size:15px}
 .nxa.ph .nxa-acts.top .nxa-cl{font-size:14px;min-height:42px}
 .nxa .nxa-names{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
@@ -5015,7 +5016,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.31.3'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.32'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -12757,7 +12758,7 @@ function amToolsHtml(){
     <button type="button" class="btn-secondary" id="snd-toggle" onclick="amSndToggle()" aria-pressed="${on}">🔔 おくれの音：${on?'入':'切'}</button>
     <button type="button" class="btn-secondary" id="tg-open" onclick="amTagPanel()">🏷 作業の 種類（${amTagAll().filter(t=>!t.del&&!t.hide).length}）</button>
     <button type="button" class="btn-secondary" id="ld0-open" onclick="_ld0.msg='';_ld0.off={};amLd0Panel()">⏱ 押せる 時間を 0分に</button>
-    <button type="button" class="btn-secondary" id="nx-cfg-open" onclick="amNxCfgOpen()">🆕 新しい 画面：${amNxOn()?'オン':'オフ'}</button>${amNxOn()?'<button type="button" class="btn-secondary" id="nxo-open" onclick="amNxOrderPanel()">↕ やる順（種類 → 作業）</button><button type="button" class="btn-secondary" id="gv-all" onclick="amNxGvAskAll()">🏳 きょうの おくれを 全部 諦める（鮮度管理を 除く）</button>':''}</div>
+    <button type="button" class="btn-secondary" id="nx-cfg-open" onclick="amNxCfgOpen()">🆕 新しい 画面：${amNxOn()?'オン':'オフ'}</button>${amNxOn()?'<button type="button" class="btn-secondary" id="nxo-open" onclick="amNxOrderPanel()">↕ やる順（種類 → 作業）</button>'+(amGvOn()?`<button type="button" class="btn-secondary" id="gv-all" onclick="amNxGvAskAll()">🏳 きょうの おくれを 全部 諦める（${escapeHtml(amGvNgNames()||'なし')}を 除く）</button>`:''):''}</div>
     <div class="am-sub" style="margin:6px 0 0">「見本から 足す」は 中身を 見て 確かめてから 登録します。「厨房の表」は 厨房を している 店だけ。「おくれの音」は、おくれ（🔥）が 新しく 出た時に 短い音が 鳴ります（音が 出せない 端末では 何も 起きません）。全部の 端末に 効きます。「作業の 種類」は、登録の 窓の「種類」で えらぶ 札を 足す・名前を 直す・隠す 所です。「押せる 時間を 0分に」は、30分前から 押せる 時刻の 作業を まとめて 時刻ちょうどから に します（元に 戻せます）。「🆕 新しい 画面」は、売場マップを「今いる人・取りかかり中・次は これ」の 画面に 切りかえます（全部の 端末に 効く・オフで 今の 画面・交代の 時刻も ここ）。</div></details>`;
 }
 /* ===== 5.23（店長 10/21「何分前から押せるかを0分からにして」→ 案 A「30分の 作業だけ 0」）：🧰 押せる 時間を 0分に =====
@@ -13862,8 +13863,8 @@ function amNxOpenHtml(x,q,here,hold,now){
     who=`<div class="q">だれが やる？<small>Who starts? / कसले सुरु गर्ने?</small></div>${names.length?`<div class="nxa-names">${names.map(n=>{ const full=(hold[n]||0)>=AM_NX_HOLD, c=amNxCol(n);
       return `<button type="button" class="nxb nxa-who${full?' full':''}" style="--pc:${c}" data-w="${escapeHtml(x.id)}" data-n="${escapeHtml(n)}" onclick="amNxWhoTap(this)"${full?' disabled':''}>${amNxAv2(n,32)}<span class="wt"><b>${escapeHtml(n)}${full?`：いま ${hold[n]}つ`:''}</b>${full?`<small>${AM_NX_HOLD}つまで ／ Max ${AM_NX_HOLD}</small>`:''}</span></button>`; }).join('')}</div>`:`<button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.id)}" onclick="amNxPick(this.dataset.w,true)">▶ 始める</button>`}`; }   // 名前の 登録が 0人の 店は 5.31 の 名前の 窓（名前なしで 始める）
   const more=x.af?`amOpenAfter('${escapeHtml(String(x.w.id))}',${x.o.src})`:`amOpenArea(this.dataset.w)`;
-  const gvOk=x.k==='fire'&&!x.lock, fr=gvOk&&amIsFresh(x.w);   // 5.31：おくれの 行だけ「🏳 諦める」。鮮度管理には 出さず 一言
-  const frH=fr?`<div class="nxa-fr">🧊 食品の 安全のため 最後まで<small>Food safety: finish this one / खाद्य सुरक्षा: अन्त्यसम्म</small></div>`:'';
+  const gvOk=x.k==='fire'&&!x.lock&&amGvOn(), fr=gvOk&&amIsFresh(x.w);   // 5.31：おくれの 行だけ「🏳 諦める」。鮮度管理には 出さず 一言   // 5.32：店の 設定で 使わない 時は 出さない・諦められない 札は 設定から
+  const frH=fr?(amGvCfg().set?`<div class="nxa-fr">🔒 「${escapeHtml(amGvNgName(x.w))}」の 作業は 最後まで（諦められません）<small>This kind cannot be given up / यो प्रकारको काम छोड्न मिल्दैन</small></div>`:`<div class="nxa-fr">🧊 食品の 安全のため 最後まで<small>Food safety: finish this one / खाद्य सुरक्षा: अन्त्यसम्म</small></div>`):'';   // 5.32：設定の ある 店は 札に 合う 一般の 文（無い 店は 今までの 文）
   const acts=`<div class="nxa-acts top">${x.lock?'':`<button type="button" class="nxb nxa-cl trb" data-w="${escapeHtml(x.id)}" onclick="amNxTrbAskI(this.dataset.w)">! 困った</button>`}${(gvOk&&!fr)?`<button type="button" class="nxb nxa-cl gv" data-w="${escapeHtml(x.id)}" onclick="amNxGvAskI(this.dataset.w)">🏳 諦める</button>`:''}<button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.w.id)}" onclick="${more}">くわしく</button><button type="button" class="nxb nxa-cl" onclick="amNxShut()">とじる</button></div>`;
   return `<div class="nxa-open">${acts}${meta}${stH}${amNxSkipHtml(amNxSkip(x.id,q))}${dmH}${frH}${who}</div>`;
 }
@@ -13924,7 +13925,7 @@ function amNxRender(view){
   const trbH=T.band.map(e=>{ const it=amNxItemOf(e.qid,now), tg=it?String(it.w.kind==null?'':it.w.kind):'', d=e.def, left=d.auto?Math.max(1,Math.ceil((e.t+d.auto*60000-now)/60000)):0;
     return `<button type="button" class="nxb nxa-trb" data-q="${escapeHtml(e.qid)}" onclick="amNxTrbTapB(this.dataset.q)"><span class="ex" aria-hidden="true">!</span><span class="tx"><span class="l1"><b>困った</b><small>Problem / समस्या</small>${e.by?amNxAv2(e.by,20):''}<span class="num">${amHM(e.t)}</span>${(ho&&e.t<ho.cut)?`<span class="nxa-ho">${ho.lab}</span>`:''}</span><span class="l2">${ph?'':amNxStamp(tg,22)}<span class="nm">${escapeHtml(amNxTrbName(e.qid,now))}</span><b class="why">${escapeHtml(d.t)}</b></span></span><span class="st">${d.auto?`あと ${left}分で 戻る<small>Back in ${left} min</small>`:`店長に 知らせた<small>店長 待ち</small>`}</span></button>`; }).join('');
   const warn=[]; T.band.forEach(e=>{ const cs=amNxTrbCells(e.qid,now); let big=null, ba=-1; cs.forEach(cid=>{ const cur=cst[cid]; if(!cur||cur.s!=='run') cst[cid]={s:'trb', strong:true}; const c=map&&map.cells.find(x=>x.id===cid), a=c?c.w*c.h:0; if(a>ba){ ba=a; big=cid; } }); if(big&&warn.indexOf(big)<0) warn.push(big); });   // ⚠ は 作業ごとに 1つ（いちばん 大きい マスの まん中）
-  const ban=!here.length?`<div class="nxa-ban">${amNxIco('play',18,'#13294B')}<div>はじめに、上の「＋」で 自分を 入れる（1回だけ）<small>First, tap ＋ to add yourself / पहिले ＋ थिचेर आफूलाई थप्नुहोस्</small></div></div>`:'';
+  const ban=!here.length?`<div class="nxa-ban">${amNxIco('play',18,'#13294B')}<div>上の「＋」で 自分を 入れると 上の 丸に 出ます。作業は、行を 押して 自分の 名前を 押せば 始まります<small>Tap ＋ to add yourself. Tap a row, then your name to start / ＋ थिचेर आफूलाई थप्नुहोस्। पङ्क्ति थिचेर आफ्नो नाम थिच्नुहोस्</small></div></div>`:'';
   const free=here.filter(h=>!hold[h.n]).slice(0,2), q0=q[0], showGo=false&&!!(free.length&&!sel&&!ckR&&q0&&!q0.lock);   // 5.27（店長 10/26「タスク欄の下に誰々がやるってボタンを表示させなくてもいいかも。タスク押したら出てくるし」）：1番の 下の「◯◯ が やる」は 出さない（行を 押すと 名前が 出る）
   /* 上の 1行 */
   const used=amTagUse(), tagsUsed=amTagSorted().filter(t=>used[t.k]).slice(0,5);
@@ -13965,7 +13966,7 @@ function amNxRender(view){
   _amNx.lay={M, gut, ph, wires:ckR?[{key:'', cells:glow, tone:'run', sel:true}]:(sel?[sel]:q.slice(0,AM_NX_TOPN)).filter(x=>x.cells.length).map((x,i)=>({key:x.id, cells:x.cells, tone:x.lock?'later':x.k==='fire'?'late':x.k==='soon'?'soon':'later', sel:!!sel||i===0}))};
   const col=document.getElementById('nxa-col');
   { const sk=document.getElementById('nxa-stk'); if(sk&&col&&sk.offsetHeight>col.clientHeight*0.55) sk.classList.add('nost'); }   // 取りかかり中が 列の 半分より 高い 時は 貼り付けない（急ぐ順が 見えなく なるため）
-  { const a=col&&col.querySelector('.nxa-acts.top'), sk=col&&col.querySelector('.nxa-stk:not(.nost)'); if(a) a.style.top=(sk?sk.offsetHeight+6:0)+'px'; }   // 5.31.3：開いた 窓の 上の ボタンは、貼り付いた 取りかかり中の 下に 貼り付く
+  { const a=col&&col.querySelector('.nxa-acts.top'), sk=col&&col.querySelector('.nxa-stk:not(.nost)'); if(a) a.style.top=(sk?sk.offsetHeight:0)+'px'; }   // 5.31.3：開いた 窓の 上の ボタンは、貼り付いた 取りかかり中の 下に 貼り付く   // 5.32（テス △1）：+6 の すき間に 送られた 名前が 見えたので 0 に（白の 影も 敷く）
   if(col){ col.scrollTop=keep; if(_amNx.reveal) amNxReveal(_amNx.reveal); _amNx.reveal=''; col.addEventListener('scroll',amNxOnScroll,{passive:true}); }
   amNxFitTop(); amNxFitCk(); amNxBelow(); amNxWires();
   updateMapBadge(); amOffRefresh(); amSnackPlace();
@@ -13988,6 +13989,7 @@ function amNxReveal(id){
   const nx=row.nextElementSibling, op=(nx&&nx.classList.contains('nxa-open'))?nx:null, bot=op?op.offsetTop+op.offsetHeight:row.offsetTop+row.offsetHeight, room=col.clientHeight-sh-(op?8:52);   // 開いている 間は「下に あと◯件」を 出さない（amNxBelow）
   const wb=op&&(op.querySelector('.nxa-names .nxa-who,.nxa-btns,.nxa-lockn')||op.querySelector('.nxa-cl')), wbot=wb?wb.offsetTop+wb.offsetHeight:0;   // 5.26（テス：390 幅で「◯◯ が やる」が 下の 帯に 隠れた）：名前の ボタンまでは 必ず 見せる   // 5.31.3：上の ボタン（.nxa-cl）が 先に 来たので、最初の 名前の ボタンを 見る
   let st=col.scrollTop; if(row.offsetTop<st+sh+4) st=row.offsetTop-sh-8; if(bot>st+sh+room) st=Math.min(row.offsetTop-sh-8,bot-room-sh); if(wbot>st+sh+room) st=wbot-room-sh;
+  { const a=op&&op.querySelector('.nxa-acts.top'); if(a&&st>row.offsetTop-sh-8) st=Math.max(row.offsetTop-sh-8, Math.max(st-a.offsetHeight, wbot-room-sh)); }   // 5.32（テス △3）：行より 下へ 送った 時は、貼り付いた 上の ボタンの 高さぶん 戻す（場所の 行と 注意の 1行目が ボタンの 下に 隠れない）。ただし 5.26 の「最初の 名前の ボタンまで 見せる」が 先（両方 入らない 低い 画面は 名前が 勝つ）
   col.scrollTop=Math.max(0,st);
   _amNx.sc=col.scrollTop;
 }
@@ -14161,7 +14163,7 @@ function amNxPkBtn(n,on,act){
 /* 「やる」：今いる人が 1人なら すぐ。2人以上・0人なら 名前を 聞く */
 function amNxDo(id){ if(!amNxItemOf(id)) return; const n=amNxSolo(Date.now()); if(n) return amNxGo(id,n); amNxPick(id,false); }   // 5.26：売場以外・あとの作業も
 function amNxPick(id,more){
-  const it=amNxItemOf(id); if(!it) return; _amfHold=amFT()+AM_HOLD_MS; const now=Date.now(), h=amNxHereOrd(amNxHere(now),now), act=amRunActive(now), names=staffList(), rest=names.filter(n=>!h.some(x=>x.n===n)), eid=escapeHtml(id);
+  const it=amNxItemOf(id); if(!it) return; _amfHold=amFT()+AM_HOLD_MS; const now=Date.now(), h=amNxStaffOrd(amNxHere(now)), act=amRunActive(now), names=staffList(), rest=names.filter(n=>!h.some(x=>x.n===n)), eid=escapeHtml(id);   // 5.32（本部 10/27「名前の並びはいつも登録の順」）：今いる人も 登録の 並び（amNxStaffOrd）
   const btn=n=>amNxPkBtn(n,`amNxGo(this.dataset.w,this.dataset.n)`,act).replace('<button type="button" class="nx-pk',`<button type="button" data-w="${eid}" class="nx-pk`);
   const q=h.length?`だれが やる？${amNxTr('Who?','कसले?')}`:`だれが やる？（入って すぐ 始まる）${amNxTr('Who is starting?','को सुरु गर्दै?')}`;
   _amSheet(`<div class="nx-sh"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="nx-sh-t"><span aria-hidden="true">${escapeHtml(it.icon||'')}</span> ${escapeHtml(it.name||'')}</div><div class="nx-sh-q">${q}</div>
@@ -14752,7 +14754,35 @@ function amWhoNxToday(now,names){
    ・店長の 📊：✨ 今日 に「諦めた ◯」と この 7日で よく 諦められた 作業（上位 3つ・人の 比べは 無し）。誰がいつ の マス・一覧・抜けの 数の 下に 🏳。 */
 const AM_NX_GV=[{y:'time',t:'時間が 無い',en:'No time',ne:'समय छैन',ic:'⏳'},{y:'hands',t:'人が 足りない',en:'Not enough people',ne:'मान्छे पुगेन',ic:'🙋'},{y:'pri',t:'ほかを 優先',en:'Other work first',ne:'अर्को काम पहिले',ic:'➡'},{y:'hoka',t:'そのほか',en:'Other',ne:'अन्य',ic:'❔'}];
 function amNxGvDef(y){ return AM_NX_GV.find(d=>d.y===y)||AM_NX_GV[AM_NX_GV.length-1]; }
-function amIsFresh(w){ if(!w||typeof w!=='object') return false; const k=String(w.kind==null?'':w.kind); return /鮮度/.test(k)||/鮮度/.test(String(amKindName(k)||''))||/鮮度管理/.test(String(w.name||'')); }
+/* 5.32（店長 10/27「諦めるは設定に足して」）：店ごとの 設定 state.amNx.gv＝{off:0|1, ng:[種類の 鍵…]}（amNx の 中に 足すだけ。v2 では s:amNx の 1件で 往復）。
+   ・off＝1：諦める ボタンを 使わない（行の 窓・🧰 の 一括 とも 出ない。記録・📊・きょう 諦めた の 一覧は そのまま）
+   ・ng：諦められない 札（種類＝kind の 鍵）。設定が 無い 店（gv 無し）は 今までどおり＝使う・鮮度管理だけ 諦められない（amIsFreshLegacy＝5.31 の 決め打ち）。
+   ・札の 名前は 店の 登録（amTagAll＝はじめからの 種類＋店で 足した 種類）から 読む。店名・札名の 決め打ちは しない。
+   ・設定の 画面は ここでは 作らない。入口（v2/index.html）の ⚙ が window の 3つを 呼ぶ：amGvCfg()／amGvKinds()／amGvSet({off,ng})（管理者だけ。isAdmin で ない 時は 何も しない） */
+function amIsFreshLegacy(w){ if(!w||typeof w!=='object') return false; const k=String(w.kind==null?'':w.kind); return /鮮度/.test(k)||/鮮度/.test(String(amKindName(k)||''))||/鮮度管理/.test(String(w.name||'')); }
+function amGvCfg(){
+  const g=amNxCfg().gv;
+  if(g&&typeof g==='object'&&!Array.isArray(g)) return {off:g.off?1:0, ng:(Array.isArray(g.ng)?g.ng:[]).map(x=>String(x==null?'':x)).filter(Boolean), set:true};
+  return {off:0, ng:amTagAll().filter(t=>/鮮度/.test(t.k)||/鮮度/.test(t.n)).map(t=>t.k), set:false};   // 既定＝今と 同じ（鮮度管理だけ）
+}
+function amGvOn(){ return !amGvCfg().off; }
+function amGvKinds(){ const ng=amGvCfg().ng; return amTagAll().filter(t=>!t.del).map(t=>({k:t.k, name:t.n, ng:ng.includes(t.k)})); }   // 札の 一覧 [{k, name, ng}]（店で 足した 種類も）
+function amGvSet(o,pw){
+  if(!o||typeof o!=='object') return false;
+  const put=()=>{ const known=amTagAll().map(t=>t.k), ng=(Array.isArray(o.ng)?o.ng:[]).map(x=>String(x==null?'':x)).filter((k,i,a)=>k&&known.includes(k)&&a.indexOf(k)===i);
+    const c=JSON.parse(JSON.stringify(amNxCfg())); c.gv={off:o.off?1:0, ng}; state.amNx=c; amSave(); renderMapView(); return true; };
+  if(isAdmin) return put();
+  /* 5.32（room2-design の 確かめ）：入口の ⚙ は WS の isAdmin を 立てないので、合言葉（pw）が 合えば 保存する（管理者モードには しない＝amNamesOpen の _namesOkUntil と 同じ 考え。pw は どこにも 書かない・ログにも 出さない）。
+     この 道は checkAdminPw が 非同期なので Promise<true|false> を 返す。pw が 無ければ false */
+  if(pw==null||pw==='') return false;
+  return Promise.resolve().then(()=>checkAdminPw(pw)).then(ok=>ok===true?put():false).catch(()=>false);
+}
+/* 諦められない 作業か（名前は 5.31 の まま。呼ぶ 所は 変えない）：設定が あれば 札（kind）で、無ければ 5.31 の 決め打ち */
+function amIsFresh(w){ if(!w||typeof w!=='object') return false; const c=amGvCfg(); if(!c.set) return amIsFreshLegacy(w); return c.ng.includes(String(w.kind==null?'':w.kind)); }
+/* 諦められない 札の 名前（文に 使う）。設定が 無い 店は「鮮度管理」 */
+function amGvNgName(w){ const c=amGvCfg(); if(!c.set) return '鮮度管理'; const k=String(w&&w.kind==null?'':w&&w.kind); return amKindName(k)||k||''; }
+function amGvNgNames(){ const c=amGvCfg(); return c.set?c.ng.map(k=>amKindName(k)||k).join('・'):'鮮度管理'; }
+window.amGvCfg=amGvCfg; window.amGvKinds=amGvKinds; window.amGvSet=amGvSet;
 function amNxGvQid(r){ const w=String((r&&r.w)||''); return (r&&r.sa)?amNxAfId(w.replace(/#af$/,''),r.sa):w; }
 function amNxGvDue(x){ return (x&&isFinite(x.due))?new Date(x.due).toISOString():''; }
 /* きょう（3:00 始まり）の 諦めた：[{id, key, r, t, y, by, qid, o, u, def}]（古い 順）。読むだけ。この 端末の 時計より 1分 以上 先の 物は 数えない */
@@ -14767,20 +14797,20 @@ function amNxGvAll(now){
 function amNxGvNow(now){ const all=amNxGvAll(now), hide={}; all.forEach(e=>{ if(!e.u) hide[e.qid]=e.o; }); return {all, hide, live:all.filter(e=>!e.u)}; }
 function amNxGvHid(gv,x){ return x.k==='fire'&&Object.prototype.hasOwnProperty.call(gv.hide,x.id)&&gv.hide[x.id]===amNxGvDue(x); }
 var _amGv=null;   // 諦める の 窓（この 端末の メモリだけ）：{mode:'one'|'all', id, y, others}
-function amNxGvAskI(id){ if(amFT()<(_amNx.hold||0)) return; const it=amNxItemOf(id,Date.now()); if(!it) return; if(amIsFresh(it.w)){ amSnack('鮮度管理の 作業は 諦められません（食品の 安全のため 最後まで）',false); return; } _amGv={mode:'one', id:String(id), y:'', others:false}; amNxGvSheet(); }
-function amNxGvAskAll(){ if(!isAdmin||!amNxOn()) return; _amGv={mode:'all', id:'', y:'', others:false}; amNxGvSheet(); }
-function amNxGvTargets(now){ return amNxQueue(now).filter(x=>x.k==='fire'&&!x.lock&&!amIsFresh(x.w)); }
+function amNxGvAskI(id){ if(amFT()<(_amNx.hold||0)) return; if(!amGvOn()) return; const it=amNxItemOf(id,Date.now()); if(!it) return; if(amIsFresh(it.w)){ amSnack(amGvCfg().set?`「${amGvNgName(it.w)}」の 作業は 諦められません（最後まで）`:'鮮度管理の 作業は 諦められません（食品の 安全のため 最後まで）',false); return; } _amGv={mode:'one', id:String(id), y:'', others:false}; amNxGvSheet(); }   // 5.32：使わない 店は 何も しない・文は 札から
+function amNxGvAskAll(){ if(!isAdmin||!amNxOn()||!amGvOn()) return; _amGv={mode:'all', id:'', y:'', others:false}; amNxGvSheet(); }   // 5.32：使わない 店は 一括も 無し
+function amNxGvTargets(now){ if(!amGvOn()) return []; return amNxQueue(now).filter(x=>x.k==='fire'&&!x.lock&&!amIsFresh(x.w)); }
 function amNxGvFreshN(now){ return amNxQueue(now).filter(x=>x.k==='fire'&&!x.lock&&amIsFresh(x.w)).length; }
 function amNxGvClose(){ const G=_amGv; _amGv=null; amCloseSheet(); if(G&&G.mode==='all') amOpenWorks(); }
 /* 窓：① 理由（1つ 押すだけ）→ ② 名前（押すと 諦めた ことに なる＝確かめ）。一括は ② が「◯件を 諦める」の 1つ */
 function amNxGvSheet(){
   const G=_amGv; if(!G) return; const now=Date.now(), e=escapeHtml; _amfHold=amFT()+AM_HOLD_MS; let nm='', n=0, fresh=0;
-  if(G.mode==='all'){ n=amNxGvTargets(now).length; fresh=amNxGvFreshN(now); nm=`きょうの おくれ ${n}件`; if(!n){ _amGv=null; amCloseSheet(); amOpenWorks(); amSnack(fresh?`おくれは 鮮度管理の ${fresh}件だけです（諦められません）`:'いま おくれは ありません',false); return; } }
+  if(G.mode==='all'){ n=amNxGvTargets(now).length; fresh=amNxGvFreshN(now); nm=`きょうの おくれ ${n}件`; if(!n){ _amGv=null; amCloseSheet(); amOpenWorks(); amSnack(fresh?`おくれは 諦められない 札（${amGvNgNames()}）の ${fresh}件だけです`:'いま おくれは ありません',false); return; } }
   else { const it=amNxItemOf(G.id,now); if(!it||amNxItemDone(it,now)){ _amGv=null; amCloseSheet(); _amNx.sel=''; renderMapView(); amSnack('この 作業は もう ありません（済）',false); return; } nm=it.name||''; }
-  const hd=`<div class="nxt-h"><span class="ex" aria-hidden="true">🏳</span><div><b>${G.y?'だれが 諦める？':'どうして 諦める？'}</b><small>${G.y?'Who gives up? / कसले छोड्ने?':'Why give up? / किन छोड्ने?'}</small></div><span class="one">${G.y?'押すと 外れます':'1つ 押すだけ'}</span></div><div class="nxt-w"><span>${e(nm)}</span>${(G.mode==='all'&&fresh)?`<small>（鮮度管理 ${fresh}件は 残ります）</small>`:''}</div>`;
+  const hd=`<div class="nxt-h"><span class="ex" aria-hidden="true">🏳</span><div><b>${G.y?'だれが 諦める？':'どうして 諦める？'}</b><small>${G.y?'Who gives up? / कसले छोड्ने?':'Why give up? / किन छोड्ने?'}</small></div><span class="one">${G.y?'押すと 外れます':'1つ 押すだけ'}</span></div><div class="nxt-w"><span>${e(nm)}</span>${(G.mode==='all'&&fresh)?`<small>（諦められない 札 ${e(amGvNgNames())} の ${fresh}件は 残ります）</small>`:''}</div>`;
   let body;
   if(!G.y) body=`<div class="nxt-g">${AM_NX_GV.map(d=>`<button type="button" class="nxt-b calm" data-y="${d.y}" onclick="amNxGvPick(this.dataset.y)"><span class="ic" aria-hidden="true">${d.ic}</span><span class="tx"><b>${d.t}</b><small>${d.en} / ${d.ne}</small></span></button>`).join('')}</div><div class="nxt-f"><span>諦めても 記録は 残ります（店長の 📊 に 出ます）。きょうの 間は 戻せます</span><button type="button" class="nx-sub" onclick="amNxGvClose()">まちがえた（もどる）</button></div>`;
-  else { const d=amNxGvDef(G.y), here=amNxHereOrd(amNxHere(now),now).map(h=>h.n), rest=staffList().filter(x=>!here.includes(x)), names=G.mode==='all'?[]:(here.length?here.concat(G.others?rest:[]):rest);
+  else { const d=amNxGvDef(G.y), here=amNxStaffOrd(amNxHere(now)).map(h=>h.n) /* 5.32：登録の 並び */, rest=staffList().filter(x=>!here.includes(x)), names=G.mode==='all'?[]:(here.length?here.concat(G.others?rest:[]):rest);
     const pk=names.map(nn=>`<button type="button" class="nx-pk" data-n="${e(nn)}" onclick="amNxGvOk(this.dataset.n)">${amNxAv(nn,'big')}<span class="nx-pk-n">${e(nn)}</span></button>`).join('');
     const one=G.mode==='all'?`<button type="button" class="nxt-ok" id="nxgv-all" onclick="amNxGvOk('管理者')">🏳 ${n}件を 諦める<small>${d.ic} ${e(d.t)}・管理者</small></button>`:(names.length?'':`<button type="button" class="nxt-ok" id="nxgv-one" onclick="amNxGvOk('')">🏳 諦める<small>名前なし</small></button>`);
     body=`<div class="nx-sh-q">${d.ic} ${e(d.t)}${G.mode==='all'?'':amNxTr('Tap your name to give up','छोड्न आफ्नो नाम थिच्नुहोस्')}</div>${pk?`<div class="nx-pks">${pk}</div>`:''}${one?`<div class="nxt-a single">${one}</div>`:''}<div class="nx-sh-f">${(G.mode!=='all'&&here.length&&rest.length&&!G.others)?`<button type="button" class="nx-sub" onclick="_amGv.others=true;amNxGvSheet()">ほかの人 ▾</button>`:''}<button type="button" class="nx-sub" onclick="_amGv.y='';amNxGvSheet()">理由に もどる</button><button type="button" class="nx-sub" onclick="amNxGvClose()">やめる</button></div>`; }
