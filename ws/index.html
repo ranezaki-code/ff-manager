@@ -4959,7 +4959,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.31'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.31.1'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -12202,6 +12202,7 @@ function amOpenHelp(){
 }
 function updateMapBadge(){
   const b=document.getElementById('tab-map-badge'); if(!b)return;
+  if(amNxOn()){ const n=amNxFireN(Date.now()); if(n>0){ b.textContent=n; b.style.display=''; } else b.style.display='none'; return; }   // 5.31.1（テス 10/27）：新しい画面では 急ぐ順（amNxQueue）の おくれの 数＝列と 同じ（諦めた・取りかかり中・困った を 外す。入口の ホームも この 数を 読む）。オフは 下の まま
   const now=Date.now(), n=amWorks().filter(a=>!amIsOff(a)&&amStatus(a,now).st==='fire').length+amAfterList(now).filter(o=>o.up&&o.k==='fire').length;   // 5.10：場所のある作業の「あとの作業」の 🔥 も数える   // 売場以外の作業は、売場マップの赤い数字に入れない
   if(n>0){ b.textContent=n; b.style.display=''; } else b.style.display='none';
 }
@@ -13172,8 +13173,17 @@ function amRecordAfter(wid, src, name){
 }
 /* 5.8：いま 🔥（おくれ）が出ている作業のうち、いちばん急ぐ1件（{id, label}）。無ければ null。読むだけ・保存しない。
    売場以外に 🔥 があれば そちらが先（売場以外の帯の「先に」と同じ決まり：時刻のある作業 → ほかの 🔥）。無ければ 売場の列の1番（持ち場の絞りに合わせる。amCmp の並びの先頭） */
+/* 5.31.1（テス 10/27：丸の 数と「つぎ」が 5.31 の 諦めた・取りかかり中・困った を 知らず、新しい画面の 急ぐ順と ちがった）：新しい画面が オンの 時は、急ぐ順（amNxQueue）から 数える・えらぶ。オフの 時は 5.31 の まま。
+   amNxFireN＝急ぐ順の おくれ（k:fire）の 数（列の 上の「おくれ ◯」・📊 と 同じ 数え方）。
+   amNxFireTop＝急ぐ順の 先頭の おくれ（無ければ 先頭の もうすぐ）。{id（急ぐ順の id）, wid（作業の id）, label, k:'fire'|'soon', name, when（行の 右の 字）, due}。無ければ null。読むだけ・保存しない */
+function amNxFireN(now){ return amNxQueue(now||Date.now()).filter(x=>x.k==='fire').length; }
+function amNxFireTop(now){
+  now=now||Date.now(); const q=amNxQueue(now), x=q.find(x=>x.k==='fire')||q.find(x=>x.k==='soon'); if(!x) return null;
+  return {id:x.id, wid:x.w.id, label:`${x.w.icon||''} ${x.name||''}`.trim(), k:x.k, name:x.name||'', when:amNxWhen(x,now), due:x.due};
+}
 function amFireTop(now){
   now=now||Date.now();
+  if(amNxOn()) return amNxFireTop(now);   // 5.31.1：新しい画面は 急ぐ順と 同じ（上の 説明）。入口の ホームが 読む
   if(amOffWorks().length){ const oF=amOffList(now).filter(o=>o.k==='fire'&&!o.af&&(o.re||!amGapLock(o.w,now))), t=oF.find(o=>o.t)||oF[0]||null; /* 5.10：あとの作業は「火が出ているほうを先に」の案内には入れない */ if(t) return {id:t.w.id, label:`${t.w.icon||''} ${t.t?amHM(t.s)+' ':''}${t.w.name||''}`.trim()}; }
   const num=amNums(), sts={}, ws=amFloorWorks().filter(amInPatrol).filter(a=>!amGapLock(a,now)); ws.forEach(a=>{ sts[a.id]=amStatus(a,now); });
   const rw=amRunWorks(now), f=ws.filter(a=>sts[a.id].st==='fire'&&!rw[a.id]).sort((a,b)=>amCmp(a,b,sts,num))[0];
