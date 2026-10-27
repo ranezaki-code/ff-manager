@@ -2840,6 +2840,8 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .nm .nm-n{flex:1;min-width:0;font-size:18px;font-weight:700;color:#13294B;overflow-wrap:anywhere}
 .nm .nm-r small{font-size:13px;color:#7586A0;font-weight:700}
 .nm .nm-x{flex:none;min-height:44px;min-width:64px;border:2px solid #F4C7C2;border-radius:10px;background:#fff;color:#B42318;font:inherit;font-weight:800;cursor:pointer}
+.nm .nm-ud{flex:none;min-height:44px;min-width:44px;padding:0;border:2px solid #D3DAE4;border-radius:10px;background:#fff;color:#13294B;font:inherit;font-size:20px;font-weight:800;cursor:pointer}   /* 5.31.3：並び順の ↑↓ */
+.nm .nm-ud:disabled{opacity:.3;cursor:default}
 .nx-cfg-seg{margin:10px 0 6px}
 .nx-cfg-f{display:block;margin-top:14px}
 .nx-cfg-f input{width:100%;max-width:420px}
@@ -2955,6 +2957,17 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .nxa .nxa-who.full .nxa-av{background:#B9C3D1}
 .nxa .nxa-who .wt{flex:1;min-width:0}
 .nxa .nxa-acts{display:flex;gap:8px;flex-wrap:wrap}
+/* 5.31.3：開いた 窓の 上の ボタン（列の 中で 貼り付く。top は 描いた 後に 取りかかり中の 貼り付きの 高さを 入れる）と、全員の 名前の 一覧 */
+.nxa .nxa-open{padding-top:0}
+.nxa .nxa-acts.top{position:sticky;top:0;z-index:5;background:#fff;margin:0 -12px;padding:10px 12px 8px;border-bottom:2px solid var(--line);flex-wrap:nowrap}
+.nxa .nxa-acts.top .nxa-cl{flex:1 1 0;min-width:0;padding:0 4px;font-size:15px}
+.nxa.ph .nxa-acts.top .nxa-cl{font-size:14px;min-height:42px}
+.nxa .nxa-names{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.nxa.ph .nxa-names{grid-template-columns:repeat(2,minmax(0,1fr))}
+.nxa .nxa-names .nxa-who{min-height:48px;gap:8px;padding:4px 8px}
+.nxa .nxa-names .nxa-who b{font-size:15px}
+.nxa .nxa-names .nxa-who small{display:block;font-size:12px;color:var(--ink2)}
+.nxa .nxa-names .nxa-who.full b{font-size:14px}
 .nxa .nxa-cl{flex:1 1 120px;min-height:44px;border:2px solid var(--line);border-radius:6px;font-weight:700;background:#fff;text-align:center;padding:0 10px}
 .nxa .nxa-lockn{background:#F1F4F8;border-radius:6px;padding:10px 12px;font-weight:800;color:var(--ink2)}
 .nxa .nxa-skip{display:flex;gap:10px;align-items:flex-start;background:var(--hi);padding:12px 14px;border-radius:6px}
@@ -5002,7 +5015,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.31.2'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.31.3'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -5180,10 +5193,26 @@ function crewRoster(){   // {names:[フルネーム…], alias:{古い表記:今
   _crewRosterCache = {raw, val};
   return val;
 }
-function staffList(){
+/* 5.31.3：元の 並び（クルー情報の 読みがな順 → state.staff の 順）。色（amNxCol）は この 並びで 決める（並べ替えても 色と 顔は 変わらない） */
+function staffListBase(){
   const r = crewRoster(), out = r.names.slice();
   (state.staff || []).forEach(n => { if(n && !out.includes(n) && !r.alias[n]) out.push(n); });
   return out;
+}
+/* 5.31.3（店長 10/27「登録されたものを常に使う。登録画面で表示順番は変えられるようにしたい」）：
+   登録の 窓の ↑↓ で 決めた 並び state.staffOrder（名前の 配列。店の 全部の 端末で 同じ）。無い 店は 元の 並び。
+   staffOrder に 無い 名前は、元の 並びの まま 後ろに。staffOrder に あって 一覧に 無い 名前は 無視（消さない） */
+function staffOrderList(){ const o=state.staffOrder; return Array.isArray(o)?o.filter(n=>typeof n==='string'):null; }
+function staffList(){
+  const base = staffListBase(), ord = staffOrderList(); if(!ord||!ord.length) return base;
+  const idx = {}; ord.forEach((n,i)=>{ if(!(n in idx)) idx[n]=i; });
+  const inO = base.filter(n=>n in idx).sort((a,b)=>idx[a]-idx[b]);
+  return inO.concat(base.filter(n=>!(n in idx)));
+}
+/* 登録の 窓の ↑↓：1回 押すごとに 保存。ほかの 欄（state.staff・amHere・記録）には さわらない */
+function amNamesMove(n,dir){
+  n=String(n==null?'':n); const L=staffList(), i=L.indexOf(n), j=i+(dir<0?-1:1); if(i<0||j<0||j>=L.length) return;
+  L.splice(i,1); L.splice(j,0,n); state.staffOrder=L; saveState(); amNamesSheet('',true); if(currentView==='map') renderMapView();
 }
 /* 名前の統一：クルー情報で「この名前は○○さんと同じ人」と結びつけた／名前を変えた時だけ、
    WS の記録に残る古い表記を今の名前へ書き換える。
@@ -8082,9 +8111,9 @@ let _adminPwBusy = false;
    クルー情報（いまの アプリの クルーの 画面）の 名前は ここでは 消せない（そちらで 管理） */
 let _pwFor='', _namesOkUntil=0;
 function amNamesOpen(){ if(isAdmin||Date.now()<_namesOkUntil) return amNamesSheet(); _pwFor='names'; openAdminPwModal(); const t=document.querySelector('#admin-pw-modal .modal-title'), d=document.getElementById('admin-pw-desc'); if(t) t.textContent='🔐 クルーの 名前の 登録'; if(d) d.textContent='名前の 登録を 開きます。管理者の パスワードを 入れてください（管理者モードには なりません）。'; }
-function amNamesSheet(msg){
-  _amfHold=amFT()+AM_HOLD_MS; const r=crewRoster(), own=Array.isArray(state.staff)?state.staff.filter(Boolean):[], all=staffList();
-  const row=n=>{ const mine=own.includes(n)&&!r.names.includes(n), e=escapeHtml(n); return `<div class="nm-r">${amNxAv(n,'')}<span class="nm-n">${e}</span>${mine?`<button type="button" class="nm-x" data-n="${e}" onclick="amNamesDel(this.dataset.n)">外す</button>`:'<small>クルー情報の 名前</small>'}</div>`; };
+function amNamesSheet(msg,keep){
+  if(!keep) _amfHold=amFT()+AM_HOLD_MS; /* 5.31.3：↑↓ の 描き直し（keep）では 時刻を 入れ直さない（つづけて 押せる） */ const r=crewRoster(), own=Array.isArray(state.staff)?state.staff.filter(Boolean):[], all=staffList();
+  const row=(n,i)=>{ const mine=own.includes(n)&&!r.names.includes(n), e=escapeHtml(n); return `<div class="nm-r">${amNxAv(n,'')}<span class="nm-n">${e}</span><button type="button" class="nm-ud" data-n="${e}" onclick="amNamesMove(this.dataset.n,-1)" aria-label="上へ"${i===0?' disabled':''}>↑</button><button type="button" class="nm-ud" data-n="${e}" onclick="amNamesMove(this.dataset.n,1)" aria-label="下へ"${i===all.length-1?' disabled':''}>↓</button>${mine?`<button type="button" class="nm-x" data-n="${e}" onclick="amNamesDel(this.dataset.n)">外す</button>`:'<small>クルー情報の 名前</small>'}</div>`; };   // 5.31.3：↑↓ で 並び順（いちばん 上の ↑・いちばん 下の ↓ は 押せない）
   _amSheet(`<div class="nx-sh nm"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">👤 クルーの 名前${amTr2('Crew names','कर्मचारीको नाम')}</div>
     <div class="nm-add"><input type="text" id="nm-in" maxlength="20" placeholder="名前（例：山田 花子）" autocomplete="off" onkeydown="if(event.key==='Enter'&&!event.isComposing)amNamesAdd()"><button type="button" class="nm-go" onclick="amNamesAdd()">＋ 足す</button></div>
     ${msg?`<div class="nm-msg">${escapeHtml(msg)}</div>`:''}
@@ -13495,7 +13524,7 @@ function amNxPut(name,now){
   h[amNxKey(name)]={n:name, at:new Date(now).toISOString(), d:amDevId()};
   return true;
 }
-function amNxCol(n){ const L=staffList(); let i=L.indexOf(n); if(i<0) i=parseInt(amCkHash(n).slice(0,4),36)||0; return AM_NX_COL[i%AM_NX_COL.length]; }
+function amNxCol(n){ const L=staffListBase(); /* 5.31.3：色は 元の 並びで（並べ替えても 変わらない） */ let i=L.indexOf(n); if(i<0) i=parseInt(amCkHash(n).slice(0,4),36)||0; return AM_NX_COL[i%AM_NX_COL.length]; }
 function amNxIni(n){ const s=String(n||''); if(!s) return '？'; const ini=x=>{ const B=Array.from(x), w=x.trim().split(/\s+/); return [B[0], w.length>1?Array.from(w[w.length-1])[0]:B[0], B[B.length-1]]; }, me=ini(s), L=staffList().map(String).filter(x=>x!==s).map(ini);   // 頭の 字 → 名前（2つ目の かたまり）の 頭 → 終わりの 字 の 順に、ほかの人と 重ならない 物（クルーA → A・見本 花子 → 花）
   for(let i=0;i<3;i++){ if(!L.some(o=>o[i]===me[i])) return me[i]; } return Array.from(s).slice(-2).join(''); }
 function amNxAv(n,cls){ const s=String(n||''), c=amNxIni(s); return `<span class="nx-av${cls?' '+cls:''}" style="background:${s?amNxCol(s):'#98a2b3'}" aria-hidden="true">${escapeHtml(c)}</span>`; }
@@ -13816,6 +13845,7 @@ function amNxRowHtml(x,rk,now,ph,isSel){
 /* 5.27.1（テス △1）：今いる人の 並び。きょうの 人（交代・朝3時の 後に 入った 人。入った 順）→ 前からの 人（新しい 順）。 */
 function amNxHereOrd(here,now){ const c=amNxCut(now), t=here.filter(h=>h.at>=c), r=here.filter(h=>h.at<c).sort((a,b)=>(b.at-a.at)||(a.n<b.n?-1:1)); return t.concat(r); }
 /* 「だれが やる？」に 大きく 出す 人：きょうの 人（6人まで）。きょうの 人が いない 時は 前からの 人の 新しい 4人 */
+function amNxStaffOrd(here){ const L=staffList(), idx={}; L.forEach((n,i)=>{ idx[n]=i; }); const inL=here.filter(h=>h.n in idx).sort((a,b)=>idx[a.n]-idx[b.n]); return inL.concat(here.filter(h=>!(h.n in idx))); }   // 5.31.3：今いる人を 登録の 並びで
 function amNxHerePri(here,now){ const c=amNxCut(now), t=here.filter(h=>h.at>=c); return t.length?t.slice(0,6):amNxHereOrd(here,now).slice(0,4); }
 /* 押した 行の 下に 開く：場所・種類・始める 時に やる事・飛ばした 時の 注意・だれが やる？（今いる人。2つの 人は 押せない）・ほかの人・くわしく・とじる */
 function amNxOpenHtml(x,q,here,hold,now){
@@ -13823,17 +13853,19 @@ function amNxOpenHtml(x,q,here,hold,now){
   const meta=`<div class="meta">${pl?`${amNxIco('pin',18,'#13294B')}<span>${escapeHtml(pl)}</span>`:''}${amNxTagChip(x.tag,20)}${x.af?`<span>➡ ${escapeHtml(x.w.name||'')} の あと</span>`:''}${x.rep?`<span>${escapeHtml(amRepText(x.w))}</span>`:''}${amTr(x.tro)}</div>`;
   const stH=st?`<div class="nxa-start">▶ 始める時に やる事：<b>${escapeHtml(st.t)}</b>${amTr(st)}</div>`:'';
   const dmH=dm.map(r=>`<button type="button" class="nxb nxa-cl" data-k="${escapeHtml(r.k)}" onclick="amNxCkOpen(this.dataset.k)">⏸ ${escapeHtml(r.by||'名前なし')} の 続き（✓ 終わった）</button>`).join('');
+  /* 5.31.3（店長 10/27「ほかの人ってボタンを無くして、ずらっと全て表示」「そのほかのボタンは上の方に」「名前の並び順は…登録されたものを常に使う」）：
+     「ほかの人 ▾」と「名前を えらんで 始める」を 無くし、登録の 並び（staffList）の まま 全員を 出す。きょうの 人で 分けない・大きく しない。2つ 持ちは 灰色で 押せない（並びは 動かさない）。
+     困った・諦める・くわしく・とじる は 窓の いちばん 上（.nxa-acts.top＝列の 中で 貼り付く。名前を 送っても 見える）。🔒・鮮度管理の 決まりは 5.31 の まま。押した 時の 道（amNxWhoTap → amNxGo）は 変えない */
   let who;
   if(x.lock) who=`<div class="nxa-lockn">🔒 ${isFinite(x.lockAt)?amHM(x.lockAt)+' から ':''}始められます${amTr2('Not yet','अझै होइन')}</div>`;
-  else if(!here.length) who=`<div class="q">だれが やる？<small>Who starts? / कसले सुरु गर्ने?</small></div><button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.id)}" onclick="amNxPick(this.dataset.w,true)">▶ 名前を えらんで 始める</button>`;
-  const pri=amNxHerePri(here,now);   // 5.27.1（テス △1）：きょうの 人（交代の 後に 入った 人）だけ 大きく。ほかは「ほかの人 ▾」に たたむ（名前が 12人でも 困った・とじる が 下へ 行かない）
-  if(x.lock||!here.length){} else who=`<div class="q">だれが やる？<small>Who starts? / कसले सुरु गर्ने?</small></div><div class="nxa-btns">${pri.map(h=>{ const full=(hold[h.n]||0)>=AM_NX_HOLD, c=amNxCol(h.n);
-      return `<button type="button" class="nxb nxa-who${full?' full':''}" style="--pc:${c}" data-w="${escapeHtml(x.id)}" data-n="${escapeHtml(h.n)}" onclick="amNxWhoTap(this)"${full?' disabled':''}>${amNxAv2(h.n,40)}<span class="wt"><b>${full?`${escapeHtml(h.n)}：いま ${hold[h.n]}つ`:`▶ ${escapeHtml(h.n)} が やる`}</b><small>${full?`${AM_NX_HOLD}つまで ／ Max ${AM_NX_HOLD} / बढीमा २`:'Start / सुरु'}</small></span></button>`; }).join('')}</div>`;
-  const others=!x.lock&&here.length&&(here.length>pri.length||staffList().some(n=>!here.some(h=>h.n===n)));
+  else { const names=staffList();
+    who=`<div class="q">だれが やる？<small>Who starts? / कसले सुरु गर्ने?</small></div>${names.length?`<div class="nxa-names">${names.map(n=>{ const full=(hold[n]||0)>=AM_NX_HOLD, c=amNxCol(n);
+      return `<button type="button" class="nxb nxa-who${full?' full':''}" style="--pc:${c}" data-w="${escapeHtml(x.id)}" data-n="${escapeHtml(n)}" onclick="amNxWhoTap(this)"${full?' disabled':''}>${amNxAv2(n,32)}<span class="wt"><b>${escapeHtml(n)}${full?`：いま ${hold[n]}つ`:''}</b>${full?`<small>${AM_NX_HOLD}つまで ／ Max ${AM_NX_HOLD}</small>`:''}</span></button>`; }).join('')}</div>`:`<button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.id)}" onclick="amNxPick(this.dataset.w,true)">▶ 始める</button>`}`; }   // 名前の 登録が 0人の 店は 5.31 の 名前の 窓（名前なしで 始める）
   const more=x.af?`amOpenAfter('${escapeHtml(String(x.w.id))}',${x.o.src})`:`amOpenArea(this.dataset.w)`;
   const gvOk=x.k==='fire'&&!x.lock, fr=gvOk&&amIsFresh(x.w);   // 5.31：おくれの 行だけ「🏳 諦める」。鮮度管理には 出さず 一言
   const frH=fr?`<div class="nxa-fr">🧊 食品の 安全のため 最後まで<small>Food safety: finish this one / खाद्य सुरक्षा: अन्त्यसम्म</small></div>`:'';
-  return `<div class="nxa-open">${meta}${stH}${amNxSkipHtml(amNxSkip(x.id,q))}${dmH}${who}${frH}<div class="nxa-acts">${x.lock?'':`<button type="button" class="nxb nxa-cl trb" data-w="${escapeHtml(x.id)}" onclick="amNxTrbAskI(this.dataset.w)">! 困った</button>`}${(gvOk&&!fr)?`<button type="button" class="nxb nxa-cl gv" data-w="${escapeHtml(x.id)}" onclick="amNxGvAskI(this.dataset.w)">🏳 諦める</button>`:''}${others?`<button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.id)}" onclick="amNxPick(this.dataset.w,true)">ほかの人 ▾</button>`:''}<button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.w.id)}" onclick="${more}">くわしく</button><button type="button" class="nxb nxa-cl" onclick="amNxShut()">とじる</button></div></div>`;
+  const acts=`<div class="nxa-acts top">${x.lock?'':`<button type="button" class="nxb nxa-cl trb" data-w="${escapeHtml(x.id)}" onclick="amNxTrbAskI(this.dataset.w)">! 困った</button>`}${(gvOk&&!fr)?`<button type="button" class="nxb nxa-cl gv" data-w="${escapeHtml(x.id)}" onclick="amNxGvAskI(this.dataset.w)">🏳 諦める</button>`:''}<button type="button" class="nxb nxa-cl" data-w="${escapeHtml(x.w.id)}" onclick="${more}">くわしく</button><button type="button" class="nxb nxa-cl" onclick="amNxShut()">とじる</button></div>`;
+  return `<div class="nxa-open">${acts}${meta}${stH}${amNxSkipHtml(amNxSkip(x.id,q))}${dmH}${frH}${who}</div>`;
 }
 /* ✓ の 窓（取りかかり中の 行を 押す）：✓ が 要る 作業は 1行ずつ ✓（10行まで 送らずに 見える：広い 窓は 2列・せまい 窓は 44px の 行）。NG時の 行は 出さない。下に「✓ 終わった」 */
 function amNxCkHtml(r,now,B,ph){
@@ -13897,7 +13929,7 @@ function amNxRender(view){
   /* 上の 1行 */
   const used=amTagUse(), tagsUsed=amTagSorted().filter(t=>used[t.k]).slice(0,5);
   const ord=tagsUsed.length>1?`<div class="nxa-ord"${isAdmin?' onclick="amNxOrderPanel()" style="cursor:pointer"':''}><span class="lab">同じ急ぎなら</span>${tagsUsed.map(t=>`<span class="ol">${amNxStamp(t.k,20)}<b style="color:${amTagLook(t.k).c}">${escapeHtml(t.n)}</b></span>`).join('<span class="gt">›</span>')}</div>`:'';
-  const chips=amNxHereOrd(here,now).map(h=>{ /* 5.27.1（テス △1）：きょうの 人を 先に */ const n=hold[h.n]||0, c=amNxCol(h.n); return `<button type="button" class="nxb nxa-pc${n?'':' free'}" data-k="${escapeHtml(h.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxHereTap(this.dataset.k)">${amNxAv2(h.n,ph?32:36)}<span><b>${escapeHtml(ph?amNxIni(h.n):h.n)}</b><small>${n?n+'つ 取りかかり中':'あいている'}</small></span></button>`; }).join('');
+  const chips=amNxStaffOrd(here).map(h=>{ /* 5.31.3：上の 丸の 列も 登録の 並び（staffList）。登録に 無い 名前は 後ろ（5.27.1 の きょうの 人を 先に、の 順） */ const n=hold[h.n]||0, c=amNxCol(h.n); return `<button type="button" class="nxb nxa-pc${n?'':' free'}" data-k="${escapeHtml(h.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxHereTap(this.dataset.k)">${amNxAv2(h.n,ph?32:36)}<span><b>${escapeHtml(ph?amNxIni(h.n):h.n)}</b><small>${n?n+'つ 取りかかり中':'あいている'}</small></span></button>`; }).join('');
   let h=`<div class="nxa ${ph?'ph':port?'port':'land'}${q.length>9?' many':''}" id="nx-wrap" style="height:${H}px">`;
   if(isAdmin) h+=`<div class="nxa-ad"><button type="button" class="am-cfgbtn nxa-trbad${T.band.length?' on':''}" id="nxt-open" onclick="amNxTrbList()">⚠ 困った ${T.band.length}</button><button type="button" class="am-cfgbtn nxa-trbad${NA.some(x=>x.y==='out'||x.y==='dz'||x.y==='exp')?' on':''}" id="nxn-open" onclick="amNumAlertList()">🔔 知らせ ${NA.length}</button>${amLcBandBtn(now)}<button type="button" class="am-cfgbtn" onclick="amOpenWorks()">📝 作業の 登録</button><button type="button" class="am-cfgbtn" onclick="amEditMap()">🗺 地図の 登録</button></div>`;   // 5.29：管理者の 帯は 1行（↕ やる順 は 🧰 の 中）   // 5.28：🔔 知らせ（範囲の 外・ずれ・入れ直し・気に なる 答え方。押すと 一覧）   // 5.27：⚠ 困った（店長 待ちの 数。押すと 一覧）
   h+=`<div class="nxa-top"><div class="nxa-clk num">${amHM(now)}</div><div class="nxa-pp">${chips}</div><button type="button" class="nxb nxa-plus" onclick="amNxAdd()" aria-label="入る（今いる人に 足す）">＋</button><div class="nxa-dn">${amNxIco('check',18,'#2F8F5B')}済 ${amNxDoneN(now)}</div>${amKcOn()?`<button type="button" class="nxb nxa-kc${kcv?' on':''}" id="nxa-kc" aria-pressed="${kcv}" aria-label="厨房スケジュール" onclick="amKcToggle()">${ph?'🍳':'🍳 厨房'}</button>`:''}</div>`;   // 5.29（店長 10/26「上が ごちゃごちゃ」）：「同じ急ぎなら（種類の 順）」は 上に 出さない（並びは 今までどおり。管理者は 🧰 の ↕ やる順）。厨房の 作業が ある 店だけ「🍳 厨房」
@@ -13933,6 +13965,7 @@ function amNxRender(view){
   _amNx.lay={M, gut, ph, wires:ckR?[{key:'', cells:glow, tone:'run', sel:true}]:(sel?[sel]:q.slice(0,AM_NX_TOPN)).filter(x=>x.cells.length).map((x,i)=>({key:x.id, cells:x.cells, tone:x.lock?'later':x.k==='fire'?'late':x.k==='soon'?'soon':'later', sel:!!sel||i===0}))};
   const col=document.getElementById('nxa-col');
   { const sk=document.getElementById('nxa-stk'); if(sk&&col&&sk.offsetHeight>col.clientHeight*0.55) sk.classList.add('nost'); }   // 取りかかり中が 列の 半分より 高い 時は 貼り付けない（急ぐ順が 見えなく なるため）
+  { const a=col&&col.querySelector('.nxa-acts.top'), sk=col&&col.querySelector('.nxa-stk:not(.nost)'); if(a) a.style.top=(sk?sk.offsetHeight+6:0)+'px'; }   // 5.31.3：開いた 窓の 上の ボタンは、貼り付いた 取りかかり中の 下に 貼り付く
   if(col){ col.scrollTop=keep; if(_amNx.reveal) amNxReveal(_amNx.reveal); _amNx.reveal=''; col.addEventListener('scroll',amNxOnScroll,{passive:true}); }
   amNxFitTop(); amNxFitCk(); amNxBelow(); amNxWires();
   updateMapBadge(); amOffRefresh(); amSnackPlace();
@@ -13953,7 +13986,7 @@ function amNxReveal(id){
   const col=document.getElementById('nxa-col'); if(!col) return; const row=Array.prototype.find.call(col.querySelectorAll('.nxa-it'),e=>e.dataset.w===id); if(!row) return;
   const stk=col.querySelector('.nxa-stk:not(.nost)'), sh=stk?stk.offsetHeight+6:0;   // 5.27：上に 貼り付いた 取りかかり中の 下から 見せる
   const nx=row.nextElementSibling, op=(nx&&nx.classList.contains('nxa-open'))?nx:null, bot=op?op.offsetTop+op.offsetHeight:row.offsetTop+row.offsetHeight, room=col.clientHeight-sh-(op?8:52);   // 開いている 間は「下に あと◯件」を 出さない（amNxBelow）
-  const wb=op&&op.querySelector('.nxa-btns,.nxa-lockn,.nxa-cl'), wbot=wb?wb.offsetTop+wb.offsetHeight:0;   // 5.26（テス：390 幅で「◯◯ が やる」が 下の 帯に 隠れた）：名前の ボタンまでは 必ず 見せる
+  const wb=op&&(op.querySelector('.nxa-names .nxa-who,.nxa-btns,.nxa-lockn')||op.querySelector('.nxa-cl')), wbot=wb?wb.offsetTop+wb.offsetHeight:0;   // 5.26（テス：390 幅で「◯◯ が やる」が 下の 帯に 隠れた）：名前の ボタンまでは 必ず 見せる   // 5.31.3：上の ボタン（.nxa-cl）が 先に 来たので、最初の 名前の ボタンを 見る
   let st=col.scrollTop; if(row.offsetTop<st+sh+4) st=row.offsetTop-sh-8; if(bot>st+sh+room) st=Math.min(row.offsetTop-sh-8,bot-room-sh); if(wbot>st+sh+room) st=wbot-room-sh;
   col.scrollTop=Math.max(0,st);
   _amNx.sc=col.scrollTop;
