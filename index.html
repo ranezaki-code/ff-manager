@@ -99,52 +99,46 @@ body{
 .store-action:hover{background:#f1f5f9;color:var(--text);}
 .store-action .ico{width:18px;text-align:center;}
 
-/* ===== タイル ===== */
-.tiles{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
-  gap:20px;
-}
-.tile{
+/* ===== 新しい入口への案内（2026-10-27 店長の決定：古い FF・WS には入れない） ===== */
+.guide{
   background:var(--card);
+  border:1.5px solid #bfdbfe;
   border-radius:22px;
-  padding:32px 22px;
-  text-decoration:none;
-  color:var(--text);
+  padding:36px 28px;
   box-shadow:var(--shadow);
-  transition:transform .2s ease,box-shadow .2s ease;
-  display:flex;flex-direction:column;align-items:flex-start;gap:18px;
-  cursor:pointer;
-  border:1px solid rgba(15,23,42,.04);
-  min-height:140px;
+  text-align:center;
 }
-.tile:hover,.tile:active{
-  transform:translateY(-3px);
-  box-shadow:var(--shadow-hover);
+.guide .mark{
+  width:64px;height:64px;margin:0 auto 18px;
+  border-radius:16px;background:#eff6ff;color:#1d4ed8;
+  display:flex;align-items:center;justify-content:center;font-size:32px;
 }
-.icon-wrap{
-  width:54px;height:54px;
-  border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:28px;
-  flex-shrink:0;
+.guide h1{
+  font-size:22px;font-weight:700;color:#1d4ed8;line-height:1.5;letter-spacing:.01em;
 }
-.tile.ff .icon-wrap{background:linear-gradient(135deg,#fef3c7,#fde68a);}
-.tile.ws .icon-wrap{background:linear-gradient(135deg,#dbeafe,#bfdbfe);}
-.tile.next .icon-wrap{background:linear-gradient(135deg,#dcfce7,#bbf7d0);}
-.name{
-  font-size:16px;
-  font-weight:600;
-  letter-spacing:.01em;
-  line-height:1.4;
+.guide .sub{
+  font-size:15px;color:#334155;line-height:1.8;margin-top:10px;
 }
+.guide .tr{
+  font-size:13px;color:#7586a0;line-height:1.6;margin-top:6px;
+}
+.guide .go{
+  display:block;width:100%;max-width:420px;margin:24px auto 0;
+  padding:18px 22px;border-radius:14px;
+  background:#2563eb;color:#fff;text-decoration:none;
+  font-size:20px;font-weight:700;letter-spacing:.02em;
+  box-shadow:0 6px 18px rgba(37,99,235,.25);
+  transition:transform .15s ease,background .15s ease;
+}
+.guide .go:hover,.guide .go:active{background:#1d4ed8;transform:translateY(-2px);}
+.guide .go small{display:block;font-size:12px;font-weight:500;opacity:.85;margin-top:4px;}
 @media (max-width:480px){
   body{padding:48px 18px 18px;}
   .store-trigger{font-size:28px;}
   .store-switcher{margin-bottom:36px;}
-  .tile{padding:24px 18px;min-height:120px;gap:14px;}
-  .icon-wrap{width:48px;height:48px;font-size:24px;border-radius:12px;}
-  .name{font-size:15px;}
+  .guide{padding:28px 18px;}
+  .guide h1{font-size:19px;}
+  .guide .go{font-size:18px;padding:16px 18px;}
 }
 </style>
 <script src="autoupdate.js" defer></script>
@@ -159,19 +153,13 @@ body{
     <div class="store-menu" id="store-menu"></div>
   </div>
 
-  <div class="tiles">
-    <a class="tile ff" href="./ff/index.html">
-      <div class="icon-wrap">🍗</div>
-      <div class="name">FF管理</div>
-    </a>
-    <a class="tile ws" href="./ws/index.html">
-      <div class="icon-wrap">📋</div>
-      <div class="name">ワークスケジュール</div>
-    </a>
-    <a class="tile next" href="./next/index.html">
-      <div class="icon-wrap">📅</div>
-      <div class="name">次週計画</div>
-    </a>
+  <!-- 2026-10-27 店長の決定：古い FF管理・ワークスケジュールには、ここから入れない。新しい入口（v2/）への案内だけ -->
+  <div class="guide" id="guide">
+    <div class="mark">🚪</div>
+    <h1>FF管理・ワークスケジュールは、<br>新しい入口に移りました</h1>
+    <div class="sub">ここからは古い画面に入れません。下のボタンから新しい入口を開いてください。</div>
+    <div class="tr">FF Manager and Work Schedule have moved to the new entrance. ／ FF व्यवस्थापन र कार्य तालिका नयाँ प्रवेशद्वारमा सारिएको छ।</div>
+    <a class="go" id="go-v2" href="./v2/index.html">新しい入口を開く<small>Open the new entrance ／ नयाँ प्रवेशद्वार खोल्नुहोस्</small></a>
   </div>
 </div>
 
@@ -290,15 +278,7 @@ document.getElementById('store-menu').addEventListener('click',e=>{
   }
 });
 
-/* タイルクリック時：sessionStorageにハブURLを記憶（戻りボタン用） */
-document.querySelectorAll('a.tile').forEach(function(a){
-  a.addEventListener('click',function(){
-    try{
-      sessionStorage.setItem('_fromHub','1');
-      sessionStorage.setItem('_hubUrl',location.href);
-    }catch(e){}
-  });
-});
+/* 2026-10-27：古い画面へのタイル（a.tile）は無くした。_fromHub の記憶は古い画面の「← 戻る」用だったので、合わせて外した */
 </script>
 </body>
 </html>

@@ -374,14 +374,15 @@ function renderSwitcher(){
 // ---------- タブ / iframe ----------
 let activeSys='ff';
 // 2026-10-06 店長の決定：FF管理・ワークスケジュール・カレンダーの本番は新しいシステム（v2/）。ここでは入口を閉じて案内する（データは消さない）
+// 2026-10-27 店長の決定：「確認のために古い画面を見る」の道と ?old=1 の道を閉じた。古い FF・WS・カレンダーの画面には、ここから入れない
 const MOVED={ff:'FF管理',ws:'ワークスケジュール',cal:'カレンダー'};
-let _gateOpened={};
+const MOVED_EN={ff:'FF Manager',ws:'Work Schedule',cal:'Calendar'};
+const MOVED_NE={ff:'FF व्यवस्थापन',ws:'कार्य तालिका',cal:'पात्रो'};
 function showMovedGate(sys){
   let g=document.getElementById('moved-gate');
-  if(!g){ g=document.createElement('div'); g.id='moved-gate'; g.style.cssText='position:absolute;inset:0;z-index:50;background:#f8fafc;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;line-height:1.8'; document.getElementById('main').appendChild(g); }
+  if(!g){ g=document.createElement('div'); g.id='moved-gate'; g.style.cssText='position:absolute;inset:0;z-index:50;background:#f8fafc;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;line-height:1.8;overflow:auto'; document.getElementById('main').appendChild(g); }
   g.style.display='flex';
-  g.innerHTML='<div style="max-width:460px"><div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:8px">'+MOVED[sys]+'は、新しいシステムに移りました</div><div style="font-size:14px;color:#334155">2026年10月6日から、FF管理・ワークスケジュール・カレンダーの本番は新しいシステムです。<br>ここで入力しても、新しいシステムには届きません。</div><a href="v2/index.html?sys='+sys+'" style="display:inline-block;margin-top:16px;padding:12px 22px;background:#2563eb;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">新しいシステムの'+MOVED[sys]+'を開く</a><div style="margin-top:18px;font-size:12px"><a href="#" id="moved-old" style="color:#64748b">確認のために古い画面を見る（入力はしないでください）</a></div></div>';
-  g.querySelector('#moved-old').onclick=e=>{ e.preventDefault(); _gateOpened[sys]=true; g.style.display='none'; showSystem(sys); };
+  g.innerHTML='<div style="max-width:460px"><div style="font-size:18px;font-weight:800;color:#1d4ed8;margin-bottom:8px">'+MOVED[sys]+'は、新しいシステムに移りました</div><div style="font-size:14px;color:#334155">2026年10月6日から、FF管理・ワークスケジュール・カレンダーの本番は新しいシステムです。<br>ここからは古い画面に入れません。</div><div style="font-size:13px;color:#7586a0;margin-top:6px">'+MOVED_EN[sys]+' has moved to the new system. ／ '+MOVED_NE[sys]+' नयाँ प्रणालीमा सारिएको छ।</div><a href="v2/index.html?sys='+sys+'" style="display:inline-block;margin-top:16px;padding:12px 22px;background:#2563eb;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">新しいシステムの'+MOVED[sys]+'を開く</a></div>';
 }
 function showSystem(sys){
   activeSys=sys;
@@ -390,7 +391,7 @@ function showSystem(sys){
   // 既存frameを隠す
   Object.values(frames).forEach(f=>f.classList.remove('active'));
   const gate=document.getElementById('moved-gate'); if(gate)gate.style.display='none';
-  if(MOVED[sys]&&!_gateOpened[sys]&&!/[?&]old=1/.test(location.search)){ showMovedGate(sys); return; }
+  if(MOVED[sys]){ showMovedGate(sys); return; }   // 古い画面の iframe は作らない
   if(!frames[sys]){
     const ifr=document.createElement('iframe');
     ifr.className='frame';
