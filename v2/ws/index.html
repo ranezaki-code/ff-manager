@@ -3910,6 +3910,44 @@ html.embedded-in-hub button[onclick="restoreLastAutobackup()"],
 html.embedded-in-hub button[onclick="clearAllData()"]{display:none!important}
 </style>
 <script src="../../autoupdate.js" defer></script><!-- 【v2 差し替え3】自動更新の場所 -->
+<script id="ws-clock-band">/* 5.31.2（テス 10/26 の 4番目）：端末の 時計の ずれを 知らせる 赤い 帯。勝ち負け・おくれ・記録の 時刻は 全部 端末の 時計なので、2分 以上 ずれて いたら 画面の いちばん 上に 出す。
+   本当の 時刻の 取り方（A）：同じ 場所への HEAD（fetch(location.href)）の Date ヘッダ（秒の 単位。GitHub Pages で 出る。ほかの 場所へは 出さない）。file:// や 取れない 時・遅い 時（15秒 超）は 何も しない（偽の 警告を 出さない）。
+   開いた 時と、その後 10分ごと（かくれて いる 間は 測らない。見えた 時に 10分 たって いれば 測る）。2分 未満に 戻れば 消える。押しても 閉じられない（仕組みで 知らせる）。保存には 何も 足さない・core.js は さわらない。
+   帯は #app の いちばん 上に 流れの 中で 置く（下の 中身を 押し下げる。かぶせない）。出す・消す 時に resize を 流して、地図と 列の 高さ（amFPlace・renderMapView）を 合わせ直す。試験は window.__wsClk（check(force)・state）。 */
+(function(){
+  var LIM=2*60000, EVERY=10*60000, st={diff:null, at:0, shown:false, calls:0};
+  function el(){ var b=document.getElementById('ws-clk'); if(b) return b; var app=document.getElementById('app')||document.body; if(!app) return null;
+    b=document.createElement('div'); b.id='ws-clk'; b.setAttribute('role','alert');
+    b.style.cssText='display:none;flex:none;box-sizing:border-box;width:100%;max-width:100%;overflow-x:hidden;touch-action:pan-y;background:#FDE8E6;color:#D62B1F;border-bottom:3px solid #D62B1F;padding:8px 12px;font-weight:800;font-size:15px;line-height:1.35;word-break:keep-all;overflow-wrap:anywhere';
+    b.innerHTML='<div id="ws-clk-ja"></div><div id="ws-clk-en" style="font-size:13px;color:#7586a0;font-weight:400;margin-top:2px"></div>';
+    app.insertBefore(b,app.firstChild); return b; }
+  function fmt(ms){ var m=Math.round(Math.abs(ms)/60000); return m>=60?(Math.floor(m/60)+'時間'+(m%60?(m%60)+'分':'')):(m+'分'); }
+  function fmtEn(ms){ var m=Math.round(Math.abs(ms)/60000); return m>=60?(Math.floor(m/60)+' h'+(m%60?' '+(m%60)+' min':'')):(m+' min'); }
+  function relayout(){ try{ window.dispatchEvent(new Event('resize')); }catch(_){ } }
+  function show(diff){ var b=el(); if(!b) return; var ahead=diff>0;
+    b.querySelector('#ws-clk-ja').textContent='⏰ この端末の時計が '+fmt(diff)+' '+(ahead?'進んで':'遅れて')+'います。設定で「時刻を自動で合わせる」を入にしてください';
+    b.querySelector('#ws-clk-en').textContent='This device’s clock is '+fmtEn(diff)+' '+(ahead?'fast':'slow')+'. Turn on “Set time automatically” in Settings. ／ यो यन्त्रको घडी '+fmtEn(diff)+' '+(ahead?'अगाडि':'पछाडि')+' छ। सेटिङमा “समय स्वतः मिलाउने” अन गर्नुहोस्।';
+    var was=st.shown; st.shown=true; b.style.display=''; if(!was) relayout(); }
+  function hide(){ var b=document.getElementById('ws-clk'); var was=st.shown; st.shown=false; if(b) b.style.display='none'; if(was) relayout(); }
+  function apply(diff){ if(diff==null||!isFinite(diff)) return; st.diff=diff; if(Math.abs(diff)>=LIM) show(diff); else hide(); }
+  /* 本当の 時刻との 差（端末 − 本当。ms）。取れない 時は null（帯は そのまま）。force＝試験（file:// でも 測る） */
+  function check(force){
+    try{
+      if(!force&&!/^https?:$/.test(location.protocol)) return Promise.resolve(null);
+      if(typeof window.fetch!=='function') return Promise.resolve(null);
+      var t0=Date.now(); st.calls++;
+      return window.fetch(location.href,{method:'HEAD',cache:'no-store',credentials:'same-origin'}).then(function(r){
+        var t1=Date.now(); if(!r||!r.headers||t1-t0>15000) return null;
+        var d=r.headers.get('Date'); var sv=d?Date.parse(d):NaN; if(!isFinite(sv)) return null;
+        var diff=Math.round((t0+t1)/2-(sv+500)); st.at=t1; apply(diff); return diff;   // Date は 秒で 切り捨て → +500ms（まん中）
+      }).catch(function(){ return null; });
+    }catch(e){ return Promise.resolve(null); }
+  }
+  function tick(){ try{ if(document.hidden) return; check(false); }catch(_){ } }
+  function boot(){ setTimeout(tick,1500); setInterval(tick,EVERY); document.addEventListener('visibilitychange',function(){ try{ if(!document.hidden&&Date.now()-st.at>=EVERY) check(false); }catch(_){ } }); }
+  if(document.body) boot(); else document.addEventListener('DOMContentLoaded',boot);
+  window.__wsClk={check:check, state:st, LIM:LIM, EVERY:EVERY, apply:apply};
+})();</script>
 </head>
 <body>
 
@@ -4964,7 +5002,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.31.1'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.31.2'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
