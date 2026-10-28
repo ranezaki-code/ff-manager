@@ -207,7 +207,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
 .hm-sw::before{content:"";position:absolute;inset:-6px -2px}   /* 「出す」の切りかえ：見た目は そのまま、押せる所を 44px に */
 .settings-row .btn{min-height:44px}.settings-row .desc{font-size:13px}   /* △（10/27 テス）：⚙ の ボタン 44px・説明の字 13px */
 /* 🏳 諦めるボタンの 設定（10/27） */
-.hm-box.gv{max-height:calc(100vh - 24px);overflow:auto}
+.hm-box.gv{max-height:calc(100vh - 24px);overflow:auto}.hm-box.gv>*{flex-shrink:0}
 .gv-seg{display:flex;border:1.5px solid #1f5fbf;border-radius:10px;overflow:hidden}
 .gv-seg button{flex:1;height:44px;border:0;background:#fff;color:#1f5fbf;font:inherit;font-size:16px;font-weight:700;cursor:pointer}
 .gv-seg button.on{background:#1f5fbf;color:#fff}
@@ -219,6 +219,9 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
 .gv-k input{width:20px;height:20px;accent-color:#1f5fbf;flex:none;margin:0}
 .gv-k:has(input:checked){border-color:#1f5fbf;background:#fff;font-weight:700}
 .hm-box p.gv-warn{color:#c8322a}
+.nx-opt{display:flex;align-items:center;gap:14px;padding:12px 14px;border:1.5px solid #d6e2f2;border-radius:10px;background:#f5f8fd}
+.nx-opt>div{flex:1;min-width:0}.nx-opt b{display:block;font-size:15px;line-height:1.45;color:#1d2b40;margin-bottom:4px;word-break:keep-all;overflow-wrap:anywhere}.nx-opt .gv-note{word-break:keep-all;overflow-wrap:anywhere}.nx-opt .hm-sw{flex:none}
+.nx-opt:has(.hm-sw:not(.o)){border-color:#1f5fbf;background:#fff}
 .hm-box.gv .hm-msg.gv-info{color:#1f5fbf}.hm-box.gv .hm-foot .hm-msg:not(:empty){margin-bottom:10px}
 </style>
 </head>
@@ -273,6 +276,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
     <div class="settings-row"><div><div class="label">古いアプリのデータを写す</div><div class="desc">書き出したファイルを読んで、新しいシステムへ写します（元は変わりません）</div></div><a class="btn btn-ghost" href="migrate.html" target="_blank" rel="noopener" style="text-decoration:none">開く</a></div>
     <div class="settings-row"><div><div class="label">🔐 合言葉を入れ直す</div><div class="desc">別の合言葉の場所に切り替えます</div></div><button class="btn btn-ghost" id="change-pass-btn">変更</button></div>
     <div class="settings-row" id="gv-row" style="display:none"><div><div class="label">🏳 諦めるボタン</div><div class="desc" id="gv-desc">使うか・諦められない札（店長だけ）</div></div><button class="btn btn-ghost" id="gv-btn">変更</button></div>
+    <div class="settings-row" id="nx-row" style="display:none"><div><div class="label">🗂 作業の 画面</div><div class="desc" id="nx-desc">取りかかり中の 残し方・今いる人の 列（店長だけ）</div></div><button class="btn btn-ghost" id="nx-btn">変更</button></div>
     <div class="settings-row"><div><div class="label">古いアプリ（FF・WS）</div><div class="desc">この新しい入口に移りました</div></div></div>
     <div class="muted" id="settings-status"></div>
   </div>
@@ -490,6 +494,8 @@ function hmOvClick(ev){
   if(o==='save') return hmSave();
   if(o==='gvon'||o==='gvoff'){ if(_gv){ _gv.off=o==='gvoff'?1:0; gvDraw(); } return; }
   if(o==='gvsave') return gvSave();
+  if(o==='nxkeep'||o==='nxhere'){ if(_nx){ const k=o==='nxkeep'?'keep':'noHere'; _nx[k]=_nx[k]?0:1; nxDraw(); } return; }
+  if(o==='nxsave') return nxSave();
   const a=_hmEdit&&_hmEdit.icons; if(!a) return;
   if(o==='up'&&i>0){ [a[i-1],a[i]]=[a[i],a[i-1]]; hmSetDraw(); }
   if(o==='dn'&&i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; hmSetDraw(); }
@@ -558,6 +564,58 @@ function gvRow(){   // ⚙ の「🏳 諦めるボタン」の行：店長の時
   $('gv-desc').textContent=d;
 }
 
+// ---- 🗂 作業の 画面の 切りかえ（WS 5.34・店長 10/27「全部おすすめで」）。店長だけ。読み書きは WS の amNxOptCfg／amNxOptSet だけ（入口は 何も 保存しない）。
+//      既定は 両方 オフ。何も 変えずに「保存する」では 書かない。合言葉は 諦めると 同じ _hmPw（保存したら 捨てる） ----
+let _nx=null;
+function nxWin(){ try{ const w=frames.ws&&frames.ws.contentWindow; return (w&&w.__v2ready&&typeof w.amNxOptCfg==='function'&&typeof w.amNxOptSet==='function')?w:null; }catch(_){ return null; } }
+function nxKey(x){ return JSON.stringify({keep:x.keep?1:0,noHere:x.noHere?1:0}); }
+function nxOpen(){
+  if(!hmBoss()) return hmAskBoss(nxOpen);
+  closeOverlay('settings-overlay'); _nx=null;
+  const sid=curStore; if(!sid) return;
+  if(_hmWsEmpty[sid]) return hmOv(`<h3>🗂 作業の 画面</h3><p>この店の ワークスケジュールは まだ 空です。作業を 入れてから 設定してください。</p><div class="hm-row2"><button class="hm-btn" data-o="x" type="button">閉じる</button></div>`);
+  hmOv(`<h3>🗂 作業の 画面</h3><p>読み込んでいます…</p><div class="hm-row2"><button class="hm-btn" data-o="x" type="button">やめる</button></div>`); $('hm-box').classList.add('gv-load');
+  hmEnsureWs(); let n=0;
+  const go=()=>{
+    if(!$('hm-ov').classList.contains('show')||curStore!==sid) return;
+    const w=nxWin();
+    if(w){ try{ const c=w.amNxOptCfg()||{}; _nx={sid,keep:c.keep?1:0,noHere:c.noHere?1:0}; _nx.init=nxKey(_nx); }catch(_){ _nx=null; } if(_nx) return nxDraw(); }
+    if(_hmWsEmpty[sid]) return nxOpen();
+    if(++n<80) return setTimeout(go,250);
+    hmOv(`<h3>🗂 作業の 画面</h3><p>ワークスケジュールを 読み込めませんでした。ネットを 確かめて、画面を 開き直してから もう一度 開いてください。</p><div class="hm-row2"><button class="hm-btn" data-o="x" type="button">閉じる</button></div>`);
+  };
+  go();
+}
+function nxDraw(msg,info){
+  const x=_nx; if(!x) return;
+  const s=stores().find(t=>t.id===x.sid)||{};
+  const sw=(on,o,lbl)=>`<button class="hm-sw${on?'':' o'}" data-o="${o}" type="button" role="switch" aria-checked="${on?'true':'false'}" aria-label="${lbl}"></button>`;
+  hmOv(`<h3>🗂 作業の 画面（${escapeHtml(s.name||'')}）</h3><p>保存すると、この店の すべての 端末に 効きます（ほかの店は 変わりません）。</p>
+  <div class="nx-opt"><div><b>🕒 取りかかり中は、押すまで 残す</b><p class="gv-note">「終わった・取り消し・困った」を 押すまで、取りかかり中に 残ります（自動で 外れるのは 朝3:00 だけ）。</p></div>${sw(x.keep,'nxkeep','取りかかり中は、押すまで 残す')}</div>
+  <div class="nx-opt"><div><b>👤 上の「今いる人」の 列を 使わない</b><p class="gv-note">上の 丸と ＋を 出しません。名前は 登録の 順で 全員 出ます。データは 消えません。</p></div>${sw(x.noHere,'nxhere','上の 今いる人の 列を 使わない')}</div>
+  <div class="hm-foot"><div class="hm-msg${info?' gv-info':''}" id="hm-msg">${msg?escapeHtml(msg):''}</div><div class="hm-row2"><button class="hm-btn p" data-o="nxsave" type="button">保存する</button><button class="hm-btn" data-o="x" type="button">やめる</button></div></div>`);
+  $('hm-box').classList.add('gv'); $('hm-box').oninput=null; $('hm-box').onchange=null;
+}
+async function nxSave(){
+  if(!hmBoss()) return hmAskBoss(nxSave);
+  const x=_nx; if(!x||x.sid!==curStore) return hmClose();
+  const w=nxWin(); if(!w) return nxDraw('ワークスケジュールが まだ 読めません。少し 待って もう一度 押してください');
+  if(nxKey(x)===x.init) return nxDraw('何も 変えていないので、保存しませんでした',1);
+  const pw=hmBoss()?_hmPw:'';
+  if(!pw) return hmAskBoss(nxSave,true);   // 合言葉を 捨てた 後・店長の 時間が 切れた：もう一度 聞く
+  nxDraw('保存しています…',1);
+  let r=false; try{ r=await w.amNxOptSet({keep:x.keep?1:0,noHere:x.noHere?1:0},pw); }catch(_){ r=false; }
+  _hmPw='';   // 保存したら 捨てる（うまく いかなかった 時も）
+  if(r!==true){ if(!$('hm-ov').classList.contains('show')) return; return nxDraw('保存できませんでした。もう一度「保存する」を 押して、店長の 合言葉を 入れてください'); }
+  _nx=null; hmClose(); hmRender();
+}
+function nxRow(){   // ⚙ の「🗂 作業の 画面」の行：店長の時だけ。説明は WS が 読めれば 今の 設定
+  const r=$('nx-row'); if(!r) return; r.style.display=(hmBoss()&&curStore)?'':'none'; if(r.style.display) return;
+  let d='取りかかり中の 残し方・今いる人の 列（店長だけ）'; const w=nxWin();
+  try{ if(w){ const c=w.amNxOptCfg()||{}; d='取りかかり中：'+(c.keep?'押すまで 残す':'いつもの 形')+'／今いる人の 列：'+(c.noHere?'使わない':'使う'); } }catch(_){}
+  $('nx-desc').textContent=d;
+}
+
 // ---------- 店舗 ----------
 function stores(){ const m=meta?meta.getState():{}; return Array.isArray(m.stores)?m.stores:[]; }
 function saveStores(list){ const m=meta.getState(); m.stores=list; meta.setState(m); }
@@ -573,7 +631,7 @@ function renderSwitcher(){
          :`<div class="store-divider"></div><div class="store-action" id="boss-btn"><span>🔒</span>店長（名前の変更・店の追加）</div>`);
   hmRender();
 }
-function setCurrent(id){ if(!stores().find(s=>s.id===id))return; if(_gv||$('hm-box').classList.contains('gv-load')){ _gv=null; _hmPw=''; hmClose(); } curStore=id; ls('v2_store',id); renderSwitcher(); reloadFrames(); }
+function setCurrent(id){ if(!stores().find(s=>s.id===id))return; if(_gv||_nx||$('hm-box').classList.contains('gv-load')){ _gv=null; _nx=null; _hmPw=''; hmClose(); } curStore=id; ls('v2_store',id); renderSwitcher(); reloadFrames(); }
 function addStore(name){ const list=stores(); const id='store_'+Date.now(); list.push({id,name:(name||'').trim()||'新店舗',createdAt:Date.now()}); saveStores(list); setCurrent(id); }
 function renameStore(id,n){ const list=stores(); const s=list.find(x=>x.id===id); if(!s)return; s.name=(n||'').trim()||s.name; saveStores(list); renderSwitcher(); }
 
@@ -714,9 +772,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.target.closest('#fix-store-btn')){ if(!hmBoss())return; ls('v2_store_fixed',ls('v2_store_fixed')?null:curStore); renderSwitcher(); return; }
     if(e.target.closest('#boss-btn')){ sw.classList.remove('open'); hmAskBoss(()=>{ renderSwitcher(); sw.classList.add('open'); }); return; }
   });
-  const openSettings=()=>{ $('devname-desc').textContent='履歴に「だれの端末か」として出ます（いま：'+deviceLabel()+'）'; $('settings-status').textContent=''; gvRow(); openOverlay('settings-overlay'); };
+  const openSettings=()=>{ $('devname-desc').textContent='履歴に「だれの端末か」として出ます（いま：'+deviceLabel()+'）'; $('settings-status').textContent=''; gvRow(); nxRow(); openOverlay('settings-overlay'); };
   $('sync').addEventListener('click',openSettings); $('settings-btn').addEventListener('click',openSettings);
   $('gv-btn').addEventListener('click',gvOpen);
+  $('nx-btn').addEventListener('click',nxOpen);
   document.addEventListener('click',e=>{ const c=e.target.closest('[data-close]'); if(c)closeOverlay(c.dataset.close); });
   $('history-btn').addEventListener('click',()=>{ if(store&&curStore)openHistory(); });
   $('history-body').addEventListener('click',onHistoryClick);
