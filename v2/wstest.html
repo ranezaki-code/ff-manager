@@ -1487,7 +1487,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.33'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.34'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*(t.getScreenCTM()?Math.hypot(t.getScreenCTM().a,t.getScreenCTM().b):s)).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<9.9).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11・5.29）：画面にかいた字は ぜんぶ 読める 下限（10px）以上・地図 全体で 1つの 大きさ（5.29：札と 線は 出さない。入らない マスは 字を 出さない）',
@@ -1612,7 +1612,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.33',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.34',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -3005,7 +3005,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same2=[wsj(O5)===wsj(P),wsj(O4)===wsj(P)];
         } finally { for(const d of [P,O5,O4]){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
         checkL7('97l','【古い版（5.14・5.15）の端末と まざる】新しい画面で 足した作業が 古い画面にも 同じ中身で 届く（保存の形は 同じ）・古い画面で 開いて 保存しても 変わらない・同じ作業の 別の欄（説明・名前・締切）を 3台が 同時に 直しても 全部 残る・新しい画面の ＋ と 古い画面の □ は 同じ書き方（sch7 と sch）で 3台が そろう',[
-            ['1:版',o.v[0]==='5.33'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
+            ['1:版',o.v[0]==='5.34'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
             ['2:はじめ そろう',J(o.seed)===J([true,true])],
             ['3:作業が 届く',J(o.arrive)===J([true,true,true,true])],
             ['4:開いて保存＝変わらない',J(o.noop)===J([true,true,true])],
@@ -3485,7 +3485,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.errs=errN8()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL8('97y','【見本「ぜんぶ」・2台と 古い版】A：Q（5.19）が 切れている 間に 回数を 直し 自分の 作業を 足す・P は つながった まま 40件 足す → Q が あとから つながっても、P の 40件・Q の 作業と 回数・今の 作業 21件が 全部 残り、4台（5.19×2・5.14・5.18）の 中身が 同じ。B：P が 切れている 間に 残り 5件を 足し、その間に Q・5.14・5.17 が それぞれ 回数を 直す → P が あとから つながっても 全部 残る（45件・3台の 回数・Q の 作業）。負けた 入力 0。古い版でも 登録の表が 開ける（5.18 は 見本の 一覧が 3つの まま）',[
-            ['1:版',o.v[0]==='5.33'&&o.v[1]==='5.33'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
+            ['1:版',o.v[0]==='5.34'&&o.v[1]==='5.34'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
             ['2:A 4台 同じ',o.A[0].every(x=>x===true)],
             ['3:A 全部 残る',o.addA===40&&o.A[1]===true&&o.A[2]===true&&o.A[3]===40&&o.A[4]===true],
             ['4:B 4台 同じ',o.B[0].every(x=>x===true)],
@@ -3767,7 +3767,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lost9(cl); o.errs=errN9()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('98g','【古い版と まざる】5.20・5.19・5.14 の 3台。5.20 で 種類を 足し（名前を 直し・英語）・前陳を 隠し・作業に「温度」「値引」を 付ける → 古い版にも 種類の 入れ物が そのまま 届く。古い版で 回数を 直す・5.19 で「温度」の 作業を 開くと 札は「温度」（鍵の まま）・選びも「温度」で 選ばれた まま → 何も 変えずに 保存しても kind は 変わらない（「値引」も 同じ）。そのあと 5.20 で 種類を 足しても 消えない・3台の 種類と 作業が 同じ・負けた 入力 0',[
-            ['1:版',o.v[0]==='5.33'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
+            ['1:版',o.v[0]==='5.34'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
             ['2:古い版に 届く',o.got[0]===true&&o.got[1]===true&&o.got[2]==='温度'&&o.got[3]==='値引'],
             ['3:古い版の 札と 選び',o.oCard==='温度'&&J(o.oSel)===J(['温度'])&&J(o.oSel1)===J(['値引'])],
             ['4:3台 同じ',o.end[0].every(x=>x===true)&&o.end[1].every(x=>x===true)],
@@ -3845,7 +3845,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.ver=E9(P,'APP_VERSION');
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         checkL9('97z1','【🎯 目標の分】登録の窓 ③ に 欄が 出る（売場以外では 出ない）・12 を入れると goal だけ 足される・まとめの行に 出る・まちがった字は 保存しない・全角も 読む・空で 項目ごと 消える・全部の作業を 開いて 何も変えずに 保存しても 1字も 変わらず 何も 書かない',[
-            ['1:版 5.27.1',o.ver==='5.33'],
+            ['1:版 5.27.1',o.ver==='5.34'],
             ['2:全部 開いて 保存 → 同じ・書かない',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10],
             ['3:欄が 出る・はじめは 空',o.box[0]===1&&o.box[1]!=='none'&&o.box[2]===''],
             ['4:まとめの行',/目標 12分/.test(o.sum)],
@@ -4121,7 +4121,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lostN(cl);
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('97z9','【古い版と まざる】5.19・5.16・5.14 の 端末：目標が 届く・古い端末の カードは 今までどおり（▶ なし）・P が 始めた 作業中に 古い端末が 記録・作業の名前を 直しても 印・目標が 残る・P が 終わると 古い端末も 済・古い端末の 記録は s なし・押し忘れは 古い端末でも 済に 数えない・4台 同じ・負けた入力 0',[
-            ['1:版',o.v[0]==='5.33'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
+            ['1:版',o.v[0]==='5.34'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
             ['4:古い 保存で 消えない',o.keep[0]===1&&o.keep[1]===10&&o.keep[2]==='古い版で 直した名前'&&o.keep[3].every(Boolean)],
             ['5:終わる → 古い端末も 済',o.end[0]===1&&o.end[1]==='done'&&o.end[2]===1],['6:古い端末の 記録',o.oldRec[0]===2&&o.oldRec[1]>=1],
             ['7:押し忘れは 済に しない',o.nf[0]===1&&o.nf[1]===true&&o.nf[2]===true],['8:印が 残る・4台 同じ',o.run[0]==='1,1,1,1'&&o.run[1]===true],['9:負けた入力 0',o.lost===0]],
@@ -4282,7 +4282,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.nw=[Number(EG(P,'amWorks().length'))-n0, EG(P,`('gap' in amWorks().find(w=>w.name==='見本の 新しい 作業'))`), EG(P,`amWorks().find(w=>w.name==='見本の 新しい 作業2').gap`)];
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         checkLG('97zg1','【あける 時間・登録の窓】「くわしく」に 1行（はじめは なし）・45分で まとめの行と たたんだ 見出しに 出る・保存は gap だけ 足す・カードの 予定に 出る・開いて 保存しても 書かない・枠より 長いと ⚠ で えらべない・なしで 項目ごと 消える（元と 1字 同じ）・時刻の 間 30分 → 30分から 上は えらべない・新しい 作業・全部の 作業を 開いて 保存しても 1字も 変わらない',[
-            ['1:版 5.27.1',o.ver==='5.33'],
+            ['1:版 5.27.1',o.ver==='5.34'],
             ['2:全部 開いて 保存 → 同じ・書かない・gap 0件',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10&&o.same[3]===0],
             ['3:欄（くわしくの中・なし・8つ・えらべる）',o.box[0]===1&&o.box[1]==='0'&&o.box[2]==='0,5,10,15,20,30,45,60'],
             ['4:まとめ・見出し・⚠なし',/前の 記録から 45分 あける/.test(o.sum[0])&&/あける 45分/.test(o.sum[1])&&o.sum[2]==='none'],
@@ -4456,7 +4456,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           await syncG(D); o.same=sameAll();
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkLG('97zg7','【古い版と まざる】5.19・5.14 の 端末に gap が 届く・古い端末で 作業の 名前を 直して 保存・全部 開いて 保存しても gap が 残る・古い端末は 止まらない（7:29・7:31 と 記録できる）・P では 7:31 の 記録から 止まる（⏳ 8:16）・3台 同じ',[
-            ['1:版',o.v[0]==='5.33'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],['2:届く',o.gap.every(x=>x===45)],
+            ['1:版',o.v[0]==='5.34'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],['2:届く',o.gap.every(x=>x===45)],
             ['3:古い 保存で 消えない',o.keep[0]===45&&o.keep[1]===15&&o.keep[2]==='古い版で 直した 名前'&&o.keep[3].every(Boolean)],
             ['4:古い端末は 止まらない',o.old[0]===2&&o.old[1]===2],['5:P は 止まる',o.cp.n>=2&&o.cp.dis===o.cp.n&&/8:16 から/.test(o.cp.gap)],['6:3台 同じ',o.same.every(Boolean)]],
           `版 ${J(o.v)}｜届く ${J(o.gap)}｜保存 ${J(o.keep)}｜古い記録 ${J(o.old)}｜P ${J(o.cp)}｜同じ ${J(o.same)}`);
@@ -4619,7 +4619,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         const w=o.w1||{};
         checkLT('97zt1','【売場の作業も 時刻で 決める・登録の窓】新しい作業＝はじめは 時間帯・決め方の 箱が 出る・何分前から のはじめは 0（0・5・10 を 足した）／前からの作業は 時間帯のまま・lead の 無い 作業は 30 と 出る → 時刻に して 保存＝how:"time"・times・lead 0・grace 60（決めていない時の 値と 同じなら 書かない）・sch7＝時刻の 帯に 1回ずつ（夕方・夜）・ほかの欄は そのまま・番号の 作業のまま（売場以外に ならない）・開いて 保存しても 書かない',[
-            ['1:版 5.27.1',o.ver==='5.33'],
+            ['1:版 5.27.1',o.ver==='5.34'],
             ['2:新しい作業＝時間帯・0分',o.nw[0]==='band'&&o.nw[1]!=='none'&&o.nw[2]==='0'&&o.nw[3]==='0,5,10,15,30,45,60,90,120'&&o.nw[4]==='none'],
             ['3:前からの作業＝時間帯・30',o.ed0[0]==='band'&&o.ed0[1]!=='none'&&o.ed0[2]==='30'],
             ['4:時刻に した 窓',o.ed1[0]!=='none'&&o.ed1[1]==='none'&&o.ed1[2]!=='none'&&/17:00・19:30/.test(o.ed1[3])&&/時刻ちょうどから 押せる/.test(o.ed1[3])&&/押せる 時刻〜60分後/.test(o.ed1[4])],
@@ -4765,7 +4765,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         const w=o.w||{};
         checkLT('97zt7','【古い版（5.22）と まざる】how・times・lead 0 が 古い端末にも 届く・古い端末では 夕方の 時間帯の 作業として 列と 地図に 出る（消えない。lead 0 は 30 と 読む）・古い端末で 名前と 回数を 直す・全部 開いて 保存しても how・times・lead 0 が 残る（新しい端末は 時刻の作業の まま）・記録は 3台に 届く・3台 同じ',[
-            ['1:版',o.v[0]==='5.33'&&o.v[1]==='5.22'&&o.v[2]==='5.33'],['2:届く',o.got.every(x=>x==='time|["17:00","19:30"]|0')],
+            ['1:版',o.v[0]==='5.34'&&o.v[1]==='5.22'&&o.v[2]==='5.34'],['2:届く',o.got.every(x=>x==='time|["17:00","19:30"]|0')],
             ['3:古い端末で 消えない',(o.old[0]==='soon'||o.old[0]==='fire'||o.old[0]==='todo')&&o.old[1]===1&&(FIRE.includes(o.old[2])||SOON.includes(o.old[2]))&&o.old[3]===30],
             ['4:新しい端末は 時刻の前…でなく 🟡',o.nw[0]==='soon'],
             ['5:古い 保存で 消えない',w.name==='古い版で 直した 名前'&&w.how==='time'&&J(w.times)===J(['17:00','19:30'])&&w.lead===0&&w.grace===60&&o.tm[0]===true&&o.tm[1]===true],
@@ -4896,7 +4896,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         const w=o.w1||{};
         checkLT('97ck1','【登録の窓 ④】いちばん上に オン／オフ（はじめは オフ）・オンで 保存 → ck:1 だけ 増え ほかの 欄は 1字も 同じ・窓を 開いている間に もう1台が 直した 項目を 戻さない・開いて 保存しても 書かない・オフ → ck が 消える・項目 0行の 作業には 書かない・項目を 全部 消すと ck も 消える・登録の表に ☑',[
-            ['1:版 5.27.1',o.ver==='5.33'],
+            ['1:版 5.27.1',o.ver==='5.34'],
             ['2:④ の いちばん上・はじめは オフ',o.box&&o.box[0]===true&&o.box[1]==='0'&&o.box[2]===true],
             ['3:オンで 変更あり・まとめの 行',o.dirty[0]===false&&o.dirty[1]===true&&o.on1==='1'&&/1行ずつ ✓/.test(o.sum)],
             ['4:ck:1 だけ・項目は もう1台の 3行',w.ck===1&&o.keep&&o.items!==0&&(w.items||[]).length===3],
@@ -5044,7 +5044,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same=[nzT(P.ev('JSON.stringify(state)'))===nzT(O3.ev('JSON.stringify(state)')), nzT(P.ev('JSON.stringify(state)'))===nzT(O2.ev('JSON.stringify(state)'))];
         } finally { for(const d of D) ET(d,'isAdmin=false; amCloseSheet()'); }
         checkLT('97ck6','【古い版と 行き来】5.23 が 名前を 直して 保存・5.22 が 売場の 時刻の作業の 名前を 直して 保存・両方が ほかの 作業を 記録 → ck・途中の ✓・how・times・lead 0・ld0 が 残る／古い版は ✓ なしで 記録できる → 新しい 版の ✓ は 外れる／3台 同じ',[
-            ['1:版',o.v[0]==='5.33'&&o.v[1]==='5.23'&&o.v[2]==='5.22'],
+            ['1:版',o.v[0]==='5.34'&&o.v[1]==='5.23'&&o.v[2]==='5.22'],
             ['2:ck が 残る',o.wc[0]==='見本の チェック２'&&o.wc[1]===1&&o.wf[0]==='見本の ゴミ箱２'&&o.wf[1]===1],
             ['3:how・lead・ld0 が 残る',o.wf[2]==='time'&&o.wf[3]===J(['17:00','19:30'])&&o.wf[4]===0&&o.wf[5]===30],
             ['4:途中の ✓ が 残る',o.ck.every(x=>x===J(['tC','tF']))&&o.p0[0]==='1/3'&&o.p0[1]==='1/2'],
@@ -5231,7 +5231,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.keys=[ET(P,`'amNx' in state`), ET(P,`'amHere' in state`)]; o.ver=[ET(P,'APP_VERSION'),ET(O,'APP_VERSION')];
         } finally { for(const d of D) ET(d,'amCloseSheet()'); }
         checkLT('97nx1','【オフ＝5.24 と 同じ】新しい画面が オフの 時、地図の画面・5つの カード（✓あり・▶・時間帯・時刻・売場以外）・✓・記録・▶・終わった の 後の 画面が 5.24 と 1字も 同じ（▶ の 印の id だけ 消して 比べる）・保存の 中身も 同じ・amNx／amHere を 作らない',[
-            ['1:画面 '+o.eq.length+'か所',o.eq.length>=14&&o.eq.every(Boolean)],['2:保存',o.proj===true],['3:新しい 項目なし',J(o.keys)==='[false,false]'],['4:版',J(o.ver)==='["5.33","5.25"]']],
+            ['1:画面 '+o.eq.length+'か所',o.eq.length>=14&&o.eq.every(Boolean)],['2:保存',o.proj===true],['3:新しい 項目なし',J(o.keys)==='[false,false]'],['4:版',J(o.ver)==='["5.34","5.25"]']],
           `違い ${o.bad.slice(0,3).join(' ｜ ')}｜印「〜」${o.tilde}｜版 ${J(o.ver)}`);
         for(const d of D) d.close();
       });
@@ -5753,11 +5753,11 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           staff3(P); nxOn(P); clkT(P,10,0); P.ev(`amNxIn('見本 花子'); amNxIn('見本 太郎'); amNxGo('tC','見本 花子');`); const k=kOf(P,'tC');
           for(const [w,h] of [[768,800],[800,640],[412,700],[390,844]]){ P.f.style.width=w+'px'; P.f.style.height=h+'px'; await sleep(300); P.ev(`amNxCkOpen(${J(k)}); _amNx.ck=${J(k)}; renderMapView();`); await sleep(120); o.sz.push([w+'x'+h, fit()]); }
           P.ev('amNxShut()'); P.ev(`amNxSel(amNxQueue()[1].id)`); await sleep(150);
-          o.op=jpT(ET(P,`(()=>{ const c=document.getElementById('nxa-col'), b=c.querySelector('.nxa-open .nxa-who:not([disabled])'), br=b.getBoundingClientRect(), cr=c.getBoundingClientRect(), bl=document.getElementById('nxa-below'); return JSON.stringify({vis:br.top>=cr.top-1&&br.bottom<=cr.bottom+1, below:!!bl&&!bl.hidden}); })()`),null);
+          o.op=jpT(ET(P,`(()=>{ const c=document.getElementById('nxa-col'), b=c.querySelector('.nxa-open .nxa-who:not([disabled])'), br=b.getBoundingClientRect(), cr=c.getBoundingClientRect(), bl=document.getElementById('nxa-below'), a=c.querySelector('.nxa-open .nxa-acts.top').getBoundingClientRect(); return JSON.stringify({vis:br.top>=Math.max(cr.top,a.bottom)-1&&br.bottom<=cr.bottom+1, below:!!bl&&!bl.hidden}); })()`),null);   // 5.26・5.33：最初の 名前の ボタンが 見える
         } finally { P.f.style.width='768px'; P.f.style.height='900px'; ET(P,'amCloseSheet()'); }
         const ok=x=>!!x&&x.over<=1&&x.minH>=44&&x.fx&&x.x&&x.fin&&x.title&&x.inView;
         checkLT('97na10','【低い 画面】768×800・800×640・412×700・390×844 で ✓ 10行（2行の 文）が 送らずに 入る（44px 以上）・名前・取り消し／とじる／終わった が 窓の 中・題は 切れない／390 で 2番を 開くと 名前の ボタンが 見え、下の 帯は 出ない',[
-            ['1:768×800',ok(o.sz[0][1])],['2:800×640',ok(o.sz[1][1])],['3:412×700',ok(o.sz[2][1])],['4:390×844',ok(o.sz[3][1])],['5:開いた 行',!!o.op&&o.op.vis===true&&o.op.below===false]],
+            ['1:768×800',ok(o.sz[0][1])],['2:800×640',ok(o.sz[1][1])],['3:412×700',ok(o.sz[2][1])],['4:390×844',ok(o.sz[3][1])],['5:開いた 行',!!o.op&&o.op.below===false&&o.op.vis===true]],
           `${J(o.sz)}｜op ${J(o.op)}`);
         P.close();
       });
@@ -6843,7 +6843,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.keep=[bd(P), nf(P), gvRecs(P).length, gvRecs(O).length, J(Object.keys(jpT(ET(P,'JSON.stringify(state)'),{})).sort())===J(Object.keys(jpT(ET(O,'JSON.stringify(state)'),{})).sort())];
         } finally { ET(P,'amCloseSheet()'); ET(O,'amCloseSheet()'); }
         checkLT('97g7','【丸の 数と つぎ＝急ぐ順】オンで 3 → 諦めた 2 → 取りかかり中 1 → 困った 0（つぎは もうすぐの 精算 k:soon）・5.31 は 3 の まま（直す 前の 形）・オフは 5.31 と 同じ 数と 形・行き来しても 記録は 同じ',
-          [['1:版',o.v[0]==='5.33'&&o.v[1]==='5.31'],
+          [['1:版',o.v[0]==='5.34'&&o.v[1]==='5.31'],
            ['2:オン 3',o.s0[0]==='3'&&o.s0[1]===3&&!!o.s0[2]&&o.s0[2].k==='fire'&&o.s0[2].id===o.s0[3]&&o.s0[2].wid===o.s0[3]&&/見本/.test(o.s0[2].label)&&typeof o.s0[2].when==='string'],
            ['3:諦めた 2',o.s1[0]==='2'&&o.s1[1]===2&&!!o.s1[2]&&o.s1[2].k==='fire'&&o.s1[2].id!=='tQ'&&o.s1[2].id===o.s1[3]],
            ['4:取りかかり中 1',o.s2[0]==='1'&&o.s2[1]===1&&!!o.s2[2]&&o.s2[2].id==='tD'&&o.s2[2].id===o.s2[3]],
@@ -6950,7 +6950,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { ET(P,'amCloseSheet()'); ET(O,'amCloseSheet()'); }
         const exp=nm.slice(); exp.splice(4,1); exp.splice(2,0,'見本 人05'); const t=exp[0]; exp[0]=exp[1]; exp[1]=t;   // 人05 を 2つ 上へ → 人01 を 1つ 下へ：[人02,人01,人05,人03,人04,人06…]
         checkLT('97g9','【名前の 一覧を すぐ・登録の 並び順】行を 押すと 12人 全部（登録の 並び・ほかの人 ▾ 無し）・2つ 持ちは 灰色・上の 4つは 送っても 見える・鮮度管理に 諦める 無し＋🧊・🔒 は 名前 無し・4つの ボタンが 動く・↑↓ で 並び替え（staffOrder だけ 変わる・色 同じ・札も 同じ 並び）・5.31 と 往復しても 残る',
-          [['1:版',o.ver[0]==='5.33'&&o.ver[1]==='5.31'],
+          [['1:版',o.ver[0]==='5.34'&&o.ver[1]==='5.31'],
            ['2:全員・登録の 並び',J(o.n1.map(x=>x[0]))===J(nm)&&o.n1.filter(x=>x[1]).length===1&&o.n1.find(x=>x[0]==='見本 人02')[2]===true],
            ['3:上の ボタン',!!o.a1&&o.a1.first&&o.a1.top&&J(o.a1.btns)===J(['! 困った','🏳 諦める','くわしく','とじる'])&&!o.a1.more&&o.a1.vis&&o.a1.sw<=o.a1.cw],
            ['4:送っても 見える',!!o.a2&&o.a2.st>=300&&o.a2.vis&&o.a2.sw<=o.a2.cw],
@@ -7014,7 +7014,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { ET(P,'amCloseSheet()'); ET(O,'amCloseSheet()'); }
         const has=(a,re)=>!!a&&a.btns.some(b=>re.test(b));
         checkLT('97h1','【諦めるの 設定】設定なし＝今と 同じ・管理者だけ・使わない で 行と 🧰 と 一括が 無い・別の 札を 諦められない に（札に 合う 文・鮮度管理は 諦められる）・知らない 札は 捨てる・5.31 と 往復しても 残る・ほかの 欄は 同じ',
-          [['1:版',o.ver[0]==='5.33'&&o.ver[1]==='5.31'],
+          [['1:版',o.ver[0]==='5.34'&&o.ver[1]==='5.31'],
            ['2:設定なし',!!o.c0&&o.c0.set===false&&o.c0.off===0&&J(o.c0.ng)==='[]'&&o.k0.length===9&&o.k0.every(k=>k.ng===false)&&!has(o.f0,/諦める/)&&/食品の 安全/.test(o.f0.fr)&&has(o.s0,/諦める/)&&has(o.q0,/諦める/)&&/鮮度管理を 除く/.test(o.g0)&&J(o.fn0)==='[2,1]'],
            ['3:管理者だけ',o.na[0]===false&&o.na[1]===true&&o.na[2]===false],
            ['3b:合言葉の 道',o.pw[0]===false&&o.pw[1]===true&&o.pw[2]===true&&o.pw[3]==='{"off":1,"ng":[]}'&&o.pw[4]==='false'&&o.pw[5]===false],
@@ -7065,6 +7065,139 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             ['8:390 でも 1行・はみ出さない',o.r390.length===6&&o.r390.every(r=>r.h<=24)&&o.r.every(r=>r.h<=24)&&o.c390[0]===o.c390[1]&&o.c768[0]===o.c768[1]],
             ['9:保存の 鍵は 増えない',!o.keys.some(k=>/^amNx2|^amWhen|^amCk?Win/.test(k))]],
           `q ${J(o.q)}｜top ${J(o.top)}｜rows ${J(o.r.map(r=>[r.id,r.t,r.s,r.dim,r.bg,r.bs,r.h]))}｜w ${J([o.wA,o.wB,o.wD,o.wE,o.wF,o.wC])}｜col ${J([o.c768,o.c390])}｜r390 ${J(o.r390.map(r=>[r.id,r.h]))}`);
+        P.close();
+      });
+      /* ===== 97j1（5.34・店長 10/27「全部おすすめで」＝⑥⑦）：店ごとの 設定 state.amNx.keep／noHere（amNx の 中に 足すだけ）。
+         A 設定なし＝5.33 と 画面も 保存も 同じ（別々の 保存先で 同じ 操作）／B keep=1：目標の 2倍を すぎても 残る・行に「目標の ◯倍」・📊 に 印（人の 名前は 出さない）・2つ持ちは そのまま・
+         ✓ 終わった／取り消し／困った で 外れる・3:00 で 押し忘れ（why 3）／amNxOptSet の 形の 検査と 合言葉の 道／C noHere=1：amNxHere＝[]・上の 丸・＋・帯 なし・名前は 登録順で 全員・
+         2つ持ちは ▶ の 印から・amHere は 書かれ続ける・🧰 の 切りかえ／D 5.33 と 往復しても keep・noHere が 残る（古い 版は 列を 出し続ける） ===== */
+      await tryT('97j1',async()=>{
+        const all7={sch:[1,1,1,1],sch7:[1,1,1,1,1,1,1]};
+        const ws=[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7)),bW(Object.assign({id:'tH',name:'見本 棚',goal:10},all7)),bW(Object.assign({id:'tN',name:'見本 床'},all7)),bW(Object.assign({id:'tP',name:'見本 窓',goal:10},all7))];
+        const o={}, html=d=>nrm(String(ET(d,`(document.getElementById('nx-wrap')||{}).innerHTML||''`))).replace(/\d+分/g,'N分').replace(/data-w="r:[^"]*"/g,'data-w="r:K"'), cfgO=d=>jpT(ET(d,'JSON.stringify(amNxOptCfg())'),null);
+        const names=d=>jpT(ET(d,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#nx-wrap .nxa-open .nxa-who'),b=>[b.dataset.n,b.disabled]))`),[]);
+        /* A：設定なし＝5.33 と 同じ */
+        { const cA=new V2.MemoryCloud(), cB=new V2.MemoryCloud(), N=await mkT(cA,'端末NJ1','ws',stT()), Q=await mkT(cB,'端末QJ1','wsold533',stT()), D=[N,Q];
+          try{
+            for(const d of D){ setWC(d,ws); staff3(d); nxOn(d); clkT(d,14,0); d.ev(`amNxGo('tG','見本 花子')`); }
+            for(const d of D){ clkT(d,14,25); d.ev('renderMapView()'); } o.a1=D.map(html); o.r1=D.map(runsN);
+            for(const d of D){ d.ev(`amNxGo('tH','見本 太郎')`); clkT(d,14,40); d.ev('renderMapView()'); } o.a2=D.map(html); o.r2=D.map(runsN);
+            for(const d of D){ clkT(d,27,5); d.ev('amRunSettle(Date.now()); amSave(); renderMapView()'); } o.a3=D.map(html);
+            await syncT([N]); await syncT([Q]); o.p=D.map(d=>J(projT(d))); o.h=D.map(d=>J(jpT(ET(d,'JSON.stringify(Object.values(state.amHere||{}).map(x=>x.n).sort())'),[]))); o.nx=D.map(d=>String(ET(d,'JSON.stringify(state.amNx)')));
+            o.cfg0=cfgO(N); o.verA=D.map(d=>String(ET(d,'APP_VERSION')));
+          } finally { for(const d of D){ ET(d,'amCloseSheet()'); d.close(); } } }
+        /* B：keep=1（合言葉の 道 → 管理者） */
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PJ1','ws',stT()), O=await mkT(cl,'端末OJ1','wsold533',stT());
+        const c2=new V2.MemoryCloud(), R=await mkT(c2,'端末RJ1','ws',stT());
+        try{
+          setWC(P,ws); staff3(P); nxOn(P); clkT(P,14,0); clkT(O,14,0);
+          o.na=[ET(P,'amNxOptSet({keep:1})'), String(ET(P,'JSON.stringify(state.amNx)'))];
+          P.ev(`window.checkAdminPw=async function(pw){ return pw==='見本の あいことば'; }`);
+          o.pw=[await P.win.amNxOptSet({keep:1},'ちがう'), cfgO(P).set, await P.win.amNxOptSet({keep:1},'見本の あいことば'), String(ET(P,'isAdmin')), cfgO(P), ET(P,`amNxOptSet({keep:0},'')`)];
+          P.ev('isAdmin=true');
+          { const nx0=String(ET(P,'JSON.stringify(state.amNx)')); o.form=[ET(P,'amNxOptSet([])'),ET(P,'amNxOptSet(null)'),ET(P,`amNxOptSet('x')`),ET(P,'amNxOptSet({keep:2})'),ET(P,`amNxOptSet({noHere:'1'})`),ET(P,'amNxOptSet(new Date())'),String(ET(P,'JSON.stringify(state.amNx)'))===nx0]; }
+          P.ev(`amNxGo('tG','見本 花子')`); clkT(P,14,35); P.ev('renderMapView()');
+          o.k1=[runsN(P), String(ET(P,`(document.querySelector('#nx-wrap .nxa-rn .xg')||{}).textContent||''`)), String(ET(P,`amNxClose(amRunMap()[${J(kOf(P,'tG','見本 花子'))}]).why`))];
+          o.dash=String(ET(P,'amWhoNxToday(Date.now(),staffList())'));
+          P.ev(`amNxGo('tH','見本 花子')`); o.k2=[runsN(P), logOf(P,'tG').length];
+          P.ev(`amNxGo('tN','見本 花子')`); o.k3=[runsN(P), jpT(ET(P,'JSON.stringify(amNxHoldMap())'),{})];
+          P.ev(`amRunEnd(${J(kOf(P,'tG','見本 花子'))})`); ET(P,'amCloseSheet()'); o.e1=[runsN(P), logOf(P,'tG').map(r=>r.miss?'miss':'x')];
+          P.ev(`amRunCancel(${J(kOf(P,'tH','見本 花子'))})`); o.e2=runsN(P);
+          P.ev(`amNxGo('tN','見本 太郎')`); P.ev(`amNxTrbAsk(${J(kOf(P,'tN','見本 太郎'))},'')`); P.ev(`amNxTrbPut('mono')`); ET(P,'amCloseSheet()'); o.e3=runsN(P);
+          P.ev(`amNxGo('tP','見本 次郎')`); clkT(P,26,50); o.k4=runsN(P); clkT(P,27,5); o.k5=runsN(P); P.ev('amRunSettle(Date.now()); amSave()'); o.lgP=logOf(P,'tP').map(r=>(r.miss?'miss':'x')+'|'+(r.why||''));
+          /* C：noHere=1（別の 店） */
+          setWC(R,ws); staff3(R); nxOn(R); clkT(R,14,0); R.ev('isAdmin=true'); R.ev(`amNxGo('tG','見本 太郎')`); R.ev('renderMapView()');
+          o.c0=[qnT(R,'#nx-wrap .nxa-pc'), qnT(R,'#nx-wrap .nxa-plus'), hereN(R)];
+          R.ev('amNxCfgOpen()'); await sleep(80); o.tb0=[qnT(R,'#am-sheet #nx-opt-keep button'), qnT(R,'#am-sheet #nx-opt-here button'), qtT(R,'#am-sheet #nx-opt-here button.on')];
+          R.ev(`amNxOptTgl('noHere',1)`); await sleep(80); o.tb1=[cfgO(R), qtT(R,'#am-sheet #nx-opt-here button.on')]; ET(R,'amCloseSheet()'); R.ev('renderMapView()');
+          o.c2=[qnT(R,'#nx-wrap .nxa-pc'), qnT(R,'#nx-wrap .nxa-plus'), qnT(R,'#nx-wrap .nxa-ban'), hereN(R), jpT(ET(R,'JSON.stringify(amNxHereAll().map(x=>x.n))'),[]), String(ET(R,'amNxSolo()')), String(ET(R,'amNxTrbWho()'))];
+          R.ev(`_amNx.sel=''; amNxSel('tH')`); await sleep(100); o.n1=names(R); R.ev('amNxShut()');
+          R.ev(`amNxGo('tH','見本 次郎')`); o.c3=[jpT(ET(R,'JSON.stringify(amNxHereAll().map(x=>x.n).sort())'),[]), hereN(R), runsN(R)];
+          R.ev(`amNxGo('tN','見本 太郎')`); R.ev(`_amNx.sel=''; amNxSel('tP')`); await sleep(100); o.n2=names(R); R.ev('amNxShut()');
+          R.ev(`amNxDo('tP')`); await sleep(80); o.solo=[qnT(R,'#am-sheet .nx-pk')>0, runsN(R).length]; ET(R,'amCloseSheet()');
+          R.ev(`amNxOptTgl('noHere',0)`); R.ev('renderMapView()'); o.c4=[qnT(R,'#nx-wrap .nxa-pc'), hereN(R).length];
+          /* D：5.33 と 往復 */
+          P.ev('amNxOptSet({noHere:1})'); await syncT([P,O]);
+          o.old=[String(ET(O,'JSON.stringify([state.amNx.keep,state.amNx.noHere])')), String(ET(O,'APP_VERSION'))];
+          O.ev(`(()=>{ const c=JSON.parse(JSON.stringify(amNxCfg())); c.sh=['9:00']; state.amNx=c; amNxPut('見本 花子',Date.now()); amSave(); renderMapView(); })()`); await syncT([P,O]); await syncT([P,O]);
+          o.oldHere=[qnT(O,'#nx-wrap .nxa-pc')>0, jpT(ET(O,'JSON.stringify(amNxHere().map(x=>x.n))'),[]).length>0];
+          o.back=[cfgO(P), jpT(ET(P,'JSON.stringify(amNxShifts())'),[]), jpT(ET(P,'JSON.stringify(amNxHereAll().map(x=>x.n))'),[]).includes('見本 花子'), hereN(P), P.store.status().pending];
+        } finally { for(const d of [P,O,R]) ET(d,'amCloseSheet()'); }
+        const has=(a,s)=>Array.isArray(a)&&a.indexOf(s)>=0;
+        checkLT('97j1','【5.34 設定 keep・noHere】設定なし＝5.33 と 同じ・keep で 押すまで 残る（目標の ◯倍・📊・3:00）・noHere で 列なし（登録順で 全員・2つ持ちは ▶ から・amHere は 書く）・形の 検査と 合言葉・5.33 と 往復',[
+            ['1:版',J(o.verA)===J(['5.34','5.33'])&&o.old[1]==='5.33'],
+            ['2:設定なし＝5.33 と 同じ',o.a1[0]===o.a1[1]&&o.a2[0]===o.a2[1]&&o.a3[0]===o.a3[1]&&J(o.r1[0])===J(o.r1[1])&&J(o.r2[0])===J(o.r2[1])&&o.p[0]===o.p[1]&&o.h[0]===o.h[1]&&o.nx[0]===o.nx[1]&&J(o.r1[0])==='[]'&&!!o.cfg0&&o.cfg0.set===false&&o.cfg0.keep===0&&o.cfg0.noHere===0],
+            ['3:管理者だけ・合言葉',o.na[0]===false&&!/keep/.test(o.na[1])&&o.pw[0]===false&&o.pw[1]===false&&o.pw[2]===true&&o.pw[3]==='false'&&!!o.pw[4]&&o.pw[4].keep===1&&o.pw[4].noHere===0&&o.pw[4].set===true&&o.pw[5]===false],
+            ['4:形の 検査',J(o.form)===J([false,false,false,false,false,false,true])],
+            ['5:2倍を すぎても 残る',J(o.k1[0])===J(['見本 花子@tG'])&&/^目標の 3\.[45]倍$/.test(o.k1[1])&&o.k1[2]==='3'],
+            ['6:📊 の 印（人の 名前なし）',/うち 長い 1/.test(o.dash)&&/見本 拭き<\/b> 目標の 3\.[45]倍/.test(o.dash)&&!/見本 花子/.test(o.dash)],
+            ['7:2つ持ちは そのまま',J(o.k2[0])===J(['見本 花子@tG','見本 花子@tH'])&&o.k2[1]===0&&J(o.k3[0])===J(o.k2[0])&&o.k3[1]['見本 花子']===2],
+            ['8:押して 外れる',J(o.e1[0])===J(['見本 花子@tH'])&&J(o.e1[1])===J(['x'])&&J(o.e2)==='[]'&&J(o.e3)==='[]'],
+            ['9:3:00 で 押し忘れ',J(o.k4)===J(['見本 次郎@tP'])&&J(o.k5)==='[]'&&J(o.lgP)===J(['miss|3'])],
+            ['10:🧰 の 切りかえ',o.tb0[0]===2&&o.tb0[1]===2&&o.tb0[2]==='使う'&&!!o.tb1[0]&&o.tb1[0].noHere===1&&o.tb1[0].keep===0&&o.tb1[1]==='使わない'],
+            ['11:列を 使わない',o.c0[0]===1&&o.c0[1]===1&&J(o.c0[2])===J(['見本 太郎'])&&o.c2[0]===0&&o.c2[1]===0&&o.c2[2]===0&&J(o.c2[3])==='[]'&&J(o.c2[4])===J(['見本 太郎'])&&o.c2[5]===''&&o.c2[6]===''],
+            ['12:名前は 登録順で 全員・2つ持ちは ▶ から',J(o.n1)===J([['見本 花子',false],['見本 太郎',false],['見本 次郎',false]])&&J(o.n2)===J([['見本 花子',false],['見本 太郎',true],['見本 次郎',false]])&&o.solo[0]===true&&o.solo[1]===3],
+            ['13:amHere は 書かれ続ける・戻せば 出る',J(o.c3[0])===J(['見本 太郎','見本 次郎'])&&J(o.c3[1])==='[]'&&has(o.c3[2],'見本 次郎@tH')&&o.c4[0]===2&&o.c4[1]===2],
+            ['14:5.33 と 往復',o.old[0]==='[1,1]'&&o.oldHere[0]===true&&o.oldHere[1]===true&&!!o.back[0]&&o.back[0].keep===1&&o.back[0].noHere===1&&J(o.back[1])===J(['9:00'])&&o.back[2]===true&&J(o.back[3])==='[]'&&o.back[4]===0]],
+          (()=>{ const df=(a,b)=>{ if(a===b) return 'same'; let i=0; while(i<a.length&&a[i]===b[i]) i++; return '@'+i+' N:'+a.slice(Math.max(0,i-60),i+120)+' ｜ Q:'+b.slice(Math.max(0,i-60),i+120); }; const x=Object.assign({},o); x.a1=df(o.a1[0],o.a1[1]); x.a2=df(o.a2[0],o.a2[1]); x.a3=df(o.a3[0],o.a3[1]); x.p=df(o.p[0],o.p[1]); x.dash=String(o.dash).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,300); return J(x); })());
+        P.close(); O.close(); R.close();
+      });
+      /* ===== 97j2：設定の 無い 店で 2台が 別々の キーを オフラインで 設定しても 両方 残る ===== */
+      await tryT('97j2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PJ2','ws',stT()), Q=await mkT(cl,'端末QJ2','ws',stT()), o={};
+        const cfg=d=>jpT(ET(d,'JSON.stringify(state.amNx||{})'),{});
+        try{
+          nxOn(P); await syncT([P,Q]); o.before=[cfg(P),cfg(Q)];
+          P.be.setOnline(false); Q.be.setOnline(false);
+          P.ev('isAdmin=true'); Q.ev('isAdmin=true');
+          o.ret=[ET(P,'amNxOptSet({keep:1})'),ET(Q,'amNxOptSet({noHere:1})')]; o.local=[cfg(P),cfg(Q)];
+          P.be.setOnline(true); await syncT([P]); Q.be.setOnline(true); await syncT([P,Q]); o.synced=[cfg(P),cfg(Q)];
+          const before=J(cfg(P)); o.empty=[ET(P,'amNxOptSet({keep:undefined})'),before===J(cfg(P))];
+          checkLT('97j2','【設定の キーごと 保存】設定なし・オフラインで A は keep、B は noHere → 同期して 両方 残る・undefined は 書かない',[
+            ['1:設定なし',o.before.every(c=>!('keep' in c)&&!('noHere' in c))],
+            ['2:渡した キーだけ',o.ret.every(x=>x===true)&&o.local[0].keep===1&&!('noHere' in o.local[0])&&o.local[1].noHere===1&&!('keep' in o.local[1])],
+            ['3:同期して 両方',o.synced.every(c=>c.keep===1&&c.noHere===1)],
+            ['4:undefined は そのまま',o.empty.every(x=>x===true)]],J(o));
+        } finally { P.be.setOnline(true); Q.be.setOnline(true); P.close(); Q.close(); }
+      });
+
+      /* ===== 97k1（5.34・5.33 テスの △）：① 390×844 で 2番目以降は 最初の 名前、🔒 は 案内が 見える（✓できる 時間より 優先）
+         ② おくれの 窓に「おくれ・今も 押せます」（時間帯の 抜けた 枠が 行の 右と ちがう 時は「抜けた 枠 〜12:00」も）／もうすぐ・🔒 には 出さない
+         ③ 🔒 の 文：前の 記録から あけて 待つ 時は「前の 記録から ◯分 あける」・時刻の 前は「時刻の 前」 ===== */
+      await tryT('97k1',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PK1','ws',stT()), o={};
+        const win=id=>{ P.ev(`_amNx.sel=''; amNxSel(${J(id)})`); return jpT(ET(P,`JSON.stringify((()=>{ const op=document.querySelector('#nx-wrap .nxa-open'), w=op&&op.querySelector('.nxa-ckw'), lt=w&&w.querySelector('em.lt'); return {w:w?w.textContent.replace(/\\s+/g,' ').trim():null, lt:lt?lt.textContent:''}; })())`),{}); };
+        const vis=id=>{ P.ev(`_amNx.sel=''; amNxSel(${J(id)})`); return jpT(ET(P,`JSON.stringify((()=>{ const op=document.querySelector('#nx-wrap .nxa-open'); if(!op) return null; const col=document.getElementById('nxa-col'), a=op.querySelector('.nxa-acts.top').getBoundingClientRect(), m=op.querySelector('.meta').getBoundingClientRect(), w=op.querySelector('.nxa-ckw'), wr=w?w.getBoundingClientRect():null, c=col.getBoundingClientRect(), b=op.querySelector('.nxa-who,.nxa-lockn'), br=b&&b.getBoundingClientRect(); return {ab:Math.round(a.bottom), mt:Math.round(m.top), wb:wr?Math.round(wr.bottom):null, cb:Math.round(c.bottom), st:col.scrollTop, sk:!!op.querySelector('.nxa-skip'), name:!!br&&br.top>=Math.max(c.top,a.bottom)-1&&br.bottom<=c.bottom+1, locked:!!op.querySelector('.nxa-lockn')}; })())`),null); };
+        try{
+          setWC(P,[tW({id:'tA',name:'見本 温度',times:['13:00'],lead:30,grace:60}),bW({id:'tB',name:'見本 前出し',sch:null,sch7:[0,0,1,0,1,0,0]}),tW({id:'tC',name:'見本 仕込み',times:['15:00'],lead:30,grace:60}),
+            bW({id:'tD',name:'見本 補充',sch:null,sch7:[0,0,0,0,1,0,0]}),oW({id:'tE',name:'見本 精算',times:['16:30'],lead:30,grace:60}),tW({id:'tK',name:'見本 油の 点検',times:['14:00','15:30'],lead:30,grace:60,gap:60}),
+            tW({id:'tL',name:'見本 揚げ物',times:['15:20'],lead:30,grace:60}),tW({id:'tM',name:'見本 洗い場',times:['15:25'],lead:30,grace:60})]);
+          staff3(P); nxOn(P); clkT(P,15,10);
+          P.ev(`(()=>{ const key='amLog_'+amLogDay(Date.now()); state[key]=state[key]||{}; state.areaChecks=state.areaChecks||{};
+            const rec=(w,h,mi,dd)=>{ const d=new Date(); d.setHours(h,mi,0,0); d.setDate(d.getDate()+(dd||0)); const at=d.toISOString(); (state.areaChecks[w]=state.areaChecks[w]||[]).push({at,by:'見本 花子'}); if(!dd){ let id; do{ id='r'+Math.random().toString(36).slice(2,9); }while(id in state[key]); state[key][id]={w,at,by:'見本 花子',d:'t'}; } };
+            rec('tD',16,0,-1); rec('tB',10,0,-1); rec('tK',14,30); amSave(); })()`);
+          P.ev('_amNx.sel=""; renderMapView()');
+          o.q=jpT(ET(P,'JSON.stringify(amNxQueue().map(x=>[x.id,x.k,x.lock?1:0]))'),[]);
+          o.wA=win('tA'); o.wB=win('tB'); o.wC=win('tC'); o.wE=win('tE'); o.wK=win('tK'); P.ev('amNxShut()');
+          P.f.style.width='390px'; P.f.style.height='844px'; await sleep(300); P.ev('renderMapView()'); await sleep(100);
+          o.v=[]; for(const id of [o.q[1][0],'tC','tL','tM','tE','tK']){ o.v.push([id,vis(id)]); await sleep(60); } P.ev('amNxShut()');
+          const wraps=()=>jpT(ET(P,`JSON.stringify((()=>{ const times=Array.from(document.querySelectorAll('.nxa-it .tm b,.nxa-ckw b')).filter(b=>b.textContent.trim()); return {times:times.length>0&&times.every(b=>{ const r=document.createRange(); r.selectNodeContents(b); return r.getClientRects().length===1&&getComputedStyle(b).whiteSpace==='nowrap'; }), late:Array.from(document.querySelectorAll('.nxa-ckw em.lt')).every(e=>getComputedStyle(e).display==='block')}; })())`),{});
+          win('tA'); o.wrap390=wraps();
+          P.ev('isAdmin=true; amNxCfgOpen()');
+          o.toolbox=jpT(ET(P,`JSON.stringify((()=>{ const e=document.getElementById('nx-opt-keep'), note=e&&e.nextElementSibling, b=e&&e.querySelector('button'); const r=document.createRange(); if(b) r.selectNodeContents(b); return {note:note?note.textContent:'', one:!!b&&r.getClientRects().length===1&&b.scrollWidth<=b.clientWidth+1}; })())`),{}); P.ev('amCloseSheet()');
+          P.f.style.width='768px'; P.f.style.height='900px'; await sleep(200); P.ev('renderMapView()');
+          win('tB'); o.wrap768=wraps();
+        } finally { ET(P,'amNxShut()'); ET(P,'amCloseSheet()'); }
+        const okV=v=>!!v&&v.name===true;
+        checkLT('97k1','【5.33 の △ の 直し】① 390×844 で 最初の 名前（🔒 は 案内）が 見える ② 時刻は 1行・おくれは 別の行 ③ 🔒 の 文 ④ 🧰 の keep の 文',[
+            ['1:最初の 名前（🔒 は 案内）が 見える・2番目も（390×844）',o.v.length===6&&o.v.every(x=>okV(x[1]))&&o.v.some(x=>x[1]&&x[1].locked)],
+            ['2:おくれ（時刻）',/おくれ・今も 押せます/.test(o.wA.lt)&&!/抜けた/.test(o.wA.lt)&&/12:30〜14:00/.test(o.wA.w||'')],
+            ['3:おくれ（時間帯・抜けた 枠）',/おくれ・今も 押せます（抜けた 枠 〜12:00）/.test(o.wB.lt)&&/15:00〜18:00/.test(o.wB.w||'')],
+            ['4:もうすぐ・🔒 には 出さない',o.wC.lt===''&&o.wE.lt===''&&o.wK.lt===''],
+            ['5:🔒 の 文',/前の 記録から 60分 あける/.test(o.wK.w||'')&&/15:30〜/.test(o.wK.w||'')&&/時刻の 前/.test(o.wE.w||'')&&!/あける/.test(o.wE.w||'')],
+            ['6:時刻は 1行・おくれは 別の行（390・768）',o.wrap390.times&&o.wrap390.late&&o.wrap768.times&&o.wrap768.late],
+            ['7:🧰 の keep は 諦める 無し・ボタンは 1行',!!o.toolbox&&/✓ 終わった・名前／取り消し・困った/.test(o.toolbox.note)&&!/諦める/.test(o.toolbox.note)&&o.toolbox.one]],
+          `q ${J(o.q)}｜w ${J([o.wA,o.wB,o.wC,o.wE,o.wK])}｜v ${J(o.v)}｜wrap ${J([o.wrap390,o.wrap768])}｜toolbox ${J(o.toolbox)}`);
         P.close();
       });
     }
