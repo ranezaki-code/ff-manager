@@ -5028,7 +5028,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.34'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.35'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -11957,8 +11957,8 @@ function amWorks(){ return Array.isArray(state.amWorks) ? state.amWorks : DEFAUL
 function amWorksEdit(){ if(!Array.isArray(state.amWorks)) state.amWorks=JSON.parse(JSON.stringify(DEFAULT_WORKS)); return state.amWorks; }
 function amWork(id){ return amWorks().find(a=>a.id===id); }
 function _amChecks(){ if(!state.areaChecks||typeof state.areaChecks!=='object'||Array.isArray(state.areaChecks)) state.areaChecks={}; return state.areaChecks; }
-function _amChecksRead(){ const c=state.areaChecks; return (c&&typeof c==='object'&&!Array.isArray(c))?c:{}; }   // 読むだけ（入れ物を作らない）
-function amLast(id){ const arr=_amChecks()[id]; return (Array.isArray(arr)&&arr.length)?arr[arr.length-1]:null; }
+function _amChecksRead(){ const c=state.areaChecks, out={}; if(c&&typeof c==='object'&&!Array.isArray(c)) Object.keys(c).forEach(id=>{ out[id]=Array.isArray(c[id])?c[id].filter(r=>r&&!r.u):c[id]; }); return out; }   // 読むだけ（入れ物を作らない）
+function amLast(id){ const raw=_amChecks()[id], arr=Array.isArray(raw)?raw.filter(r=>r&&!r.u):null; return (arr&&arr.length)?arr[arr.length-1]:null; }   // 5.35：入れ物の 作り方は 5.34 と 同じ（_amChecks）。u の 付いた 物は 飛ばす
 function amHM(ms){ const d=new Date(ms); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function amSchText(w){ const c=amSch(w), s=AM_BANDS.map((b,i)=>c[i]?`${b.label}${c[i]}`:'').filter(Boolean).join('・'); const d=(Array.isArray(w.days)&&w.days.length&&w.days.length<7)?`（${w.days.map(i=>'日月火水木金土'[i]).join('・')}）`:''; if(amIsRep(w)) return (s?s+'回・':'')+amRepText(w); return s?s+'回'+d:'予定なし'; }   // 5.9：くり返し（週1・月1）の作業は、時間帯の回数のあとに「週1（水）」を書く
 /* その作業の「枠」を前々日〜翌日ぶん並べる（深夜 24-3 は日付をまたぐので、3時始まりの営業日で数える） */
@@ -13369,14 +13369,15 @@ function amRunDoEnd(k,now,v,fl){
   const m=amRunMap(), r=m[k]; if(!amRunOk(r)) return null;
   const wid=String(r.w), af=!!r.sa, rec={at:new Date(now).toISOString(), by:String(r.by||'')}, key=AM_LOG_PRE+amLogDay(now), id='x'+String(k).replace(/[^0-9A-Za-z_]/g,'');
   if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key])) state[key]={};
+  let rid=id; while(state[key][rid]&&state[key][rid].u) rid=id+'_'+now.toString(36)+Math.random().toString(36).slice(2,6);
   const run=JSON.parse(JSON.stringify(r)); let lg=null; const cw=af?null:amWork(wid), ckN=fl?((typeof fl.ck==='number')?fl.ck:-1):((cw&&amCkReq(cw,null))?amCkNow(cw,now).n:-1);   // 5.24：✓ の数は 記録を 足す 前に 数える
-  if(!(id in state[key])){
+  if(!(rid in state[key])){
     if(!af){ const all=_amChecks(); if(!Array.isArray(all[wid])) all[wid]=[];
       all[wid].push(rec); if(all[wid].length>40) all[wid]=all[wid].slice(-40); }
-    state[key][id]={w:wid, at:rec.at, by:rec.by, d:amDevId(), s:String(r.s)}; lg={key,id}; if(ckN>=0) state[key][id].ck=ckN;
-    if(v&&typeof v==='object'&&Object.keys(v).length) state[key][id].v=v; if(fl&&fl.df) state[key][id].df=1; if(fl&&fl.re) state[key][id].re=1;
-    if(fl&&fl.qn) state[key][id].qn=1; if(fl&&fl.qa&&typeof fl.qa==='object'&&Object.keys(fl.qa).length) state[key][id].qa=fl.qa;   // 5.30：くじを 数えた 回・質問の 答え（足すだけ）
-    if(af){ state[key][id].af=1; state[key][id].ow=wid.replace(/#af$/,''); state[key][id].sa=String(r.sa); }
+    state[key][rid]={w:wid, at:rec.at, by:rec.by, d:amDevId(), s:String(r.s)}; lg={key,id:rid}; if(ckN>=0) state[key][rid].ck=ckN;
+    if(v&&typeof v==='object'&&Object.keys(v).length) state[key][rid].v=v; if(fl&&fl.df) state[key][rid].df=1; if(fl&&fl.re) state[key][rid].re=1;
+    if(fl&&fl.qn) state[key][rid].qn=1; if(fl&&fl.qa&&typeof fl.qa==='object'&&Object.keys(fl.qa).length) state[key][rid].qa=fl.qa;   // 5.30：くじを 数えた 回・質問の 答え（足すだけ）
+    if(af){ state[key][rid].af=1; state[key][rid].ow=wid.replace(/#af$/,''); state[key][rid].sa=String(r.sa); }
   }
   delete amRunEdit()[k]; if(!af) amCkSettle(wid,now);
   return {rec, lg, k, run, w:wid, min:(now-new Date(r.s).getTime())/60000};
@@ -13441,7 +13442,7 @@ function amRunUndo(){
   if(u.start){ const m=state.amRun; if(m&&typeof m==='object'&&!Array.isArray(m)&&(u.run.k in m)){ delete m[u.run.k]; ch=true; } }
   else {
     const arr=_amChecks()[u.id]||[], i=arr.findIndex(r=>r.at===u.at); if(i>=0){ arr.splice(i,1); ch=true; }
-    if(u.log&&amLogRemove(u.log)) ch=true;
+    if(u.log&&amLogRemove(u.log)) ch=true;   // 5.35（テス）：7秒の 取り消しは 5.34 と 同じ（記録を 消して ▶ に 戻す）。u を 足すのは「きょう 終わった」の 一覧からの 取り消しだけ
     if(u.run.r&&!(u.run.k in amRunMap())){ amRunEdit()[u.run.k]=u.run.r; ch=true; }
   }
   if(ch){ amSave(); renderMapView(); amSnack(u.start?'始めたのを 取り消しました':'記録を 取り消しました（作業中に 戻しました）',false); }
@@ -13735,6 +13736,36 @@ function amNxSkipHtml(sk){ if(!sk) return ''; const nm=sk.b.slice(0,3).map(x=>`�
 /* 済の 数（きょうの 今の 回で 済に なっている 作業） */
 function amNxDoneN(now){ let n=0; amFloorWorks().forEach(a=>{ if(amStatus(a,now).st==='done') n++; }); if(amOffWorks().length) n+=amOffColData(now).done.length; n+=amAfterList(now).filter(o=>o.up&&o.k==='done').length; return n; }
 
+/* 5.35：きょう 終わった。取り消しは u（ミリ秒）を足すだけ。▶ は戻さない。 */
+function amNxDoneUntil(w,t,r){
+  const end=amNext3am(t); if(!w||r.af||amIsRep(w)) return end;
+  const sl=amIsTimed(w)?amOffSlots(w,t,amOffRecsOf(w,t)):amSlots(w,t);
+  const next=sl.find(x=>(isFinite(x.o)?x.o:x.s)>t);
+  return Math.min(end,next?(isFinite(next.o)?next.o:next.s):end);
+}
+function amNxDoneAll(now){
+  now=now||Date.now(); const key=AM_LOG_PRE+amLogDay(now), o=state[key]||{}, out=[], seen={};
+  Object.keys(o).forEach(id=>{ const r=o[id], t=new Date(r&&r.at).getTime(); if(!r||r.u||r.miss||!isFinite(t)||t>now||amLogDay(t)!==amLogDay(now)) return;
+    const w=amWork(String(r.w||'').replace(/#af$/,'')); if(!w) return; seen[r.w+'|'+r.at]=1; out.push({key,id,r,t,w,until:amNxDoneUntil(w,t,r)}); });
+  const all=_amChecksRead(); Object.keys(all).forEach(wid=>{ const w=amWork(wid); if(!w||!Array.isArray(all[wid])) return; all[wid].forEach(r=>{ const t=new Date(r.at).getTime(); if(!isFinite(t)||t>now||amLogDay(t)!==amLogDay(now)||seen[wid+'|'+r.at]) return; out.push({key:'',id:wid,r,t,w,until:amNxDoneUntil(w,t,r)}); }); });
+  return out.sort((a,b)=>b.t-a.t||String(a.id).localeCompare(String(b.id)));
+}
+function amNxDoneUndo(key,id,at){
+  if(!amNxOn()) return; const now=Date.now(), x=amNxDoneAll(now).find(x=>x.key===key&&x.id===id&&x.r.at===at);
+  if(!x||now>=x.until){ amNxDoneList(); return; }
+  if(!confirm('「'+(x.w.name||'')+'」の 終わった を 取り消しますか？')) return;
+  if(Date.now()>=x.until){ amNxDoneList(); return; }
+  const u=Date.now(); x.r.u=u;
+  if(_amUndo&&_amUndo.at===at&&(_amUndo.id===(x.r.w||x.id))) _amUndo=null;
+  const arr=(state.areaChecks||{})[x.r.w||x.id]; if(Array.isArray(arr)) arr.forEach(r=>{ if(r&&r.at===at&&String(r.by||'')===String(x.r.by||'')) r.u=u; });
+  amSave(); _amNx.sel=''; renderMapView(); amNxDoneList(); amSnack('終わった を 取り消しました',false);
+}
+function amNxDoneList(){
+  if(!amNxOn()) return; _amfHold=amFT()+AM_HOLD_MS; const now=Date.now(), A=amNxDoneAll(now), e=escapeHtml;
+  const row=x=>{ const open=now<x.until; return `<div class="nxt-li calm"${open?'':' style="opacity:.5"'}><span class="ic" aria-hidden="true">✓</span><div class="tx"><b>${e(x.r.af?amNxTrbName(amNxGvQid(x.r),now):x.w.name||'')}</b><small>${amHM(x.t).padStart(5,'0')}${x.r.by?'・'+e(x.r.by):''}</small>${open?`<div class="nxt-a single"><button type="button" class="nxt-ag" data-k="${e(x.key)}" data-i="${e(x.id)}" data-at="${e(x.r.at)}" onclick="amNxDoneUndo(this.dataset.k,this.dataset.i,this.dataset.at)">↩ 取り消す</button></div>`:'<small>この回は 終わりました</small>'}</div></div>`; };
+  _amSheet(`<div class="nx-sh nxt"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">✓ きょう 終わった${amTr2('Finished today','आज सकिएका')}</div><div class="nxt-sec">終わった ${A.length}件</div>${A.map(row).join('')||'<div class="nxt-none">ありません</div>'}<div class="nx-sh-n">その回の 間だけ 取り消せます（次の回 または 3:00 まで）。${amTr2('Undo during the same round','उही पालोमा रद्द गर्न सकिन्छ')}</div></div>`,'wide','nxdone');
+}
+
 /* ---- 地図（本物の 売場図の 形・位置・字の まま。色は 作業の 状態だけ。見本の mapSvg を 写した） ---- */
 /* ===== 5.29（店長 10/26「マップの場所ごとに文字サイズが異なってるのが変。マップ全体では文字大きさは変わらないように。以前送った元々のマップの感じがもっとも綺麗」）：地図の 字は 地図 全体で 1つの 大きさ =====
    ・字の 大きさ F は 地図の 単位（元の 売場図と 同じ 単位。元の 図は 12）で 1つ だけ。画面が 大きく・小さく なると 地図と 同じ 割合で 字も 大きく・小さく なる（マスごとに 変えない）。
@@ -13988,7 +14019,7 @@ function amNxRender(view){
   const chips=amNxStaffOrd(here).map(h=>{ /* 5.31.3：上の 丸の 列も 登録の 並び（staffList）。登録に 無い 名前は 後ろ（5.27.1 の きょうの 人を 先に、の 順） */ const n=hold[h.n]||0, c=amNxCol(h.n); return `<button type="button" class="nxb nxa-pc${n?'':' free'}" data-k="${escapeHtml(h.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxHereTap(this.dataset.k)">${amNxAv2(h.n,ph?32:36)}<span><b>${escapeHtml(ph?amNxIni(h.n):h.n)}</b><small>${n?n+'つ 取りかかり中':'あいている'}</small></span></button>`; }).join('');
   let h=`<div class="nxa ${ph?'ph':port?'port':'land'}${q.length>9?' many':''}" id="nx-wrap" style="height:${H}px">`;
   if(isAdmin) h+=`<div class="nxa-ad"><button type="button" class="am-cfgbtn nxa-trbad${T.band.length?' on':''}" id="nxt-open" onclick="amNxTrbList()">⚠ 困った ${T.band.length}</button><button type="button" class="am-cfgbtn nxa-trbad${NA.some(x=>x.y==='out'||x.y==='dz'||x.y==='exp')?' on':''}" id="nxn-open" onclick="amNumAlertList()">🔔 知らせ ${NA.length}</button>${amLcBandBtn(now)}<button type="button" class="am-cfgbtn" onclick="amOpenWorks()">📝 作業の 登録</button><button type="button" class="am-cfgbtn" onclick="amEditMap()">🗺 地図の 登録</button></div>`;   // 5.29：管理者の 帯は 1行（↕ やる順 は 🧰 の 中）   // 5.28：🔔 知らせ（範囲の 外・ずれ・入れ直し・気に なる 答え方。押すと 一覧）   // 5.27：⚠ 困った（店長 待ちの 数。押すと 一覧）
-  h+=`<div class="nxa-top"><div class="nxa-clk num">${amHM(now)}</div><div class="nxa-pp">${chips}</div>${noHere?'':`<button type="button" class="nxb nxa-plus" onclick="amNxAdd()" aria-label="入る（今いる人に 足す）">＋</button>`}<div class="nxa-dn">${amNxIco('check',18,'#2F8F5B')}済 ${amNxDoneN(now)}</div>${amKcOn()?`<button type="button" class="nxb nxa-kc${kcv?' on':''}" id="nxa-kc" aria-pressed="${kcv}" aria-label="厨房スケジュール" onclick="amKcToggle()">${ph?'🍳':'🍳 厨房'}</button>`:''}</div>`;   // 5.29（店長 10/26「上が ごちゃごちゃ」）：「同じ急ぎなら（種類の 順）」は 上に 出さない（並びは 今までどおり。管理者は 🧰 の ↕ やる順）。厨房の 作業が ある 店だけ「🍳 厨房」
+  h+=`<div class="nxa-top"><div class="nxa-clk num">${amHM(now)}</div><div class="nxa-pp">${chips}</div>${noHere?'':`<button type="button" class="nxb nxa-plus" onclick="amNxAdd()" aria-label="入る（今いる人に 足す）">＋</button>`}<button type="button" class="nxb nxa-dn" onclick="amNxDoneList()" aria-label="きょう 終わった">${amNxIco('check',18,'#2F8F5B')}済 ${amNxDoneN(now)}</button>${amKcOn()?`<button type="button" class="nxb nxa-kc${kcv?' on':''}" id="nxa-kc" aria-pressed="${kcv}" aria-label="厨房スケジュール" onclick="amKcToggle()">${ph?'🍳':'🍳 厨房'}</button>`:''}</div>`;   // 5.29（店長 10/26「上が ごちゃごちゃ」）：「同じ急ぎなら（種類の 順）」は 上に 出さない（並びは 今までどおり。管理者は 🧰 の ↕ やる順）。厨房の 作業が ある 店だけ「🍳 厨房」
   h+=`<div class="nxa-body" id="nxa-body" style="height:${bodyH}px">`;
   if(M) h+=`<div class="nxa-map" id="nxa-map" style="left:${M.x}px;top:${M.y}px;width:${M.w}px;height:${M.h}px">${amNxMapSvg(map,M.h/map.h,cst,glow,pins,warn)}</div>`;
   h+=`<svg class="nxa-lines" id="nxa-lines" width="${W}" height="${bodyH}" aria-hidden="true"></svg>`;
@@ -14009,7 +14040,7 @@ function amNxRender(view){
     const gvN=amNxGvNow(now).live.length;   // 5.31：きょう 諦めた（取り消して いない）数
     if(!q.length&&!kcv) col+=amNxMissToday(now)===0?`<div class="nxa-none">✨ ここまで 全部 済<small>All done so far / अहिलेसम्म सबै सकियो</small></div>`:`<div class="nxa-none">✅ いまは 間に合っています${gvN?`<small>諦めた ${gvN}件は 下から 戻せます</small>`:'<small>All caught up / सबै समयमै</small>'}</div>`;   // 5.30：きょう 抜けが 無ければ ✨（小さな 手ごたえ）
     if(gvN&&!kcv) col+=`<button type="button" class="nxb nxa-gvl" id="nxa-gvl" onclick="amNxGvList()">🏳 きょう 諦めた ${gvN}件<small>押すと 戻せる / Given up today</small></button>`;   // 5.31
-    col+=`<div class="nxa-more">${amNxIco('check',14,'#2F8F5B')}済 ${amNxDoneN(now)}<small>Done</small></div>${amNxLegendHtml()}<button type="button" class="nxb nxa-below" id="nxa-below" hidden onclick="amNxBelowGo()"></button>`;
+    col+=`<button type="button" class="nxb nxa-more" onclick="amNxDoneList()">${amNxIco('check',14,'#2F8F5B')}済 ${amNxDoneN(now)}<small>Done</small></button>${amNxLegendHtml()}<button type="button" class="nxb nxa-below" id="nxa-below" hidden onclick="amNxBelowGo()"></button>`;
     h+=`<div class="nxa-col" id="nxa-col" style="left:${C.x}px;top:${C.y}px;width:${C.w}px;height:${C.h}px">${col}</div>`;
   }
   if(_amNx.qz) h+=amNxQzHtml(_amNx.qz,{x:ph?0:g, y:ph?0:g, w:ph?W:W-2*g, h:ph?bodyH:bodyH-2*g},ph,now);   // 5.30：くじの 質問の 窓（数字の 窓と 同じ 置き方。数字の 結果の 画面は 答えた 後に 出す）
@@ -14516,7 +14547,7 @@ function amValEq(x,y){ return Math.round(x*100)===Math.round(y*100); }
 /* 前の 回の 記録（同じ 作業・同じ 数字の 欄。before より 前の いちばん 新しい 物） */
 function amValPrev(wid,k,before){
   let best=null;
-  amLogKeys().forEach(key=>{ const o=state[key]; Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.miss||r.af||r.p||String(r.w)!==wid||!r.v||typeof r.v!=='object'||typeof r.v[k]!=='number') return;
+  amLogKeys().forEach(key=>{ const o=state[key]; Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||r.miss||r.af||r.p||String(r.w)!==wid||!r.v||typeof r.v!=='object'||typeof r.v[k]!=='number') return;
     const t=new Date(r.at).getTime(); if(!isFinite(t)||t>=before||t<before-AM_LOG_DAYS*86400000) return; if(!best||t>best.t) best={t, v:r.v[k]}; }); });   // 5.28 テス：35日（記録を 残す 日数）より 前の 記録とは 比べない
   return best;
 }
@@ -14621,7 +14652,7 @@ function amNxNumHtml(N,B,ph,now){
 /* 列の 上の 赤い 札：きょう、作業の いちばん 新しい 記録が 範囲の 外（60分の 間。名前は 出さない） */
 function amNxVngNow(now){
   now=now||Date.now(); const o=state[AM_LOG_PRE+amLogDay(now)], last={}; if(!o||typeof o!=='object') return [];
-  Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.miss||r.af||r.p||!r.v||!r.w) return; const t=new Date(r.at).getTime(); if(!isFinite(t)||t>now+60000) return; const k=String(r.w); if(!last[k]||t>last[k].t) last[k]={t, r}; });
+  Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||r.miss||r.af||r.p||!r.v||!r.w) return; const t=new Date(r.at).getTime(); if(!isFinite(t)||t>now+60000) return; const k=String(r.w); if(!last[k]||t>last[k].t) last[k]={t, r}; });
   return Object.keys(last).map(k=>{ const x=last[k], w=amWork(k); if(!w||!amVals(w).length) return null; const ng=amRecNg(w,x.r); return (ng&&now-x.t<AM_NUM_RED*60000)?{w, t:x.t, v:x.r.v}:null; }).filter(Boolean).sort((a,b)=>b.t-a.t);
 }
 function amNxVngHtml(L,now){
@@ -14630,7 +14661,7 @@ function amNxVngHtml(L,now){
 /* 店長の 知らせ（from〜to）：[{y:'out'|'dz'|'fix'|'same'|'fast', t, w, by, r, …}]（新しい 順）。読むだけ */
 function amNumAlerts(from,to){
   const recs=[], out=[];
-  amLogKeys().forEach(key=>{ const o=state[key]; Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.miss||r.p||r.af||!r.w||!r.at) return; const t=new Date(r.at).getTime(); if(isFinite(t)) recs.push({id, key, r, t}); }); });
+  amLogKeys().forEach(key=>{ const o=state[key]; Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||r.miss||r.p||r.af||!r.w||!r.at) return; const t=new Date(r.at).getTime(); if(isFinite(t)) recs.push({id, key, r, t}); }); });
   recs.sort((a,b)=>a.t-b.t);
   const st={};
   recs.forEach(x=>{
@@ -14685,7 +14716,7 @@ function amNxBz(){ const a=amNxCfg().bz; return (Array.isArray(a)?a:[]).map(s=>{
 function amNxBusy(now){ const d=new Date(now||Date.now()), m=d.getHours()*60+d.getMinutes(); return amNxBz().find(b=>b.s<b.e?(m>=b.s&&m<b.e):(m>=b.s||m<b.e))||null; }
 function amNxLc(){ const n=amNxCfg().lc; return (typeof n==='number'&&isFinite(n))?Math.max(0,Math.min(AM_LC_MAX,Math.round(n))):0; }
 /* くじを 数えた 回（この 作業の 記録で qn:1 の 物。35日ぶん） */
-function amQzCount(wid){ let n=0; amLogKeys().forEach(key=>{ const o=state[key]; Object.keys(o).forEach(id=>{ const r=o[id]; if(r&&typeof r==='object'&&r.qn&&String(r.w)===String(wid)&&!r.miss&&!r.af) n++; }); }); return n; }
+function amQzCount(wid){ let n=0; amLogKeys().forEach(key=>{ const o=state[key]; Object.keys(o).forEach(id=>{ const r=o[id]; if(r&&typeof r==='object'&&!r.u&&r.qn&&String(r.w)===String(wid)&&!r.miss&&!r.af) n++; }); }); return n; }
 /* いま 終わる 回に 出す 質問：{qs:[質問], cnt:1（くじを 数える 回）, busy, hit（くじに 当たった）, n（今までに 数えた 回）} */
 function amQzDue(a,now){
   const all=amQz(a), ev=all.filter(x=>x.ev), kj=all.filter(x=>!x.ev), busy=!!amNxBusy(now), out={qs:ev.slice(), cnt:0, busy, hit:false, n:0};
@@ -14792,7 +14823,7 @@ function amWhoNxToday(now,names){
     let cls='aw3-d', body=''; if(isT){ cls+=' today'; body=D&&D.green?'<i>✓</i>':`<small>${D?`あと ${D.left+D.miss}`:'きょう'}</small>`; } else if(ms>G.todayMs){ cls+=' fut'; } else if(!D){ cls+=' none'; } else if(D.green){ cls+=' g'; body='<i>✓</i>'; } else if(!D.n){ cls+=' none'; } else { cls+=' ng'; body=`<small>抜け ${D.miss}</small>`; }
     cells.push(`<span class="${cls}"><b class="num">${d}</b>${body}</span>`); }
   /* くじの 答え・ぬき打ち（きょう。数だけ） */
-  const s0=amLogDayMs(amLogDay(now))+3*3600000, o=state[AM_LOG_PRE+amLogDay(now)]||{}; let yes=0, fix=0, exp=0, qn=0; Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.miss||r.af) return; if(r.qn) qn++; if(r.qa&&typeof r.qa==='object') Object.keys(r.qa).forEach(k=>{ const z=r.qa[k]; if(!z) return; if(z.x) exp++; else if(z.a==='f') fix++; else yes++; }); });
+  const s0=amLogDayMs(amLogDay(now))+3*3600000, o=state[AM_LOG_PRE+amLogDay(now)]||{}; let yes=0, fix=0, exp=0, qn=0; Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||r.miss||r.af) return; if(r.qn) qn++; if(r.qa&&typeof r.qa==='object') Object.keys(r.qa).forEach(k=>{ const z=r.qa[k]; if(!z) return; if(z.x) exp++; else if(z.a==='f') fix++; else yes++; }); });
   const R=amLcRecs(now), lcOk=Object.keys(R).filter(k=>R[k].a==='ok').length, lcFix=Object.keys(R).filter(k=>R[k].a==='fix').length, P=amLcPicks(now);
   const hasQz=amWorks().some(w=>amQz(w).length);
   const foot=(hasQz||P.length)?`<div class="aw3-q">${hasQz?`<span>くじの 答え：はい ${yes}・直した ${fix}${exp?`・<em>期限切れ ${exp}</em>`:''}（数えた 回 ${qn}）</span>`:''}${P.length?`<span>ぬき打ち：OK ${lcOk}・直した ${lcFix}／${P.length}件</span>`:''}</div>`:'';
@@ -14996,7 +15027,7 @@ function amTimeRecs(from,to){
   const done=[], nf=[], d0=amLogDay(from), d1=amLogDay(to), xs={};
   amLogKeys().forEach(k=>{ Object.keys(state[k]).forEach(id=>{ if(id.charAt(0)==='x') xs[id.slice(1)]=1; }); });   // 5.21b（テス D4b）：同じ印が「終わった（x）」に なっている「押し忘れ（f）」は 数えない（切れていた端末が 閉じた分。記録は 消さない）
   amLogKeys().forEach(k=>{ const day=k.slice(AM_LOG_PRE.length); if(day<d0||day>d1) return; const o=state[k];
-    Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.af||!r.s) return; const t=new Date(r.at).getTime(), s=new Date(r.s).getTime(); if(!(t>=from&&t<to)||!isFinite(s)) return;
+    Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||r.af||!r.s) return; const t=new Date(r.at).getTime(), s=new Date(r.s).getTime(); if(!(t>=from&&t<to)||!isFinite(s)) return;
       if(r.miss){ if(r.nf&&!(id.charAt(0)==='f'&&xs[id.slice(1)])) nf.push({w:String(r.w), by:String(r.by||''), t, s, why:String(r.why||'')}); return; }
       const min=(t-s)/60000; done.push({w:String(r.w), by:String(r.by||''), t, s, min, ok:min>=1}); }); });
   return {done, nf};
@@ -16014,7 +16045,7 @@ function amStartHtml(w){ const s=amStartOf(w); return s?`<div class="am-start"><
 function amAfRecs(from,to){
   const out=[], d0=amLogDay(from), d1=amLogDay(to);
   amLogKeys().forEach(k=>{ const day=k.slice(AM_LOG_PRE.length); if(day<d0||day>d1) return; const o=state[k];
-    Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||!r.af) return; const t=new Date(r.at).getTime(); if(!(t>=from&&t<to)) return; out.push({id, key:k, w:r.w, ow:String(r.ow||''), sa:new Date(r.sa).getTime(), t, by:r.by||''}); }); });
+    Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||!r.af) return; const t=new Date(r.at).getTime(); if(!(t>=from&&t<to)) return; out.push({id, key:k, w:r.w, ow:String(r.ow||''), sa:new Date(r.sa).getTime(), t, by:r.by||''}); }); });
   return out.sort((a,b)=>a.t-b.t);
 }
 /* いま出ている「あとの作業」を、元の作業の記録から作る（保存しない）。1件＝{w:元の作業, af, src:元の記録の時刻, s:出る時刻, e:締切, k:soon／fire／done, up:元の作業に場所がある, …amOffList の1件と同じ欄}。
@@ -16122,7 +16153,7 @@ function amLogPrune(now){
 function amLogRange(from,to){
   const out=[], seen={}, d0=amLogDay(from), d1=amLogDay(to);
   amLogKeys().forEach(k=>{ const day=k.slice(AM_LOG_PRE.length); if(day<d0||day>d1) return; const o=state[k];
-    Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.miss||r.af) return; const t=new Date(r.at).getTime(); if(!(t>=from&&t<to)) return; const row={id, key:k, w:r.w, t, by:r.by||'', v:(r.v&&typeof r.v==='object')?r.v:null}; if(r.df) row.df=1; if(r.re) row.re=1; if(r.s) row.s=r.s; out.push(row); seen[r.w+'|'+t]=1; }); });   // 5.8：df・re は 付いている時だけ足す
+    Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||r.miss||r.af) return; const t=new Date(r.at).getTime(); if(!(t>=from&&t<to)) return; const row={id, key:k, w:r.w, t, by:r.by||'', v:(r.v&&typeof r.v==='object')?r.v:null}; if(r.df) row.df=1; if(r.re) row.re=1; if(r.s) row.s=r.s; out.push(row); seen[r.w+'|'+t]=1; }); });   // 5.8：df・re は 付いている時だけ足す
   const all=_amChecksRead();
   Object.keys(all).forEach(w=>{ const arr=all[w]; if(!Array.isArray(arr)) return; arr.forEach(r=>{ if(!r) return; const t=new Date(r.at).getTime(); if(!(t>=from&&t<to)||seen[w+'|'+t]) return; seen[w+'|'+t]=1; out.push({id:'', key:'', w, t, by:r.by||'', v:null}); }); });
   return out.sort((a,b)=>a.t-b.t);
@@ -16132,7 +16163,7 @@ function amLogSince(now){
   now=now||Date.now(); const keys=amLogKeys(); let t=Infinity;
   for(const k of keys){   // いちばん古い日の、いちばん早い記録（取り消して空になった日は とばす）
     const d0=amLogDayMs(k.slice(AM_LOG_PRE.length))+3*3600000;
-    Object.keys(state[k]).forEach(id=>{ const r=state[k][id], x=(r&&!r.miss&&!r.af)?new Date(r.at).getTime():NaN; if(x>=d0&&x<d0+86400000&&x<t) t=x; });
+    Object.keys(state[k]).forEach(id=>{ const r=state[k][id], x=(r&&!r.u&&!r.miss&&!r.af)?new Date(r.at).getTime():NaN; if(x>=d0&&x<d0+86400000&&x<t) t=x; });
     if(isFinite(t)) break;
   }
   if(!isFinite(t)) return null;
