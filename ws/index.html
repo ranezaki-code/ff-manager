@@ -3654,6 +3654,12 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .tg-f{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
 .tg-f label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#64748b;min-width:0}
 .tg-f input{min-height:44px;font-size:16px;font-family:inherit;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;min-width:0}
+.tg-colors{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
+#am-sheet .tg-color{width:32px;height:32px;min-width:32px;min-height:32px;flex:0 0 32px;border:2px solid #fff;border-radius:50%;padding:0}
+#am-sheet .tg-color.on{outline:3px solid #1e293b;outline-offset:2px}
+.tg-colors .am-tr{font-size:12px}
+.rg-f.rg-kind>span{font-size:14px}
+.rg-f.rg-kind>span .am-tr{font-size:12px}
 .tg-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .tg-act button{min-height:44px}
 @media (max-width:560px){ .tg-f{grid-template-columns:1fr 1fr} .tg-f label:first-child{grid-column:1 / -1} }
@@ -3804,10 +3810,14 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .rg-sh i{flex:none;width:28px;height:28px;border-radius:50%;background:#1d4ed8;color:#fff;display:grid;place-items:center;font-style:normal;font-size:14px}
 .rg-sh .rg-sh-t small{margin-left:8px;font-size:12px;font-weight:500;color:#64748b}
 .rg-sh .am-tr{flex-basis:100%;padding-left:36px;margin-top:-2px}
-.rg-r1{display:grid;grid-template-columns:76px minmax(0,1fr) minmax(112px,150px);gap:8px;align-items:end}
+.rg-r1{display:grid;grid-template-columns:76px minmax(0,1fr);gap:8px;align-items:end}
 @media (max-width:520px){ .rg-r1{grid-template-columns:76px minmax(0,1fr)} .rg-r1 .rg-kind{grid-column:1 / -1} }
 .rg-f{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:800;color:#475569;min-width:0;margin:6px 0}
 .rg-r1 .rg-f{margin:0}
+.rg-r1 .rg-kind{grid-column:1 / -1;min-width:0}
+.amw-kinds{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+#am-sheet .amw-kind-chip{display:inline-flex;align-items:center;gap:6px;min-height:44px;max-width:100%;min-width:0;padding:7px 10px;border:1px solid var(--tc);border-radius:20px;background:#fff;color:#263449;font-size:14px;white-space:normal;overflow-wrap:anywhere;text-align:left}
+#am-sheet .amw-kind-chip.on{background:var(--tc);color:#fff;outline:2px solid var(--tc);outline-offset:2px}
 .am-reg .amw-form input[type=text],.am-reg .amw-form input[type=time],.am-reg .amw-form select{width:100%;min-width:0;min-height:46px;font-size:16px;border:1.5px solid #cbd5e1;border-radius:10px;padding:0 10px;background:#fff;color:#0f172a;font-family:inherit}
 .am-reg .amw-form .amw-timeadd input[type=time]{width:auto;flex:0 0 150px}
 .am-reg .amw-form .amw-7 select{padding:0 8px}
@@ -5028,7 +5038,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.35'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.36'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -11698,7 +11708,7 @@ function amSchSet(w, sb){ const a=AM_BANDS.map((b,i)=>Math.max(0,Math.min(6,Math
 function amBandIdx(h){ for(let i=0;i<AM_NB;i++){ if(h<AM_BANDS[i].e) return i; } return AM_NB-1; }
 /* 時間帯の札（絵つき）。big＝大きいカードの時間 */
 function amBandChip(b, extra){ return `<span class="ao-bd"${extra||''} style="background:${b.bg};color:${b.color}">${b.ico?`<span class="ao-bi" aria-hidden="true">${b.ico}</span>`:''}<span class="ao-bt">${b.label}</span></span>`; }
-const AM_KINDS = ['点検','清掃','補充','前陳','品出し','納品','返品','値引','その他'];   // 5.20：「値引」を 足した（はじめからの 種類。消せない＝隠すだけ）。店で 足す 種類は state.amTags（amTagAll）
+const AM_KINDS = ['点検','清掃','補充','前陳','品出し','納品','返品','値引','その他','鮮度管理'];   // 5.20：「値引」を 足した（はじめからの 種類。消せない＝隠すだけ）。店で 足す 種類は state.amTags（amTagAll）
 /* 段2（2026-10-12）の決まりの数字。ここを変えれば、全部の画面で変わる */
 const AM_LOG_DAYS = 35;                        // 日ごとの記録を残す日数
 const AM_LOG_PRE = 'amLog_';                   // 日ごとの記録の項目の名前（state のいちばん上。後ろに日付）
@@ -12875,6 +12885,7 @@ function amTagPanel(){
       <div class="tg-f"><label><span>名前</span><input type="text" id="tgn-${id}" data-k="${ek}" value="${escapeHtml(t.n)}" maxlength="${AM_TAG_MAX}" autocomplete="off" onchange="amTagName(this.dataset.k,this.value)"></label>
         <label><span>English</span><input type="text" id="tge-${id}" data-k="${ek}" value="${escapeHtml(t.en)}" maxlength="40" autocomplete="off" placeholder="（空なら 日本語）" onchange="amTagTr(this.dataset.k,'en',this.value)"></label>
         <label><span>नेपाली</span><input type="text" id="tgp-${id}" data-k="${ek}" value="${escapeHtml(t.ne)}" maxlength="40" autocomplete="off" placeholder="（空なら 日本語）" onchange="amTagTr(this.dataset.k,'ne',this.value)"></label></div>
+      <div class="tg-colors" role="group" aria-label="色 / Color / रङ"><span>色${amTr2('Color','रङ')}</span>${AM_TAG_PAL.map((c,i)=>{ const on=(amTagRec(t.k)||{}).c===c; return `<button type="button" class="tg-color${on?' on':''}" style="background:${c}" data-k="${ek}" data-c="${c}" onclick="amTagColor(this.dataset.k,this.dataset.c)" aria-label="色 ${i+1} / Color ${i+1} / रङ ${i+1}" aria-pressed="${on}"></button>`; }).join('')}<button type="button" class="btn-secondary tg-reset" data-k="${ek}" onclick="amTagColor(this.dataset.k,null)">もとの 色${amTr2('Default color','मूल रङ')}</button></div>
       <div class="tg-act">${nxo?`<button type="button" class="btn-secondary tg-up" data-k="${ek}" onclick="amTagMove(this.dataset.k,-1)" aria-label="上へ"${ti?'':' disabled'}>↑</button><button type="button" class="btn-secondary tg-dn" data-k="${ek}" onclick="amTagMove(this.dataset.k,1)" aria-label="下へ"${ti<all.length-1?'':' disabled'}>↓</button>`:''}<button type="button" class="btn-secondary tg-hide" data-k="${ek}" onclick="amTagHide(this.dataset.k,${t.hide?0:1})">${t.hide?'👁 出す':'🙈 隠す'}</button>${t.base?'':`<button type="button" class="btn-secondary kcp-del tg-del" data-k="${ek}" onclick="amTagDel(this.dataset.k)">🗑 消す</button>`}</div></div>`; };
   _amSheet(`<button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">🏷 作業の 種類（管理者）${amTr2('Task types','कामका प्रकार')}</div>
     <div class="am-sub">登録の 窓の「種類」で えらぶ 札です。足した 種類は この 店の 全部の 端末で 使えます。<b>隠す</b>＝えらべなく なるだけ（付いている 作業の 札は そのまま）。はじめからの 種類は 消せません。英語・ネパール語は 空なら 日本語の まま 出ます。</div>
@@ -12883,6 +12894,10 @@ function amTagPanel(){
     ${nxo?`<div class="am-sub" style="margin-top:0"><b>↑↓＝急ぐ順の 中の 種類の 順</b>（上の 種類から 先に 出ます。<button type="button" class="btn-secondary" style="min-height:36px;padding:4px 10px" onclick="amNxOrderPanel()">↕ やる順を まとめて 見る</button>）</div>`:''}
     <div class="tg-list">${all.map(row).join('')}</div>
     <div class="am-cfg-act" style="justify-content:flex-start"><button type="button" class="btn-secondary" onclick="_tg.msg='';amOpenWorks()">← 登録の表へ</button></div>`, 'wide', 'tags');
+}
+function amTagColor(k,c){
+  if(!isAdmin||(c!==null&&!AM_TAG_PAL.includes(c))) return;
+  amTagPut(k,{c}); amTagPanel(); renderMapView();
 }
 function amTagPanelIf(){ if(isAdmin&&amSheetName()==='tags') amTagPanel(); }
 function amTagAddTap(){
@@ -13589,7 +13604,7 @@ function amNxPlace(w){ if(!w) return ''; if(amIsOff(w)) return '売場以外'; c
    ・順番を 飛ばした 時は 止めずに 1回だけ 黄色で 知らせる（行を 開いた 時・カードを 開いた 時。始めたら もう 出さない）。1人 2つまで（3つ目の「やる」は 押せない）。
    ・保存で 足した 物：種類の 記録（state.amTags の 鍵ごと）に o（並びの 番号 1,2,3…）だけ。作業の 順は 今の seq（売場以外にも 書く）。名前は ▶ の by と 今いる人の 中だけ。 */
 const AM_NX_TOPN=3;
-const AM_TAG_LOOK={'値引':['#B8336A','tag'],'点検':['#5F6F12','lens'],'清掃':['#0E7C86','drop'],'品出し':['#8B5E34','box'],'補充':['#2F6B3A','plus'],'前陳':['#4B5BA8','rows'],'納品':['#36597A','truck'],'返品':['#6E4A7E','back'],'その他':['#5B6475','dots']};
+const AM_TAG_LOOK={'値引':['#B8336A','tag'],'点検':['#5F6F12','lens'],'清掃':['#0E7C86','drop'],'品出し':['#8B5E34','box'],'補充':['#2F6B3A','plus'],'前陳':['#4B5BA8','rows'],'納品':['#36597A','truck'],'返品':['#6E4A7E','back'],'その他':['#5B6475','dots'],'鮮度管理':['#268A9B','check']};
 const AM_TAG_PAL=['#9A3412','#0369A1','#4D7C0F','#7C3AED','#B45309','#0F766E','#BE185D','#475569'];
 const AM_NX_ICO={
   tag:'<path d="M3.5 11.6V4.2c0-.4.3-.7.7-.7h7.4l9 9-8.1 8.1-9-9z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.7" fill="currentColor"/>',
@@ -13609,8 +13624,8 @@ function amNxIco(k,sz,col){ return `<svg class="nxa-ico" width="${sz}" height="$
 /* 種類の 色と 絵（はじめからの 9つは 決めた 色と 絵。店で 足した 種類は 鍵から 決まる 色＋名前の 頭の 字）。保存しない */
 function amTagLook(k){
   k=String(k==null?'':k); if(!k) return {c:'#98A2B3', i:'dots', g:''};
-  const t=amTagInfo(k), b=AM_TAG_LOOK[k]||AM_TAG_LOOK[t.n]; if(b) return {c:b[0], i:b[1], g:''};
-  return {c:AM_TAG_PAL[(parseInt(amCkHash(k).slice(0,5),36)||0)%AM_TAG_PAL.length], i:'', g:Array.from(String(t.n||k))[0]||'？'};
+  const t=amTagInfo(k), b=AM_TAG_LOOK[k]||AM_TAG_LOOK[t.n], r=amTagRec(k), c=r&&AM_TAG_PAL.includes(r.c)?r.c:''; if(b) return {c:c||b[0], i:b[1], g:''};
+  return {c:c||AM_TAG_PAL[(parseInt(amCkHash(k).slice(0,5),36)||0)%AM_TAG_PAL.length], i:'', g:Array.from(String(t.n||k))[0]||'？'};
 }
 function amNxStamp(k,sz){ const L=amTagLook(k); sz=sz||28; return `<span class="nxa-st" style="--tc:${L.c};width:${sz}px;height:${sz}px" role="img" aria-label="${escapeHtml(amKindName(k)||'種類なし')}">${L.i?amNxIco(L.i,Math.round(sz*.68),'#fff'):`<b style="font-size:${Math.round(sz*.6)}px">${escapeHtml(L.g)}</b>`}</span>`; }
 function amNxTagChip(k,sz){ k=String(k==null?'':k); if(!k) return ''; const L=amTagLook(k); return `<span class="nxa-tc" style="--tc:${L.c}">${amNxStamp(k,sz||22)}<b>${escapeHtml(amKindName(k))}</b>${amKindTr(k)?`<small style="display:inline;color:#7586a0;font-weight:500">${amKindTr(k)}</small>`:''}</span>`; }
@@ -15563,7 +15578,7 @@ function amEditWork(id, preset, copyOf, tplKey){
       <section class="rg-sec">${sec(1,'何を','名前と絵','What','के')}
         <div class="rg-r1"><label class="rg-f"><span>絵</span><input type="text" id="amw-icon" value="${escapeHtml(w?w.icon||'':'')}" placeholder="🧹"></label>
           <label class="rg-f"><span>名前</span><input type="text" id="amw-name" value="${escapeHtml(nameV)}" placeholder="例：トイレ"></label>
-          <label class="rg-f rg-kind"><span>種類</span><select id="amw-kind">${kindOpts.map(([k,l])=>`<option value="${escapeHtml(k)}"${kindNow===k?' selected':''}>${escapeHtml(l)}</option>`).join('')}</select></label></div></section>
+          <div class="rg-f rg-kind"><span>種類${amTr2('Task type','कामको प्रकार')}</span><select id="amw-kind" hidden style="display:none">${kindOpts.map(([k,l])=>`<option value="${escapeHtml(k)}"${kindNow===k?' selected':''}>${escapeHtml(l)}</option>`).join('')}</select><div class="amw-kinds" role="group" aria-label="種類 / Task type / कामको प्रकार">${kindOpts.map(([k,l])=>`<button type="button" class="amw-kind-chip${kindNow===k?' on':''}" style="--tc:${amTagLook(k).c}" data-k="${escapeHtml(k)}" aria-pressed="${kindNow===k}" onclick="amKindPick(this.dataset.k)">${amNxStamp(k,22)}<span>${escapeHtml(l)}</span></button>`).join('')}</div></div></div></section>
       <section class="rg-sec">${sec(2,'どこで','','Where','कहाँ')}
         ${fx.place}
         <label class="rg-f" id="amw-zone-box"><span>巡回（だれの担当か）</span><select id="amw-zone">${zoneOpts.map(([k,l])=>`<option value="${escapeHtml(k)}"${zoneNow===k?' selected':''}>${escapeHtml(l)}</option>`).join('')}</select></label>
@@ -15599,6 +15614,10 @@ function amEditWork(id, preset, copyOf, tplKey){
   amFormSync();
   _amFormSnap=amFormSerial();   // 5.13 B：開いた時の 欄の値（「変更あり」の元）
   amMoveBar();
+}
+function amKindPick(k){
+  const el=document.getElementById('amw-kind'); if(!el) return;
+  el.value=k; document.querySelectorAll('#am-sheet .amw-kind-chip').forEach(b=>{ const on=b.dataset.k===el.value; b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on)); });
 }
 /* 窓の欄の 出し入れ（出す所・決め方・くり返し・続き）と、どこにも 出ない 時の 知らせ・時刻の 注意・まとめの1行。入れた欄の 値は さわらない（出し入れ だけ） */
 function amFormSync(){
