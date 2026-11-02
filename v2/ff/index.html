@@ -5374,6 +5374,13 @@ function getInvestWeekCnt(pid){
 function slotShows(p,dayIdx,slotH){ return prodOnDay(p,dayIdx)&&(getSlotMake(p,slotH)||getInvestExtra(p.id,dayIdx,slotH)>0); }   // 販売期間の外の日は出さない（2026-10-09）
 
 function getInvestExtra(pid,dayIdx,slotH){ const _e=_ffEraCell(pid,dayIdx,slotH); return _e?_e.x:getInvestExtra0(pid,dayIdx,slotH); }   // 前の設定の枠は前の設定の数（2026-10-22）
+// 投資期間は店のローカル日付で両端を含む。空欄はその側の制限なし。
+function investOnDay(pid,dayIdx){
+  const period=S.budget.investPeriods?.[pid];
+  if(!period||(!period.from&&!period.to))return true;
+  const ymd=_ymdOf(getWeekDates()[dayIdx]);
+  return (!period.from||ymd>=period.from)&&(!period.to||ymd<=period.to);
+}
 function getInvestExtra0(pid,dayIdx,slotH){
   const p=getP(pid);if(!p||!p.enabled)return 0;
   if(isPackParent(p))return 0;   // 本数の商品（親）には投資を置かない（子に置く）
@@ -5383,6 +5390,7 @@ function getInvestExtra0(pid,dayIdx,slotH){
   // 作成済み（チェック）のマスは、チェックした時に写した数のまま（投資の数をあとで変えても動かない）
   const fixed=investFixed(pid,dayIdx,slotH);
   if(fixed!=null)return fixed;
+  if(!investOnDay(pid,dayIdx))return 0;
   // 今週のマス目がある商品：マスの数をそのまま返す（作らない時間帯のマスは数えない）
   const grid=investGridOf(pid);
   if(grid)return getSlotMake(p,slotH)?_igCell(grid,dayIdx,slotH):0;
@@ -11496,6 +11504,16 @@ function _igProds(){ return (S.PM||[]).filter(p=>p&&p.enabled&&S.catOn[p.categor
 function _igGridSum(g){ let s=0; Object.keys(g||{}).forEach(d=>Object.keys(g[d]||{}).forEach(h=>{s+=_igCell(g,d,h);})); return s; }
 function _igAfter(){ saveS(); renderBudgetPlan(); }
 function _igWeekLabel(key){ try{ const d=parseLocalDate(weekKeyToDateStr(key)); return `${d.getMonth()+1}/${d.getDate()}週`; }catch(_){ return key; } }
+function igSavePeriod(pid){
+  if(!getP(pid))return;
+  const from=document.getElementById('ig-period-from').value;
+  const to=document.getElementById('ig-period-to').value;
+  if(from&&to&&to<from){ showToast('終了日は開始日以降にしてください。投資期間は保存していません。','error'); return; }
+  if(!S.budget.investPeriods)S.budget.investPeriods={};
+  S.budget.investPeriods[pid]={from,to};
+  _igAfter();
+  showToast('投資期間を保存しました','success');
+}
 function igSelect(pid){ _igPid=pid||null; _igSelCell=null; renderInvestGrid(); }
 function igOpen(pid){ _igPid=pid||null; _igSelCell=null; switchBudSub('grid'); renderInvestGrid(); }
 // マスに数を入れる（0＝消す）。作らない時間帯・毎週の設定で動いている商品（マス目に写す前）には入れない
@@ -11503,6 +11521,7 @@ function igSet(pid,d,h,raw){
   const p=getP(pid); if(!p)return;
   const cfg=S.catCfg[p.category]; if(!cfg||cfg.slots.indexOf(h)<0||!getSlotMake(p,h))return;
   if(!prodOnDay(p,d)){ showToast(prodRestThisWeek(p)?`${p.name}：今週のメニューで休みです（④作成表の上の「今週のメニュー」で出すに戻せます）`:`${DAYS[d]}曜は販売期間の外です（${prodOffDayText(p,d)}）`,'info'); return; }   // 2026-10-09
+  if(!investOnDay(pid,d)){ showToast('投資期間の外です。期間を変更してから入力してください。','info'); renderInvestGrid(); return; }
   let g=investGridOf(pid);
   if(!g&&investLegacyKind(p))return;
   let n=parseInt(toHalf(String(raw==null?'':raw)).replace(/[^\d]/g,''),10); if(!isFinite(n)||n<0)n=0; n=Math.min(n,999);
@@ -11614,8 +11633,8 @@ function renderInvestGrid(){
       return `<tr><th style="font-size:13px;white-space:nowrap;padding:6px 4px;background:#f8fafc">${h}時</th>${DAYS.map((_,d)=>{
         if(!prodOnDay(p,d))return `<td style="padding:3px 2px"><input type="text" data-ig="1" data-key="ig_${d}_${h}" value="" placeholder="—" disabled title="${escapeHtmlP(prodOffDayText(p,d))}" aria-label="${DAYS[d]}曜 ${h}時（販売期間の外）" style="width:100%;min-width:0;box-sizing:border-box;padding:8px 0;text-align:center;font-size:14px;border-radius:8px;border:2px solid #e2e8f0;background:#f1f5f9;color:#94a3b8"></td>`;   // 販売期間の外の日（2026-10-09）
         const fx=investFixed(p.id,d,h), fixed=fx!=null; if(fixed)fixedCnt++;
-        const n=fixed?fx:(g?_igCell(g,d,h):getInvestExtra(p.id,d,h)); const bad=!ro&&!fixed&&batch>1&&n>0&&n%batch!==0; if(bad)offBatch++;
-        return `<td style="padding:3px 2px"><input type="text" inputmode="numeric" data-ig="1" data-key="ig_${d}_${h}" value="${n>0?n:''}" placeholder="0" ${(ro||fixed)?'disabled':''} aria-label="${DAYS[d]}曜 ${h}時 の投資${fixed?'（作成済み・固定）':''}" ${fixed?'title="作成表で「作った」のチェック済み。数はこのまま固定です"':''}
+        const n=fixed?fx:(!investOnDay(p.id,d)?0:(g?_igCell(g,d,h):getInvestExtra(p.id,d,h))); const bad=!ro&&!fixed&&batch>1&&n>0&&n%batch!==0; if(bad)offBatch++;
+        return `<td style="padding:3px 2px"><input type="text" inputmode="numeric" data-ig="1" data-key="ig_${d}_${h}" value="${n>0?n:''}" placeholder="0" ${(ro||fixed||!investOnDay(p.id,d))?'disabled':''} aria-label="${DAYS[d]}曜 ${h}時 の投資${fixed?'（作成済み・固定）':(!investOnDay(p.id,d)?'（投資期間の外）':'')}" ${fixed?'title="作成表で「作った」のチェック済み。数はこのまま固定です"':''}
           onfocus="igFocus(this,${d},${h})" onkeydown="igKey(event,this)" onchange="igSet('${p.id}',${d},${h},this.value)"
           style="width:100%;min-width:0;box-sizing:border-box;padding:8px 0;text-align:center;font-size:16px;font-weight:800;border-radius:8px;border:2px solid ${fixed?'#86efac':(bad?'#f59e0b':(n>0?'#fcd34d':'#e2e8f0'))};background:${fixed?'#f0fdf4':(ro?'#f1f5f9':(n>0?'#fffbeb':'#fff'))};color:${fixed?'#166534':(n>0?'#b45309':'#334155')}">${fixed?'<div style="font-size:9px;color:#166534;text-align:center;line-height:1.2;font-weight:700">済</div>':(bad?'<div style="font-size:9px;color:#b45309;text-align:center;line-height:1.2">※</div>':'')}</td>`; }).join('')}</tr>`;
     }).join('');
@@ -11626,6 +11645,12 @@ function renderInvestGrid(){
     const btn=(fn,label,col)=>`<button type="button" onclick="${fn}" style="flex:1 1 140px;padding:10px 8px;min-height:44px;font-size:13px;font-weight:700;border-radius:10px;border:1px solid ${col||'#cbd5e1'};background:#fff;color:${col||'#334155'};cursor:pointer;font-family:inherit">${label}</button>`;
     body=`
       <div style="font-size:14px;font-weight:800;color:#0f172a;margin:10px 0 4px">${esc(p.name||'(名称未設定)')} <span style="font-size:11px;font-weight:600;color:#64748b">${esc(tCat(p.category))}・原価 ${fmt(p.cost)}円${batch>1?`・まとめ ${batch}個`:''}</span></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">
+        <label>開始日 <input id="ig-period-from" data-key="ig-period-from_${p.id}" type="date" value="${esc(S.budget.investPeriods?.[p.id]?.from||'')}"></label>
+        <label>終了日 <input id="ig-period-to" data-key="ig-period-to_${p.id}" type="date" value="${esc(S.budget.investPeriods?.[p.id]?.to||'')}"></label>
+        <button type="button" onclick="igSavePeriod('${p.id}')">期間を保存</button>
+        <span style="font-size:12px;color:#64748b">${!S.budget.investPeriods?.[p.id]?.from&&!S.budget.investPeriods?.[p.id]?.to?'期間なし':'投資期間を指定中'}（空欄は制限なし・チェック済みは固定）</span>
+      </div>
       ${ro?`<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 10px;font-size:12px;color:#92400e;line-height:1.6;margin-bottom:6px">この商品は<b>毎週効く設定</b>（以前の入れ方）で入っています。下は今週の置かれ方です。マスごとに直す時は、先に写してください。
         <div style="margin-top:6px"><button type="button" onclick="igFromLegacy('${p.id}')" style="padding:8px 14px;min-height:40px;font-size:13px;font-weight:700;border-radius:8px;border:1px solid #b45309;background:#fff;color:#92400e;cursor:pointer;font-family:inherit">今週のマス目に写す（数は同じ）</button></div></div>`:''}
       <div class="overflow-auto"><table style="width:100%;table-layout:fixed;border-collapse:collapse;min-width:300px">

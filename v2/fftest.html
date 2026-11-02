@@ -49,6 +49,44 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     const prod=(d,id)=>JSON.parse(d.ev(`JSON.stringify(S.PM.find(p=>p.id===${J(id)})||null)`));
     const setP=(d,id,k,v)=>d.ev(`(()=>{ const p=S.PM.find(p=>p.id===${J(id)}); p[${J(k)}]=${J(v)}; saveS(); })()`);
     await sync();
+    // 投資期間：メモリ上の架空商品だけで確認し、保存せず元に戻す。
+    {
+      const results=A.ev(`(()=>{
+        const keep=S, out=[];
+        try{
+          S=JSON.parse(JSON.stringify(S));
+          const p={id:'period-test',name:'期間試験商品',category:'ホットFF',enabled:true,isInvest:true,cost:10,shopPrice:20,minCount:1};
+          S.PM=[p]; S.catOn[p.category]=true; S.catCfg[p.category]={ah:6,slots:[6,10]};
+          S.weekStart='2026-11-03'; S.activeWeek='2026.11.3';
+          S.weeks={[S.activeWeek]:{weekStart:S.weekStart,invest:{[p.id]:{0:{6:3},1:{6:3},2:{6:3},3:{6:3},4:{6:3},5:{6:3},6:{6:3}}}}};
+          S.checks={}; S.budget.investCounts={[p.id]:4}; S.budget.investDays={[p.id]:[0,1,2,3,4,5,6]};
+          delete S.budget.investPeriods; clearAllocCache();
+          const snap=()=>JSON.stringify([getInvestWeekCnt(p.id),Array.from({length:7},(_,d)=>[getInvestExtra0(p.id,d,6),getProdCnt(p.id,d,6)])]);
+          const period=(from,to)=>{S.budget.investPeriods={[p.id]:{from,to}};clearAllocCache();};
+          const base=snap(); period('',''); out.push(['①期間なしで作成数・投資数が同じ',snap()===base]);
+          period('2026-11-03','2026-11-05');
+          out.push(['②開始日・終了日を含む期間内',getInvestExtra0(p.id,0,6)===3&&getInvestExtra0(p.id,2,6)===3]);
+          out.push(['③期間外のマス目は0・入力値は保持',getInvestExtra0(p.id,3,6)===0&&investGridOf(p.id)[3][6]===3]);
+          renderBudgetPlan(); out.push(['⑦週合計・使用額',getInvestWeekCnt(p.id)===9&&_igBud.used===180]);
+          period('2026-11-08','2026-11-11');
+          const first=getInvestWeekCnt(p.id); S.weekStart='2026-11-10';clearAllocCache();
+          out.push(['④週をまたぐ期間',first===6&&getInvestWeekCnt(p.id)===6]);
+          S.weekStart='2026-11-03';period('2026-11-05','');const from=getInvestWeekCnt(p.id);
+          period('','2026-11-05');out.push(['⑤開始日のみ・終了日のみ',from===15&&getInvestWeekCnt(p.id)===9]);
+          period('',''); setInvestFixed(p.id,0,6,true);period('2026-11-04','2026-11-05');
+          out.push(['⑥チェック済みは期間外でも固定・予算に残す',investFixed(p.id,0,6)===3&&getInvestExtra0(p.id,0,6)===3&&getInvestWeekCnt(p.id)===9]);
+          delete S.weeks[S.activeWeek].invest; delete S.weeks[S.activeWeek].investDone;
+          period('','');const legacy=snap(); delete S.budget.investPeriods;clearAllocCache();
+          const unchanged=snap()===legacy;period('2026-11-03','2026-11-05');
+          out.push(['毎週効く設定：期間なし互換・期間外0・週合計',unchanged&&getInvestWeekCnt(p.id)===12&&getInvestExtra0(p.id,3,6)===0]);
+          igSelect(p.id);const before=JSON.stringify(S.budget.investPeriods);
+          document.getElementById('ig-period-from').value='2026-11-05';document.getElementById('ig-period-to').value='2026-11-03';
+          igSavePeriod(p.id);out.push(['逆転した期間は保存しない',JSON.stringify(S.budget.investPeriods)===before]);
+        }finally{S=keep;clearAllocCache();renderBudgetPlan();}
+        return out;
+      })()`);
+      results.forEach((r,i)=>check('84-'+(i+1),r[0],r[1]));
+    }
     check('0','はじめ：B に A と同じデータが届いている',same()&&B.ev('S.PM.length')===3,'商品 '+B.ev('S.PM.length')+'・週 '+B.ev('Object.keys(S.weeks).length'));
 
     off(); setP(A,'p1','cost',130); setP(B,'p2','cost',90); on(); await sync();
