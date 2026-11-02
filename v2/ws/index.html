@@ -3904,6 +3904,14 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
   .rg-bd{font-size:12px;padding:2px 6px}
   .rg-n1 b{font-size:15px}
 }
+
+.nxa-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px 0}
+.nxa-tabs button{border:1px solid #b8c4d6;border-radius:6px;padding:5px 8px;background:white;font-size:12px}
+.nxa-tabs button[aria-pressed="true"]{background:#13294b;color:white}
+.nxa .nxa-it,.nxa .nxa-rn{flex-wrap:wrap}
+.nxa .nxa-schedule{order:9;flex:0 0 100%;min-width:0;font-size:12px;line-height:1.5;text-align:left;color:#465773;white-space:normal;overflow-wrap:anywhere}
+.nxa-cancel{padding:4px 8px;text-align:right}
+@media(max-width:600px){.nxa .nxa-schedule{font-size:11px;letter-spacing:-.3px}}
 </style>
 <!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す＋Gist同期を停止（単体URLでは従来通り） -->
 <script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
@@ -5047,7 +5055,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.36.6'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.36.7'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -13383,7 +13391,7 @@ function amRunForget(k,r,at,why){
 /* 閉じる時刻を すぎた印を「押し忘れ」にして外す。記録を足す時にだけ呼ぶ（開いた・描いただけでは 呼ばない）。戻り値＝外した数 */
 function amRunSettle(now){
   now=now||Date.now(); const m=state.amRun; if(!m||typeof m!=='object'||Array.isArray(m)) return 0; let n=0;
-  Object.keys(m).forEach(k=>{ const r=m[k]; if(!amRunOk(r)) return; const c=amRunClose(r); if(now<c.at) return; if(amNxOn()){ const t=amNxCkDoneAt(r,c.at); /* c.at＝戻る 時刻（別の 人の ✓ は これより 後なので 前の 印の 済に ならない） */ if(t&&amRunDoEnd(k,t)){ n++; return; } if(now<amNext3am(new Date(r.s).getTime())) return; amNxLongOut(k,r,c); n++; return; } amRunForget(k,r,c.at,c.why); n++; });   // 5.25：全部 ✓ なのに「終わった」を 押し忘れた 作業は、最後の ✓ の 時刻で 済。5.36.5：だれでもに 戻った 印は、だれかが 取っても 消さない（朝 3:00 か 押すまで 残す。押し忘れは 朝 3:00 の 後の 記録の 時に、戻る 時刻で 1件）
+  Object.keys(m).forEach(k=>{ const r=m[k]; if(!amRunOk(r)) return; const c=amRunClose(r); if(amNxOn()){ const t=amNxCkDoneAt(r,Math.min(now,c.at)); /* c.at＝戻る 時刻（別の 人の ✓ は これより 後なので 前の 印の 済に ならない） */ if(t&&amRunDoEnd(k,t)){ n++; return; } if(now<amNext3am(new Date(r.s).getTime())) return; amNxLongOut(k,r,c); n++; return; } if(now<c.at) return; amRunForget(k,r,c.at,c.why); n++; });   // 5.25：全部 ✓ なのに「終わった」を 押し忘れた 作業は、最後の ✓ の 時刻で 済。5.36.5：だれでもに 戻った 印は、だれかが 取っても 消さない（朝 3:00 か 押すまで 残す。押し忘れは 朝 3:00 の 後の 記録の 時に、戻る 時刻で 1件）
   return n;
 }
 function amRunDoStart(id,name,now){ const m=amRunEdit(); let k; do{ k='u'+now.toString(36)+Math.random().toString(36).slice(2,6); }while(k in m); m[k]={w:id, s:new Date(now).toISOString(), by:name||'', d:amDevId()}; return k; }
@@ -13772,6 +13780,49 @@ function amNxQueue(now){
   const du=x=>isFinite(x.due)?x.due:9e15;
   return out.sort((x,y)=>(y.g-x.g)||(x.tr-y.tr)||(x.wi-y.wi)||(x.aft-y.aft)||(du(x)-du(y))||(x.id<y.id?-1:x.id>y.id?1:0));
 }
+/* 表示だけのタブ順。ホームの推薦と状態判定は amNxQueue のまま。 */
+function amNxSlot(x,now){
+  if(x.o) return x.o;
+  const s=x.s||{};
+  if(s.tm&&s.slot) return s.slot;
+  if(s.st==='fire'&&s.deadline){ const p=amSlots(x.w,now).find(v=>v.e===s.deadline); if(p) return p; }
+  return s.cur||s.next||null;
+}
+function amNxTabQueue(q,now){
+  const reg=new Map(amWorks().map((w,i)=>[w.id,i]));
+  const at=x=>{ const v=amNxSlot(x,now); return v&&isFinite(v.s)?v.s:Infinity; };
+  return q.slice().sort((a,b)=>(a.tr-b.tr)||((b.k==='fire')-(a.k==='fire'))||((at(a)===at(b))?0:at(a)<at(b)?-1:1)||((reg.get(a.w.id)||0)-(reg.get(b.w.id)||0))||(a.aft-b.aft));
+}
+function amNxTabSet(k){ _amNx.tab=k; _amNx.sel=''; _amNx.sc=0; renderMapView(); }
+function amNxTabsHtml(q){
+  const keys=Array.from(new Set(q.map(x=>x.tag))).sort((a,b)=>(q.find(x=>x.tag===a).tr-q.find(x=>x.tag===b).tr));
+  if(_amNx.tab!=null&&!keys.includes(_amNx.tab)) _amNx.tab=null;
+  const btn=(k,n,rows)=>`<button type="button" class="nxb" aria-pressed="${(_amNx.tab==null?k==null:_amNx.tab===k)}" ${k==null?'onclick="amNxTabSet(null)"':`data-tab="${escapeHtml(k)}" onclick="amNxTabSet(this.dataset.tab)"`}>${escapeHtml(n)}${rows.some(x=>x.k==='fire')?`・おくれ ${rows.filter(x=>x.k==='fire').length}`:''}</button>`;
+  return `<div class="nxa-tabs" aria-label="作業の種類">${btn(null,'すべて',q)}${keys.map(k=>btn(k,amKindName(k)||'種類なし',q.filter(x=>x.tag===k))).join('')}</div>`;
+}
+function amNxScheduleText(x,now){
+  const slot=amNxSlot(x,now), due=Number.isFinite(x.due)?x.due:slot&&slot.e;
+  const time=slot&&isFinite(slot.s)?amHM(slot.s):'時刻なし';
+  const end=Number.isFinite(due)?amHM(due)+'まで':'期限なし';
+  const from=amNext3am(now)-86400000, to=amNext3am(now);
+  const recs=amLogRange(from,Math.min(now+1,to)).filter(r=>r.w===x.w.id&&!r.re&&!r.af);
+  let count;
+  if(x.af) count='あとの作業';
+  else if(x.re||(slot&&slot.re)) count='再チェック';
+  else if(x.rep||amIsRep(x.w)) count=amRepTag(x.w)+'・期間内1回';
+  else {
+    const slots=(amIsTimed(x.w)?amOffSlots(x.w,now,[]):amSlots(x.w,now)).filter(v=>v.s>=from&&v.s<to&&!v.re);
+    const i=slot?slots.findIndex(v=>v.s===slot.s): -1;
+    count=slots.length?(i<0?'持ち越し':`今日${i+1}/${slots.length}回目`)+`・済${recs.length}`:'回数なし';
+  }
+  return `${time}→${end}｜${count}`;
+}
+function amNxRunSchedule(r,now){
+  const x=amNxItemOf(amNxRid(r),r.s); if(!x) return '';
+  if(!x.o){ if(amIsOff(x.w)) x.o=amOffNow(x.w,r.s).slot; else x.s=amStatus(x.w,r.s); }
+  x.due=x.o?x.o.e:x.s?amNxDue(x):Infinity; x.rep=amIsRep(x.w);
+  return `<span class="nxa-schedule">${escapeHtml(amNxScheduleText(x,now))}</span>`;
+}
 function amNxNext(now){ return amNxQueue(now); }   // 5.25 の 名前（試験・道具が 呼ぶ）。中身は 急ぐ順 そのもの
 /* 行の 右の 字：おくれ＝◯分 おくれ（持ち越し）／もうすぐ＝あと◯分（60分より 先は ◯時まで）／これから＝◯時まで／時刻の 前＝◯時から */
 /* 5.27（店長 10/26「遅れの表記が設定した時間から計算されてない気がする」）：時刻の 作業（売場の 時刻・売場以外の 時刻・再チェック・あとの作業）の 決めた 時刻。
@@ -13991,7 +14042,7 @@ function amNxRunRowHtml(r,now,ph,dup,hoLab){   // 5.27：hoLab＝前の 時間�
   const L=amNxRunLabel(r), w=L.w, g=(w&&!r.sa)?amGoalOf(w):0, mn=amRunMin(r,now), ck=(w&&!r.sa&&amCkReq(w,null))?amNxCkMine(r,amCkNow(w,now),now):null, lg0=!g&&amNxIsLong(r,now), ov=(!!g&&mn>=g)||lg0, c=r.by?amNxCol(r.by):'#98a2b3';   // 5.36.2：lg0＝目標の 無い 作業が 戻る 時刻を すぎた
   const ct=amCtrChip(L.base,ph);   // 5.29：右上の 角の 札
   const xg=amNxLongX(r,now);   // 5.34 ⑥：目標の 2倍を すぎた 行は「目標の ◯倍」を うすく（5.36.2：どの 店も）
-  return `<button type="button" class="nxb nxa-rn${ov?' over':''}${_amNx.ck===r.k?' sel':''}${ct?' ct':''}" data-w="r:${escapeHtml(r.k)}" data-k="${escapeHtml(r.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxCkOpen(this.dataset.k)">${ct}${amNxAv2(r.by,30)}<span class="nm">${ph?'':amNxStamp(L.tag,18)}<span>${hoLab?`<span class="nxa-ho">${hoLab}</span> `:''}${escapeHtml(L.name)}${dup?'<span class="wn">⚠ 2人が 取っています</span>':''}</span></span><span class="tm num">${mn}${g?'/'+g:''}分${ck?`<br>✓${ck.n}/${ck.keys.length}`:''}${xg?`<br><small class="xg">目標の ${xg}倍</small>`:lg0?'<br><small class="xg">長い</small>':''}</span></button>`;
+  return `<button type="button" class="nxb nxa-rn${ov?' over':''}${_amNx.ck===r.k?' sel':''}${ct?' ct':''}" data-w="r:${escapeHtml(r.k)}" data-k="${escapeHtml(r.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxCkOpen(this.dataset.k)">${ct}${amNxAv2(r.by,30)}<span class="nm">${ph?'':amNxStamp(L.tag,18)}<span>${hoLab?`<span class="nxa-ho">${hoLab}</span> `:''}${escapeHtml(L.name)}${dup?'<span class="wn">⚠ 2人が 取っています</span>':''}</span></span>${amNxRunSchedule(r,now)}<span class="tm num">${mn}${g?'/'+g:''}分${ck?`<br>✓${ck.n}/${ck.keys.length}`:''}${xg?`<br><small class="xg">目標の ${xg}倍</small>`:lg0?'<br><small class="xg">長い</small>':''}</span></button>`;
 }
 /* 5.34 ⑥：戻る 時刻を すぎた 印の「目標の ◯倍」（始めてからの 分。小数 1けた・切り捨て）。目標の 無い 作業・あとの 作業は ''（長いかは amNxIsLong で 見る）。5.36.5：戻る 時刻より 前は ''（5.36 の 行と 同じ） */
 function amNxLongX(r,now){
@@ -14002,7 +14053,7 @@ function amNxRowHtml(x,rk,now,ph,isSel){
   const cls=x.lock?'lock':x.k==='fire'?'late':x.k==='soon'?'soon':'later';
   const ct=amCtrChip(x.w,ph), mk=(x.ho?`<small class="nxa-ho">${x.ho}</small>`:'')+(x.af?'<small>➡ あと</small>':'')+(x.re?'<small>🔁 再チェック</small>':'')+(x.rep?`<small>${escapeHtml(amRepTag(x.w))}</small>`:'');
   const dm=amNxDormOfId(x.id,now), cn=(!x.af&&amCkOn(x.w))?amCkNow(x.w,now):null, sub=dm.length?`<span class="sb">⏸ ${escapeHtml(dm.map(r=>r.by||'名前なし').join('・'))} の 印が 残っています${(cn&&cn.n)?`・✓ ${cn.n}／${cn.keys.length}`:''}</span>`:'';   // 5.36.5：だれでもに 戻った 印が 残っている 作業：その 人と ✓ の 数
-  return `<button type="button" class="nxb nxa-it ${cls}${isSel?' sel':''}${rk===1?' first':''}${typeof rk==='string'?' kcr':''}" data-w="${escapeHtml(x.id)}" onclick="amNxSel(this.dataset.w)">${ct}<span class="rk num">${rk}</span>${amNxStamp(x.tag,ph?24:28)}<span class="tx"><span class="nm">${escapeHtml(x.base||x.name)}${(x.base&&x.name.length>x.base.length)?`<small class="zs">${escapeHtml(x.name.slice(x.base.length))}</small>`:''}${mk}</span>${sub}</span>${(()=>{ const wn=amNxWhen2(x,now); return `<span class="tm num${wn.dim?' dim':''}"><b>${escapeHtml(wn.t)}</b>${wn.s?`<small>${wn.s}</small>`:''}</span>`; })()}</button>`;   // 5.33：基準の 時刻＋小さい 字
+  return `<button type="button" class="nxb nxa-it ${cls}${isSel?' sel':''}${rk===1?' first':''}${typeof rk==='string'?' kcr':''}" data-w="${escapeHtml(x.id)}" onclick="amNxSel(this.dataset.w)">${ct}<span class="rk num">${rk}</span>${amNxStamp(x.tag,ph?24:28)}<span class="tx"><span class="nm">${escapeHtml(x.base||x.name)}${(x.base&&x.name.length>x.base.length)?`<small class="zs">${escapeHtml(x.name.slice(x.base.length))}</small>`:''}${mk}</span>${sub}</span><span class="nxa-schedule">${escapeHtml(amNxScheduleText(x,now))}</span>${(()=>{ const wn=amNxWhen2(x,now); return `<span class="tm num${wn.dim?' dim':''}"><b>${escapeHtml(wn.t)}</b>${wn.s?`<small>${wn.s}</small>`:''}</span>`; })()}</button>`;   // 5.33：基準の 時刻＋小さい 字
 }
 /* 5.27.1（テス △1）：今いる人の 並び。きょうの 人（交代・朝3時の 後に 入った 人。入った 順）→ 前からの 人（新しい 順）。 */
 function amNxHereOrd(here,now){ const c=amNxCut(now), t=here.filter(h=>h.at>=c), r=here.filter(h=>h.at<c).sort((a,b)=>(b.at-a.at)||(a.n<b.n?-1:1)); return t.concat(r); }
@@ -14041,11 +14092,11 @@ function amNxCkHtml(r,now,B,ph){
   else { const st=w?amStartOf(w):null; body=st?`<div class="nxa-start">▶ 始める時に やる事：<b>${escapeHtml(st.t)}</b>${amTr(st)}</div>`:''; }
   const past=amNxRunPast(r,now), tk=past&&amNxRunTaken(r), left=(ck&&!tk)?ck.left:0;   // 5.36.5：past＝戻る 時刻を すぎた 印／tk＝その後に 別の 印か 記録が ある（押すと 閉じるだけ。✓ は 次の 人の 物なので 出さない）
   if(tk) body=amNxLateDone(r.raw||r,amNxClose(r).at)?`<div class="nxa-lgn">この 作業は 別の 人の 記録が 入っています。「印を 閉じる」で 外します${amTr2('Someone else recorded this. Tap Close.','अरूले रेकर्ड गर्नुभयो। बन्द थिच्नुहोस्।')}</div>`:`<div class="nxa-lgn">この 印の 後に、別の 人の 印か 記録が 入っています。「印を 閉じる」で 外します（押し忘れに 1件 残ります）${amTr2('Someone took this later. Tap Close: it stays as one missed entry.','पछि अरूले लिनुभयो। बन्द थिच्नुहोस्: एउटा छुटेको रूपमा रहन्छ।')}</div>`;
-  else if(past) body=`<div class="nxa-lgn">終わっていたら「✓ 終わった」。やっていない・ほかの人が やるなら「名前・取り消し」${amTr2('Finished? Tap ✓ Done. Not done, or someone else? Tap Name / Cancel.','सकियो भने ✓ थिच्नुहोस्। नगरेको वा अरूले गर्ने भए नाम / रद्द थिच्नुहोस्।')}</div>`+body;   // 5.36.2：押し忘れた 印の 外し方を その場で
-  return `<div class="nxa-ck" id="nxa-ck" data-k="${escapeHtml(r.k)}" style="--pc:${c};left:${B.x}px;top:${B.y}px;width:${B.w}px;height:${B.h}px">${amCtrChip(L.base,ph)}<div class="hd"><h2>${amNxStamp(L.tag,32)}<span>${escapeHtml(L.full)}</span></h2><button type="button" class="nxb fx" data-k="${escapeHtml(r.k)}" onclick="amNxFix(this.dataset.k)">名前・<br>取り消し</button><button type="button" class="nxb x" onclick="amNxShut()">とじる</button></div>
+  else if(past) body=`<div class="nxa-lgn">終わっていたら「✓ 終わった」。やっていない・ほかの人が やるなら「取り消し」${amTr2('Finished? Tap ✓ Done. Not done, or someone else? Tap Name / Cancel.','सकियो भने ✓ थिच्नुहोस्। नगरेको वा अरूले गर्ने भए नाम / रद्द थिच्नुहोस्।')}</div>`+body;   // 5.36.2：押し忘れた 印の 外し方を その場で
+  return `<div class="nxa-ck" id="nxa-ck" data-k="${escapeHtml(r.k)}" style="--pc:${c};left:${B.x}px;top:${B.y}px;width:${B.w}px;height:${B.h}px">${amCtrChip(L.base,ph)}<div class="hd"><h2>${amNxStamp(L.tag,32)}<span>${escapeHtml(L.full)}</span></h2><button type="button" class="nxb fx" data-k="${escapeHtml(r.k)}" onclick="amNxFix(this.dataset.k)">名前</button><button type="button" class="nxb x" onclick="amNxShut()">とじる</button></div>
     <div class="meta">${amNxAv2(r.by,28)}${ph?'':`<span>${escapeHtml(r.by||'名前なし')} ${past?'の 印が 残っています':'取りかかり中'}</span>`}<span class="num">${mn}分${g?` ／ 目標${g}分`:''}</span>${ck?`<span class="num" style="color:var(--ink)">✓ ${ck.n}/${ck.keys.length}</span>`:''}</div>
     <div class="grow">${body}</div>
-    <div class="nxa-finr"><button type="button" class="nxb nxa-trbb" data-k="${escapeHtml(r.k)}" onclick="amNxTrbAskT(this.dataset.k)"><span class="ex" aria-hidden="true">!</span><span>困った<small>Problem / समस्या</small></span></button><button type="button" class="nxb nxa-fin" data-k="${escapeHtml(r.k)}" onclick="amNxFinTap(this.dataset.k)"${left?' disabled':''}>${amNxIco('check',26,left?'#465773':'#fff')}<span>${left?`あと ${left}つ ✓ で 終わる`:tk?'印を 閉じる':'✓ 終わった'}<small>${left?`${left} left / ${left} बाँकी`:tk?'Close / बन्द':'Done / सकियो'}</small></span></button></div></div>`;   // 5.27：「困った」は 終わったの 左に 小さく
+    <div class="nxa-cancel"><button type="button" class="nxb nxa-cl" data-k="${escapeHtml(r.k)}" onclick="amRunCancel(this.dataset.k)">取り消し</button></div><div class="nxa-finr"><button type="button" class="nxb nxa-trbb" data-k="${escapeHtml(r.k)}" onclick="amNxTrbAskT(this.dataset.k)"><span class="ex" aria-hidden="true">!</span><span>困った<small>Problem / समस्या</small></span></button><button type="button" class="nxb nxa-fin" data-k="${escapeHtml(r.k)}" onclick="amNxFinTap(this.dataset.k)"${left?' disabled':''}>${amNxIco('check',26,left?'#465773':'#fff')}<span>${left?`あと ${left}つ ✓ で 終わる`:tk?'印を 閉じる':'✓ 終わった'}<small>${left?`${left} left / ${left} बाँकी`:tk?'Close / बन्द':'Done / सकियो'}</small></span></button></div></div>`;   // 5.27：「困った」は 終わったの 左に 小さく
 }
 /* 新しい画面を 描く（renderMapView から）。読むだけ・保存しない。大きさは 今の 画面から 決める（ページが 送れない形） */
 function amNxRender(view){
@@ -14113,10 +14164,12 @@ function amNxRender(view){
     if(ph&&M&&runsH) col+=ban;
     if(kcv) col+=amKcNxColHtml(q,now,ph,sel,x=>amNxOpenHtml(x,q,here,hold,now));   // 5.29：厨房スケジュール（時刻の 順）
     else col+=`<div class="nxa-sec">急ぐ順<small>Most urgent first / सबैभन्दा छिटो पहिले</small></div>`;
-    if(!kcv) q.forEach((x,i)=>{
-      if(i===0&&showGo) col+=`<div class="nxa-nf" style="--pc:${amNxCol(free[0].n)}">${free.length===1?`${amNxAv2(free[0].n,24)}${escapeHtml(free[0].n)} は、次に これ`:'あいている人は、次に これ'}<small>Next / अब यो</small></div>`;
+    if(!kcv) col+=amNxTabsHtml(q);
+    const shown=amNxTabQueue(q,now).filter(x=>_amNx.tab==null||x.tag===_amNx.tab);
+    if(!kcv) shown.forEach((x,i)=>{
+      if(i===0&&showGo&&q[0]&&q[0].id===x.id) col+=`<div class="nxa-nf" style="--pc:${amNxCol(free[0].n)}">${free.length===1?`${amNxAv2(free[0].n,24)}${escapeHtml(free[0].n)} は、次に これ`:'あいている人は、次に これ'}<small>Next / अब यो</small></div>`;
       col+=amNxRowHtml(x,i+1,now,ph,!!sel&&sel.id===x.id);
-      if(i===0&&showGo) col+=`<div class="nxa-gos" style="grid-template-columns:repeat(${free.length},minmax(0,1fr))">${free.map(p=>`<button type="button" class="nxb nxa-go" style="--pc:${amNxCol(p.n)}" data-w="${escapeHtml(x.id)}" data-n="${escapeHtml(p.n)}" onclick="amNxWhoTap(this)">${amNxIco('play',20,'#fff')}${escapeHtml(p.n)} が やる<small>Start / सुरु</small></button>`).join('')}</div>`;
+      if(i===0&&showGo&&q[0]&&q[0].id===x.id) col+=`<div class="nxa-gos" style="grid-template-columns:repeat(${free.length},minmax(0,1fr))">${free.map(p=>`<button type="button" class="nxb nxa-go" style="--pc:${amNxCol(p.n)}" data-w="${escapeHtml(x.id)}" data-n="${escapeHtml(p.n)}" onclick="amNxWhoTap(this)">${amNxIco('play',20,'#fff')}${escapeHtml(p.n)} が やる<small>Start / सुरु</small></button>`).join('')}</div>`;
       if(sel&&sel.id===x.id) col+=amNxOpenHtml(x,q,here,hold,now);
     });
     const gvN=amNxGvNow(now).live.length;   // 5.31：きょう 諦めた（取り消して いない）数
@@ -14170,7 +14223,7 @@ function amNxFitCk(){
   const p=document.getElementById('nxa-ck'); if(!p) return; const ul=p.querySelector('.nxa-ckl'), gr=p.querySelector('.grow');
   if(!ul||!gr){ const h2=p.querySelector('h2'), t=h2&&h2.querySelector('span:last-child'); if(t){ for(const fs of [0,22,20,18,16,14]){ if(fs) h2.style.fontSize=fs+'px'; if(t.scrollHeight<=t.clientHeight+1) break; } } return; }
   /* 5.26（テス：低い 画面 768×800・800×640・412×700）：窓の 高さに 入る 形を 順に 試す（行は 44px 以上の まま）。
-     1列 → 広い 窓は 2列 → 行を 44px → 2列（せまい 窓でも 340px から）→ 字を 小さく → いちばん 詰めた 形。「名前・取り消し」と「とじる」は 見出しの 横で いつも 見える */
+     1列 → 広い 窓は 2列 → 行を 44px → 2列（せまい 窓でも 340px から）→ 字を 小さく → いちばん 詰めた 形。「名前」と「とじる」は 見出しの 横、取り消しは 完了ボタンの 上に 出す */
   { const h2=p.querySelector('h2'), t=h2&&h2.querySelector('span:last-child'); if(t){ for(const fs of [0,22,20,18,16,14]){ if(fs) h2.style.fontSize=fs+'px'; if(t.scrollHeight<=t.clientHeight+1) break; } } }   // 題は 2行まで・「…」で 切らない（長い 題は 字を 小さく）
   const over=()=>gr.scrollHeight>gr.clientHeight+1, n=ul.children.length, W=p.clientWidth;
   const set=(cols,cls)=>{ ['tight','tight2','tight3'].forEach(c=>p.classList.remove(c)); cls.forEach(c=>p.classList.add(c));
@@ -14316,7 +14369,7 @@ function amNxOrderPanel(){
         +((mvHere&&!me)?`<button type="button" class="nxo-here" data-w="${ew}" onclick="amNxWPlace(this.dataset.w,${i})">ここへ</button>`
           :`<button type="button" class="nxo-b" data-w="${escapeHtml(w.id)}" onclick="amNxWMove(this.dataset.w,-1)" aria-label="上へ"${i?'':' disabled'}>↑</button><button type="button" class="nxo-b" data-w="${escapeHtml(w.id)}" onclick="amNxWMove(this.dataset.w,1)" aria-label="下へ"${i<ws.length-1?'':' disabled'}>↓</button>`)+`</div>`; }).join(''); }).join('');
   _amSheet(`<div class="nxo"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="am-title">↕ やる順${amTr2('Order of tasks','कामको क्रम')}</div>
-    <div class="am-sub">急ぐ順は「おくれ → もうすぐ → これから」の それぞれの 中で、<b>① 種類の 順</b> → <b>② その 種類の 中の 作業の 順</b> です。↑↓ を 押すと すぐ 保存されます（全部の 端末に 効く）。</div>
+    <div class="am-sub">作業の列は <b>種類のタブ → おくれ → 時間帯 → 登録順</b> です。①はタブの順、②はホームの「つぎは これ」で同じ種類の作業を並べる順です。↑↓ を押すと保存されます。</div>
     <div class="nxo-h">① 種類の 順</div><div class="nxo-l" id="nxo-tags">${th}</div>
     <div class="nxo-h">② 種類ごとの 作業の 順</div><div class="nxo-l" id="nxo-works">${wh}</div>
     <div class="am-cfg-act" style="justify-content:flex-start"><button type="button" class="btn-secondary" onclick="amOpenWorks()">← 登録の表へ</button>${_amSeqUndo?'<button type="button" class="btn-secondary" onclick="amSeqUndoRun()">↩ 1つ前に戻す</button>':''}</div></div>`,'wide','nxord');
