@@ -1487,7 +1487,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const data=map.cells.map(c=>[c.x,c.y,c.w,c.h].join(',')), svg=document.querySelector('#map-view svg.am-svg'), rot=document.querySelectorAll('#map-view svg [transform*="rotate"]').length;
         return JSON.stringify({n:map.cells.length, nd:g.length, same:drawn.join('|')===data.join('|'), drawn:drawn.join('|'), frame:map.frame?[map.frame.x,map.frame.y,map.frame.w,map.frame.h].join(','):null, rot, ver:APP_VERSION, hasM5:!!window.__m5}); })()`));
       check('96a','地図の形と位置（5.11）：マスは 59個・描いた四角 x,y,w,h が 登録の中身と 1つも ちがわない・5.10 の描き（59マスの並び）と同じ・店の枠（登録の中身）は 0,0,878,1803・回していない・虫めがね／「拡大する」は出ない',
-        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.36'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
+        o.n===59&&o.nd===59&&o.same&&dj(o.drawn)===3659921090&&o.frame==='0,0,878,1803'&&o.rot===0&&o.ver==='5.36.6'&&o.hasM5&&A.ev(`(()=>{ const b=document.querySelector('.am-zoombtn'); return !b||getComputedStyle(b).display==='none'; })()`)===true&&A.ev(`!document.getElementById('mm-lens')`)===true,
         `マス ${o.n}/${o.nd}・同じ ${o.same}・並びの数 ${dj(o.drawn)}・枠 ${o.frame}・回転 ${o.rot}・版 ${o.ver}`);
       const t=JSON.parse(A.ev(`(()=>{ renderMapView(); const s=window.__m5.S.s, svg=document.querySelector('#map-view svg.am-svg'), tx=[].slice.call(svg.querySelectorAll('text')), px=tx.map(t=>(parseFloat(t.getAttribute('font-size'))||0)*(t.getScreenCTM()?Math.hypot(t.getScreenCTM().a,t.getScreenCTM().b):s)).filter(Boolean).sort((a,b)=>a-b); const inf=window.__m5.info().cells||[]; return JSON.stringify({n:px.length, min:px.length?Math.round(px[0]*100)/100:null, scale:s, wkSmall:inf.filter(x=>x.wk&&x.fs>0&&x.fs<9.9).length, wkN:inf.filter(x=>x.wk).length, lost:inf.filter(x=>x.mode==='lost').length}); })()`));
       check('96b','作業のあるマスの字（5.11・5.29）：画面にかいた字は ぜんぶ 読める 下限（10px）以上・地図 全体で 1つの 大きさ（5.29：札と 線は 出さない。入らない マスは 字を 出さない）',
@@ -1612,7 +1612,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const kz=JSON.parse(K.ev(`JSON.stringify({u:amIsoFig('（無い文）'),e:amIsoFig(''),n:amIsoFig(null),sp:amIsoFig(' 棚の奥まで補充されている ').length>0,keys:Object.keys(AM_ISO_BY_TEXT).length,ver:APP_VERSION})`));
       const okFig=k=>k.n===3&&k.fig.every(f=>f&&f[0]===1&&f[1]===1&&f[2]>60)&&k.order.every(o=>/^am-it>am-iso>am-ng$/.test(o))&&k.same;
       check('96q','作業カードの確認の絵（5.14）：品出し（赤・青）のカードの 3つの確認に、○と✕の立体の絵が1枚ずつ（確認の文 → 絵 → NG時アクションの順）。床・トイレのカードには 絵が出ない・文が合わない時は 空・カードを開いても データ（state）は変わらない',
-        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.36',
+        okFig(k1)&&okFig(k2)&&k3.fig.every(f=>f===null)&&k4.fig.every(f=>f===null)&&k3.same&&k4.same&&kz.u===''&&kz.e===''&&kz.n===''&&kz.sp&&kz.keys===3&&kz.ver==='5.36.6',
         `品出し赤 ${JSON.stringify(k1.fig)}・青 ${JSON.stringify(k2.fig)}・床 ${k3.n}行で絵 ${k3.fig.filter(Boolean).length}・トイレ ${k4.n}行で絵 ${k4.fig.filter(Boolean).length}・合わない文 '${kz.u}'・データ同じ ${k1.same&&k2.same&&k3.same&&k4.same}`);
       /* 登録で 確認の文を直した店（state の作業の items が ちがう文）では、その行の絵は出ない（こわれない）。直した文は 試験の中で 別の入れ物にだけ入れ、元に戻す */
       const k5=JSON.parse(K.ev(`(()=>{ const bk=state.amWorks; try{ const ws=JSON.parse(JSON.stringify(amWorks())); const w=ws.find(x=>x.id==='stock_red'); w.items=[['棚の奥まで しっかり補充','奥まで'],w.items[1],w.items[2]]; state.amWorks=ws;
@@ -3005,7 +3005,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same2=[wsj(O5)===wsj(P),wsj(O4)===wsj(P)];
         } finally { for(const d of [P,O5,O4]){ try{ d.ev('amCloseSheet()'); }catch(_){} } }
         checkL7('97l','【古い版（5.14・5.15）の端末と まざる】新しい画面で 足した作業が 古い画面にも 同じ中身で 届く（保存の形は 同じ）・古い画面で 開いて 保存しても 変わらない・同じ作業の 別の欄（説明・名前・締切）を 3台が 同時に 直しても 全部 残る・新しい画面の ＋ と 古い画面の □ は 同じ書き方（sch7 と sch）で 3台が そろう',[
-            ['1:版',o.v[0]==='5.36'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
+            ['1:版',o.v[0]==='5.36.6'&&/^5\.1[56]$/.test(o.v[1])&&o.v[2]==='5.14'],   // 新しい画面／1つ前の画面（5.15 か 5.16）／5.14
             ['2:はじめ そろう',J(o.seed)===J([true,true])],
             ['3:作業が 届く',J(o.arrive)===J([true,true,true,true])],
             ['4:開いて保存＝変わらない',J(o.noop)===J([true,true,true])],
@@ -3485,7 +3485,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.errs=errN8()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL8('97y','【見本「ぜんぶ」・2台と 古い版】A：Q（5.19）が 切れている 間に 回数を 直し 自分の 作業を 足す・P は つながった まま 40件 足す → Q が あとから つながっても、P の 40件・Q の 作業と 回数・今の 作業 21件が 全部 残り、4台（5.19×2・5.14・5.18）の 中身が 同じ。B：P が 切れている 間に 残り 5件を 足し、その間に Q・5.14・5.17 が それぞれ 回数を 直す → P が あとから つながっても 全部 残る（45件・3台の 回数・Q の 作業）。負けた 入力 0。古い版でも 登録の表が 開ける（5.18 は 見本の 一覧が 3つの まま）',[
-            ['1:版',o.v[0]==='5.36'&&o.v[1]==='5.36'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
+            ['1:版',o.v[0]==='5.36.6'&&o.v[1]==='5.36.6'&&o.v[2]==='5.14'&&o.v[3]==='5.18'&&o.seed.every(x=>x===true)],
             ['2:A 4台 同じ',o.A[0].every(x=>x===true)],
             ['3:A 全部 残る',o.addA===40&&o.A[1]===true&&o.A[2]===true&&o.A[3]===40&&o.A[4]===true],
             ['4:B 4台 同じ',o.B[0].every(x=>x===true)],
@@ -3767,7 +3767,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lost9(cl); o.errs=errN9()-e0;
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('98g','【古い版と まざる】5.20・5.19・5.14 の 3台。5.20 で 種類を 足し（名前を 直し・英語）・前陳を 隠し・作業に「温度」「値引」を 付ける → 古い版にも 種類の 入れ物が そのまま 届く。古い版で 回数を 直す・5.19 で「温度」の 作業を 開くと 札は「温度」（鍵の まま）・選びも「温度」で 選ばれた まま → 何も 変えずに 保存しても kind は 変わらない（「値引」も 同じ）。そのあと 5.20 で 種類を 足しても 消えない・3台の 種類と 作業が 同じ・負けた 入力 0',[
-            ['1:版',o.v[0]==='5.36'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
+            ['1:版',o.v[0]==='5.36.6'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],
             ['2:古い版に 届く',o.got[0]===true&&o.got[1]===true&&o.got[2]==='温度'&&o.got[3]==='値引'],
             ['3:古い版の 札と 選び',o.oCard==='温度'&&J(o.oSel)===J(['温度'])&&J(o.oSel1)===J(['値引'])],
             ['4:3台 同じ',o.end[0].every(x=>x===true)&&o.end[1].every(x=>x===true)],
@@ -3845,7 +3845,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.ver=E9(P,'APP_VERSION');
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         checkL9('97z1','【🎯 目標の分】登録の窓 ③ に 欄が 出る（売場以外では 出ない）・12 を入れると goal だけ 足される・まとめの行に 出る・まちがった字は 保存しない・全角も 読む・空で 項目ごと 消える・全部の作業を 開いて 何も変えずに 保存しても 1字も 変わらず 何も 書かない',[
-            ['1:版 5.27.1',o.ver==='5.36'],
+            ['1:版 5.27.1',o.ver==='5.36.6'],
             ['2:全部 開いて 保存 → 同じ・書かない',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10],
             ['3:欄が 出る・はじめは 空',o.box[0]===1&&o.box[1]!=='none'&&o.box[2]===''],
             ['4:まとめの行',/目標 12分/.test(o.sum)],
@@ -4121,7 +4121,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.lost=lostN(cl);
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkL9('97z9','【古い版と まざる】5.19・5.16・5.14 の 端末：目標が 届く・古い端末の カードは 今までどおり（▶ なし）・P が 始めた 作業中に 古い端末が 記録・作業の名前を 直しても 印・目標が 残る・P が 終わると 古い端末も 済・古い端末の 記録は s なし・押し忘れは 古い端末でも 済に 数えない・4台 同じ・負けた入力 0',[
-            ['1:版',o.v[0]==='5.36'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
+            ['1:版',o.v[0]==='5.36.6'&&o.v[1]==='5.19'&&o.v[2]==='5.16'&&o.v[3]==='5.14'],['2:目標が 届く',o.goal.every(x=>x===10)],['3:古い カード',o.oc[0]===0&&o.oc[1]===true],
             ['4:古い 保存で 消えない',o.keep[0]===1&&o.keep[1]===10&&o.keep[2]==='古い版で 直した名前'&&o.keep[3].every(Boolean)],
             ['5:終わる → 古い端末も 済',o.end[0]===1&&o.end[1]==='done'&&o.end[2]===1],['6:古い端末の 記録',o.oldRec[0]===2&&o.oldRec[1]>=1],
             ['7:押し忘れは 済に しない',o.nf[0]===1&&o.nf[1]===true&&o.nf[2]===true],['8:印が 残る・4台 同じ',o.run[0]==='1,1,1,1'&&o.run[1]===true],['9:負けた入力 0',o.lost===0]],
@@ -4282,7 +4282,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.nw=[Number(EG(P,'amWorks().length'))-n0, EG(P,`('gap' in amWorks().find(w=>w.name==='見本の 新しい 作業'))`), EG(P,`amWorks().find(w=>w.name==='見本の 新しい 作業2').gap`)];
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         checkLG('97zg1','【あける 時間・登録の窓】「くわしく」に 1行（はじめは なし）・45分で まとめの行と たたんだ 見出しに 出る・保存は gap だけ 足す・カードの 予定に 出る・開いて 保存しても 書かない・枠より 長いと ⚠ で えらべない・なしで 項目ごと 消える（元と 1字 同じ）・時刻の 間 30分 → 30分から 上は えらべない・新しい 作業・全部の 作業を 開いて 保存しても 1字も 変わらない',[
-            ['1:版 5.27.1',o.ver==='5.36'],
+            ['1:版 5.27.1',o.ver==='5.36.6'],
             ['2:全部 開いて 保存 → 同じ・書かない・gap 0件',o.same[0]===true&&o.same[1]===true&&o.same[2]>=10&&o.same[3]===0],
             ['3:欄（くわしくの中・なし・8つ・えらべる）',o.box[0]===1&&o.box[1]==='0'&&o.box[2]==='0,5,10,15,20,30,45,60'],
             ['4:まとめ・見出し・⚠なし',/前の 記録から 45分 あける/.test(o.sum[0])&&/あける 45分/.test(o.sum[1])&&o.sum[2]==='none'],
@@ -4456,7 +4456,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           await syncG(D); o.same=sameAll();
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         checkLG('97zg7','【古い版と まざる】5.19・5.14 の 端末に gap が 届く・古い端末で 作業の 名前を 直して 保存・全部 開いて 保存しても gap が 残る・古い端末は 止まらない（7:29・7:31 と 記録できる）・P では 7:31 の 記録から 止まる（⏳ 8:16）・3台 同じ',[
-            ['1:版',o.v[0]==='5.36'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],['2:届く',o.gap.every(x=>x===45)],
+            ['1:版',o.v[0]==='5.36.6'&&o.v[1]==='5.19'&&o.v[2]==='5.14'],['2:届く',o.gap.every(x=>x===45)],
             ['3:古い 保存で 消えない',o.keep[0]===45&&o.keep[1]===15&&o.keep[2]==='古い版で 直した 名前'&&o.keep[3].every(Boolean)],
             ['4:古い端末は 止まらない',o.old[0]===2&&o.old[1]===2],['5:P は 止まる',o.cp.n>=2&&o.cp.dis===o.cp.n&&/8:16 から/.test(o.cp.gap)],['6:3台 同じ',o.same.every(Boolean)]],
           `版 ${J(o.v)}｜届く ${J(o.gap)}｜保存 ${J(o.keep)}｜古い記録 ${J(o.old)}｜P ${J(o.cp)}｜同じ ${J(o.same)}`);
@@ -4619,7 +4619,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         const w=o.w1||{};
         checkLT('97zt1','【売場の作業も 時刻で 決める・登録の窓】新しい作業＝はじめは 時間帯・決め方の 箱が 出る・何分前から のはじめは 0（0・5・10 を 足した）／前からの作業は 時間帯のまま・lead の 無い 作業は 30 と 出る → 時刻に して 保存＝how:"time"・times・lead 0・grace 60（決めていない時の 値と 同じなら 書かない）・sch7＝時刻の 帯に 1回ずつ（夕方・夜）・ほかの欄は そのまま・番号の 作業のまま（売場以外に ならない）・開いて 保存しても 書かない',[
-            ['1:版 5.27.1',o.ver==='5.36'],
+            ['1:版 5.27.1',o.ver==='5.36.6'],
             ['2:新しい作業＝時間帯・0分',o.nw[0]==='band'&&o.nw[1]!=='none'&&o.nw[2]==='0'&&o.nw[3]==='0,5,10,15,30,45,60,90,120'&&o.nw[4]==='none'],
             ['3:前からの作業＝時間帯・30',o.ed0[0]==='band'&&o.ed0[1]!=='none'&&o.ed0[2]==='30'],
             ['4:時刻に した 窓',o.ed1[0]!=='none'&&o.ed1[1]==='none'&&o.ed1[2]!=='none'&&/17:00・19:30/.test(o.ed1[3])&&/時刻ちょうどから 押せる/.test(o.ed1[3])&&/押せる 時刻〜60分後/.test(o.ed1[4])],
@@ -4765,7 +4765,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { for(const d of D){ try{ d.ev('isAdmin=false; amCloseSheet()'); }catch(_){} } }
         const w=o.w||{};
         checkLT('97zt7','【古い版（5.22）と まざる】how・times・lead 0 が 古い端末にも 届く・古い端末では 夕方の 時間帯の 作業として 列と 地図に 出る（消えない。lead 0 は 30 と 読む）・古い端末で 名前と 回数を 直す・全部 開いて 保存しても how・times・lead 0 が 残る（新しい端末は 時刻の作業の まま）・記録は 3台に 届く・3台 同じ',[
-            ['1:版',o.v[0]==='5.36'&&o.v[1]==='5.22'&&o.v[2]==='5.36'],['2:届く',o.got.every(x=>x==='time|["17:00","19:30"]|0')],
+            ['1:版',o.v[0]==='5.36.6'&&o.v[1]==='5.22'&&o.v[2]==='5.36.6'],['2:届く',o.got.every(x=>x==='time|["17:00","19:30"]|0')],
             ['3:古い端末で 消えない',(o.old[0]==='soon'||o.old[0]==='fire'||o.old[0]==='todo')&&o.old[1]===1&&(FIRE.includes(o.old[2])||SOON.includes(o.old[2]))&&o.old[3]===30],
             ['4:新しい端末は 時刻の前…でなく 🟡',o.nw[0]==='soon'],
             ['5:古い 保存で 消えない',w.name==='古い版で 直した 名前'&&w.how==='time'&&J(w.times)===J(['17:00','19:30'])&&w.lead===0&&w.grace===60&&o.tm[0]===true&&o.tm[1]===true],
@@ -4896,7 +4896,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { P.ev('isAdmin=false; amCloseSheet()'); }
         const w=o.w1||{};
         checkLT('97ck1','【登録の窓 ④】いちばん上に オン／オフ（はじめは オフ）・オンで 保存 → ck:1 だけ 増え ほかの 欄は 1字も 同じ・窓を 開いている間に もう1台が 直した 項目を 戻さない・開いて 保存しても 書かない・オフ → ck が 消える・項目 0行の 作業には 書かない・項目を 全部 消すと ck も 消える・登録の表に ☑',[
-            ['1:版 5.27.1',o.ver==='5.36'],
+            ['1:版 5.27.1',o.ver==='5.36.6'],
             ['2:④ の いちばん上・はじめは オフ',o.box&&o.box[0]===true&&o.box[1]==='0'&&o.box[2]===true],
             ['3:オンで 変更あり・まとめの 行',o.dirty[0]===false&&o.dirty[1]===true&&o.on1==='1'&&/1行ずつ ✓/.test(o.sum)],
             ['4:ck:1 だけ・項目は もう1台の 3行',w.ck===1&&o.keep&&o.items!==0&&(w.items||[]).length===3],
@@ -5044,7 +5044,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.same=[nzT(P.ev('JSON.stringify(state)'))===nzT(O3.ev('JSON.stringify(state)')), nzT(P.ev('JSON.stringify(state)'))===nzT(O2.ev('JSON.stringify(state)'))];
         } finally { for(const d of D) ET(d,'isAdmin=false; amCloseSheet()'); }
         checkLT('97ck6','【古い版と 行き来】5.23 が 名前を 直して 保存・5.22 が 売場の 時刻の作業の 名前を 直して 保存・両方が ほかの 作業を 記録 → ck・途中の ✓・how・times・lead 0・ld0 が 残る／古い版は ✓ なしで 記録できる → 新しい 版の ✓ は 外れる／3台 同じ',[
-            ['1:版',o.v[0]==='5.36'&&o.v[1]==='5.23'&&o.v[2]==='5.22'],
+            ['1:版',o.v[0]==='5.36.6'&&o.v[1]==='5.23'&&o.v[2]==='5.22'],
             ['2:ck が 残る',o.wc[0]==='見本の チェック２'&&o.wc[1]===1&&o.wf[0]==='見本の ゴミ箱２'&&o.wf[1]===1],
             ['3:how・lead・ld0 が 残る',o.wf[2]==='time'&&o.wf[3]===J(['17:00','19:30'])&&o.wf[4]===0&&o.wf[5]===30],
             ['4:途中の ✓ が 残る',o.ck.every(x=>x===J(['tC','tF']))&&o.p0[0]==='1/3'&&o.p0[1]==='1/2'],
@@ -5231,7 +5231,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.keys=[ET(P,`'amNx' in state`), ET(P,`'amHere' in state`)]; o.ver=[ET(P,'APP_VERSION'),ET(O,'APP_VERSION')];
         } finally { for(const d of D) ET(d,'amCloseSheet()'); }
         checkLT('97nx1','【オフ＝5.24 と 同じ】新しい画面が オフの 時、地図の画面・5つの カード（✓あり・▶・時間帯・時刻・売場以外）・✓・記録・▶・終わった の 後の 画面が 5.24 と 1字も 同じ（▶ の 印の id だけ 消して 比べる）・保存の 中身も 同じ・amNx／amHere を 作らない',[
-            ['1:画面 '+o.eq.length+'か所',o.eq.length>=14&&o.eq.every(Boolean)],['2:保存',o.proj===true],['3:新しい 項目なし',J(o.keys)==='[false,false]'],['4:版',J(o.ver)==='["5.36","5.25"]']],
+            ['1:画面 '+o.eq.length+'か所',o.eq.length>=14&&o.eq.every(Boolean)],['2:保存',o.proj===true],['3:新しい 項目なし',J(o.keys)==='[false,false]'],['4:版',J(o.ver)==='["5.36.5","5.25"]']],
           `違い ${o.bad.slice(0,3).join(' ｜ ')}｜印「〜」${o.tilde}｜版 ${J(o.ver)}`);
         for(const d of D) d.close();
       });
@@ -5339,8 +5339,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         for(const d of D) d.close();
       });
 
-      /* ===== 97nx6：動かない 作業は だれでもに 戻る：目標 10分 → 20分（2倍）で「次は これ」に 戻る・✓ を 入れると そこから 数え直す・目標 無しは 15分・途中の ✓ は 残って 次の人が 続ける・
-               記録を 足す時に「止まって だれでもに」の 押し忘れ（why r）を 1件・全部 ✓ で 終わったを 押し忘れた 作業は 最後の ✓ の 時刻で 済（記録 1件・ck・✓ は 外れる）・
+      /* ===== 97nx6（5.36.5 で 5.36 の 期待に 戻した。5.36 と ちがう 所は 押し忘れ r を 書かない 所だけ）：動かない 作業は だれでもに 戻る：目標 10分 → 20分（2倍）で「次は これ」に 戻る・✓ を 入れると そこから 数え直す・目標 無しは 15分・途中の ✓ は 残って 次の人が 続ける・
+               全部 ✓ で 終わったを 押し忘れた 作業は 最後の ✓ の 時刻で 済（記録 1件・ck・✓ は 外れる）・
                オフに 戻すと 今までの 決め方（目標の 3倍） ===== */
       await tryT('97nx6',async()=>{
         const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PN6','ws',stT()), Q=await mkT(cl,'端末QN6','ws'), D=[P,Q], o={};
@@ -5361,9 +5361,9 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           P.ev(`delete state.amNx; amSave();`); clkT(P,12,0); P.ev(`amRunStart('tG','見本 花子')`); clkT(P,12,25); o.i=runsN(P).filter(x=>/tG/.test(x)).length; clkT(P,12,31); o.j=runsN(P).filter(x=>/tG/.test(x)).length;
           await syncT(D); o.sameQ=nzT(P.ev('JSON.stringify(state)'))===nzT(Q.ev('JSON.stringify(state)'));
         } finally { for(const d of D) ET(d,'amCloseSheet()'); }
-        checkLT('97nx6','【だれでもに 戻る】目標なし 15分（14分は 取りかかり中・16分で 次は これ に 戻る）・目標 10分は 2倍（✓ の 時刻から 数え直す）・戻った カードに「途中 ✓ 1／2」・次の人が 取ると ✓ 1 の まま 続く（押し忘れ r を 1件）・終わった で 記録 ck:2・全部 ✓ の 押し忘れは 最後の ✓ の 時刻（11:04）で 済（記録・ck:2・✓ 外れる）・済の 作業は 取らない・オフでは 3倍',[
+        checkLT('97nx6','【だれでもに 戻る（5.36 と 同じ）】目標なし 15分（14分は 取りかかり中・16分で 次は これ に 戻る）・目標 10分は 2倍（✓ の 時刻から 数え直す）・戻った 行に「印が 残っています ✓ 1／2」・次の人が 取ると ✓ 1 の まま 続く（5.36.5：押し忘れ r は 書かない）・終わった で 記録 ck:2・全部 ✓ の 押し忘れは 最後の ✓ の 時刻（11:04）で 済（記録・ck:2・✓ 外れる）・済の 作業は 取らない・オフでは 3倍',[
             ['1:15分',/tN/.test(o.a[0])&&o.a[1]===false&&!/tN/.test(o.b[0])&&o.b[1]===true],['2:✓ から 数え直す',/tG/.test(o.c)&&!/tG/.test(o.d[0])&&o.d[1]===true&&o.d[2]===1],
-            ['3:カード',/途中・✓ 1／2/.test(o.card)],['4:次の人',/見本 次郎@tG/.test(o.e[0])&&o.e[1]===1&&/fr/.test(o.e[2])],['5:終わった',o.f[0]===1&&/x2/.test(o.f[1])],
+            ['3:行',/印が 残っています・✓ 1／2/.test(o.card)],['4:次の人',/見本 次郎@tG/.test(o.e[0])&&o.e[1]===1&&o.e[2]==='[]'],['5:終わった',o.f[0]===1&&/x2/.test(o.f[1])],
             ['6:押し忘れで 済',o.g0[0]!=='done'&&o.g[0]==='done'&&o.g[1]===1&&o.g[2]==='11:04'&&/x2/.test(o.g[3])&&o.g[4]==='null'],['7:済は 取らない',o.h[1]===0],['8:オフは 3倍',o.i===1&&o.j===0],['9:同じ',o.sameQ===true]],
           `a ${J(o.a)} b ${J(o.b)}｜c ${o.c}｜d ${J(o.d)}｜card ${o.card}｜e ${J(o.e)}｜f ${J(o.f)}｜g0 ${J(o.g0)} g ${J(o.g)}｜h ${J(o.h)}｜i ${o.i} j ${o.j}`);
         for(const d of D) d.close();
@@ -5502,8 +5502,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         P.close();
       });
 
-      /* ===== 97nx10（テス TQ10 の 形）：だれでもに 戻った 後でも、だれも 取っていなければ 本人の「✓ 終わった」を 記録する（押し忘れに しない）・カードに「✓ 終わった」と 次は これ に「⏸ ◯◯ の 途中」・
-               別の 人が もう 取っていたら 今の 形（押し忘れ r）・名前で 記録された 後は 黙って 外す（押し忘れを 残さない）・オフは 今の 形 ===== */
+      /* ===== 97nx10（テス TQ10 の 形。5.36.5 で 5.36 の 期待に 戻した）：だれでもに 戻った 後でも、だれも 取っていなければ 本人の「✓ 終わった」を 記録する（押し忘れに しない）・カードに「✓ 終わった」と 次は これ に ⏸・
+               別の 人が もう 取っていたら 押すと 押し忘れ r（「印を 閉じる」）・古い 端末の 形の 記録が 入っても 印は 残る（5.36.5：黙って 外さない）・オフは 今の 形 ===== */
       await tryT('97nx10',async()=>{
         const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PN10','ws',stT()), o={};
         const lg=id=>J(logOf(P,id).map(r=>(r.miss?'f':'x')+(r.why||'')));
@@ -5515,12 +5515,12 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           P.ev(`amRunEnd(${J(k1)})`); o.e1=[acT(P,'w1'), lg('w1'), String(ET(P,`${J(k1)} in state.amRun`))];
           clkT(P,10,21); P.ev(`amOpenArea('tG')`); tap(P,'tG',0); tap(P,'tG',1); o.ck=ckN(P,'tG'); P.ev(`amRunEnd(${J(k2)})`); o.e2=[acT(P,'tG'), J(logOf(P,'tG').map(r=>(r.miss?'f':'x')+(r.ck==null?'':r.ck)))];
           clkT(P,11,0); P.ev(`amNxGo('w2','見本 花子')`); const k3=kOf(P,'w2'); clkT(P,11,16); P.ev(`amNxGo('w2','見本 太郎')`); P.ev(`amRunEnd(${J(k3)})`); o.e3=[snT(P), acT(P,'w2'), lg('w2'), runsN(P).filter(x=>/w2/.test(x)).join(',')];
-          clkT(P,12,0); P.ev(`amNxGo('w3','見本 次郎')`); const k4=kOf(P,'w3'); clkT(P,12,20); P.ev(`(state.areaChecks.w3=state.areaChecks.w3||[]).push({at:new Date().toISOString(),by:'見本 次郎'}); amRunSettle(Date.now()); amSave();`);   /* 5.26：新しい画面では 名前だけの 記録は しない＝古い版の 端末の 記録の 形を 直に 入れる */ o.e4=[acT(P,'w3'), lg('w3'), String(ET(P,`${J(k4)} in state.amRun`))];
+          clkT(P,12,0); P.ev(`amNxGo('w3','見本 次郎')`); const k4=kOf(P,'w3'); clkT(P,12,20); P.ev(`(state.areaChecks.w3=state.areaChecks.w3||[]).push({at:new Date().toISOString(),by:'見本 次郎'}); amRunSettle(Date.now()); amSave();`);   /* 5.26：新しい画面では 名前だけの 記録は しない＝古い版の 端末の 記録の 形を 直に 入れる */ o.e4=[acT(P,'w3'), lg('w3'), String(ET(P,`${J(k4)} in state.amRun`))]; P.ev(`delete amRunEdit()[${J(k4)}]; amSave();`);
           P.ev(`delete state.amNx; amSave();`); clkT(P,13,0); P.ev(`amOpenArea('tG')`); P.ev(`amRunStart('tG','見本 次郎')`); const k5=kOf(P,'tG'); clkT(P,13,31); P.ev(`amRunEnd(${J(k5)})`); o.off=[snT(P), acT(P,'tG')];
         } finally { ET(P,'amCloseSheet()'); }
-        checkLT('97nx10','【テス TQ10】目標なし 16分（戻った後）でも 本人の ✓ 終わった → 記録（押し忘れ なし）・カードに ✓ 終わった・次は これ に ⏸・目標 10分 21分 でも ✓ を 入れて 記録 ck:2・別の人が 取った後は 押し忘れ r・名前で 記録されたら 黙って 外す・オフは 3倍で 押し忘れ',[
-            ['1:戻る',o.back[0]===true&&/⏸ 見本 花子 の 途中/.test(o.back[1])&&o.back[2]===0],['2:カード',o.card[0]===1&&o.card[1]===0],['3:目標なし',o.e1[0]===1&&o.e1[1]==='["x"]'&&o.e1[2]==='false'],
-            ['4:目標あり',o.ck===2&&o.e2[0]===1&&o.e2[1]==='["x2"]'],['5:取られた後',/押し忘れ|終わっています/.test(o.e3[0])&&o.e3[1]===0&&o.e3[2]==='["fr"]'&&o.e3[3]==='見本 太郎@w2'],['6:名前で 記録',o.e4[0]===1&&o.e4[1]==='[]'&&o.e4[2]==='false'],['7:オフ',/押し忘れ/.test(o.off[0])&&o.off[1]===1]],
+        checkLT('97nx10','【テス TQ10】目標なし 16分（戻った後）でも 本人の ✓ 終わった → 記録（押し忘れ なし）・カードに ✓ 終わった・次は これ に ⏸・目標 10分 21分 でも ✓ を 入れて 記録 ck:2・別の人が 取った後は 押すと 押し忘れ r・古い 端末の 形の 記録の 後も 印は 残る・オフは 3倍で 押し忘れ',[
+            ['1:戻る',o.back[0]===true&&/⏸ 見本 花子 の 印が 残っています/.test(o.back[1])&&o.back[2]===0],['2:カード',o.card[0]===1&&o.card[1]===0],['3:目標なし',o.e1[0]===1&&o.e1[1]==='["x"]'&&o.e1[2]==='false'],
+            ['4:目標あり',o.ck===2&&o.e2[0]===1&&o.e2[1]==='["x2"]'],['5:取られた後',/閉じました/.test(o.e3[0])&&o.e3[1]===0&&o.e3[2]==='["fr"]'&&o.e3[3]==='見本 太郎@w2'],['6:古い 形の 記録の 後も 残る',o.e4[0]===1&&o.e4[1]==='[]'&&o.e4[2]==='true'],['7:オフ',/押し忘れ/.test(o.off[0])&&o.off[1]===1]],
           `back ${J(o.back).slice(0,160)}｜card ${J(o.card)}｜e1 ${J(o.e1)}｜ck ${o.ck} e2 ${J(o.e2)}｜e3 ${J(o.e3)}｜e4 ${J(o.e4)}｜off ${J(o.off)}`);
         P.close();
       });
@@ -5962,7 +5962,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,16,50); P.ev(`amNxGo('w2','見本 花子')`); P.ev(`amNxTrbAsk(${J(kOf(P,'w2'))},'')`); P.ev(`amNxTrbPut('mono')`);
           clkT(P,16,58); P.ev(`amNxGo('w3','見本 太郎')`); P.ev('renderMapView()'); o.pre=qnT(P,'#nx-wrap .nxa-hob');
           clkT(P,17,5); P.ev('renderMapView()');
-          o.a=[qnT(P,'#nx-wrap .nxa-hob'), qtT(P,'#nx-wrap .nxa-hob'), qtT(P,'#nx-wrap .nxa-it[data-w="tA"]'), qtT(P,'#nx-wrap .nxa-it[data-w="tB"]'), qtT(P,'#nx-wrap .nxa-it[data-w="w1"]'), qtT(P,'#nx-wrap .nxa-rn'), qtT(P,'#nx-wrap .nxa-trb'), String(ET(P,'amNxHo().lab'))];
+          o.a=[qnT(P,'#nx-wrap .nxa-hob'), qtT(P,'#nx-wrap .nxa-hob'), qtT(P,'#nx-wrap .nxa-it[data-w="tA"]'), qtT(P,'#nx-wrap .nxa-it[data-w="tB"]'), qtT(P,'#nx-wrap .nxa-it[data-w="w1"]'), qtT(P,'#nx-wrap .nxa-rn'), qtT(P,'#nx-wrap .nxa-trb'), String(ET(P,'amNxHo().lab')), jpT(ET(P,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#nx-wrap .nxa-rn'),e=>e.textContent))`),[])];
           P.ev(`_amNx.hold=0; amNxHoOff(document.querySelector('#nx-wrap .nxa-hob').dataset.c)`); o.off=[qnT(P,'#nx-wrap .nxa-hob'), qnT(P,'#nx-wrap .nxa-ho')>0];
           P.ev('_amNx.hoOff=0'); clkT(P,17,31); P.ev('renderMapView()'); o.late=[qnT(P,'#nx-wrap .nxa-hob'), /昼から/.test(qtT(P,'#nx-wrap .nxa-it[data-w="tA"]'))];
           clkT(P,9,5); o.am=String(ET(P,'amNxHo().lab'));
@@ -5970,7 +5970,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { ET(P,'amCloseSheet()'); }
         checkLT('97nb6','【交代の 引き継ぎ】16:58 は 出ない／17:05：1行「昼から 引き継ぎ：前の 時間から ◯件」・時刻 前（16:30）に 昼から・時刻 後（17:30）は 札なし・途中（一）に 昼から・取りかかり中（三）に 昼から・困った の 帯に 昼から／押すと 消える（札は 残る）／17:31 は 出ない（札は 残る）／9:05＝夜から／交代の 時刻なし＝何も 出ない',[
             ['1:前',o.pre===0],['2:1行',o.a[0]===1&&/昼から 引き継ぎ/.test(o.a[1])&&/前の 時間から [3-9]件/.test(o.a[1])&&/困った 1/.test(o.a[1])],
-            ['3:札',/昼から/.test(o.a[2])&&!/昼から/.test(o.a[3])&&/昼から/.test(o.a[4])&&/昼から/.test(o.a[5])&&/昼から/.test(o.a[6])&&o.a[7]==='昼から'],
+            ['3:札',/昼から/.test(o.a[2])&&!/昼から/.test(o.a[3])&&/昼から/.test(o.a[4])&&/昼から/.test(o.a[5])&&/昼から/.test(o.a[6])&&o.a[7]==='昼から'&&o.a[8].length===1&&/見本 三/.test(o.a[8][0])],   // 5.36.5：5.36 と 同じ（一 は 15分で 戻るので 急ぐ順の 行に 昼から・⏳ に たたむ）
             ['4:消える',o.off[0]===0&&o.off[1]===true],['5:30分',o.late[0]===0&&o.late[1]===true],['6:夜から',o.am==='夜から'],['7:交代なし',o.none[0]===0&&o.none[1]===0&&o.none[2]==='null']],
           `pre ${o.pre}｜a ${J(o.a).slice(0,500)}｜off ${J(o.off)}｜late ${J(o.late)}｜am ${o.am}｜none ${J(o.none)}`);
         P.close();
@@ -6843,7 +6843,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.keep=[bd(P), nf(P), gvRecs(P).length, gvRecs(O).length, J(Object.keys(jpT(ET(P,'JSON.stringify(state)'),{})).sort())===J(Object.keys(jpT(ET(O,'JSON.stringify(state)'),{})).sort())];
         } finally { ET(P,'amCloseSheet()'); ET(O,'amCloseSheet()'); }
         checkLT('97g7','【丸の 数と つぎ＝急ぐ順】オンで 3 → 諦めた 2 → 取りかかり中 1 → 困った 0（つぎは もうすぐの 精算 k:soon）・5.31 は 3 の まま（直す 前の 形）・オフは 5.31 と 同じ 数と 形・行き来しても 記録は 同じ',
-          [['1:版',o.v[0]==='5.36'&&o.v[1]==='5.31'],
+          [['1:版',o.v[0]==='5.36.6'&&o.v[1]==='5.31'],
            ['2:オン 3',o.s0[0]==='3'&&o.s0[1]===3&&!!o.s0[2]&&o.s0[2].k==='fire'&&o.s0[2].id===o.s0[3]&&o.s0[2].wid===o.s0[3]&&/見本/.test(o.s0[2].label)&&typeof o.s0[2].when==='string'],
            ['3:諦めた 2',o.s1[0]==='2'&&o.s1[1]===2&&!!o.s1[2]&&o.s1[2].k==='fire'&&o.s1[2].id!=='tQ'&&o.s1[2].id===o.s1[3]],
            ['4:取りかかり中 1',o.s2[0]==='1'&&o.s2[1]===1&&!!o.s2[2]&&o.s2[2].id==='tD'&&o.s2[2].id===o.s2[3]],
@@ -6950,7 +6950,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { ET(P,'amCloseSheet()'); ET(O,'amCloseSheet()'); }
         const exp=nm.slice(); exp.splice(4,1); exp.splice(2,0,'見本 人05'); const t=exp[0]; exp[0]=exp[1]; exp[1]=t;   // 人05 を 2つ 上へ → 人01 を 1つ 下へ：[人02,人01,人05,人03,人04,人06…]
         checkLT('97g9','【名前の 一覧を すぐ・登録の 並び順】行を 押すと 12人 全部（登録の 並び・ほかの人 ▾ 無し）・2つ 持ちは 灰色・上の 4つは 送っても 見える・鮮度管理に 諦める 無し＋🧊・🔒 は 名前 無し・4つの ボタンが 動く・↑↓ で 並び替え（staffOrder だけ 変わる・色 同じ・札も 同じ 並び）・5.31 と 往復しても 残る',
-          [['1:版',o.ver[0]==='5.36'&&o.ver[1]==='5.31'],
+          [['1:版',o.ver[0]==='5.36.6'&&o.ver[1]==='5.31'],
            ['2:全員・登録の 並び',J(o.n1.map(x=>x[0]))===J(nm)&&o.n1.filter(x=>x[1]).length===1&&o.n1.find(x=>x[0]==='見本 人02')[2]===true],
            ['3:上の ボタン',!!o.a1&&o.a1.first&&o.a1.top&&J(o.a1.btns)===J(['! 困った','🏳 諦める','くわしく','とじる'])&&!o.a1.more&&o.a1.vis&&o.a1.sw<=o.a1.cw],
            ['4:送っても 見える',!!o.a2&&o.a2.st>=300&&o.a2.vis&&o.a2.sw<=o.a2.cw],
@@ -7014,7 +7014,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { ET(P,'amCloseSheet()'); ET(O,'amCloseSheet()'); }
         const has=(a,re)=>!!a&&a.btns.some(b=>re.test(b));
         checkLT('97h1','【諦めるの 設定】設定なし＝今と 同じ・管理者だけ・使わない で 行と 🧰 と 一括が 無い・別の 札を 諦められない に（札に 合う 文・鮮度管理は 諦められる）・知らない 札は 捨てる・5.31 と 往復しても 残る・ほかの 欄は 同じ',
-          [['1:版',o.ver[0]==='5.36'&&o.ver[1]==='5.31'],
+          [['1:版',o.ver[0]==='5.36.6'&&o.ver[1]==='5.31'],
            ['2:設定なし',!!o.c0&&o.c0.set===false&&o.c0.off===0&&J(o.c0.ng)==='["鮮度管理"]'&&o.k0.length===10&&o.k0.every(k=>k.ng===(k.k==='鮮度管理'))&&!has(o.f0,/諦める/)&&/食品の 安全/.test(o.f0.fr)&&has(o.s0,/諦める/)&&has(o.q0,/諦める/)&&/鮮度管理を 除く/.test(o.g0)&&J(o.fn0)==='[2,1]'],
            ['3:管理者だけ',o.na[0]===false&&o.na[1]===true&&o.na[2]===false],
            ['3b:合言葉の 道',o.pw[0]===false&&o.pw[1]===true&&o.pw[2]===true&&o.pw[3]==='{"off":1,"ng":[]}'&&o.pw[4]==='false'&&o.pw[5]===false],
@@ -7068,43 +7068,46 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         P.close();
       });
       /* ===== 97j1（5.34・店長 10/27「全部おすすめで」＝⑥⑦）：店ごとの 設定 state.amNx.keep／noHere（amNx の 中に 足すだけ）。
-         A 設定なし＝5.33 と 画面も 保存も 同じ（別々の 保存先で 同じ 操作）／B keep=1：目標の 2倍を すぎても 残る・行に「目標の ◯倍」・📊 に 印（人の 名前は 出さない）・2つ持ちは そのまま・
-         ✓ 終わった／取り消し／困った で 外れる・3:00 で 押し忘れ（why 3）／amNxOptSet の 形の 検査と 合言葉の 道／C noHere=1：amNxHere＝[]・上の 丸・＋・帯 なし・名前は 登録順で 全員・
-         2つ持ちは ▶ の 印から・amHere は 書かれ続ける・🧰 の 切りかえ／D 5.33 と 往復しても keep・noHere が 残る（古い 版は 列を 出し続ける） ===== */
+         A 設定なし＝新しい版は 残し 5.33 は 時間で 戻す。画面は 3:00 の 後に 同じ・保存の 形は 同じ（鍵・記録の 項目・今いる人・設定。別々の 保存先で 同じ 操作）／B 設定なしで 目標の 2倍を すぎても 残る・行に「目標の ◯倍」・📊 に 印（人の 名前は 出さない）・長い 印は 2つまでに 数えない・
+         ✓ 終わった／取り消し／困った で 外れる・3:00 で 押し忘れ（why 3）／amNxOptSet の 形の 検査と 合言葉の 道・keep は 書かない／C noHere=1：amNxHere＝[]・上の 丸・＋・帯 なし・名前は 登録順で 全員・
+         2つ持ちは ▶ の 印から・amHere は 書かれ続ける・🧰 の 切りかえ／D 5.33 と 往復しても noHere が 残る（古い 版は 列を 出し続ける） ===== */
+      const runsL=d=>jpT(ET(d,'JSON.stringify(amRunActive().concat(amNxLongRuns()).map(r=>r.by+"@"+r.w))'),[]);   // 5.36.5：動いている 印＋戻る 時刻を すぎて 残っている 印
+      const kOfL=(d,id,by)=>String(ET(d,`((amRunActive().concat(amNxLongRuns()).find(r=>r.w===${J(id)}&&(${J(by||'')}===''||r.by===${J(by||'')}))||{}).k||'')`));
       await tryT('97j1',async()=>{
         const all7={sch:[1,1,1,1],sch7:[1,1,1,1,1,1,1]};
         const ws=[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7)),bW(Object.assign({id:'tH',name:'見本 棚',goal:10},all7)),bW(Object.assign({id:'tN',name:'見本 床'},all7)),bW(Object.assign({id:'tP',name:'見本 窓',goal:10},all7))];
         const o={}, html=d=>nrm(String(ET(d,`(document.getElementById('nx-wrap')||{}).innerHTML||''`))).replace(/\d+分/g,'N分').replace(/data-w="r:[^"]*"/g,'data-w="r:K"').replace(/<(div|button)[^>]*class="[^"]*\bnxa-(dn|more)\b[^"]*"[^>]*>[\s\S]*?<\/(div|button)>/g,'<i data-done></i>'), cfgO=d=>jpT(ET(d,'JSON.stringify(amNxOptCfg())'),null);
         const names=d=>jpT(ET(d,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#nx-wrap .nxa-open .nxa-who'),b=>[b.dataset.n,b.disabled]))`),[]);
-        /* A：設定なし＝5.33 と 同じ */
+        /* A：設定なし＝新しい版は 残す・5.33 は 時間で 戻す。保存の 形は 同じ（keys＝state の 鍵／recs＝記録ごとの 項目。時刻と why は 変わってよい） */
+        const shapeO=d=>jpT(ET(d,`JSON.stringify((()=>{ const keys=Object.keys(state).filter(k=>k!=='_modifiedAt').sort(), recs=[]; Object.keys(state).filter(k=>/^amLog_/.test(k)).sort().forEach(k=>Object.keys(state[k]).sort().forEach(i=>{ const r=state[k][i]; recs.push(k+'|'+i.charAt(0)+'|'+r.w+'|'+r.by+'|'+Object.keys(r).sort().join(',')); })); return {keys,recs:recs.sort(),run:Object.keys(state.amRun||{}).length}; })())`),null);
         { const cA=new V2.MemoryCloud(), cB=new V2.MemoryCloud(), N=await mkT(cA,'端末NJ1','ws',stT()), Q=await mkT(cB,'端末QJ1','wsold533',stT()), D=[N,Q];
           try{
             for(const d of D){ setWC(d,ws); staff3(d); nxOn(d); clkT(d,14,0); d.ev(`amNxGo('tG','見本 花子')`); }
             for(const d of D){ clkT(d,14,25); d.ev('renderMapView()'); } o.a1=D.map(html); o.r1=D.map(runsN);
             for(const d of D){ d.ev(`amNxGo('tH','見本 太郎')`); clkT(d,14,40); d.ev('renderMapView()'); } o.a2=D.map(html); o.r2=D.map(runsN);
             for(const d of D){ clkT(d,27,5); d.ev('amRunSettle(Date.now()); amSave(); renderMapView()'); } o.a3=D.map(html);
-            await syncT([N]); await syncT([Q]); o.p=D.map(d=>J(projT(d))); o.h=D.map(d=>J(jpT(ET(d,'JSON.stringify(Object.values(state.amHere||{}).map(x=>x.n).sort())'),[]))); o.nx=D.map(d=>String(ET(d,'JSON.stringify(state.amNx)')));
+            await syncT([N]); await syncT([Q]); o.p=D.map(d=>J(projT(d))); o.h=D.map(d=>J(jpT(ET(d,'JSON.stringify(Object.values(state.amHere||{}).map(x=>x.n).sort())'),[]))); o.nx=D.map(d=>String(ET(d,'JSON.stringify(state.amNx)'))); o.shp=D.map(shapeO);
             o.cfg0=cfgO(N); o.verA=D.map(d=>String(ET(d,'APP_VERSION')));
           } finally { for(const d of D){ ET(d,'amCloseSheet()'); d.close(); } } }
-        /* B：keep=1（合言葉の 道 → 管理者） */
+        /* B：設定なしで 押すまで 残る（合言葉の 道 → 管理者。5.36.2 の 合言葉の 道は noHere で 確かめる） */
         const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PJ1','ws',stT()), O=await mkT(cl,'端末OJ1','wsold533',stT());
         const c2=new V2.MemoryCloud(), R=await mkT(c2,'端末RJ1','ws',stT());
         try{
           setWC(P,ws); staff3(P); nxOn(P); clkT(P,14,0); clkT(O,14,0);
-          o.na=[ET(P,'amNxOptSet({keep:1})'), String(ET(P,'JSON.stringify(state.amNx)'))];
+          o.na=[ET(P,'amNxOptSet({noHere:0})'), String(ET(P,'JSON.stringify(state.amNx)'))];
           P.ev(`window.checkAdminPw=async function(pw){ return pw==='見本の あいことば'; }`);
-          o.pw=[await P.win.amNxOptSet({keep:1},'ちがう'), cfgO(P).set, await P.win.amNxOptSet({keep:1},'見本の あいことば'), String(ET(P,'isAdmin')), cfgO(P), ET(P,`amNxOptSet({keep:0},'')`)];
+          o.pw=[await P.win.amNxOptSet({noHere:0},'ちがう'), cfgO(P).set, await P.win.amNxOptSet({noHere:0},'見本の あいことば'), String(ET(P,'isAdmin')), cfgO(P), ET(P,`amNxOptSet({noHere:0},'')`), await P.win.amNxOptSet({keep:0},'見本の あいことば'), String(ET(P,'JSON.stringify(state.amNx)'))];
           P.ev('isAdmin=true');
           { const nx0=String(ET(P,'JSON.stringify(state.amNx)')); o.form=[ET(P,'amNxOptSet([])'),ET(P,'amNxOptSet(null)'),ET(P,`amNxOptSet('x')`),ET(P,'amNxOptSet({keep:2})'),ET(P,`amNxOptSet({noHere:'1'})`),ET(P,'amNxOptSet(new Date())'),String(ET(P,'JSON.stringify(state.amNx)'))===nx0]; }
           P.ev(`amNxGo('tG','見本 花子')`); clkT(P,14,35); P.ev('renderMapView()');
-          o.k1=[runsN(P), String(ET(P,`(document.querySelector('#nx-wrap .nxa-rn .xg')||{}).textContent||''`)), String(ET(P,`amNxClose(amRunMap()[${J(kOf(P,'tG','見本 花子'))}]).why`))];
+          P.ev('_amNx.lgOpen=true; renderMapView()');   /* 5.36.3：長い 印は たたむので、開いて 行を 見る */ o.k1=[runsL(P), String(ET(P,`(document.querySelector('#nx-wrap .nxa-rn .xg')||{}).textContent||''`)), String(ET(P,`amNxClose(amRunMap()[${J(kOfL(P,'tG','見本 花子'))}]).why`))];
           o.dash=String(ET(P,'amWhoNxToday(Date.now(),staffList())'));
-          P.ev(`amNxGo('tH','見本 花子')`); o.k2=[runsN(P), logOf(P,'tG').length];
-          P.ev(`amNxGo('tN','見本 花子')`); o.k3=[runsN(P), jpT(ET(P,'JSON.stringify(amNxHoldMap())'),{})];
-          P.ev(`amRunEnd(${J(kOf(P,'tG','見本 花子'))})`); ET(P,'amCloseSheet()'); o.e1=[runsN(P), logOf(P,'tG').map(r=>r.miss?'miss':'x')];
-          P.ev(`amRunCancel(${J(kOf(P,'tH','見本 花子'))})`); o.e2=runsN(P);
-          P.ev(`amNxGo('tN','見本 太郎')`); P.ev(`amNxTrbAsk(${J(kOf(P,'tN','見本 太郎'))},'')`); P.ev(`amNxTrbPut('mono')`); ET(P,'amCloseSheet()'); o.e3=runsN(P);
-          P.ev(`amNxGo('tP','見本 次郎')`); clkT(P,26,50); o.k4=runsN(P); clkT(P,27,5); o.k5=runsN(P); P.ev('amRunSettle(Date.now()); amSave()'); o.lgP=logOf(P,'tP').map(r=>(r.miss?'miss':'x')+'|'+(r.why||''));
+          P.ev(`amNxGo('tH','見本 花子')`); o.k2=[runsL(P), logOf(P,'tG').length];
+          P.ev(`amNxGo('tN','見本 花子')`); o.k3=[runsL(P), jpT(ET(P,'JSON.stringify(amNxHoldMap())'),{})]; P.ev(`amNxGo('tP','見本 花子')`); o.k3b=[runsL(P).length, snT(P)]; P.ev(`delete amRunEdit()[${J(kOf(P,'tN','見本 花子'))}]; amSave(); renderMapView();`);   // 5.36.2：長い tG は 数えないので tN は 取れる。tH・tN の 2つで いっぱい
+          P.ev(`amRunEnd(${J(kOfL(P,'tG','見本 花子'))})`); ET(P,'amCloseSheet()'); o.e1=[runsL(P), logOf(P,'tG').map(r=>r.miss?'miss':'x')];
+          P.ev(`amRunCancel(${J(kOf(P,'tH','見本 花子'))})`); o.e2=runsL(P);
+          P.ev(`amNxGo('tN','見本 太郎')`); P.ev(`amNxTrbAsk(${J(kOf(P,'tN','見本 太郎'))},'')`); P.ev(`amNxTrbPut('mono')`); ET(P,'amCloseSheet()'); o.e3=runsL(P);
+          P.ev(`amNxGo('tP','見本 次郎')`); clkT(P,26,50); o.k4=runsL(P); clkT(P,27,5); o.k5=runsL(P); P.ev('amRunSettle(Date.now()); amSave()'); o.lgP=logOf(P,'tP').map(r=>(r.miss?'miss':'x')+'|'+(r.why||''));
           /* C：noHere=1（別の 店） */
           setWC(R,ws); staff3(R); nxOn(R); clkT(R,14,0); R.ev('isAdmin=true'); R.ev(`amNxGo('tG','見本 太郎')`); R.ev('renderMapView()');
           o.c0=[qnT(R,'#nx-wrap .nxa-pc'), qnT(R,'#nx-wrap .nxa-plus'), hereN(R)];
@@ -7118,47 +7121,719 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           R.ev(`amNxOptTgl('noHere',0)`); R.ev('renderMapView()'); o.c4=[qnT(R,'#nx-wrap .nxa-pc'), hereN(R).length];
           /* D：5.33 と 往復 */
           P.ev('amNxOptSet({noHere:1})'); await syncT([P,O]);
-          o.old=[String(ET(O,'JSON.stringify([state.amNx.keep,state.amNx.noHere])')), String(ET(O,'APP_VERSION'))];
+          o.old=[String(ET(O,'JSON.stringify([state.amNx.keep===undefined?"なし":state.amNx.keep,state.amNx.noHere])')), String(ET(O,'APP_VERSION'))];
           O.ev(`(()=>{ const c=JSON.parse(JSON.stringify(amNxCfg())); c.sh=['9:00']; state.amNx=c; amNxPut('見本 花子',Date.now()); amSave(); renderMapView(); })()`); await syncT([P,O]); await syncT([P,O]);
           o.oldHere=[qnT(O,'#nx-wrap .nxa-pc')>0, jpT(ET(O,'JSON.stringify(amNxHere().map(x=>x.n))'),[]).length>0];
           o.back=[cfgO(P), jpT(ET(P,'JSON.stringify(amNxShifts())'),[]), jpT(ET(P,'JSON.stringify(amNxHereAll().map(x=>x.n))'),[]).includes('見本 花子'), hereN(P), P.store.status().pending];
         } finally { for(const d of [P,O,R]) ET(d,'amCloseSheet()'); }
         const has=(a,s)=>Array.isArray(a)&&a.indexOf(s)>=0;
-        checkLT('97j1','【5.34 設定 keep・noHere】設定なし＝5.33 と 同じ・keep で 押すまで 残る（目標の ◯倍・📊・3:00）・noHere で 列なし（登録順で 全員・2つ持ちは ▶ から・amHere は 書く）・形の 検査と 合言葉・5.33 と 往復',[
-            ['1:版',J(o.verA)===J(['5.36','5.33'])&&o.old[1]==='5.33'],
-            ['2:設定なし＝5.33 と 同じ',o.a1[0]===o.a1[1]&&o.a2[0]===o.a2[1]&&o.a3[0]===o.a3[1]&&J(o.r1[0])===J(o.r1[1])&&J(o.r2[0])===J(o.r2[1])&&o.p[0]===o.p[1]&&o.h[0]===o.h[1]&&o.nx[0]===o.nx[1]&&J(o.r1[0])==='[]'&&!!o.cfg0&&o.cfg0.set===false&&o.cfg0.keep===0&&o.cfg0.noHere===0],
-            ['3:管理者だけ・合言葉',o.na[0]===false&&!/keep/.test(o.na[1])&&o.pw[0]===false&&o.pw[1]===false&&o.pw[2]===true&&o.pw[3]==='false'&&!!o.pw[4]&&o.pw[4].keep===1&&o.pw[4].noHere===0&&o.pw[4].set===true&&o.pw[5]===false],
+        checkLT('97j1','【5.34 設定 noHere・5.36.2 押すまで 残す】設定なし＝新しい版は 残す・保存の 形は 5.33 と 同じ（鍵・記録の 項目・今いる人・設定）・目標の ◯倍・📊・3:00・長い 印は 2つまでに 数えない・noHere で 列なし（登録順で 全員・2つ持ちは ▶ から・amHere は 書く）・形の 検査と 合言葉・keep は 書かない・5.33 と 往復',[
+            ['1:版',J(o.verA)===J(['5.36.6','5.33'])&&o.old[1]==='5.33'],
+            ['2:設定なし＝動いている 印は 5.33 と 同じ（戻る 時刻で 外れる）',J(o.r1[0])==='[]'&&J(o.r1[1])==='[]'&&J(o.r2[0])===J(['見本 太郎@tH'])&&J(o.r2[1])===J(['見本 太郎@tH'])&&!!o.cfg0&&o.cfg0.set===false&&o.cfg0.keep===1&&o.cfg0.noHere===0],
+            ['2b:保存の 形は 同じ（3:00 の 後の 画面・今いる人・設定・鍵・記録の 項目）',o.a3[0]===o.a3[1]&&o.h[0]===o.h[1]&&o.nx[0]===o.nx[1]&&!/keep/.test(o.nx[0])&&!!o.shp[0]&&J(o.shp[0])===J(o.shp[1])&&o.shp[0].run===0&&o.shp[0].recs.length===2],
+            ['3:管理者だけ・合言葉・keep は 書かない',o.na[0]===false&&!/noHere/.test(o.na[1])&&o.pw[0]===false&&o.pw[1]===false&&o.pw[2]===true&&o.pw[3]==='false'&&!!o.pw[4]&&o.pw[4].keep===1&&o.pw[4].noHere===0&&o.pw[4].set===true&&o.pw[5]===false&&o.pw[6]===true&&!/keep/.test(o.pw[7])],
             ['4:形の 検査',J(o.form)===J([false,false,false,false,false,false,true])],
-            ['5:2倍を すぎても 残る',J(o.k1[0])===J(['見本 花子@tG'])&&/^目標の 3\.[45]倍$/.test(o.k1[1])&&o.k1[2]==='3'],
+            ['5:2倍を すぎても 残る',J(o.k1[0])===J(['見本 花子@tG'])&&/^目標の 3\.[45]倍$/.test(o.k1[1])&&o.k1[2]==='r'],
             ['6:📊 の 印（人の 名前なし）',/うち 長い 1/.test(o.dash)&&/見本 拭き<\/b> 目標の 3\.[45]倍/.test(o.dash)&&!/見本 花子/.test(o.dash)],
-            ['7:2つ持ちは そのまま',J(o.k2[0])===J(['見本 花子@tG','見本 花子@tH'])&&o.k2[1]===0&&J(o.k3[0])===J(o.k2[0])&&o.k3[1]['見本 花子']===2],
+            ['7:2つ持ち（長い tG は 数えない）',J(o.k2[0])===J(['見本 花子@tH','見本 花子@tG'])&&o.k2[1]===0&&J(o.k3[0])===J(['見本 花子@tH','見本 花子@tN','見本 花子@tG'])&&o.k3[1]['見本 花子']===2&&o.k3b[0]===3&&/もう 2つ/.test(o.k3b[1])],
             ['8:押して 外れる',J(o.e1[0])===J(['見本 花子@tH'])&&J(o.e1[1])===J(['x'])&&J(o.e2)==='[]'&&J(o.e3)==='[]'],
-            ['9:3:00 で 押し忘れ',J(o.k4)===J(['見本 次郎@tP'])&&J(o.k5)==='[]'&&J(o.lgP)===J(['miss|3'])],
-            ['10:🧰 の 切りかえ',o.tb0[0]===2&&o.tb0[1]===2&&o.tb0[2]==='使う'&&!!o.tb1[0]&&o.tb1[0].noHere===1&&o.tb1[0].keep===0&&o.tb1[1]==='使わない'],
+            ['9:3:00 で 押し忘れ',J(o.k4)===J(['見本 次郎@tP'])&&J(o.k5)==='[]'&&J(o.lgP)===J(['miss|r'])],
+            ['10:🧰 の 切りかえ（列だけ）',o.tb0[0]===0&&o.tb0[1]===2&&o.tb0[2]==='使う'&&!!o.tb1[0]&&o.tb1[0].noHere===1&&o.tb1[0].keep===1&&o.tb1[1]==='使わない'],
             ['11:列を 使わない',o.c0[0]===1&&o.c0[1]===1&&J(o.c0[2])===J(['見本 太郎'])&&o.c2[0]===0&&o.c2[1]===0&&o.c2[2]===0&&J(o.c2[3])==='[]'&&J(o.c2[4])===J(['見本 太郎'])&&o.c2[5]===''&&o.c2[6]===''],
             ['12:名前は 登録順で 全員・2つ持ちは ▶ から',J(o.n1)===J([['見本 花子',false],['見本 太郎',false],['見本 次郎',false]])&&J(o.n2)===J([['見本 花子',false],['見本 太郎',true],['見本 次郎',false]])&&o.solo[0]===true&&o.solo[1]===3],
             ['13:amHere は 書かれ続ける・戻せば 出る',J(o.c3[0])===J(['見本 太郎','見本 次郎'])&&J(o.c3[1])==='[]'&&has(o.c3[2],'見本 次郎@tH')&&o.c4[0]===2&&o.c4[1]===2],
-            ['14:5.33 と 往復',o.old[0]==='[1,1]'&&o.oldHere[0]===true&&o.oldHere[1]===true&&!!o.back[0]&&o.back[0].keep===1&&o.back[0].noHere===1&&J(o.back[1])===J(['9:00'])&&o.back[2]===true&&J(o.back[3])==='[]'&&o.back[4]===0]],
+            ['14:5.33 と 往復',o.old[0]==='["なし",1]'&&o.oldHere[0]===true&&o.oldHere[1]===true&&!!o.back[0]&&o.back[0].keep===1&&o.back[0].noHere===1&&J(o.back[1])===J(['9:00'])&&o.back[2]===true&&J(o.back[3])==='[]'&&o.back[4]===0]],
           (()=>{ const df=(a,b)=>{ if(a===b) return 'same'; let i=0; while(i<a.length&&a[i]===b[i]) i++; return '@'+i+' N:'+a.slice(Math.max(0,i-60),i+120)+' ｜ Q:'+b.slice(Math.max(0,i-60),i+120); }; const x=Object.assign({},o); x.a1=df(o.a1[0],o.a1[1]); x.a2=df(o.a2[0],o.a2[1]); x.a3=df(o.a3[0],o.a3[1]); x.p=df(o.p[0],o.p[1]); x.dash=String(o.dash).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,300); return J(x); })());
         P.close(); O.close(); R.close();
       });
       /* ===== 97j2：設定の 無い 店で 2台が 別々の キーを オフラインで 設定しても 両方 残る ===== */
-      await tryT('97j2',async()=>{
-        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PJ2','ws',stT()), Q=await mkT(cl,'端末QJ2','ws',stT()), o={};
+      await tryT('97j2',async()=>{   /* 5.36.2：keep を 書くのは 古い 端末（5.36）だけ。新しい 版が 書く noHere と 合わさり、keep は 消されず、新しい 版には 効かない */
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PJ2','wsold536',stT()), Q=await mkT(cl,'端末QJ2','ws',stT()), o={};
         const cfg=d=>jpT(ET(d,'JSON.stringify(state.amNx||{})'),{});
         try{
           nxOn(P); await syncT([P,Q]); o.before=[cfg(P),cfg(Q)];
           P.be.setOnline(false); Q.be.setOnline(false);
           P.ev('isAdmin=true'); Q.ev('isAdmin=true');
-          o.ret=[ET(P,'amNxOptSet({keep:1})'),ET(Q,'amNxOptSet({noHere:1})')]; o.local=[cfg(P),cfg(Q)];
+          o.ret=[ET(P,'amNxOptSet({keep:0})'),ET(Q,'amNxOptSet({noHere:1})')]; o.local=[cfg(P),cfg(Q)];
           P.be.setOnline(true); await syncT([P]); Q.be.setOnline(true); await syncT([P,Q]); o.synced=[cfg(P),cfg(Q)];
-          const before=J(cfg(P)); o.empty=[ET(P,'amNxOptSet({keep:undefined})'),before===J(cfg(P))];
-          checkLT('97j2','【設定の キーごと 保存】設定なし・オフラインで A は keep、B は noHere → 同期して 両方 残る・undefined は 書かない',[
+          const before=J(cfg(Q)); o.empty=[ET(Q,'amNxOptSet({noHere:undefined})'),before===J(cfg(Q))]; o.ver=[String(ET(P,'APP_VERSION')),String(ET(Q,'APP_VERSION'))];
+          const b2=J(cfg(Q)); o.old2=[ET(Q,'amNxOptSet({keep:1,noHere:1})'), b2===J(cfg(Q)), J(jpT(ET(Q,'JSON.stringify(amNxOptCfg())'),{}))];
+          checkLT('97j2','【設定の キーごと 保存】設定なし・オフラインで 5.36 は keep:0、新しい 版は noHere → 同期して 両方 残る・新しい 版は keep を 書かない・undefined は 書かない',[
+            ['0:版',o.ver[0]==='5.36'&&o.ver[1]==='5.36.6'],
             ['1:設定なし',o.before.every(c=>!('keep' in c)&&!('noHere' in c))],
-            ['2:渡した キーだけ',o.ret.every(x=>x===true)&&o.local[0].keep===1&&!('noHere' in o.local[0])&&o.local[1].noHere===1&&!('keep' in o.local[1])],
-            ['3:同期して 両方',o.synced.every(c=>c.keep===1&&c.noHere===1)],
-            ['4:undefined は そのまま',o.empty.every(x=>x===true)]],J(o));
+            ['2:渡した キーだけ',o.ret.every(x=>x===true)&&o.local[0].keep===0&&!('noHere' in o.local[0])&&o.local[1].noHere===1&&!('keep' in o.local[1])],
+            ['3:同期して 両方',o.synced.every(c=>c.keep===0&&c.noHere===1)],
+            ['4:undefined は そのまま',o.empty.every(x=>x===true)],
+            ['5:前の版の ⚙ の 形（keep も 渡す）でも keep は 変えない',o.old2[0]===true&&o.old2[1]===true]],J(o));
         } finally { P.be.setOnline(true); Q.be.setOnline(true); P.close(); Q.close(); }
+      });
+
+      /* ===== 97r1〜97r6（5.36.2 店長 11/2「そもそもの作りを直して」）：取りかかり中は 設定なしで 朝 3:00 まで 残る。作り物の データだけ ===== */
+      const all7R={sch:[1,1,1,1],sch7:[1,1,1,1,1,1,1]};
+      const fRec=d=>jpT(ET(d,`JSON.stringify(Object.keys(state).filter(k=>/^amLog_/.test(k)).reduce((a,k)=>a.concat(Object.keys(state[k]).map(i=>{ const r=state[k][i]; return {t:i.charAt(0),w:r.w,by:r.by,why:r.why||'',hm:amHM(new Date(r.at).getTime()),ck:r.ck===undefined?null:r.ck}; })),[]).sort((a,b)=>(a.w<b.w?-1:1)))`),[]);
+      /* 97r1：未設定・keep:0・keep:1 の どの 店も 19:00・2:59 は 残り、3:01 に 閉じる（読むだけでは 書かない）。記録を 足す時に 押し忘れ（why 3・2:59）。全部 ✓ は 最後の ✓ の 時刻で 済。3:10 に 開いても 戻らない */
+      await tryT('97r1',async()=>{
+        const res={};
+        for(const [lab,cfg] of [['未設定',{on:1}],['keep:0',{on:1,keep:0}],['keep:1',{on:1,keep:1}]]){
+          const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PR1'+lab,'ws',stT()), o={};
+          try{
+            setWC(P,[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7R)),bW(Object.assign({id:'tN',name:'見本 床'},all7R)),cW(Object.assign({id:'tA',name:'見本 全部',goal:10},all7R))]); staff3(P);
+            P.ev(`state.amNx=${J(cfg)}; amSave(); renderMapView();`); clkT(P,14,0);
+            P.ev(`amNxGo('tG','見本 花子')`); P.ev(`amNxGo('tN','見本 太郎')`); P.ev(`amNxGo('tA','見本 次郎')`); clkT(P,14,3); P.ev(`amOpenArea('tA')`); tap(P,'tA',0); clkT(P,14,4); tap(P,'tA',1); P.ev('amCloseSheet()');
+            clkT(P,19,0); P.ev('_amNx.lgOpen=true; renderMapView()');   /* 5.36.3：長い 印は たたむので、開いて 行を 数える */ o.t19=[runsL(P).length, qnT(P,'#nx-wrap .nxa-rn')];
+            clkT(P,26,59); P.ev('renderMapView()'); o.t259=runsL(P).length;
+            clkT(P,27,1); P.ev('renderMapView()'); o.t301=[runsL(P).length, Object.keys(jpT(ET(P,'JSON.stringify(state.amRun)'),{})).length, fRec(P).length];
+            clkT(P,27,5); P.ev('amRunSettle(Date.now()); amSave(); renderMapView()'); o.after=[Object.keys(jpT(ET(P,'JSON.stringify(state.amRun)'),{})).length, fRec(P)]; o.cfg=jpT(ET(P,'JSON.stringify(state.amNx)'),null);
+            clkT(P,27,10); P.ev('renderMapView()'); o.t310=runsL(P).length;
+          } finally { ET(P,'amCloseSheet()'); P.close(); }
+          res[lab]=o;
+        }
+        const ok=o=>{ const by=id=>o.after[1].find(r=>r.w===id)||{}; return o.t19[0]===3&&o.t19[1]===3&&o.t259===3&&o.t301[0]===0&&o.t301[1]===3&&o.t301[2]===0&&o.after[0]===0&&o.after[1].length===3&&by('tG').t==='f'&&by('tG').why==='r'&&by('tG').hm==='14:20'&&by('tG').by==='見本 花子'&&by('tN').t==='f'&&by('tN').why==='r'&&by('tN').hm==='14:15'&&by('tA').t==='x'&&by('tA').ck===2&&by('tA').hm==='14:04'&&by('tA').by==='見本 次郎'&&o.t310===0; };
+        checkLT('97r1','【どの 店も 3:00 まで 残る】未設定・keep:0・keep:1：19:00・2:59 は 3つとも 残る・3:01 に 閉じる（読むだけでは 書かない）・記録の 時に 押し忘れ（5.36.5：why r・戻る 時刻）・全部 ✓ は 最後の ✓ の 時刻で 済（ck:2）・設定は 変わらない・3:10 に 戻らない',[
+            ['1:未設定',ok(res['未設定'])&&J(res['未設定'].cfg)===J({on:1})],['2:keep:0',ok(res['keep:0'])&&J(res['keep:0'].cfg)===J({on:1,keep:0})],['3:keep:1',ok(res['keep:1'])&&J(res['keep:1'].cfg)===J({on:1,keep:1})]],J(res));
+      });
+      /* 97r2：5.36 の 端末（電波なしで 遅れて 戻る）：新しい 版の 印を 時間切れと 見て 横取り・全部 ✓ を 済に すると、戻った時に 新しい 版でも 外れる（残る 弱さ＝直せない・ここで 形を 決めておく）。記録は 消えず、keep は 書かれない・2台 同じ */
+      await tryT('97r2',async()=>{
+        const cl=new V2.MemoryCloud(), N=await mkT(cl,'端末NR2','ws',stT()), O=await mkT(cl,'端末OR2','wsold536'), D=[N,O], o={};
+        try{
+          setWC(N,[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7R)),cW(Object.assign({id:'tA',name:'見本 全部',goal:10},all7R)),bW(Object.assign({id:'tZ',name:'見本 窓',goal:10},all7R))]); staff3(N); nxOn(N); await syncT(D); D.forEach(d=>clkT(d,14,0));
+          N.ev(`amNxGo('tG','見本 花子')`); N.ev(`amNxGo('tA','見本 太郎')`); N.ev(`amNxGo('tZ','見本 花子')`); clkT(N,14,5); N.ev(`amOpenArea('tA')`); tap(N,'tA',0); tap(N,'tA',1); N.ev('amCloseSheet()'); await syncT(D);
+          o.ver=[String(ET(N,'APP_VERSION')),String(ET(O,'APP_VERSION'))]; O.be.setOnline(false); D.forEach(d=>clkT(d,14,30)); O.ev('renderMapView()'); N.ev('renderMapView()');
+          o.before=[runsL(N).sort(), runsN(O)];
+          O.ev(`amNxGo('tG','見本 次郎')`); o.offO=[runsN(O), fRec(O)];
+          o.midN=runsL(N).sort();
+          O.be.setOnline(true); await syncT(D); N.ev('renderMapView()');
+          o.after=[runsL(N).sort(), fRec(N), jpT(ET(N,'JSON.stringify(state.amNx)'),null)];
+          o.same=nzT(N.ev('JSON.stringify(state)'))===nzT(O.ev('JSON.stringify(state)'));
+        } finally { for(const d of D){ ET(d,'amCloseSheet()'); d.close(); } }
+        const f=(id)=>o.after[1].find(r=>r.w===id)||{};
+        checkLT('97r2','【残る 弱さ：5.36 の 電波なしの 端末】戻ると 新しい 版の 印も 外れる（横取り＝元の 人は 押し忘れ r・全部 ✓＝済）。記録は 残る・keep は 書かれない・2台 同じ・別の 印（窓）は そのまま',[
+            ['1:版',o.ver[0]==='5.36.6'&&o.ver[1]==='5.36'],['2:その前',J(o.before[0])===J(['見本 太郎@tA','見本 花子@tG','見本 花子@tZ'].sort())&&J(o.before[1])==='[]'],
+            ['3:電波なしの 間は 新しい 版は 変わらない',J(o.midN)===J(o.before[0])],
+            ['4:戻った 後',o.after[0].length===2&&o.after[0].indexOf('見本 次郎@tG')>=0&&o.after[0].indexOf('見本 花子@tG')<0&&o.after[0].indexOf('見本 太郎@tA')<0],
+            ['5:記録は 残る',f('tG').t==='f'&&f('tG').why==='r'&&f('tG').by==='見本 花子'&&f('tA').t==='x'&&f('tA').ck===2&&f('tA').by==='見本 太郎'],
+            ['6:keep なし・同じ',J(o.after[2])===J({on:1})&&o.same===true]],J(o));
+      });
+      /* 97r3：⚙ の 保存（列だけ）で keep は どうなるか：新しい ⚙ の 形 {noHere} も 前の ⚙ の 形 {keep,noHere} も keep を 足さない・変えない。前から ある keep は 残す（消さない） */
+      await tryT('97r3',async()=>{
+        const res={};
+        for(const [lab,cfg] of [['未設定',{on:1}],['keep:0',{on:1,keep:0}],['keep:1',{on:1,keep:1}]]){
+          const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PR3'+lab,'ws',stT()), o={};
+          try{
+            P.ev(`state.amNx=${J(cfg)}; amSave(); isAdmin=false; window.checkAdminPw=async function(pw){ return pw==='見本の あいことば'; };`);
+            o.a=[await P.win.amNxOptSet({noHere:1},'見本の あいことば'), jpT(ET(P,'JSON.stringify(state.amNx)'),null)];
+            o.b=[await P.win.amNxOptSet({keep:0,noHere:0},'見本の あいことば'), jpT(ET(P,'JSON.stringify(state.amNx)'),null)];
+            o.c=[await P.win.amNxOptSet({keep:1},'見本の あいことば'), jpT(ET(P,'JSON.stringify(state.amNx)'),null)];
+          } finally { P.close(); }
+          res[lab]=o; res[lab].cfg=cfg;
+        }
+        const ok=o=>o.a[0]===true&&J(o.a[1])===J(Object.assign({},o.cfg,{noHere:1}))&&o.b[0]===true&&J(o.b[1])===J(Object.assign({},o.cfg,{noHere:0}))&&o.c[0]===true&&J(o.c[1])===J(o.b[1]);
+        checkLT('97r3','【⚙ の 列の 保存】新しい 形も 前の 形も keep を 足さない・変えない・消さない',[['1:未設定',ok(res['未設定'])],['2:keep:0',ok(res['keep:0'])],['3:keep:1',ok(res['keep:1'])]],J(res));
+      });
+      /* 97r4：読むだけで state が 変わらない（設定を 読む・描く・📊・✓ の 窓・カード・🧰・3:00 の 後に 描く）・未送信 0。版の 字 */
+      await tryT('97r4',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PR4','ws',stT()), o={};
+        try{
+          setWC(P,[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7R)),bW(Object.assign({id:'tN',name:'見本 床'},all7R))]); staff3(P); nxOn(P); clkT(P,14,0); P.ev(`amNxGo('tG','見本 花子')`); P.ev(`amNxGo('tN','見本 太郎')`); await syncT([P]);
+          const snap=()=>String(P.ev('JSON.stringify(state)')), s0=snap(), k=kOf(P,'tG'), pend=()=>P.store.status().pending;
+          const looks=()=>{ P.ev('amNxOptCfg(); amRunActive(); amNxHoldMap(); renderMapView(); amWhoNxToday(Date.now(),staffList());'); P.ev(`amNxCkOpen(${J(k)})`); P.ev('amNxShut()'); P.ev(`amOpenArea('tG')`); P.ev('amCloseSheet()'); P.ev('isAdmin=true; amNxCfgOpen()'); P.ev('amCloseSheet(); isAdmin=false; renderMapView()'); };
+          clkT(P,14,35); looks(); await sleep(150); o.a=[snap()===s0, pend()];
+          clkT(P,27,10); looks(); await sleep(150); o.b=[snap()===s0, pend()];
+          o.ver=[String(ET(P,'APP_VERSION')), String(ET(P,`(document.querySelector('.app-footer,#app-footer,footer')||document.body).textContent.match(/v5\\.[0-9.]+/)?.[0]||''`))];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97r4','【読むだけ】14:35・翌 3:10 に 開く・描く・📊・✓ の 窓・カード・🧰 → state は 1字も 同じ・未送信 0／版は 5.36.2',[['1:14:35',o.a[0]===true&&o.a[1]===0],['2:3:10',o.b[0]===true&&o.b[1]===0],['3:版',o.ver[0]==='5.36.6']],J(o));
+      });
+      /* 97r5：長い 印：目標の 2倍（目標なし・あとの 作業は 15分＝5.36.5 で 戻る 時刻と 同じ 線）から。行に「目標の ◯倍」「長い」・📊 に 分（人の 名前なし）・✓ の 窓に 外し方（3つの 言葉）。長い 印は 2つまでに 数えない（名前が 押せる）・カウンター外の 注意にも 数えない */
+      await tryT('97r5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PR5','ws',stT()), o={};
+        try{
+          setWC(P,[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7R)),bW(Object.assign({id:'tN',name:'見本 床'},all7R)),bW(Object.assign({id:'tH',name:'見本 棚',goal:10},all7R)),bW(Object.assign({id:'tX',name:'見本 外A',ctr:'out'},all7R)),bW(Object.assign({id:'tY',name:'見本 外B',ctr:'out'},all7R))]); staff3(P); nxOn(P); clkT(P,14,0);
+          P.ev('_amNx.lgOpen=true');   /* 5.36.3：長い 印は たたむので、開いて 行を 見る */ P.ev(`amNxGo('tG','見本 花子')`); P.ev(`amNxGo('tN','見本 花子')`); const kN=kOf(P,'tN'), kG=kOf(P,'tG');
+          const rowOf=k=>String(ET(P,`(document.querySelector('#nx-wrap .nxa-rn[data-k="'+${J(k)}+'"]')||{}).textContent||''`)), who=id=>{ P.ev(`_amNx.sel=''; amNxSel(${J(id)})`); const r=jpT(ET(P,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#nx-wrap .nxa-open .nxa-who'),b=>[b.dataset.n,b.disabled]))`),[]); P.ev('amNxShut()'); return r; };
+          clkT(P,14,14,30); P.ev('renderMapView()'); o.m19=[rowOf(kG), rowOf(kN), String(ET(P,'amNxIsLong(amRunActive().find(r=>r.w==="tG"))')), who('tH').find(x=>x[0]==='見本 花子')];
+          P.ev(`amNxCkOpen(${J(kG)})`); o.lg0=qnT(P,'#nxa-ck .nxa-lgn'); P.ev('amNxShut()');
+          clkT(P,14,29,30); P.ev('renderMapView()'); o.m29=[rowOf(kG), rowOf(kN)];   // 5.36.3：14:29:00 ちょうどは 始めた 時刻しだいで 2.8倍に なるので 30秒 ずらす（テスの 指摘）
+          clkT(P,14,30,30); P.ev('renderMapView()'); o.m30=[rowOf(kG), rowOf(kN), who('tH').find(x=>x[0]==='見本 花子'), jpT(ET(P,'JSON.stringify(amNxHoldMap())'),{})];
+          P.ev(`amNxCkOpen(${J(kN)})`); o.lg1=[qtT(P,'#nxa-ck .nxa-lgn')]; P.ev('amNxShut()');
+          o.dash=String(ET(P,'amWhoNxToday(Date.now(),staffList())')).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+          P.ev(`amNxGo('tH','見本 花子')`); o.go=runsL(P).length;
+          /* 外し方 3つ：ほかの人に 直す（by だけ・始めた 時刻は 同じ）／取り消す（記録 なし）／終わった（元の 人の 名前で 記録） */
+          const s0=String(ET(P,`state.amRun[${J(kG)}].s`)); P.ev(`amNxFix(${J(kG)},true)`); o.fix=qnT(P,'#am-sheet .nx-pk[disabled]'); P.ev(`amNxRe(${J(kG)},'見本 太郎')`); o.re=[String(ET(P,`state.amRun[${J(kG)}].by`)), String(ET(P,`state.amRun[${J(kG)}].s`))===s0];
+          P.ev(`amRunCancel(${J(kN)})`); o.cancel=[String(ET(P,`${J(kN)} in state.amRun`)), fRec(P).length];
+          P.ev(`amRunEnd(${J(kG)})`); o.end=[String(ET(P,`${J(kG)} in state.amRun`)), fRec(P)];
+          /* カウンター外：ほかの人の 印が 新しい間は 聞く・長く なったら 聞かない */
+          P.ev(`Object.keys(state.amRun).forEach(k=>delete state.amRun[k]); state.amHere={}; amSave(); renderMapView();`); clkT(P,15,0); P.ev(`amNxGo('tX','見本 花子')`);
+          clkT(P,15,10); o.ctr1=String(ET(P,`!!amNxCtrCheck(amNxItemOf('tY'),'見本 太郎',Date.now())`)); clkT(P,15,31); o.ctr2=String(ET(P,`!!amNxCtrCheck(amNxItemOf('tY'),'見本 太郎',Date.now())`));
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97r5','【長い 印】目標 10分は 20分から「目標の ◯倍」・目標なしは 15分から「長い」・📊 に 分（人の 名前なし）・✓ の 窓に 外し方（英語・ネパール語）・2つまでに 数えない・ほかの人／取り消し／終わった で 外せる・カウンター外の 注意に 数えない',[
+            ['1:14分',!/目標の/.test(o.m19[0])&&!/長い/.test(o.m19[1])&&o.m19[2]==='false'&&J(o.m19[3])===J(['見本 花子',true])&&o.lg0===0],
+            ['2:29分',/目標の 2\.9倍/.test(o.m29[0])&&/長い/.test(o.m29[1])],
+            ['3:30分',/目標の 3倍/.test(o.m30[0])&&/長い/.test(o.m30[1])&&J(o.m30[2])===J(['見本 花子',false])&&!o.m30[3]['見本 花子']],
+            ['4:外し方',/終わっていたら/.test(o.lg1[0])&&/Name \/ Cancel/.test(o.lg1[0])&&/सकियो/.test(o.lg1[0])],
+            ['5:📊',/うち 長い 2/.test(o.dash)&&/見本 床 30分/.test(o.dash)&&/見本 拭き 目標の 3倍/.test(o.dash)&&!/見本 花子/.test(o.dash)],
+            ['6:長い 印が あっても 取れる',o.go===3],['7:ほかの人に 直す',o.re[0]==='見本 太郎'&&o.re[1]===true],['8:取り消す',o.cancel[0]==='false'&&o.cancel[1]===0],
+            ['9:終わった',o.end[0]==='false'&&o.end[1].length===1&&o.end[1][0].t==='x'&&o.end[1][0].by==='見本 太郎'],
+            ['10:カウンター外',o.ctr1==='true'&&o.ctr2==='false']],J(o));
+      });
+      /* 97r6：更新の 瞬間と 戻す：5.36 で 時間切れで 隠れていた 印が 新しい 版で 戻る（前の 日の 印は 戻らない）。新しい 版で 長く 残した 印を 5.36 に 戻すと、また 隠れる だけで 印も 記録も 消えない */
+      await tryT('97r6',async()=>{
+        const cl=new V2.MemoryCloud(), N=await mkT(cl,'端末NR6','ws',stT()), O=await mkT(cl,'端末OR6','wsold536'), D=[N,O], o={};
+        try{
+          setWC(N,[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7R))]); staff3(N); nxOn(N); await syncT(D); D.forEach(d=>clkT(d,14,0));
+          O.ev(`amNxGo('tG','見本 花子')`); await syncT(D); D.forEach(d=>clkT(d,14,30)); const s0=String(N.ev('JSON.stringify(state.amRun)'));
+          o.a=[runsN(O), runsL(N)]; N.ev('renderMapView()'); O.ev('renderMapView()'); o.b=[String(N.ev('JSON.stringify(state.amRun)'))===s0, String(O.ev('JSON.stringify(state.amRun)'))===s0];
+          D.forEach(d=>clkT(d,27,10)); o.c=[runsN(O), runsL(N)];
+        } finally { for(const d of D){ ET(d,'amCloseSheet()'); d.close(); } }
+        checkLT('97r6','【更新と 戻す】同じ 印が 5.36 では 隠れ、新しい 版では 残る。どちらも 読むだけでは 印を 変えない。3:00 の 後は どちらにも 出ない',[['1:見え方',J(o.a[0])==='[]'&&J(o.a[1])===J(['見本 花子@tG'])],['2:印は 同じ',o.b[0]===true&&o.b[1]===true],['3:3:10',J(o.c[0])==='[]'&&J(o.c[1])==='[]']],J(o));
+      });
+
+      /* ===== 97s1〜97s9（5.36.3 テスの 5.36.2 点検から）：押すまで 残す 印が 次の 回を 隠さない・長い 印を たたむ。作り物の データだけ ===== */
+      const qK=d=>jpT(ET(d,'JSON.stringify(amNxQueue().map(x=>x.id+":"+x.k))'),[]), rowS=(d,id)=>String(ET(d,`(document.querySelector('#nx-wrap .nxa-it[data-w="'+${J(id)}+'"]')||{}).textContent||''`)).replace(/\s+/g,' ');
+      const recS=d=>fRec(d).map(r=>[r.t,r.w,r.by,r.why,r.hm].join('|')).sort(), rd=d=>{ d.ev('renderMapView()'); };
+      /* 97s1：時刻の 作業を 取って 押し忘れ → 次の 回で 急ぐ順に 出る（もうすぐ → おくれ）・字に 印の 人・別の 人が 取れる・元の 印は 消えない・「2人が 取っています」は 出ない。
+         元の 人が 後から 押す：別の 印か 記録が あれば 押し忘れ r が 1件（終わった は 足さない）・取り消せる／だれも 取っていなければ いつもの 記録 1件 */
+      await tryT('97s1',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PS1','ws',stT()), o={}, T3=['10:00','13:00','17:00'], W=(id,name)=>tW({id,name,times:T3,lead:0,grace:30,goal:10,items:[]});
+        try{
+          setWC(P,[W('tF','見本 ゴミ'),W('tH','見本 窓'),W('tI','見本 棚')]); staff3(P); nxOn(P); clkT(P,10,1); P.ev(`amNxGo('tF','見本 花子')`); const kA=kOf(P,'tF'), raw0=String(ET(P,`JSON.stringify(state.amRun[${J(kA)}])`));
+          const qF=()=>qK(P).filter(x=>/^tF:/.test(x));
+          clkT(P,10,20,30); rd(P); o.m1020=qF(); clkT(P,10,29,30); rd(P); o.m1029=qF(); clkT(P,10,40); rd(P); o.m1040=qF(); clkT(P,12,59,30); rd(P); o.m1259=qF();   // 5.36.5：戻る 時刻（10:21）までは 出ない。その後は 5.36 と 同じ
+          clkT(P,13,0,30); rd(P); o.m1300=[qF(), rowS(P,'tF')]; clkT(P,13,31); rd(P); o.m1331=[qF(), Number(ET(P,'amNxFireN()'))];
+          P.ev(`Object.keys(state.amRun).length`); clkT(P,18,30); rd(P);
+          o.m1830=[qF(), rowS(P,'tF'), String(ET(P,`JSON.stringify(state.amRun[${J(kA)}])`))===raw0, fRec(P).length, String(ET(P,'document.getElementById("nxa-col").textContent')), String(ET(P,'amWhoNxToday(Date.now(),staffList())')).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ')];
+          P.ev(`_amNx.sel=''; amNxSel('tF')`); o.open=[jpT(ET(P,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#nx-wrap .nxa-open .nxa-who'),b=>[b.dataset.n,b.disabled]))`),[]), qtT(P,'#nx-wrap .nxa-open button.nxa-cl[data-k]')]; P.ev('amNxShut()');
+          P.ev(`amOpenArea('tF')`); o.card=[qnT(P,'#am-sheet button[onclick^="amRunStart("]:not([disabled])'), qtT(P,'#am-sheet .am-run-h'), qtT(P,'#am-sheet .am-run-w')]; P.ev('amCloseSheet()');
+          P.ev(`amNxGo('tF','見本 太郎')`); const kB=kOf(P,'tF','見本 太郎'); P.ev('_amNx.lgOpen=true; renderMapView()');
+          o.took=[runsL(P).sort(), qF(), qnT(P,'#nx-wrap .wn'), kB!==''&&kB!==kA];
+          P.ev(`amNxCkOpen(${J(kA)})`); o.win=[qtT(P,'#nxa-ck .nxa-lgn'), qtT(P,'#nxa-ck .nxa-fin'), qnT(P,'#nxa-ck .nxa-fin[disabled]')]; P.ev('amNxShut()');
+          P.ev(`amRunEnd(${J(kA)})`); o.shut=[runsL(P), recS(P), snT(P)];
+          P.ev(`document.querySelector('#am-snack button').click()`); o.undo=[runsL(P).sort(), fRec(P).length];
+          P.ev(`amRunEnd(${J(kA)})`); P.ev(`amRunEnd(${J(kB)})`); o.end1=[runsL(P), recS(P), Number(acT(P,'tF'))];
+          /* 先に 次の 人が 終わる → 元の 人が 押す */
+          clkT(P,10,2); P.ev(`amNxGo('tH','見本 花子')`); const kH=kOf(P,'tH'); clkT(P,18,31); P.ev(`amNxGo('tH','見本 太郎')`); P.ev(`amRunEnd(${J(kOf(P,'tH','見本 太郎'))})`); clkT(P,18,33); P.ev(`amRunEnd(${J(kH)})`); o.end2=[recS(P).filter(x=>/\|tH\|/.test(x)), acT(P,'tH'), qK(P).filter(x=>/^tH:/.test(x))];
+          /* だれも 取っていない：元の 人の「✓ 終わった」は いつもの 記録 1件 */
+          clkT(P,10,3); P.ev(`amNxGo('tI','見本 花子')`); const kI=kOf(P,'tI'); clkT(P,18,34); P.ev(`amNxCkOpen(${J(kI)})`); o.win2=[qtT(P,'#nxa-ck .nxa-lgn'), qtT(P,'#nxa-ck .nxa-fin')]; P.ev(`amRunEnd(${J(kI)})`); o.end3=[recS(P).filter(x=>/\|tI\|/.test(x)), acT(P,'tI'), qK(P).filter(x=>/^tI:/.test(x))];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        const kp=o.m1830[5];
+        checkLT('97s1','【次の 回が 消えない（テス ×）】10:01 に 取って 押し忘れ：戻る 時刻まで 出ない・その後は もうすぐ／おくれ（5.36.5：5.36 と 同じ）・13:00 から 急ぐ順（もうすぐ → おくれ）・字に 印の 人・18:30 も おくれ・別の 人が 取れる・元の 印は そのまま・「2人」と 出ない・後から 押しても 終わった を 足さない・取り消せる・だれも 取らなければ 記録 1件',[
+          ['1:戻る 時刻まで／その後',J(o.m1020)==='[]'&&J(o.m1029)===J(['tF:soon'])&&J(o.m1040)===J(['tF:fire'])&&J(o.m1259)===J(['tF:fire'])],['2:13:00',J(o.m1300[0])===J(['tF:soon'])&&/見本 花子 の 印が 残っています/.test(o.m1300[1])],['3:13:31',J(o.m1331[0])===J(['tF:fire'])&&o.m1331[1]>=1],
+          ['4:18:30',J(o.m1830[0])===J(['tF:fire'])&&/印が 残っています/.test(o.m1830[1])&&o.m1830[2]===true&&o.m1830[3]===0&&!/間に合っています/.test(o.m1830[4])&&/[1-9] おくれ/.test(kp)],
+          ['5:別の 人が 押せる',o.open[0].some(x=>x[0]==='見本 太郎'&&x[1]===false)&&/見本 花子 の 印を 開く/.test(o.open[1])],
+          ['6:取った',J(o.took[0])===J(['見本 太郎@tF','見本 花子@tF'].sort())&&J(o.took[1])==='[]'&&o.took[2]===0&&o.took[3]===true],
+          ['7:窓',/別の 人の 印か 記録/.test(o.win[0])&&/Close/.test(o.win[0])&&/印を 閉じる/.test(o.win[1])&&o.win[2]===0],
+          ['8:閉じる',J(o.shut[0])===J(['見本 太郎@tF'])&&J(o.shut[1])===J(['f|tF|見本 花子|r|10:21'])&&/閉じました/.test(o.shut[2])],['9:取り消し',o.undo[0].length===2&&o.undo[1]===0],
+          ['10:二重に ならない',J(o.end1[0])==='[]'&&o.end1[1].length===2&&o.end1[1].filter(x=>/^f/.test(x)).length===1&&o.end1[1].filter(x=>/^x\|tF\|見本 太郎/.test(x)).length===1&&o.end1[2]===1],
+          ['11:先に 次の 人',o.end2[0].length===2&&o.end2[0].filter(x=>/^f\|tH\|見本 花子\|r/.test(x)).length===1&&o.end2[1]===1&&J(o.end2[2])==='[]'],
+          ['13:カードからも 取れる',o.card[0]>=1&&/残っている 印/.test(o.card[1])&&/印が 残っています/.test(o.card[2])],
+          ['12:だれも いない',/終わっていたら/.test(o.win2[0])&&/✓ 終わった/.test(o.win2[1])&&o.end3[0].length===1&&/^x\|tI\|見本 花子\|\|18:34/.test(o.end3[0][0])&&o.end3[1]===1&&J(o.end3[2])==='[]']],J(o));
+      });
+      /* 97s2：作業の 種類ごと：時間帯・売場以外（時刻／時間帯）・再チェック・鮮度管理・✓ の 作業は 回か 締切が すぎて 長いと 出る（5.36.4）。この 見本の 週1 は 夜まで 枠が あるので 出ない。あとの 作業は 締切の 後に 出る（5.36.4） */
+      await tryT('97s2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PS2','ws',stT()), o={}, dow=new Date().getDay();
+        try{
+          setWC(P,[bW(Object.assign({id:'tB',name:'見本 床',goal:10},all7R)),oW({id:'tO',name:'見本 精算',times:['10:00','13:00'],lead:0,grace:30}),oW(Object.assign({id:'tP',name:'見本 納品',times:[],goal:10},all7R)),
+            bW(Object.assign({},all7R,{id:'tR',name:'見本 週1',rep:{k:'w',d:dow}})),bW(Object.assign({id:'tA',name:'見本 元',after:{name:'見本 あと',min:5,grace:5}},all7R)),
+            oW({id:'tD',name:'見本 冷蔵',times:['10:00','14:00'],lead:0,grace:30,recheck:30,reN:1,vals:[{k:'a',label:'温度',unit:'℃',max:5}]}),tW({id:'tS',name:'見本 鮮度',kind:'鮮度管理',times:['10:00','13:00'],lead:0,grace:30,items:[]}),cW(Object.assign({id:'tC',name:'見本 点検',goal:10},all7R))]);
+          P.ev(`state.staff=['見本 花子','見本 太郎','見本 次郎','見本 一','見本 二','見本 三','見本 四','見本 五','見本 六']; amSave();`); nxOn(P); clkT(P,10,0,5); ['見本 花子|tB','見本 花子|tO','見本 太郎|tP','見本 太郎|tR','見本 一|tA','見本 二|tD','見本 三|tS','見本 四|tC'].forEach(x=>{ const [n,id]=x.split('|'); P.ev(`amNxGo(${J(id)},${J(n)})`); });
+          P.ev(`amOpenArea('tC')`); tap(P,'tC',0); P.ev('amCloseSheet()');
+          /* あとの 作業：tA を 終わる → 5分後に 出る → 取る */
+          clkT(P,10,1); P.ev(`amRunEnd(${J(kOf(P,'tA'))})`); clkT(P,10,7); const afId=String(ET(P,`(amNxQueue().find(x=>x.af)||{}).id||''`)); P.ev(`amNxGo(${J(afId)},'見本 次郎')`); o.afId=afId;
+          const has=(id)=>qK(P).filter(x=>x.indexOf(id+':')===0).map(x=>x.split(':')[1]).join(',');
+          clkT(P,11,59); rd(P); o.a=['tB','tO','tP','tR','tD','tS','tC'].map(has);
+          clkT(P,12,0,30); rd(P); o.b=['tB','tP','tC'].map(has).concat([rowS(P,'tB'),rowS(P,'tC')]);
+          clkT(P,13,31); rd(P); o.c=['tO','tS'].map(has).concat([String(ET(P,`amNxGvTargets(Date.now()).some(x=>x.id==='tS')`)),String(ET(P,`amNxGvTargets(Date.now()).some(x=>x.id==='tO')`))]);
+          P.ev(`_amNx.sel=''; amNxSel('tS')`); o.fr=[qnT(P,'#nx-wrap .nxa-open .gv'), qnT(P,'#nx-wrap .nxa-open .nxa-who')]; P.ev('amNxShut()');
+          clkT(P,14,0,30); rd(P); o.d=[has('tD')]; clkT(P,23,0); rd(P); o.e=[has('tR'), qK(P).some(x=>x.indexOf(afId)===0), runsL(P).filter(x=>/@tR$/.test(x)||/tA#af$/.test(x)).length];
+          /* 再チェック：DF の 記録の ◯分後の 枠も「次の 回」 */
+          P.ev(`Object.keys(state.amRun).forEach(k=>delete state.amRun[k]); amSave();`); clkT(P,10,1); P.ev(`amNxGo('tD','見本 花子')`); const kD=kOf(P,'tD');
+          P.ev(`(()=>{ const key='amLog_'+amLogDay(Date.now()), t=new Date(Date.now()+4*60000).toISOString(); state[key]=state[key]||{}; state[key]['xdf1']={w:'tD',at:t,by:'見本 太郎',d:'x',df:1,s:t}; state.areaChecks.tD=[{at:t,by:'見本 太郎'}]; amSave(); })()`);
+          clkT(P,10,15); o.r0=String(ET(P,`amNxRunPast(state.amRun[${J(kD)}])`)); clkT(P,10,36); o.r1=String(ET(P,`amNxRunPast(state.amRun[${J(kD)}])`)); o.r2=has('tD');
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97s2','【種類ごと】時間帯・売場以外・✓ の 作業・再チェック・鮮度管理は 戻る 時刻の 後に 急ぐ順に 出る（5.36 と 同じ）／鮮度管理は 諦められない／週1・あとの 作業も 戻る 時刻の 後に 出る',[
+          ['1:すぎた 印',J(o.a)===J(['fire','fire','fire','todo','fire','fire','fire'])],['2:時間帯',o.b[0]==='fire'&&o.b[1]==='fire'&&o.b[2]==='fire'&&/見本 花子 の 印が 残っています/.test(o.b[3])&&/見本 四 の 印が 残っています/.test(o.b[4])&&/✓ 1／2/.test(o.b[4])],
+          ['3:売場以外の 時刻・鮮度',o.c[0]==='fire'&&o.c[1]==='fire'&&o.c[2]==='false'&&o.c[3]==='true'],['4:鮮度は 諦めが 出ない',o.fr[0]===0&&o.fr[1]===9],
+          ['5:再チェックの 作業',o.d[0]==='soon'],['6:週1・あとの 作業',o.e[0]==='todo'&&o.e[1]===true&&o.e[2]===2&&/#af@/.test(o.afId)],['7:再チェックの 枠',o.r0==='false'&&o.r1==='true'&&o.r2==='soon']],J(o));
+      });
+      /* 97s3：2台と 古い 版：新しい 版 2台（別の 人が 取る・元の 人が 閉じる）／電波なしで 2台が それぞれ 押す（記録は 消えない）／5.36 が 取る・5.36 が 記録する（元の 印は 押し忘れ r が 1件） */
+      await tryT('97s3',async()=>{
+        const res={}, W=()=>tW({id:'tF',name:'見本 ゴミ',times:['10:00','13:00'],lead:0,grace:30,goal:10,items:[]});
+        { const cl=new V2.MemoryCloud(), N=await mkT(cl,'端末NS3a','ws',stT()), M=await mkT(cl,'端末MS3a','ws'), D=[N,M], o={};
+          try{ setWC(N,[W()]); staff3(N); nxOn(N); await syncT(D); D.forEach(d=>clkT(d,10,1)); N.ev(`amNxGo('tF','見本 花子')`); await syncT(D); const kA=kOf(N,'tF');
+            D.forEach(d=>clkT(d,13,40)); M.ev(`amNxGo('tF','見本 太郎')`); await syncT(D); o.a=[runsL(N).sort(), runsL(M).sort()];
+            N.ev(`amRunEnd(${J(kA)})`); await syncT(D); o.b=[runsL(M), recS(M)]; M.ev(`amRunEnd(${J(kOf(M,'tF','見本 太郎'))})`); await syncT(D); o.c=[recS(N), acT(N,'tF'), nzT(N.ev('JSON.stringify(state)'))===nzT(M.ev('JSON.stringify(state)'))];
+          } finally { for(const d of D){ ET(d,'amCloseSheet()'); d.close(); } } res.two=o; }
+        { const cl=new V2.MemoryCloud(), N=await mkT(cl,'端末NS3b','ws',stT()), M=await mkT(cl,'端末MS3b','ws'), D=[N,M], o={};
+          try{ setWC(N,[W()]); staff3(N); nxOn(N); await syncT(D); D.forEach(d=>clkT(d,10,1)); N.ev(`amNxGo('tF','見本 花子')`); await syncT(D); const kA=kOf(N,'tF'); D.forEach(d=>clkT(d,13,40));
+            N.be.setOnline(false); M.be.setOnline(false); N.ev(`amRunEnd(${J(kA)})`); M.ev(`amNxGo('tF','見本 太郎')`); N.be.setOnline(true); M.be.setOnline(true); await syncT(D); await syncT(D);
+            o.a=[runsN(N), recS(N), nzT(N.ev('JSON.stringify(state)'))===nzT(M.ev('JSON.stringify(state)'))]; M.ev(`amRunEnd(${J(kOf(M,'tF','見本 太郎'))})`); await syncT(D); o.b=[recS(N), runsN(N)];
+          } finally { for(const d of D){ d.be.setOnline(true); ET(d,'amCloseSheet()'); d.close(); } } res.off=o; }
+        { const cl=new V2.MemoryCloud(), N=await mkT(cl,'端末NS3c','ws',stT()), O=await mkT(cl,'端末OS3c','wsold536'), D=[N,O], o={};
+          try{ setWC(N,[W()]); staff3(N); nxOn(N); await syncT(D); D.forEach(d=>clkT(d,10,1)); N.ev(`amNxGo('tF','見本 花子')`); await syncT(D); D.forEach(d=>clkT(d,13,40)); rd(O); rd(N);
+            O.ev(`amNxGo('tF','見本 太郎')`); await syncT(D); o.a=[runsN(N), recS(N), String(ET(O,'APP_VERSION'))]; N.ev(`amRunEnd(${J(kOf(N,'tF','見本 太郎'))})`); await syncT(D); o.b=[recS(O), runsN(O), nzT(N.ev('JSON.stringify(state)'))===nzT(O.ev('JSON.stringify(state)'))];
+          } finally { for(const d of D){ ET(d,'amCloseSheet()'); d.close(); } } res.old=o; }
+        const a=res.two, b=res.off, c=res.old;
+        checkLT('97s3','【2台と 古い 版】別の 端末で 取る・閉じる で 2台 同じ・電波なしで 両方 押しても 記録と 印は 消えない・5.36 が 取ると 元の 印は 押し忘れ r が 1件',[
+          ['1:2台で 取る',a.a[0].length===2&&J(a.a[0])===J(a.a[1])],['2:閉じる',J(a.b[0])===J(['見本 太郎@tF'])&&J(a.b[1])===J(['f|tF|見本 花子|r|10:21'])],
+          ['3:二重に ならない',a.c[0].length===2&&a.c[0].filter(x=>/^x/.test(x)).length===1&&a.c[1]===1&&a.c[2]===true],
+          ['4:電波なし',J(b.a[0])===J(['見本 太郎@tF'])&&b.a[1].length===1&&/^x\|tF\|見本 花子/.test(b.a[1][0])&&b.a[2]===true],['5:電波なしの 後',b.b[0].length===2&&b.b[0].every(x=>/^x/.test(x))&&J(b.b[1])==='[]'],
+          ['6:5.36 が 取る',c.a[2]==='5.36'&&J(c.a[0])===J(['見本 太郎@tF'])&&c.a[1].length===1&&/^f\|tF\|見本 花子\|r/.test(c.a[1][0])],['7:5.36 と 同じ',c.b[0].length===2&&J(c.b[1])==='[]'&&c.b[2]===true]],J(res));
+      });
+      /* 97s4：長い 印は「⏳ 長い ◯件」に たたむ：12件でも 急ぐ順の 最初の 行が 3つの 大きさで 最初の 画面に 見える・押すと 開く・保存しない・上限は 無い（13件目も 取れる） */
+      await tryT('97s4',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PS4','ws',stT()), o={}, ws=[]; for(let i=0;i<14;i++) ws.push(bW(Object.assign({id:'tL'+i,name:'見本 作業'+i},all7R)));
+        try{
+          setWC(P,ws); staff3(P); nxOn(P); clkT(P,13,0); for(let i=0;i<12;i++){ P.ev(`(()=>{ state.amRun['uq${i}']={w:'tL${i}',s:new Date(Date.now()+${i}*1000).toISOString(),by:'見本 花子',d:'x'}; amSave(); })()`); } clkT(P,13,40); rd(P);
+          const m=()=>jpT(ET(P,`JSON.stringify((()=>{ const f=document.querySelector('#nx-wrap .nxa-it'), r=f&&f.getBoundingClientRect(), b=document.getElementById('nxa-lgf'), c=document.getElementById('nxa-col'), cr=c&&c.getBoundingClientRect(); return {w:innerWidth,h:innerHeight,top:r?Math.round(r.top):-1,bot:r?Math.round(r.bottom):-1,cb:cr?Math.round(cr.bottom):-1,rows:document.querySelectorAll('#nx-wrap .nxa-rn').length,fold:b?b.textContent:'',sx:document.documentElement.scrollWidth}; })())`),{});
+          for(const [w,h] of [[390,844],[768,920],[1024,768]]){ P.f.style.width=w+'px'; P.f.style.height=h+'px'; await sleep(250); rd(P); await sleep(60); o['s'+w]=m(); }
+          const s0=nzT(P.ev('JSON.stringify(state)')); P.f.style.width='768px'; P.f.style.height='900px'; await sleep(200); P.ev(`document.getElementById('nxa-lgf').click()`); o.open=m(); o.same=nzT(P.ev('JSON.stringify(state)'))===s0; P.ev(`document.getElementById('nxa-lgf').click()`); o.shut=m(); o.same2=nzT(P.ev('JSON.stringify(state)'))===s0;
+          P.ev(`amNxGo('tL12','見本 花子')`); P.ev(`amNxGo('tL13','見本 花子')`); o.more=runsL(P).length;
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        const vis=x=>x&&x.top>=0&&x.bot<=x.h&&x.bot<=x.cb&&x.rows===0&&/長い 12件/.test(x.fold)&&x.sx<=x.w;
+        checkLT('97s4','【たたむ（テス △）】12件の 長い 印でも 急ぐ順の 最初の 行が 390×844・768×920・1024×768 で 見える・押すと 12行 開く・保存しない・上限なし',[
+          ['1:390',vis(o.s390)],['2:768',vis(o.s768)],['3:1024',vis(o.s1024)],['4:開く',o.open.rows===12&&o.same===true],['5:たたむ',o.shut.rows===0&&o.same2===true],['6:上限なし',o.more===14]],J(o));
+      });
+      /* 97s5：全部 ✓ で「終わった」を 押し忘れ：最後の ✓ から 戻る 時刻（目標の 2倍・目標なし 15分）を すぎて 次の 記録が 入ると 最後の ✓ の 時刻で 済（5.36 と 同じ 記録の 形）。線の 前は 残す・数字の 作業は 済に しない・読むだけでは 書かない */
+      await tryT('97s5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PS5','ws',stT()), o={};
+        try{
+          setWC(P,[cW(Object.assign({id:'tC',name:'見本 点検',goal:10},all7R)),cW(Object.assign({id:'tV',name:'見本 温度',goal:10,vals:[{k:'a',label:'温度',unit:'℃',max:5}]},all7R)),bW(Object.assign({id:'tB',name:'見本 床'},all7R)),bW(Object.assign({id:'tE',name:'見本 棚'},all7R)),cW(Object.assign({id:'tN',name:'見本 目標なし'},all7R)),bW(Object.assign({id:'tE2',name:'見本 窓'},all7R))]); staff3(P); nxOn(P); clkT(P,13,0);
+          P.ev(`amNxGo('tC','見本 花子')`); P.ev(`amNxGo('tV','見本 太郎')`); P.ev(`amNxGo('tN','見本 次郎')`); clkT(P,13,4); for(const id of ['tC','tV','tN']){ P.ev(`amOpenArea(${J(id)})`); tap(P,id,0); tap(P,id,1); P.ev('amCloseSheet()'); }
+          const end=(id,by)=>{ P.ev(`amNxGo(${J(id)},${J(by)})`); P.ev(`amRunEnd(${J(kOf(P,id,by))})`); };
+          clkT(P,13,20); const s0=nzT(P.ev('JSON.stringify(state)')); rd(P); o.read=nzT(P.ev('JSON.stringify(state)'))===s0; end('tB','見本 次郎'); o.a=[runsL(P).sort(), recS(P)];
+          clkT(P,13,26); end('tE','見本 次郎'); o.b=[runsL(P).sort(), jpT(ET(P,`JSON.stringify(Object.keys(state).filter(k=>/^amLog_/.test(k)).reduce((a,k)=>a.concat(Object.keys(state[k]).filter(i=>state[k][i].w==='tC').map(i=>Object.keys(state[k][i]).sort().join('+')+'#'+i.charAt(0))),[]))`),[]), recS(P)];
+          clkT(P,13,36); end('tE2','見本 花子'); o.c=[runsL(P).sort(), recS(P)];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97s5','【全部 ✓ の 押し忘れ（テス △）】線の 前の 記録では 残す・線の 後の 記録で 最後の ✓ の 時刻で 済・記録の 形は 同じ・数字の 作業は 済に しない・目標なしは 15分',[
+          ['1:読むだけ',o.read===true],['2:線の 前',o.a[0].indexOf('見本 花子@tC')>=0&&o.a[0].indexOf('見本 太郎@tV')>=0&&o.a[0].length===2&&o.a[1].length===2],['3:線の 後',o.b[0].indexOf('見本 花子@tC')<0&&o.b[0].indexOf('見本 太郎@tV')>=0&&o.b[2].some(x=>x==='x|tC|見本 花子||13:4')===false&&o.b[2].some(x=>/^x\|tC\|見本 花子\|\|13:04/.test(x))],
+          ['4:形',J(o.b[1])===J(['at+by+ck+d+s+w#x'])],['5:目標なし 15分',o.a[0].indexOf('見本 次郎@tN')<0&&o.a[1].some(x=>/^x\|tN\|見本 次郎\|\|13:04/.test(x))],['6:数字の 作業',o.c[0].indexOf('見本 太郎@tV')>=0]],J(o));
+      });
+      /* 97s6：札の 字：列の 札（2つ 取りかかり中・長い ◯件／長い ◯件／あいている）・名前の 窓（いま ◯◯ 中・長い ◯件・いっぱい／もう1つ 取れる）。長い 印だけの 人は 押せる。線は 目標の 2倍 ちょうど */
+      await tryT('97s6',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PS6','ws',stT()), o={}, ws=[]; for(let i=0;i<9;i++) ws.push(bW(Object.assign({id:'tW'+i,name:'作業'+i,goal:10},all7R)));
+        try{
+          setWC(P,ws); staff3(P); nxOn(P); clkT(P,13,0); P.ev(`amNxGo('tW0','見本 花子')`); P.ev(`amNxGo('tW1','見本 花子')`); P.ev(`amNxGo('tW2','見本 太郎')`); P.ev(`amNxPut('見本 次郎',Date.now()); amSave()`);
+          clkT(P,13,19,30); o.l19=String(ET(P,`amNxLongRuns().some(r=>r.w==='tW0')`)); clkT(P,13,20,30); o.l20=[String(ET(P,`amNxLongRuns().some(r=>r.w==='tW0')`)), jpT(ET(P,'JSON.stringify(amNxHoldMap())'),{})];
+          P.ev(`amNxGo('tW3','見本 花子')`); P.ev(`amNxGo('tW4','見本 花子')`); rd(P);
+          const chip=n=>String(ET(P,`(Array.prototype.find.call(document.querySelectorAll('#nx-wrap .nxa-pc'),b=>b.querySelector('b').textContent===${J(n)})||{textContent:''}).querySelector('small').textContent`)), pk=n=>jpT(ET(P,`(()=>{ const a=amRunActive(); const d=document.createElement('div'); d.innerHTML=amNxPkBtn(${J(n)},'',a); const b=d.querySelector('button'); return JSON.stringify([!!b.disabled,(b.querySelector('small')||{textContent:''}).textContent]); })()`),[]);
+          o.chip=[chip('見本 花子'),chip('見本 太郎'),chip('見本 次郎')]; o.pk=[pk('見本 花子'),pk('見本 太郎'),pk('見本 次郎')];
+          P.ev(`amRunEnd(${J(kOf(P,'tW3'))})`); o.pk1=pk('見本 花子');
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97s6','【札の 字（テス △）】2つ 取りかかり中・長い 2件／長い 1件／あいている。名前の 窓は 長い 印を 分けて、長い 印だけの 人は 押せる。線は 目標の 2倍',[
+          ['1:線',o.l19==='false'&&o.l20[0]==='true'&&!o.l20[1]['見本 花子']],['2:札',o.chip[0]==='2つ 取りかかり中・長い 2件'&&o.chip[1]==='長い 1件'&&o.chip[2]==='あいている'],
+          ['3:窓 いっぱい',o.pk[0][0]===true&&/いま 作業3・作業4 中・長い 2件・いっぱい/.test(o.pk[0][1])],['4:窓 長いだけ',o.pk[1][0]===false&&o.pk[1][1]==='長い 1件'],['5:窓 なし',o.pk[2][0]===false&&o.pk[2][1]===''],['6:もう1つ',o.pk1[0]===false&&/いま 作業4 中・長い 2件・もう1つ 取れる/.test(o.pk1[1])]],J(o));
+      });
+      /* 97s7：⏱ かかった時間：新しい画面の 店は 長い 印の 終わり（目標の 2倍〜・目標なし 15分〜）を 平均に 入れない・記録は 残す。オフの 店は 今までどおり */
+      await tryT('97s7',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PS7','ws',stT()), o={};
+        try{
+          setWC(P,[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7R)),bW(Object.assign({id:'tN',name:'見本 床'},all7R))]); staff3(P); clkT(P,14,0);
+          P.ev(`(()=>{ const key='amLog_'+amLogDay(Date.now()), mk=(id,w,m)=>{ const at=Date.now(); state[key]=state[key]||{}; state[key][id]={w,at:new Date(at).toISOString(),by:'見本 花子',d:'x',s:new Date(at-m*60000).toISOString()}; }; mk('xa','tG',19.5); mk('xb','tG',20); mk('xc','tG',449); mk('xd','tN',14.5); mk('xe','tN',15); mk('xf','tG',0.5); amSave(); })()`);
+          const oks=()=>jpT(ET(P,`JSON.stringify(amTimeRecs(Date.now()-3600000,Date.now()+3600000).done.map(r=>[Math.round(r.min*10)/10,r.ok]).sort((a,b)=>a[0]-b[0]))`),[]);
+          o.off=oks(); nxOn(P); o.on=oks();
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97s7','【平均（テス △）】新しい画面：目標 10分は 20分から・目標なしは 15分から 外す（6件とも 記録に 残る）。オフの 店は 1分より 長い 物を 全部 入れる',[
+          ['1:オン',J(o.on)===J([[0.5,false],[14.5,true],[15,false],[19.5,true],[20,false],[449,false]])],['2:オフ',J(o.off)===J([[0.5,false],[14.5,true],[15,true],[19.5,true],[20,true],[449,true]])]],J(o));
+      });
+      /* 97s8：名前の 直し：動かす 印が 長い時は「いっぱい」の 人へも 直せる（窓の ボタンも 押せる）。長くない 印は 今までどおり 断る */
+      await tryT('97s8',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PS8','ws',stT()), o={}, ws=[]; for(let i=0;i<4;i++) ws.push(bW(Object.assign({id:'tW'+i,name:'作業'+i,goal:10},all7R)));
+        try{
+          setWC(P,ws); staff3(P); nxOn(P); clkT(P,13,0); P.ev(`amNxGo('tW0','見本 花子')`); const kL=kOf(P,'tW0'); clkT(P,13,25); P.ev(`amNxGo('tW1','見本 太郎')`); P.ev(`amNxGo('tW2','見本 太郎')`); P.ev(`amNxGo('tW3','見本 花子')`); const kS=kOf(P,'tW3');
+          const dis=k=>{ P.ev(`amNxFix(${J(k)},true)`); const r=jpT(ET(P,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#am-sheet .nx-pk'),b=>[b.dataset.n,!!b.disabled]))`),[]); P.ev('amCloseSheet()'); return r; };
+          o.dL=dis(kL); o.dS=dis(kS); P.ev(`amNxRe(${J(kS)},'見本 太郎')`); o.rS=[String(ET(P,`state.amRun[${J(kS)}].by`)), snT(P)]; P.ev(`amNxRe(${J(kL)},'見本 太郎')`); o.rL=String(ET(P,`state.amRun[${J(kL)}].by`));
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97s8','【名前の 直し（テス △）】長い 印は 2つ 持ちの 人へも 直せる・窓で 押せる。長くない 印は 断る・窓で 押せない',[
+          ['1:長い 印の 窓',o.dL.some(x=>x[0]==='見本 太郎'&&x[1]===false)],['2:長くない 印の 窓',o.dS.some(x=>x[0]==='見本 太郎'&&x[1]===true)],['3:長くない 印',o.rS[0]==='見本 花子'&&/2つ 取りかかり中|2つ/.test(o.rS[1])],['4:長い 印',o.rL==='見本 太郎']],J(o));
+      });
+      /* 97s9：新しい 画面が オフの 店：5.36 と 同じ 操作で 画面も 保存も 同じ（時刻の 作業の 次の 回・長い 印・📊・印が 残る 場面） */
+      await tryT('97s9',async()=>{
+        const mk=async(name,dir)=>{ const cl=new V2.MemoryCloud(), P=await mkT(cl,name,dir,stT()); setWC(P,[tW({id:'tF',name:'見本 ゴミ',times:['10:00','13:00','17:00'],lead:0,grace:30,goal:10,items:[]}),bW(Object.assign({id:'tB',name:'見本 床',goal:10},all7R)),cW(Object.assign({id:'tC',name:'見本 点検',goal:10},all7R))]); staff3(P); return P; };
+        const N=await mk('端末同','ws'), O=await mk('端末同','wsold536'), D=[N,O], o={diff:[]};
+        const nzS=s=>String(s).replace(/"u[0-9a-z]{8,}"/g,'"K"').replace(/f?x?u[0-9a-z]{8,}/g,'K').replace(/(\d\d:\d\d):\d\d\.\d{3}Z/g,'$1Z').replace(/"_modifiedAt":"[^"]*",?/g,''), scr=d=>nzS(ET(d,`(()=>{ renderMapView(); return document.getElementById('map-view').innerHTML.replace(/v5\\.36[.0-9]*/g,'V'); })()`)), sta=d=>nzS(J(JSON.parse(d.ev('JSON.stringify(state)'))));
+        const cmp=lab=>{ const a=scr(N)===scr(O), b=sta(N)===sta(O); if(!a||!b) o.diff.push(lab+(a?'':':画面')+(b?'':':保存')); };
+        try{
+          D.forEach(d=>clkT(d,10,1)); cmp('10:01'); D.forEach(d=>d.ev(`amRunStart('tF','見本 花子'); amRunStart('tB','見本 太郎'); amRunStart('tC','見本 次郎'); amCloseSheet(); renderMapView();`)); cmp('取った');
+          for(const [h,m] of [[10,25],[10,40],[12,0],[13,0],[13,31],[17,0],[18,30]]){ D.forEach(d=>clkT(d,h,m)); cmp(h+':'+m); }
+          D.forEach(d=>{ d.ev(`amRunStart('tF','見本 太郎'); amCloseSheet(); renderMapView();`); }); cmp('次の 回'); D.forEach(d=>{ const k=kOf(d,'tF'); if(k) d.ev(`amRunEnd(${J(k)})`); d.ev('amCloseSheet(); renderMapView()'); }); cmp('終わった');
+          o.times=String(ET(N,`amTimeRecs(Date.now()-86400000,Date.now()+3600000).done.length`))===String(ET(O,`amTimeRecs(Date.now()-86400000,Date.now()+3600000).done.length`));
+        } finally { for(const d of D){ ET(d,'amCloseSheet()'); d.close(); } }
+        checkLT('97s9','【オフの 店は 5.36 と 同じ】同じ 操作で 画面も 保存も 同じ（10:01〜18:30 の 9か所・次の 回・終わった）',[['1:同じ',o.diff.length===0&&o.times===true]],J(o));
+      });
+
+      /* ===== 97w1〜97w8（5.36.4 テスの 5.36.3 点検から。5.36.5 で 線を 戻る 時刻 1つに した）：戻る 時刻の 後に、急ぐ順に 戻す・閉じる。作り物の データだけ ===== */
+      const qIds=(d,id)=>qK(d).filter(x=>x.indexOf(id+':')===0).map(x=>x.split(':')[1]).join(',');
+      const hmsT=(d,h,m,s,ms)=>Number(ET(d,`(()=>{ const x=new Date(); x.setHours(${h},${m},${s||0},${ms||0}); return x.getTime(); })()`));
+      /* 97w1：次の 回が 無い 作業（時刻の 1日1回・売場以外の 1回・時間帯の 1日1回・週1）：締切まで 出ない／締切の 後は おくれ・字に 印の 人・📊 に 数える・別の 人が 取れる・元の 印は そのまま */
+      await tryT('97w1',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PW1','ws',stT()), o={}, dow=new Date().getDay();
+        try{
+          setWC(P,[tW({id:'tF',name:'見本 ゴミ',times:['10:00'],lead:0,grace:30,goal:10,items:[]}),oW({id:'tO',name:'見本 精算',times:['10:00'],lead:0,grace:30}),bW({id:'tB',name:'見本 床',goal:10,sch:undefined,sch7:[0,0,1,0,0,0,0]}),tW({id:'tK',name:'見本 週1',times:['10:00'],lead:0,grace:30,goal:10,items:[],rep:{k:'w',d:dow}})]); staff3(P); nxOn(P);
+          clkT(P,10,1); P.ev(`amNxGo('tF','見本 花子')`); P.ev(`amNxGo('tB','見本 花子')`); P.ev(`amNxGo('tO','見本 太郎')`); P.ev(`amNxGo('tK','見本 太郎')`);
+          const kF=kOf(P,'tF'), kO=kOf(P,'tO'), raw0=String(ET(P,`JSON.stringify(state.amRun[${J(kF)}])`));
+          clkT(P,10,15,30); rd(P); o.m1025=['tF','tO','tB','tK'].map(x=>qIds(P,x)); P.ev(`amNxGo('tF','見本 次郎')`); o.ref=[snT(P), runsN(P).filter(x=>/@tF$/.test(x))];
+          clkT(P,10,31,30); rd(P); o.m1031=['tF','tO','tB','tK'].map(x=>qIds(P,x)); o.row=rowS(P,'tF'); o.nF=Number(ET(P,'amNxFireN()'));
+          clkT(P,12,0,30); rd(P); o.m1200=qIds(P,'tB'); o.rowB=rowS(P,'tB');
+          clkT(P,18,30); rd(P); o.m1830=['tF','tO','tB','tK'].map(x=>qIds(P,x)); o.keep=[String(ET(P,`JSON.stringify(state.amRun[${J(kF)}])`))===raw0, fRec(P).filter(x=>x.w!=='tK').length, runsL(P).length]; o.col=String(ET(P,'document.getElementById("nxa-col").textContent')); o.nF2=Number(ET(P,'amNxFireN()')); o.who=String(ET(P,'amWhoNxToday(Date.now(),staffList())')).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+          P.ev(`amNxCkOpen(${J(kF)})`); o.win=[qtT(P,'#nxa-ck .nxa-lgn'), qtT(P,'#nxa-ck .nxa-fin')]; P.ev('amNxShut()');
+          P.ev(`amOpenArea('tF')`); o.card=[qtT(P,'#am-sheet .am-run-h'), qtT(P,'#am-sheet .am-run-w'), jpT(ET(P,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#am-sheet button[onclick^="amRunStart("]'),b=>b.dataset.n))`),[])]; P.ev('amCloseSheet()');
+          P.ev(`amNxGo('tF','見本 次郎')`); const kF2=kOf(P,'tF','見本 次郎'); o.took=[runsL(P).filter(x=>/@tF$/.test(x)).sort(), qIds(P,'tF'), kF2!==''&&kF2!==kF];
+          P.ev(`amNxCkOpen(${J(kF)})`); o.win2=[qtT(P,'#nxa-ck .nxa-lgn'), qtT(P,'#nxa-ck .nxa-fin')]; P.ev('amNxShut()');
+          clkT(P,18,31,30); P.ev(`amRunEnd(${J(kF)})`); o.shut=[recS(P).filter(x=>/\|tF\|/.test(x)), snT(P), runsL(P).filter(x=>/@tF$/.test(x))]; P.ev(`amRunEnd(${J(kF2)})`); o.end=recS(P).filter(x=>/\|tF\|/.test(x)); o.afterF=qIds(P,'tF');
+          clkT(P,18,32); P.ev(`amRunEnd(${J(kO)})`); o.endO=[recS(P).filter(x=>/\|tO\|/.test(x)), qIds(P,'tO')];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97w1','【次の 回が 無い 作業（テス ×）】1日1回・売場以外の 1回・時間帯の 1日1回・週1：戻る 時刻まで 出ない・別の 人は 断る／その後は 5.36 と 同じ・字に 印の 人・📊 に 数える・18:30 も 同じ・別の 人が 取れる・閉じると 押し忘れ r が 1件（戻る 時刻）・だれも 取らなければ 終わった 1件',[
+          ['1:締切まで',o.m1025.every(x=>x==='')&&/もう 見本 花子 が/.test(o.ref[0])&&J(o.ref[1])===J(['見本 花子@tF'])],
+          ['2:戻る 時刻の 後',J(o.m1031)===J(['fire','fire','fire','fire'])&&/見本 花子 の 印が 残っています/.test(o.row)&&/10:00/.test(o.row)&&/おくれ/.test(o.row)&&o.nF===4],
+          ['3:時間帯',o.m1200==='fire'&&/見本 花子 の 印が 残っています/.test(o.rowB)],
+          ['4:18:30',J(o.m1830)===J(['fire','fire','fire','fire'])&&o.keep[0]===true&&o.keep[1]===0&&o.keep[2]===4&&!/間に合っています/.test(o.col)&&o.nF2===4&&/4 おくれ/.test(o.who)],
+          ['5:窓',/終わっていたら/.test(o.win[0])&&!/次の 回/.test(o.win[0])&&/Finished\?/.test(o.win[0])&&/✓ 終わった/.test(o.win[1])],
+          ['6:カード',/残っている 印/.test(o.card[0])&&/印が 残っています/.test(o.card[1])&&o.card[2].indexOf('見本 花子')>=0&&o.card[2].length>=1],
+          ['7:別の 人が 取る',J(o.took[0])===J(['見本 次郎@tF','見本 花子@tF'].sort())&&o.took[1]===''&&o.took[2]===true],
+          ['8:閉じる',/別の 人の 印か 記録/.test(o.win2[0])&&/印を 閉じる/.test(o.win2[1])&&J(o.shut[0])===J(['f|tF|見本 花子|r|10:21'])&&/閉じました/.test(o.shut[1])&&J(o.shut[2])===J(['見本 次郎@tF'])],
+          ['9:次の 人',o.end.length===2&&o.end.filter(x=>/^x\|tF\|見本 次郎/.test(x)).length===1&&o.afterF===''],
+          ['10:だれも 取らない',J(o.endO[0])===J(['x|tO|見本 太郎||18:32'])&&o.endO[1]==='']],J(o));
+      });
+      /* 97w2：3回の 作業の 締切と 次の 回の 間：別の 人が 取れる・閉じる 時刻は 戻る 時刻（未来の 時刻に ならない）・元の 人の「終わった」は いまの 回の 記録・次の 回まで 出ない */
+      await tryT('97w2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PW2','ws',stT()), o={}, W=(id,name)=>tW({id,name,times:['10:00','13:00','17:00'],lead:0,grace:30,goal:10,items:[]});
+        try{
+          setWC(P,[W('tF','見本 ゴミ'),W('tH','見本 窓')]); staff3(P); nxOn(P); clkT(P,10,1); P.ev(`amNxGo('tF','見本 花子')`); P.ev(`amNxGo('tH','見本 花子')`); const kA=kOf(P,'tF'), kH=kOf(P,'tH');
+          clkT(P,10,40); rd(P); o.a=[qIds(P,'tF'), rowS(P,'tF')]; P.ev(`amNxGo('tF','見本 太郎')`); const kB=kOf(P,'tF','見本 太郎'); rd(P); P.ev('_amNx.lgOpen=true; renderMapView()'); o.b=[runsL(P).filter(x=>/@tF$/.test(x)).sort(), qIds(P,'tF'), qnT(P,'#nx-wrap .wn')];
+          clkT(P,11,0,30); P.ev(`amRunEnd(${J(kA)})`); o.c=recS(P); P.ev(`amRunEnd(${J(kB)})`); o.d=recS(P).filter(x=>/\|tF\|/.test(x));
+          P.ev(`amRunEnd(${J(kH)})`); o.e=[recS(P).filter(x=>/\|tH\|/.test(x)), qIds(P,'tH')]; clkT(P,12,59,30); rd(P); o.f=qIds(P,'tH'); clkT(P,13,0,30); rd(P); o.g=qIds(P,'tH');
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97w2','【締切と 次の 回の 間（テス ×）】10:40 に おくれ・別の 人が 取れる・「2人」と 出ない・11:00 に 閉じると 押し忘れは 戻る 時刻（10:21。未来に ならない）・元の 人の「終わった」は 11:00 の 記録で 次の 回まで 出ない',[
+          ['1:10:40',o.a[0]==='fire'&&/見本 花子 の 印が 残っています/.test(o.a[1])&&/10:00/.test(o.a[1])],['2:取る',J(o.b[0])===J(['見本 太郎@tF','見本 花子@tF'].sort())&&o.b[1]===''&&o.b[2]===0],
+          ['3:閉じる 時刻',J(o.c)===J(['f|tF|見本 花子|r|10:21'])],['4:次の 人',o.d.length===2&&o.d.filter(x=>/^x\|tF\|見本 太郎\|\|11:00/.test(x)).length===1],
+          ['5:本人が 押す',J(o.e[0])===J(['x|tH|見本 花子||11:00'])&&o.e[1]===''&&o.f===''&&o.g==='soon']],J(o));
+      });
+      /* 97w3：長くない 印（テス △ 境目）：5.36 と 同じ（別の 人は 断る・本人の 記録が 残る）。長くなれば 戻す・閉じる。目標が 長い 作業は 線まで 出ない（残る 穴として 確かめる） */
+      await tryT('97w3',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PW3','ws',stT()), o={}, W=(id,name,x)=>tW(Object.assign({id,name,times:['10:00','10:30'],lead:0,grace:30,goal:10,items:[]},x||{}));
+        try{
+          setWC(P,[W('tG','見本 拭き'),W('tH','見本 窓'),W('tL','見本 長い',{times:['10:00'],goal:60})]); staff3(P); nxOn(P); clkT(P,10,29); P.ev(`amNxGo('tG','見本 花子')`); P.ev(`amNxGo('tH','見本 太郎')`); const kG=kOf(P,'tG'), kH=kOf(P,'tH');
+          clkT(P,10,31); rd(P); o.a=[qIds(P,'tG'), String(ET(P,`amNxRunPast(amRunActive().find(r=>r.k===${J(kG)}))`))]; P.ev(`amNxGo('tG','見本 次郎')`); o.b=[snT(P), runsN(P).filter(x=>/@tG$/.test(x))];
+          P.ev(`amNxCkOpen(${J(kG)})`); o.c=[qnT(P,'#nxa-ck .nxa-lgn'), qtT(P,'#nxa-ck .nxa-fin')]; P.ev('amNxShut()'); P.ev(`amOpenArea('tG')`); o.c2=qtT(P,'#am-sheet .am-run-h'); P.ev('amCloseSheet()');
+          clkT(P,10,35); P.ev(`amRunEnd(${J(kG)})`); o.d=recS(P).filter(x=>/\|tG\|/.test(x));
+          clkT(P,10,50); rd(P); o.e=[qIds(P,'tH'), rowS(P,'tH')]; P.ev(`amNxGo('tH','見本 次郎')`); const kH2=kOf(P,'tH','見本 次郎'); P.ev(`amNxCkOpen(${J(kH)})`); o.f=qtT(P,'#nxa-ck .nxa-fin'); P.ev('amNxShut()'); P.ev(`amRunEnd(${J(kH)})`); o.g=recS(P).filter(x=>/\|tH\|/.test(x)); P.ev(`amRunEnd(${J(kH2)})`);
+          P.ev(`Object.keys(state.amRun).forEach(k=>delete state.amRun[k]); amSave();`); clkT(P,10,1); P.ev(`amNxGo('tL','見本 花子')`); clkT(P,10,40); rd(P); o.h=qIds(P,'tL'); clkT(P,12,0); rd(P); o.i=qIds(P,'tL'); clkT(P,12,1,30); rd(P); o.j=qIds(P,'tL');
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97w3','【長くない 印（テス △）】10:29 に 取って 10:31：急ぐ順に 出ない・別の 人は 断る・本人の 窓は いつもの「✓ 終わった」・10:35 の 記録は 終わった 1件／長く なったら 別の 人が 取れて 閉じる／目標 60分は 120分まで 出ない',[
+          ['1:出ない',o.a[0]===''&&o.a[1]==='false'],['2:断る',/もう 見本 花子 が/.test(o.b[0])&&J(o.b[1])===J(['見本 花子@tG'])],['3:窓',o.c[0]===0&&/✓ 終わった/.test(o.c[1])&&!/閉じる/.test(o.c[1])&&/作業中/.test(o.c2)],
+          ['4:本人の 記録',J(o.d)===J(['x|tG|見本 花子||10:35'])],['5:長く なった',o.e[0]==='soon'&&/見本 太郎 の 印が 残っています/.test(o.e[1])&&/印を 閉じる/.test(o.f)&&J(o.g)===J(['f|tH|見本 太郎|r|10:49'])],
+          ['6:目標が 長い',o.h===''&&o.i===''&&o.j==='fire']],J(o));
+      });
+      /* 97w4（5.36.5 で 書き直した）：境目（ちょうどの 時刻）：線は 目標の 2倍・目標なし 15分・あとの 作業は 元の 作業の 目標を 見ずに 15分・朝 3:00 より 後なら 戻らない。線は 1つ（次の 回・締切の 関数は 無い） */
+      await tryT('97w4',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PW4','ws',stT()), o={}, dow=new Date().getDay();
+        try{
+          setWC(P,[tW({id:'tN',name:'次の 回',times:['10:00','10:30'],lead:0,grace:60,goal:5,items:[]}),tW({id:'tL',name:'前もって',times:['10:00','13:00'],lead:30,grace:200,goal:10,items:[]}),tW({id:'tD',name:'締切',times:['10:00'],lead:0,grace:30,goal:5,items:[]}),tW({id:'tG',name:'線',times:['10:00'],lead:0,grace:30,goal:20,items:[]}),
+            bW({id:'tB',name:'枠',goal:5,sch:undefined,sch7:[0,0,1,0,0,0,0]}),tW({id:'tK',name:'週1',times:['10:00'],lead:0,grace:30,goal:5,items:[],rep:{k:'w',d:dow}}),bW(Object.assign({id:'tA',name:'元',goal:20,after:{name:'あと',min:5,grace:5}},all7R)),bW(Object.assign({id:'tZ',name:'目標なし'},all7R))]); staff3(P); nxOn(P); clkT(P,14,0);
+          const T=(h,m,s,ms)=>hmsT(P,h,m,s,ms), S=T(10,0), past=(id,at,extra)=>String(ET(P,`amNxRunPast(Object.assign({k:'z',w:${J(id)},s:${S},by:''},${J(extra||{})}),${at})`));
+          o.next=[past('tN',T(10,9,59,999)),past('tN',T(10,10))]; o.none=[past('tZ',T(10,14,59,999)),past('tZ',T(10,15))]; o.line=[past('tG',T(10,39,59,999)),past('tG',T(10,40))];
+          o.af=[past('tA#af',T(10,14,59,999),{sa:new Date(S).toISOString()}),past('tA#af',T(10,15),{sa:new Date(S).toISOString()})];   /* 元の 作業 tA は 目標 20分。あとの 作業は 目標なし＝15分（テスの 壊した版 T21） */
+          const pastAt=(id,s0,at)=>String(ET(P,`amNxRunPast({k:'z',w:${J(id)},s:${s0},by:''},${at})`));
+          o.m3=[pastAt('tG',T(2,50),T(2,59,59)),pastAt('tG',T(2,50),T(3,30)),pastAt('tG',T(2,30),T(2,50))]; o.isL=String(ET(P,`amNxIsLong({k:'z',w:'tG',s:${S},by:''},${T(10,40)})`));
+          o.gone=[String(ET(P,'typeof amNxRunNext')),String(ET(P,'typeof amNxRunDue')),String(ET(P,'typeof amNxRunNextOn')),String(ET(P,'typeof amNxHoldN')),String(ET(P,'typeof amNxLongDone'))];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97w4','【境目】線は ちょうどから：目標 5分は 10分・目標 20分は 40分・目標なしは 15分・あとの 作業は 15分（T21）。朝 3:00 より 後なら 戻らない。長いも 同じ 線。次の 回・締切の 関数は 無い',[
+          ['1:目標 5分',J(o.next)===J(['false','true'])],['2:目標なし',J(o.none)===J(['false','true'])],['3:あとの 作業',J(o.af)===J(['false','true'])],['4:目標 20分',J(o.line)===J(['false','true'])],['5:朝 3:00',J(o.m3)===J(['false','false','false'])],['6:長いも 同じ',o.isL==='true'],['7:線は 1つ',o.gone.every(x=>x==='undefined')]],J(o));
+      });
+      /* 97w5：別の 人の ✓ を 前の 印の 済に しない（線の 後・3:00）・カードの 印の 順・閉じる 印は ✓ が 残っていても 押せる */
+      await tryT('97w5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PW5','ws',stT()), o={}, C=(id,x)=>tW(Object.assign({id,name:'見本 '+id,times:['13:00'],lead:0,grace:30,goal:10,items:IT.slice(0,2),ck:1},x||{}));
+        try{
+          setWC(P,[C('tC'),bW(Object.assign({id:'tX',name:'見本 別'},all7R))]); staff3(P); nxOn(P); clkT(P,13,0,30); P.ev(`amNxGo('tC','見本 花子')`); const kA=kOf(P,'tC');
+          clkT(P,13,40); P.ev(`amNxGo('tC','見本 太郎')`); const kB=kOf(P,'tC','見本 太郎');
+          o.ord=jpT(ET(P,`JSON.stringify(amNxRunsOrDorm('tC').map(r=>r.by))`),[]); P.ev(`amOpenArea('tC')`); o.ckTrb=String(ET(P,`(document.querySelector('#am-sheet .am-nx-trb')||{dataset:{}}).dataset.k||''`))===kB; P.ev('amCloseSheet()');
+          P.ev(`amNxCkOpen(${J(kA)})`); o.win=[qtT(P,'#nxa-ck .nxa-fin'), qnT(P,'#nxa-ck .nxa-fin[disabled]')]; P.ev('amNxShut()');
+          P.ev(`amOpenArea('tC')`); tap(P,'tC',0); tap(P,'tC',1); P.ev('amCloseSheet()');
+          clkT(P,14,30); P.ev(`amNxGo('tX','見本 次郎')`); P.ev(`amRunEnd(${J(kOf(P,'tX'))})`); o.line=[recS(P).filter(x=>/\|tC\|/.test(x)), runsL(P).filter(x=>/@tC$/.test(x))];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        const cl2=new V2.MemoryCloud(), Q=await mkT(cl2,'端末QW5','ws',stT());
+        try{
+          setWC(Q,[C('tD'),bW(Object.assign({id:'tX',name:'見本 別'},all7R))]); staff3(Q); nxOn(Q); clkT(Q,13,0,30); Q.ev(`amNxGo('tD','見本 花子')`); clkT(Q,13,40); Q.ev(`amNxGo('tD','見本 太郎')`); Q.ev(`amOpenArea('tD')`); tap(Q,'tD',0); tap(Q,'tD',1); Q.ev('amCloseSheet()');
+          clkT(Q,27,10); Q.ev(`amNxGo('tX','見本 次郎')`); Q.ev(`amRunEnd(${J(kOf(Q,'tX'))})`); o.three=[recS(Q).filter(x=>/\|tD\|/.test(x)).sort(), runsN(Q).filter(x=>/@tD$/.test(x))];
+        } finally { ET(Q,'amCloseSheet()'); Q.close(); }
+        checkLT('97w5','【別の 人の ✓（テス 壊した版 A7・A8・A26・A35）】線の 後も 3:00 でも 前の 印の 済に しない・カードの 印は 今の 回が 先・閉じる 印は ✓ が 無くても 押せる',[
+          ['1:順',J(o.ord)===J(['見本 太郎','見本 花子'])&&o.ckTrb===true],['2:閉じる 印は 押せる',/印を 閉じる/.test(o.win[0])&&o.win[1]===0],
+          ['3:線の 後',J(o.line[0])===J(['x|tC|見本 太郎||13:40'])&&J(o.line[1])===J(['見本 花子@tC'])],
+          ['4:3:00',o.three[0].length===2&&o.three[0].filter(x=>/^f\|tD\|見本 花子\|r\|13:20/.test(x)).length===1&&o.three[0].filter(x=>/^x\|tD\|見本 太郎\|\|13:40/.test(x)).length===1&&J(o.three[1])==='[]']],J(o));
+      });
+      /* 97w6：📊 の 押し忘れの 字 */
+      await tryT('97w6',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PW6','ws',stT()), o={};
+        try{
+          setWC(P,[tW({id:'tF',name:'見本 ゴミ',times:['10:00','13:00'],lead:0,grace:30,goal:10,items:[]})]); staff3(P); nxOn(P); clkT(P,10,1); P.ev(`amNxGo('tF','見本 花子')`); const kA=kOf(P,'tF'); clkT(P,13,40); P.ev(`amNxGo('tF','見本 太郎')`); P.ev(`amRunEnd(${J(kA)})`); o.rec=recS(P);
+          o.det=String(ET(P,`(()=>{ _who.tp='見本 花子'; const h=amWhoTimeHtml(staffList()); _who.tp=''; return h; })()`)).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97w6','【📊 の 字（壊した版 A32・5.36.5 テスの 字の 再現）】閉じた 印は 押し忘れに「押されないまま 残った」（1日1回でも 本当の 字）',[['1:字',/押し忘れ：/.test(o.det)&&/押されないまま 残った/.test(o.det)&&!/次の 回に 移った/.test(o.det)&&!/止まって だれでもに/.test(o.det)]],J(o));
+      });
+      /* 97w7：引き継ぎの 帯（テス △）：印が 残る 作業は 途中だけに 数える（おくれに 足さない）。印の 無い おくれは おくれ。札は どちらも 付く */
+      await tryT('97w7',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PW7','ws',stT()), o={}, W=(id,times,x)=>tW(Object.assign({id,name:'見本 '+id,times,lead:0,grace:30,goal:10,items:[]},x||{}));
+        try{
+          setWC(P,[W('tA',['12:00','20:00']),W('tB',['13:00','17:00','21:00']),W('tI',['15:00','22:00']),W('tJ',['15:00','22:00']),W('tZ',['20:30'])]); staff3(P); nxOn(P,['9:00','17:00','22:00']);
+          clkT(P,12,1); P.ev(`amNxGo('tA','見本 花子')`); clkT(P,13,1); P.ev(`amNxGo('tB','見本 太郎')`); clkT(P,16,50); P.ev(`amNxGo('tI','見本 次郎')`); P.ev(`amNxGo('tJ','見本 次郎')`);
+          clkT(P,22,1); rd(P); o.a=[qtT(P,'#nx-wrap .nxa-hob'), ['tA','tB','tI','tJ','tZ'].map(x=>/から/.test(String(ET(P,`(document.querySelector('#nx-wrap .nxa-it[data-w="${x}"] .nxa-ho')||{}).textContent||''`)))), qIds(P,'tA'), qIds(P,'tI')];
+          P.ev('state.amRun={}; amSave();'); rd(P); o.b=qtT(P,'#nx-wrap .nxa-hob');
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97w7','【引き継ぎの 帯（テス △）】印 4つ＋印の 無い おくれ 1つ＝5件（おくれ 1・途中 4）。同じ 印を 2回 数えない',[['1:数',/前の 時間から 5件/.test(o.a[0])&&/おくれ 1/.test(o.a[0])&&/途中 4/.test(o.a[0])],['2:札',o.a[1].every(x=>x===true)],['3:元の 状態',o.a[2]==='fire'&&o.a[3]==='soon'],['4:印が 無い',/前の 時間から 3件/.test(o.b)&&/おくれ 3/.test(o.b)]],J(o));
+      });
+      /* 97w8：あとの 作業と 時間帯の 週1：締切の 後に 出る。別の 人が 取って 終わった 後に 元の 人が 押すと 閉じるだけ（あとの 作業の 記録を 2件に しない）。だれも 取らなければ 記録 1件 */
+      await tryT('97w8',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末PW8','ws',stT()), o={}, dow=new Date().getDay(), A=(id,n)=>bW(Object.assign({id,name:n,goal:10,after:{name:n+' あと',min:5,grace:5}},all7R)), af=d=>recS(d).filter(x=>/#af\|/.test(x));
+        try{
+          setWC(P,[A('tA','見本 元'),A('tE','見本 元2'),bW({id:'tR',name:'見本 週1',goal:10,sch:undefined,sch7:[0,0,1,0,0,0,0],rep:{k:'w',d:dow}})]); staff3(P); nxOn(P); clkT(P,10,1);
+          P.ev(`amNxGo('tA','見本 花子')`); P.ev(`amNxGo('tE','見本 太郎')`); clkT(P,10,2); P.ev(`amRunEnd(${J(kOf(P,'tA'))})`); P.ev(`amRunEnd(${J(kOf(P,'tE'))})`); clkT(P,10,8);
+          const ids=jpT(ET(P,`JSON.stringify(amNxQueue().filter(x=>x.af).map(x=>x.id))`),[]), idA=ids.find(x=>/^tA/.test(x)), idE=ids.find(x=>/^tE/.test(x)); P.ev(`amNxGo(${J(idA)},'見本 花子')`); P.ev(`amNxGo(${J(idE)},'見本 太郎')`); P.ev(`amNxGo('tR','見本 次郎')`);
+          const kAf=kOf(P,'tA#af'), kEf=kOf(P,'tE#af'), has=id=>qK(P).some(x=>x.indexOf(id+':')===0);
+          clkT(P,10,20); rd(P); o.a=[has(idA), has(idE), has('tR')]; clkT(P,10,38,30); rd(P); o.b=[has(idA), has(idE), rowS(P,idA), has('tR')]; clkT(P,12,0,30); rd(P); o.c=[qIds(P,'tR'), rowS(P,'tR')];
+          P.ev(`amNxGo(${J(idA)},'見本 太郎')`); const kAf2=kOf(P,'tA#af','見本 太郎'); P.ev(`amRunEnd(${J(kAf2)})`); o.d=[af(P), has(idA)]; P.ev(`amNxCkOpen(${J(kAf)})`); o.e=qtT(P,'#nxa-ck .nxa-fin'); P.ev('amNxShut()'); P.ev(`amRunEnd(${J(kAf)})`); o.f=[af(P).sort(), has(idA)];
+          P.ev(`amRunEnd(${J(kEf)})`); o.g=[af(P).filter(x=>/tE#af/.test(x)), has(idE)];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97w8','【あとの 作業・時間帯の 週1】戻る 時刻まで 出ない（あとの 作業は 15分・週1 は 目標の 2倍）・その後に 出る（5.36 と 同じ）・別の 人が 取って 終わった 後は 元の 人の 押しは 閉じるだけ・だれも 取らなければ 記録 1件',[
+          ['1:線の 前',J(o.a)===J([false,false,false])],['2:線の 後',o.b[0]===true&&o.b[1]===true&&/見本 花子 の 印が 残っています/.test(o.b[2])&&o.b[3]===true],['3:週1',o.c[0]==='fire'&&/見本 次郎 の 印が 残っています/.test(o.c[1])],
+          ['4:次の 人',o.d[0].length===1&&/^x\|tA#af\|見本 太郎/.test(o.d[0][0])&&o.d[1]===false],['5:閉じる',/印を 閉じる/.test(o.e)&&o.f[0].length===2&&o.f[0].filter(x=>/^f\|tA#af\|見本 花子\|r/.test(x)).length===1&&o.f[1]===false],
+          ['6:だれも いない',o.g[0].length===1&&/^x\|tE#af\|見本 太郎/.test(o.g[0][0])&&o.g[1]===false]],J(o));
+      });
+
+      /* ===== 97x1〜97x5（5.36.5 テスの 5.36.4 点検から）：「だれでもに 戻る 時刻」は 5.36 の 式 1つ。戻る 時刻の 前も 後も、急ぐ順・おくれ・別の 人が 取れる事は 5.36 と 同じ。ちがうのは 印を 消さない事だけ。作り物の データだけ ===== */
+      /* 同じ 場面を 5.36（wsold536）と 今の 版に 入れて、1分ごとに 急ぐ順の 状態と 別の 人が 取れるかを 並べる。読むだけ（take の 時だけ 取って 記録の 時と 同じ 片付けを 呼ぶ） */
+      const swpT=(d,c)=>String(ET(d,`(()=>{ const hm=s=>{ const p=s.split(':').map(Number), x=new Date(); x.setHours(p[0],p[1],0,0); return x.getTime(); }, S=hm(${J(c.s)}), w=Object.assign({},${J(c.w)},{id:'wk'});
+        state.amWorks=[w]; state.amRun={}; Object.keys(state).filter(k=>/^amLog_/.test(k)).forEach(k=>delete state[k]); state.areaChecks={}; state.amCk={}; let rid='wk';
+        const rec=(t,x)=>{ const key=AM_LOG_PRE+amLogDay(t); if(!state[key]) state[key]={}; state[key]['r'+t]=Object.assign({w:'wk',at:new Date(t).toISOString(),by:'見本 他'},x||{}); state.areaChecks.wk=state.areaChecks.wk||[]; state.areaChecks.wk.push({at:new Date(t).toISOString(),by:'見本 他'}); };
+        ${c.rec?`rec(hm(${J(c.rec)}));`:''}
+        ${c.af?`const src=hm(${J(c.af)}); rec(src); state.amRun.u1={w:'wk#af',sa:new Date(src).toISOString(),s:new Date(S).toISOString(),by:'見本 花子',d:'x'}; rid=amNxAfId('wk',src);`:`state.amRun.u1={w:'wk',s:new Date(S).toISOString(),by:'見本 花子',d:'x'};`}
+        ${c.tick?`const kk=amCkKeys(amWork('wk')), ee={}; ee[kk[0]]=new Date(hm(${J(c.tick)})).toISOString(); state.amCk.wk=ee;`:''}
+        const res=[], end=S+${c.mins||300}*60000; let prev=null, took=false;
+        for(let now=S; now<=end; now+=60000){
+          const q=amNxQueue(now), x=q.find(i=>i.id===rid), free=amNxRunsOfId(rid,now).length===0, st=(x?(x.lock?'lock':x.k):'-')+'/'+(free?'free':'busy');
+          if(${c.take?'true':'false'}&&free&&!took&&now>S+${c.takeAfter||0}*60000){ took=true; state.amRun.u2=${c.af?`{w:'wk#af',sa:state.amRun.u1.sa,s:new Date(now).toISOString(),by:'見本 太郎',d:'y'}`:`{w:'wk',s:new Date(now).toISOString(),by:'見本 太郎',d:'y'}`}; amRunSettle(now); }
+          const h=new Date(now), lab=amHM(now); if(st!==prev){ res.push(lab+' '+st); prev=st; }
+        }
+        return res.join(' | '); })()`));
+      await tryT('97x4',async()=>{
+        const cl=new V2.MemoryCloud(), N=await mkT(cl,'端末NX4','ws',stT()), cl2=new V2.MemoryCloud(), O=await mkT(cl2,'端末OX4','wsold536',stT()), o={diff:[],n:0,ver:[]}, dow=new Date().getDay(), T=(ts,g,x)=>tW(Object.assign({times:ts,lead:0,grace:30,items:[]},g?{goal:g}:{},x||{})), B=(g,x)=>bW(Object.assign({sch:undefined,sch7:[0,0,1,1,0,0,0]},g?{goal:g}:{},x||{})), T3=['10:00','13:00','17:00'], CK=g=>({items:IT.slice(0,3),ck:1,goal:g});
+        const cs=[{w:T(['10:00'],10),s:'10:01'},{w:T(['10:00'],0),s:'10:29'},{w:T(['10:00'],60),s:'10:01'},{w:T(['10:00'],180),s:'10:01',mins:480},{w:T(T3,10),s:'12:50'},{w:T(T3,0),s:'13:20'},{w:B(10,{sch7:[0,1,1,1,0,0,0]}),s:'12:05',rec:'8:00'},{w:B(0),s:'12:30'},{w:oW({times:['10:00'],lead:0,grace:30}),s:'10:29'},{w:oW({times:T3,lead:0,grace:30}),s:'10:01'},
+          {w:T(['10:00'],10,{rep:{k:'w',d:dow}}),s:'10:01'},{w:B(10,{rep:{k:'w',d:dow}}),s:'10:01'},{w:T(['9:00'],10,{after:{name:'見本 あと',min:30,grace:30}}),s:'10:30',af:'9:00'},{w:T(['10:00'],10,CK(10)),s:'10:21',tick:'10:39'},{w:T(['10:00'],0,CK(0)),s:'10:21',tick:'10:30'},
+          {w:T(T3,10),s:'10:01',take:1},{w:T(['10:00'],10),s:'10:01',take:1},{w:B(10,{sch7:[0,1,1,1,0,0,0]}),s:'12:05',rec:'8:00',take:1},{w:T(['10:00'],10,CK(10)),s:'10:21',tick:'10:39',take:1,takeAfter:5},{w:T(['9:00'],10,{after:{name:'見本 あと',min:30,grace:30}}),s:'9:31',af:'9:00',take:1}];
+        try{
+          for(const d of [N,O]){ staff3(d); nxOn(d); clkT(d,14,0); } o.ver=[String(ET(N,'APP_VERSION')),String(ET(O,'APP_VERSION'))];
+          for(const c of cs){ const a=swpT(N,c), b=swpT(O,c); o.n++; if(a!==b||/エラー/.test(a)) o.diff.push({c:c.s,now:a,old:b}); }
+          o.sample=swpT(N,cs[6]); for(const d of [N,O]) d.ev('state.amRun={}; state.amWorks=[]; state.amCk={}; state.areaChecks={};');
+        } finally { N.close(); O.close(); }
+        checkLT('97x4','【5.36 と 1分ごとに 比べる（いちばん 大事）】作業の 種類 × 取った 時刻 '+o.n+' 場面：急ぐ順に 出る 時刻・おくれの 始まり・別の 人が 取れる 時刻が 全部 同じ（別の 人が 取った 後も）',[['1:版',o.ver[0]==='5.36.6'&&o.ver[1]==='5.36'],['2:場面',o.n===20],['3:差 0',o.diff.length===0],['4:時間帯の 抜け（12:26 に おくれ）',/12:2[56] fire\/free/.test(o.sample)]],J(o).slice(0,1500));
+      });
+      /* 97x1（テス × ①）：時間帯の 作業：8:00 に 記録 → 9〜12時は 記録なし → 12:05 に 取る → 押さない。12:25 に 戻って おくれ（5.36 と 同じ）。別の 人が 取れる・印は 残る・記録は 書かない */
+      await tryT('97x1',async()=>{
+        const res={};
+        for(const dir of ['ws','wsold536']){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末X1'+dir,dir,stT()), o={};
+          try{
+            setWC(P,[bW({id:'tB',name:'見本 床',goal:10,sch:undefined,sch7:[0,1,1,1,0,0,0]})]); staff3(P); nxOn(P); clkT(P,8,0); P.ev(`amNxGo('tB','見本 太郎')`); P.ev(`amRunEnd(${J(kOf(P,'tB'))})`); P.ev('amCloseSheet()');
+            clkT(P,12,5); o.m1205=qK(P); P.ev(`amNxGo('tB','見本 花子')`); clkT(P,12,24,30); P.ev('renderMapView()'); o.m1224=qK(P); clkT(P,12,26); P.ev('renderMapView()'); o.m1226=[qK(P), rowS(P,'tB').replace(/見本 [^ ]+ の .*?(残っています|途中)/,'印')]; clkT(P,13,0); P.ev('renderMapView()'); o.m1300=qK(P); o.fire=Number(ET(P,'amNxFireN()'));
+            o.ok=String(ET(P,'document.getElementById("nxa-col").textContent')).indexOf('間に合っています')<0; P.ev(`amNxGo('tB','見本 次郎')`); o.took=runsN(P); if(dir==='ws') o.kept=runsL(P).sort(); o.rec=fRec(P).filter(r=>r.t==='f').length;
+          } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
+        const n=res.ws, q=res.wsold536;
+        checkLT('97x1','【テス × ①】時間帯の 作業を 12:05 に 取って 押さない：12:25 まで 出ない・12:26 に おくれ・13:00 も おくれ・「間に合っています」と 出ない・別の 人が 取れる／5.36 と 同じ／印は 残る・押し忘れを 書かない',[
+          ['1:線の 前',J(n.m1224)==='[]'],['2:線の 後',J(n.m1226[0])===J(['tB:fire'])&&J(n.m1300)===J(['tB:fire'])&&n.fire>=1&&n.ok===true],['3:別の 人',J(n.took)===J(['見本 次郎@tB'])],
+          ['4:5.36 と 同じ',J(n.m1205)===J(q.m1205)&&J(n.m1224)===J(q.m1224)&&J(n.m1226[0])===J(q.m1226[0])&&J(n.m1300)===J(q.m1300)&&n.fire===q.fire&&J(n.took)===J(q.took)],
+          ['5:印は 残る',J(n.kept)===J(['見本 次郎@tB','見本 花子@tB'])&&n.rec===0&&q.rec===1]],J(res));
+      });
+      /* 97x2（テス × ②）：✓ を 入れ続けている 人：10:00・締切 30分・目標 10分・✓ 3つを 10:21 に 取り 10:39 に ✓。10:42 は 5.36 と 同じ（別の 人は 断る・本人の ✓ が 続く）。10:59 に 戻る。
+         本人の ✓ で また 数え直す（5.36 と 同じ）。別の 人が 取った 後の ✓ は 前の 印の 線を 動かさない（前の 印は 長いまま・「2人」と 出ない・枠に 数えない） */
+      await tryT('97x2',async()=>{
+        const res={}, W=()=>tW({id:'tF',name:'見本 ゴミ',times:['10:00'],lead:0,grace:30,goal:10,items:IT.slice(0,3),ck:1});
+        for(const dir of ['ws','wsold536']){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末X2'+dir,dir,stT()), o={};
+          try{
+            setWC(P,[W()]); staff3(P); nxOn(P); clkT(P,10,21); P.ev(`amNxGo('tF','見本 花子')`); const kA=kOf(P,'tF'); clkT(P,10,39); P.ev(`amNxCkOpen(${J(kA)})`); P.ev('_amNx.hold=0; amNxCkTap(0)');
+            clkT(P,10,42); P.ev('renderMapView()'); o.q42=qK(P); o.rows42=qnT(P,'#nxa-ck .nxa-ckr'); o.fin42=[qtT(P,'#nxa-ck .nxa-fin').replace(/\s+/g,'').slice(0,20), qnT(P,'#nxa-ck .nxa-fin[disabled]')]; P.ev('amNxShut()'); P.ev(`amNxGo('tF','見本 太郎')`); o.ref=[snT(P).indexOf('見本 花子')>=0, runsN(P)];
+            clkT(P,10,58,30); o.q58=qK(P); clkT(P,10,59,30); o.q59=qK(P); o.r59=runsN(P);
+            /* 本人の ✓ で 数え直す */
+            P.ev(`amNxCkOpen(${J(kA)})`); P.ev('_amNx.hold=0; amNxCkTap(1)'); P.ev('amNxShut()'); o.back=[qK(P), runsN(P)]; clkT(P,11,19,30); o.q1119=qK(P); clkT(P,11,20,30); o.q1120=qK(P);
+            /* 別の 人が 取って ✓ */
+            P.ev(`amNxGo('tF','見本 太郎')`); o.took=runsN(P); const kB=kOf(P,'tF','見本 太郎'); clkT(P,11,25); P.ev(`amNxCkOpen(${J(kB)})`); P.ev('_amNx.hold=0; amNxCkTap(2)'); P.ev('amNxShut()');
+            if(dir==='ws'){ o.afterT=[runsN(P), runsL(P).sort(), jpT(ET(P,'JSON.stringify(amNxHoldMap())'),{}), String(ET(P,`amHM(amNxClose(state.amRun[${J(kA)}]).at)`))]; P.ev('_amNx.lgOpen=true; renderMapView()'); o.wn=qnT(P,'#nx-wrap .wn'); P.ev(`amRunEnd(${J(kA)})`); o.shut=fRec(P).filter(r=>r.t==='f').map(r=>r.why+'|'+r.hm); o.shutS=snT(P); }
+            P.ev(`amRunEnd(${J(kB)})`); o.endB=fRec(P).filter(r=>r.t==='x').map(r=>r.by+'|'+r.ck);
+          } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
+        const n=res.ws, q=res.wsold536;
+        checkLT('97x2','【テス × ②】✓ を 入れ続けている 人：最後の ✓ から 目標の 2倍（10:59）まで 急ぐ順に 出ない・別の 人は 断る・本人の ✓ の 行が 残る／10:59 に 戻る／本人の ✓ で 数え直す／別の 人の ✓ は 前の 印を 戻さない／5.36 と 同じ',[
+          ['1:10:42',J(n.q42)==='[]'&&n.rows42===3&&n.fin42[1]===1&&n.ref[0]===true&&J(n.ref[1])===J(['見本 花子@tF'])],['2:10:59',J(n.q58)==='[]'&&n.q59.length===1&&J(n.r59)==='[]'],
+          ['3:✓ で 数え直す',J(n.back[0])==='[]'&&J(n.back[1])===J(['見本 花子@tF'])&&J(n.q1119)==='[]'&&n.q1120.length===1],
+          ['4:別の 人の ✓',J(n.afterT[0])===J(['見本 太郎@tF'])&&J(n.afterT[1])===J(['見本 太郎@tF','見本 花子@tF'])&&n.afterT[2]['見本 太郎']===1&&!n.afterT[2]['見本 花子']&&n.afterT[3]==='11:19'&&n.wn===0],
+          ['5:閉じる',J(n.shut)===J(['r|11:19'])&&/閉じました/.test(n.shutS)],['6:次の 人の 記録',J(n.endB)===J(['見本 太郎|3'])],
+          ['7:5.36 と 同じ',J(n.q42)===J(q.q42)&&n.rows42===q.rows42&&J(n.fin42)===J(q.fin42)&&J(n.ref)===J(q.ref)&&J(n.q58)===J(q.q58)&&J(n.q59)===J(q.q59)&&J(n.r59)===J(q.r59)&&J(n.back)===J(q.back)&&J(n.q1119)===J(q.q1119)&&J(n.q1120)===J(q.q1120)&&J(n.took)===J(q.took)&&J(n.endB)===J(q.endB)]],J(res));
+      });
+      /* 97x3：朝 3:00：線が 3:00 より 前＝戻る 時刻・why r で 1件／線が 3:00 より 後＝why 3（2:59）で 1件。3:00 までは 記録を 足しても 押し忘れを 書かない（別の 人が 取っても）。読むだけでは 書かない */
+      await tryT('97x3',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末X3','ws',stT()), o={};
+        try{
+          setWC(P,[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7R)),bW(Object.assign({id:'tN',name:'見本 床'},all7R)),bW(Object.assign({id:'tL',name:'見本 夜',goal:20},all7R)),bW(Object.assign({id:'tE',name:'見本 棚'},all7R)),bW(Object.assign({id:'tE2',name:'見本 窓'},all7R))]); staff3(P); nxOn(P);
+          clkT(P,18,0); P.ev(`amNxGo('tG','見本 花子')`); P.ev(`amNxGo('tN','見本 太郎')`);
+          clkT(P,20,0); P.ev(`amNxGo('tG','見本 次郎')`); P.ev(`amRunEnd(${J(kOf(P,'tG','見本 次郎'))})`); o.mid=[fRec(P).filter(r=>r.t==='f').length, runsL(P).sort()];
+          clkT(P,26,50); P.ev(`amNxGo('tL','見本 次郎')`);
+          clkT(P,26,59); P.ev('renderMapView()'); o.m259=runsL(P).length;
+          clkT(P,27,5); o.m305=[runsL(P).length, Object.keys(jpT(ET(P,'JSON.stringify(state.amRun)'),{})).length, fRec(P).filter(r=>r.t==='f').length];
+          P.ev(`amNxGo('tE','見本 次郎')`); P.ev(`amRunEnd(${J(kOf(P,'tE'))})`); o.after=[fRec(P).filter(r=>r.t==='f').map(r=>r.w+'|'+r.why+'|'+r.hm).sort(), Object.keys(jpT(ET(P,'JSON.stringify(state.amRun)'),{})).length];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97x3','【朝 3:00】3:00 までは 記録を 足しても 別の 人が 取っても 押し忘れを 書かない・3:00 の 後の 記録で 1件ずつ（線が 前＝why r・戻る 時刻／線が 後＝why 3・2:59）',[
+          ['1:昼は 書かない',o.mid[0]===0&&J(o.mid[1])===J(['見本 太郎@tN','見本 花子@tG'].sort())],['2:2:59',o.m259===3],['3:3:05 読むだけ',o.m305[0]===0&&o.m305[1]===3&&o.m305[2]===0],
+          ['4:1件ずつ',J(o.after[0])===J(['tG|r|18:20','tL|3|2:59','tN|r|18:15'])&&o.after[1]===0]],J(o));
+      });
+      /* 97x6：全部 ✓ の 印を 別の 人が 取る：取った 時の 片付けで 元の 印は 最後の ✓ の 時刻で 済。次の 人は 続ける（5.36 と 同じ 記録・同じ 印） */
+      await tryT('97x6',async()=>{
+        const res={};
+        for(const dir of ['ws','wsold536']){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末X6'+dir,dir,stT()), o={};
+          try{
+            setWC(P,[cW(Object.assign({id:'tC',name:'見本 点検',goal:10},all7R)),bW(Object.assign({id:'tE',name:'見本 棚'},all7R))]); staff3(P); nxOn(P); clkT(P,13,0); P.ev(`amNxGo('tC','見本 花子')`); clkT(P,13,4); P.ev(`amOpenArea('tC')`); tap(P,'tC',0); tap(P,'tC',1); P.ev('amCloseSheet()');
+            clkT(P,13,30); o.q=qK(P).filter(x=>/^tC:/.test(x)); P.ev(`amNxGo('tE','見本 次郎')`); P.ev(`amRunEnd(${J(kOf(P,'tE'))})`); P.ev('amCloseSheet()'); o.rec=recS(P); o.q2=qK(P).filter(x=>/^tC:/.test(x)); o.left=Object.keys(jpT(ET(P,'JSON.stringify(state.amRun)'),{})).length;
+          } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
+        checkLT('97x6','【全部 ✓ の 押し忘れ】戻る 時刻の 後の 記録で 最後の ✓ の 時刻で 済：5.36 と 同じ 記録・同じ 急ぐ順',[['1:済',res.ws.rec.some(x=>/^x\|tC\|見本 花子\|\|13:04/.test(x))&&res.ws.left===0],['2:5.36 と 同じ',J(res.ws)===J(res.wsold536)]],J(res));
+      });
+      /* 97x5：戻る 時刻の 前は 画面も 5.36 と 同じ（行の 字に「目標の ◯倍」や ⏳ を 出さない。✓ で 線が 動いた 印は 目標の 2倍を すぎても 長く ない） */
+      await tryT('97x5',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末X5','ws',stT()), o={};
+        try{
+          setWC(P,[cW(Object.assign({id:'tC',name:'見本 点検',goal:10},all7R))]); staff3(P); nxOn(P); clkT(P,13,0); P.ev(`amNxGo('tC','見本 花子')`); const k=kOf(P,'tC'); clkT(P,13,15); P.ev(`amOpenArea('tC')`); tap(P,'tC',0); P.ev('amCloseSheet()');
+          clkT(P,13,25); P.ev('renderMapView()'); o.a=[qtT(P,'#nx-wrap .nxa-rn'), qnT(P,'#nxa-lgf'), String(ET(P,`amNxLongX(amRunActive()[0],Date.now())`)), jpT(ET(P,'JSON.stringify(amNxHoldMap())'),{})];
+          clkT(P,13,36); P.ev('renderMapView()'); o.b=[qnT(P,'#nx-wrap .nxa-rn'), qtT(P,'#nxa-lgf'), String(ET(P,`amNxLongRuns().length`))];
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97x5','【線の 前の 画面】✓ で 線が 動いた 印：始めてから 25分（目標の 2.5倍）でも 長くない（字なし・たたまない・枠に 数える）。線の 後に たたむ',[
+          ['1:線の 前',!/目標の/.test(o.a[0])&&o.a[1]===0&&o.a[2]===''&&o.a[3]['見本 花子']===1],['2:線の 後',o.b[0]===0&&/長い 1件/.test(o.b[1])&&o.b[2]==='1']],J(o));
+      });
+
+      /* ===== 97y1〜97y9（5.36.6 テスの 5.36.5 点検から）：後の 人の 印が 消えても、前の 長い 印の 線は 動かない。取り消し・困った・押し忘れの 件数は 5.36 と 同じ。作り物の データだけ ===== */
+      const yW=x=>cW(Object.assign({id:'tC',name:'見本 点検',goal:30,items:[['い','直す'],['ろ','直す'],['は','直す']]},all7R,x||{})), yE=()=>bW(Object.assign({id:'tE',name:'見本 棚'},all7R));
+      const yAct=d=>jpT(ET(d,'JSON.stringify(amRunActive().map(r=>r.by+"@"+r.w).sort())'),[]), yAll=d=>jpT(ET(d,'JSON.stringify(Object.keys(state.amRun||{}).map(k=>state.amRun[k].by+"@"+state.amRun[k].w).sort())'),[]);
+      const yObs=d=>({q:qK(d).filter(x=>/^tC:/.test(x)), act:yAct(d), rec:recS(d)});
+      const yRec=d=>{ d.ev(`amNxGo('tE','見本 次郎')`); d.ev(`amRunEnd(${J(kOf(d,'tE'))})`); d.ev('amCloseSheet()'); };
+      const yTick=(d,n)=>{ d.ev(`amOpenArea('tC')`); for(let i=0;i<n;i++) tap(d,'tC',i); d.ev('amCloseSheet()'); };
+      const yPut=(d,k,y)=>{ d.ev(`_amNx.trbSrc={k:${J(k)},id:''}; amNxTrbPut(${J(y)})`); };
+      /* 97y1（テス ×）：10:01 A → 押さない → 11:05 B が 取り ✓ → B が 消える。形：取り消し・困った（手が 足りない／機械）・7秒の 取り消し × ✓1つ・✓全部。5.36 と 1字も 同じ 列・印・記録 */
+      await tryT('97y1',async()=>{
+        const res={}; const forms=[['cancel',1],['cancel',3],['te',1],['te',3],['kikai',1],['undo',1],['undo',3]];
+        for(const dir of ['ws','wsold536']){ const a=[];
+          for(const f of forms){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y1'+dir+f[0]+f[1],dir,stT()), o={};
+            try{
+              setWC(P,[yW(),yE()]); staff3(P); nxOn(P); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`); clkT(P,11,5); P.ev(`amNxGo('tC','見本 太郎')`); const kB=kOf(P,'tC','見本 太郎'); clkT(P,11,6); yTick(P,f[1]);
+              clkT(P,11,7); if(f[0]==='cancel') P.ev(`amRunCancel(${J(kB)})`); else if(f[0]==='undo') P.ev('amUndoLast()'); else yPut(P,kB,f[0]); P.ev('amCloseSheet()');
+              o.a=yObs(P); clkT(P,11,23); o.b=yObs(P); clkT(P,11,40); o.c=yObs(P); clkT(P,12,8); o.d=yObs(P); clkT(P,12,30); yRec(P); o.e=yObs(P); clkT(P,27,5); yRec(P); o.f=yObs(P); o.left=yAll(P);
+            } finally { ET(P,'amCloseSheet()'); P.close(); } a.push(o); }
+          res[dir]=a; }
+        const eq=forms.map((f,i)=>J(res.ws[i])===J(res.wsold536[i]));
+        const hana=res.ws.every(o=>!/見本 花子/.test(J(o.a.act))&&!o.f.rec.some(x=>/^x\|tC\|見本 花子/.test(x))&&o.f.rec.filter(x=>/^f\|tC\|見本 花子\|r\|11:01/.test(x)).length===1);
+        checkLT('97y1','【× 後の 人の ✓ の 後に 後の 印が 消える】取り消し・困った・7秒の 取り消し × ✓1つ・全部：前の 印は 取りかかり中に 戻らない・「済」に ならない・5.36 と 1字も 同じ',[
+          ['1:5.36 と 同じ '+eq.join(','),eq.every(Boolean)],['2:前の 人 戻らない・済に ならない・押し忘れ 1件',hana],['3:すぐ おくれで 出る（取り消し）',J(res.ws[0].a.q)===J(['tC:fire'])]],J(res.ws[1]));
+      });
+      /* 97y2（テス △）：本人が 長い 印を 取り消し・困った：別の 人が 取った 後は 押し忘れ 1件（5.36 の 件数）。だれも 取っていない 印は 今までどおり 残らない */
+      await tryT('97y2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y2','ws',stT()), o={};
+        try{
+          setWC(P,[yW(),yE()]); staff3(P); nxOn(P); P.ev(`window.confirm=m=>{ window.__cm=m; return true; }`); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`); const kA=String(ET(P,'Object.keys(state.amRun)[0]')); clkT(P,11,5); P.ev(`amNxGo('tC','見本 太郎')`);
+          clkT(P,11,10); P.ev(`amNxFix(${J(kA)})`); o.fix=qtT(P,'#am-sheet .nx-sh-f'); P.ev('amCloseSheet()'); P.ev(`amRunCancel(${J(kA)})`); P.ev('amCloseSheet()'); o.cm=String(ET(P,'window.__cm')); o.c=[recS(P), yAll(P)];
+          const c2=new V2.MemoryCloud(), Q=await mkT(c2,'端末Y2b','ws',stT()); try{
+            setWC(Q,[yW(),yE()]); staff3(Q); nxOn(Q); clkT(Q,10,1,30); Q.ev(`amNxGo('tC','見本 花子')`); const kA2=String(ET(Q,'Object.keys(state.amRun)[0]')); clkT(Q,11,5); Q.ev(`amNxGo('tC','見本 太郎')`); clkT(Q,11,10); yPut(Q,kA2,'te'); Q.ev('amCloseSheet()'); o.t=[recS(Q), yAll(Q)];
+            Q.ev('_amSnackFn()'); Q.ev('amCloseSheet()'); o.u=[recS(Q), yAll(Q)];
+          } finally { ET(Q,'amCloseSheet()'); Q.close(); }
+          const c3=new V2.MemoryCloud(), R=await mkT(c3,'端末Y2c','ws',stT()); try{
+            setWC(R,[yW(),yE()]); staff3(R); nxOn(R); R.ev(`window.confirm=m=>{ window.__cm=m; return true; }`); clkT(R,10,1,30); R.ev(`amNxGo('tC','見本 花子')`); const kA3=String(ET(R,'Object.keys(state.amRun)[0]')); clkT(R,11,10); R.ev(`amNxFix(${J(kA3)})`); o.fix3=qtT(R,'#am-sheet .nx-sh-f'); R.ev('amCloseSheet()'); R.ev(`amRunCancel(${J(kA3)})`); R.ev('amCloseSheet()'); o.cm3=String(ET(R,'window.__cm')); o.n=[recS(R), yAll(R)];
+          } finally { ET(R,'amCloseSheet()'); R.close(); }
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97y2','【△ 本人の 取り消し・困った】別の 人が 取った 後は 押し忘れ 1件（字も そう 言う）・困った は 取り消せる・だれも 取っていない 印は 記録なし',[
+          ['1:取り消し',J(o.c[0])===J(['f|tC|見本 花子|r|11:01'])&&J(o.c[1])===J(['見本 太郎@tC'])],['2:字',/押し忘れに 1件/.test(o.cm)&&/押し忘れに 1件 残る/.test(o.fix)],
+          ['3:困った',o.t[0].filter(x=>/^f\|tC\|見本 花子\|r\|11:01/.test(x)).length===1&&o.t[0].filter(x=>/^p\|tC\|見本 花子/.test(x)).length===1&&J(o.t[1])===J(['見本 太郎@tC'])],
+          ['4:困った の 取り消し',J(o.u[0])==='[]'&&J(o.u[1])===J(['見本 太郎@tC','見本 花子@tC'])],['5:だれも 取っていない',J(o.n[0])==='[]'&&J(o.n[1])==='[]'&&/記録は 残りません/.test(o.cm3)&&/記録は 残らない/.test(o.fix3)]],J(o));
+      });
+      /* 97y3（テス △）：⏳ の 行と 窓の ✓ の 数に 後の 人の ✓ を まぜない。後の 人の 行は 今までどおり 続きの 数 */
+      await tryT('97y3',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y3','ws',stT()), o={};
+        try{
+          setWC(P,[yW()]); staff3(P); nxOn(P); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`); const kA=String(ET(P,'Object.keys(state.amRun)[0]')); clkT(P,10,15); yTick(P,1); clkT(P,11,20); P.ev(`amNxGo('tC','見本 太郎')`); const kB=kOf(P,'tC','見本 太郎'); clkT(P,11,25); P.ev(`amOpenArea('tC')`); tap(P,'tC',1); tap(P,'tC',2); P.ev('amCloseSheet()');
+          P.ev('_amNx.lgOpen=true; renderMapView()'); const row=k=>String(ET(P,`(document.querySelector('#nx-wrap .nxa-rn[data-k="'+${J(k)}+'"]')||{}).textContent||''`)).replace(/\s+/g,' '); o.rA=row(kA); o.rB=row(kB);
+          P.ev(`_amNx.ck=${J(kA)}; renderMapView()`); o.wA=qtT(P,'#nxa-ck .meta'); o.fA=qtT(P,'#nxa-ck .nxa-fin'); P.ev(`_amNx.ck=${J(kB)}; renderMapView()`); o.wB=qtT(P,'#nxa-ck .meta'); P.ev(`_amNx.ck=''; _amNx.lgOpen=false; renderMapView()`);
+        } finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97y3','【△ ✓ の 数を 分ける】前の 人の 行と 窓は 線までの ✓（1）・後の 人は 3／3',[['1:行',/✓1\/3/.test(o.rA)&&/✓3\/3/.test(o.rB)],['2:窓',/✓ 1\/3/.test(o.wA)&&/✓ 3\/3/.test(o.wB)],['3:閉じる',/印を 閉じる/.test(o.fA)]],J(o));
+      });
+      /* 97y4：2台が 線の 前に 別々に 取り、片方が 終えた：もう片方は 押し忘れに しない（5.36 と 同じ 件数）。昼は ⏳ に 残り、閉じても 件数は 増えない。線の 後に 取った 形は 押し忘れ 1件 */
+      await tryT('97y4',async()=>{
+        const res={}, forms=[['before',10,10],['beforeLate',11,10],['after',0,0]];
+        for(const dir of ['ws','wsold536']){ const a=[];
+          for(const f of forms){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y4'+dir+f[0],dir,stT()), o={};
+            try{
+              setWC(P,[bW(Object.assign({id:'tC',name:'見本 点検',goal:30},all7R)),yE()]); staff3(P); nxOn(P); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`);
+              if(f[0]==='after'){ clkT(P,11,5); P.ev(`amNxGo('tC','見本 太郎')`); clkT(P,11,10); P.ev(`amRunEnd(${J(kOf(P,'tC','見本 太郎'))})`); }
+              else { clkT(P,10,5); P.ev(`state.amRun.u2={w:'tC',s:new Date().toISOString(),by:'見本 太郎',d:'y'}; amSave();`); clkT(P,f[1],f[2]); P.ev(`amRunEnd('u2')`); }
+              P.ev('amCloseSheet()'); clkT(P,11,20); yRec(P); o.mid=recS(P); clkT(P,14,0); yRec(P); clkT(P,27,5); yRec(P); o.end=recS(P); o.left=yAll(P);
+            } finally { ET(P,'amCloseSheet()'); P.close(); } a.push(o); }
+          res[dir]=a; }
+        const cl=new V2.MemoryCloud(), Q=await mkT(cl,'端末Y4b','ws',stT()), s={};
+        try{ setWC(Q,[bW(Object.assign({id:'tC',name:'見本 点検',goal:30},all7R)),yE()]); staff3(Q); nxOn(Q); clkT(Q,10,1,30); Q.ev(`amNxGo('tC','見本 花子')`); const kA=String(ET(Q,'Object.keys(state.amRun)[0]')); clkT(Q,10,5); Q.ev(`state.amRun.u2={w:'tC',s:new Date().toISOString(),by:'見本 太郎',d:'y'}; amSave();`); clkT(Q,10,10); Q.ev(`amRunEnd('u2')`); Q.ev('amCloseSheet()');
+          clkT(Q,11,20); s.long=runsL(Q); Q.ev(`_amNx.ck=${J(kA)}; renderMapView()`); s.win=qtT(Q,'#nxa-ck .grow'); s.fin=qtT(Q,'#nxa-ck .nxa-fin'); Q.ev(`amNxFinTap(${J(kA)})`); Q.ev('amCloseSheet()'); s.rec=recS(Q); s.left=yAll(Q);
+        } finally { ET(Q,'amCloseSheet()'); Q.close(); }
+        const eq=forms.map((f,i)=>J(res.ws[i].end)===J(res.wsold536[i].end)&&J(res.ws[i].left)===J(res.wsold536[i].left));
+        checkLT('97y4','【2台が 線の 前に 取る】片方が 終えたら もう片方は 押し忘れに しない・線の 後に 取った 形は 1件：朝の 記録が 5.36 と 同じ。昼の 印は 残り、閉じても 記録は 増えない',[
+          ['1:朝の 記録が 5.36 と 同じ '+eq.join(','),eq.every(Boolean)],['2:線の 前は 押し忘れ 0',!res.ws[0].end.some(x=>/^f\|tC/.test(x))&&!res.ws[1].end.some(x=>/^f\|tC/.test(x))],['3:線の 後は 1件',res.ws[2].end.filter(x=>/^f\|tC\|見本 花子\|r\|11:01/.test(x)).length===1],
+          ['4:昼は ⏳',J(s.long)===J(['見本 花子@tC'])],['5:閉じる',/印を 閉じる/.test(s.fin)&&!/押し忘れ/.test(s.win)&&!s.rec.some(x=>/^f\|tC/.test(x))&&J(s.left)==='[]']],J({res:res.ws,s}));
+      });
+      /* 97y5：電波なしの ✓ が、後の 人の「終わった」の 後に 届く：前の 印の 線は 動かない（5.36 と 同じ 列・印）。朝の 記録も 同じ */
+      await tryT('97y5',async()=>{
+        const res={};
+        for(const dir of ['ws','wsold536']){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y5'+dir,dir,stT()), o={};
+          try{
+            setWC(P,[yW(),yE()]); staff3(P); nxOn(P); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`); clkT(P,11,5); P.ev(`amNxGo('tC','見本 太郎')`); clkT(P,11,6); yTick(P,3); clkT(P,11,10); P.ev(`amRunEnd(${J(kOf(P,'tC','見本 太郎'))})`); P.ev('amCloseSheet()');
+            P.ev(`(()=>{ const kk=amCkKeys(amWork('tC')), e={}, d=new Date(); d.setHours(11,8,0,0); e[kk[0]]=d.toISOString(); state.amCk=state.amCk||{}; state.amCk.tC=e; amSave(); renderMapView(); })()`);
+            clkT(P,11,12); o.a=yObs(P); clkT(P,11,50); o.b=yObs(P); clkT(P,27,5); yRec(P); o.c=yObs(P); o.left=yAll(P);
+          } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
+        checkLT('97y5','【電波なしの ✓ が 後から 届く】前の 印は 取りかかり中に 戻らない・朝の 記録は 5.36 と 同じ',[['1:列・印・朝の 記録が 同じ',['ws','wsold536'].map(d=>J([res[d].a.q,res[d].a.act,res[d].b.q,res[d].b.act,res[d].c,res[d].left])).every((x,i,a)=>x===a[0])],['2:戻らない',!/見本 花子/.test(J(res.ws.a.act))&&!/見本 花子/.test(J(res.ws.b.act))]],J(res.ws));
+      });
+      /* 97y6：3人（A 長い・B ✓ して 長い・C）：C の 取り消しで A・B とも 5.36 と 同じ／B が 自分で 閉じても A の 線は 動かない */
+      await tryT('97y6',async()=>{
+        const res={};
+        for(const dir of ['ws','wsold536']){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y6'+dir,dir,stT()), o={};
+          try{
+            setWC(P,[yW(),yE()]); staff3(P); nxOn(P); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`); clkT(P,11,5); P.ev(`amNxGo('tC','見本 太郎')`); clkT(P,11,10); yTick(P,1); clkT(P,12,15); P.ev(`amNxGo('tC','見本 次郎')`); const kC=kOf(P,'tC','見本 次郎'); clkT(P,12,16); P.ev(`amOpenArea('tC')`); tap(P,'tC',1); P.ev('amCloseSheet()');
+            clkT(P,12,20); P.ev(`amRunCancel(${J(kC)})`); P.ev('amCloseSheet()'); o.a=yObs(P); clkT(P,12,40); o.b=yObs(P); clkT(P,27,5); yRec(P); o.c=yObs(P); o.left=yAll(P);
+          } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
+        const cl=new V2.MemoryCloud(), Q=await mkT(cl,'端末Y6b','ws',stT()), s={};
+        try{ setWC(Q,[yW(),yE()]); staff3(Q); nxOn(Q); clkT(Q,10,1,30); Q.ev(`amNxGo('tC','見本 花子')`); const kA=String(ET(Q,'Object.keys(state.amRun)[0]')); clkT(Q,11,5); Q.ev(`amNxGo('tC','見本 太郎')`); const kB=kOf(Q,'tC','見本 太郎'); clkT(Q,11,10); yTick(Q,1); clkT(Q,12,15); Q.ev(`amNxGo('tC','見本 次郎')`); clkT(Q,12,16); Q.ev(`amOpenArea('tC')`); tap(Q,'tC',1); Q.ev('amCloseSheet()');
+          clkT(Q,12,20); const l0=String(ET(Q,`amNxClose(state.amRun[${J(kA)}]).at`)); Q.ev(`amRunEnd(${J(kB)})`); Q.ev('amCloseSheet()'); s.same=l0===String(ET(Q,`amNxClose(state.amRun[${J(kA)}]).at`)); s.act=yAct(Q); s.all=yAll(Q); s.rec=recS(Q);
+        } finally { ET(Q,'amCloseSheet()'); Q.close(); }
+        checkLT('97y6','【3人】C の 取り消し：A・B とも 5.36 と 同じ。B が 閉じる：A の 線は 動かない',[['1:5.36 と 同じ',J(res.ws)===J(res.wsold536)],['2:押し忘れ 2件',res.ws.c.rec.filter(x=>/^f\|tC/.test(x)).length===2],['3:閉じても 線は 同じ',s.same===true&&J(s.act)===J(['見本 次郎@tC'])&&J(s.all)===J(['見本 次郎@tC','見本 花子@tC'])&&J(s.rec)===J(['f|tC|見本 太郎|r|12:10'])]],J({ws:res.ws,s}));
+      });
+      /* 97y7（テスの 壊した版で 捕まらなかった 1）：2台が 線の 前に 取った 時は、後の 人の ✓ でも 前の 印の 線は 動く（5.36 と 同じ）。線の 前の 取り消しは 前の 印を 閉じない */
+      await tryT('97y7',async()=>{
+        const res={};
+        for(const dir of ['ws','wsold536']){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y7'+dir,dir,stT()), o={};
+          try{
+            setWC(P,[yW(),yE()]); staff3(P); nxOn(P); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`); clkT(P,10,5); P.ev(`state.amRun.u2={w:'tC',s:new Date().toISOString(),by:'見本 太郎',d:'y'}; amSave();`); clkT(P,10,30); yTick(P,1); o.line=[]; for(const m of [[11,0],[11,10],[11,29],[11,31],[11,45]]){ clkT(P,m[0],m[1],30); o.line.push(yAct(P)); }
+            clkT(P,11,5); P.ev(`amRunCancel('u2')`); P.ev('amCloseSheet()'); o.c=[yAct(P), recS(P)];
+          } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
+        checkLT('97y7','【線の 前に 2台】後の 人の ✓ で 線が 動く・線の 前の 取り消しは 前の 印を 閉じない：5.36 と 同じ',[['1:同じ',J(res.ws)===J(res.wsold536)],['2:11:10 は 2人 とも',res.ws.line[1].length===2],['3:11:31 は 外れる',res.ws.line[3].length===0],['4:閉じない',J(res.ws.c[0])===J(['見本 花子@tC'])&&J(res.ws.c[1])==='[]']],J(res.ws));
+      });
+      /* 97y8（テスの 壊した版で 捕まらなかった 2）：📊 の 取りかかり中の 数に 長い 印を 足す */
+      await tryT('97y8',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y8','ws',stT()), o={};
+        try{ setWC(P,[yW(),yE()]); staff3(P); nxOn(P); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`); clkT(P,11,5); P.ev(`amNxGo('tE','見本 太郎')`); clkT(P,11,6); o.t=String(ET(P,'amWhoNxToday(Date.now(),staffList())')).replace(/<[^>]+>/g,' ').replace(/\s+/g,' '); }
+        finally { ET(P,'amCloseSheet()'); P.close(); }
+        checkLT('97y8','【📊 の 数】動いている 1＋長い 1 ＝「2 取りかかり中 うち 長い 1」',[['1:数',/2 取りかかり中 うち 長い 1/.test(o.t)]],o.t.slice(0,300));
+      });
+      /* 97y9：新しい 画面が オフの 店：後の 印の 取り消しで 前の 印を 閉じない（5.36 と 保存が 1字も 同じ） */
+      await tryT('97y9',async()=>{
+        const res={};
+        for(const dir of ['ws','wsold536']){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y9'+dir,dir,stT()), o={};
+          try{
+            setWC(P,[yW(),yE()]); staff3(P); P.ev(`state.amNx={}; amSave();`); clkT(P,10,1,30); P.ev(`state.amRun={u1:{w:'tC',s:new Date().toISOString(),by:'見本 花子',d:'x'}}; amSave();`); clkT(P,11,5); P.ev(`state.amRun.u2={w:'tC',s:new Date().toISOString(),by:'見本 太郎',d:'y'}; amSave();`); clkT(P,11,7); P.ev(`amRunCancel('u2')`); P.ev('amCloseSheet()'); o.r=ET(P,'JSON.stringify([state.amRun,Object.keys(state).filter(k=>/^amLog_/.test(k)).map(k=>state[k])])');
+          } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
+        checkLT('97y9','【オフの 店】取り消しの 保存は 5.36 と 1字も 同じ',[['1:同じ',String(res.ws.r).replace(/\.\d{3}Z/g,'Z')===String(res.wsold536.r).replace(/\.\d{3}Z/g,'Z')&&/u1/.test(res.ws.r)]],J(res.ws));
+      });
+      /* 97y10：✓ が 全部 入った 印に、片付けの 前に 別の 端末の 印が 届き、その 印が 取り消された：前の 印は 最後の ✓ の 時刻で 済（5.36 と 同じ。押し忘れに しない） */
+      await tryT('97y10',async()=>{
+        const res={};
+        for(const dir of ['ws','wsold536']){ const cl=new V2.MemoryCloud(), P=await mkT(cl,'端末Y10'+dir,dir,stT()), o={};
+          try{
+            setWC(P,[yW(),yE()]); staff3(P); nxOn(P); clkT(P,10,1,30); P.ev(`amNxGo('tC','見本 花子')`); clkT(P,10,10); yTick(P,3); clkT(P,11,20); P.ev(`state.amRun.u2={w:'tC',s:new Date().toISOString(),by:'見本 太郎',d:'y'}; amSave();`); clkT(P,11,22); P.ev(`amRunCancel('u2')`); P.ev('amCloseSheet()'); o.a=yObs(P); o.left=yAll(P);
+          } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
+        checkLT('97y10','【全部 ✓ の 印】後の 印の 取り消しで 最後の ✓ の 時刻で 済：5.36 と 同じ',[['1:同じ',J(res.ws)===J(res.wsold536)],['2:済',res.ws.a.rec.some(x=>/^x\|tC\|見本 花子\|\|10:10/.test(x))&&!res.ws.a.rec.some(x=>/^f\|/.test(x))]],J(res));
       });
 
       /* ===== 97k1（5.34・5.33 テスの △）：① 390×844 で 2番目以降は 最初の 名前、🔒 は 案内が 見える（✓できる 時間より 優先）
@@ -7184,7 +7859,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           const wraps=()=>jpT(ET(P,`JSON.stringify((()=>{ const times=Array.from(document.querySelectorAll('.nxa-it .tm b,.nxa-ckw b')).filter(b=>b.textContent.trim()); return {times:times.length>0&&times.every(b=>{ const r=document.createRange(); r.selectNodeContents(b); return r.getClientRects().length===1&&getComputedStyle(b).whiteSpace==='nowrap'; }), late:Array.from(document.querySelectorAll('.nxa-ckw em.lt')).every(e=>getComputedStyle(e).display==='block')}; })())`),{});
           win('tA'); o.wrap390=wraps();
           P.ev('isAdmin=true; amNxCfgOpen()');
-          o.toolbox=jpT(ET(P,`JSON.stringify((()=>{ const e=document.getElementById('nx-opt-keep'), note=e&&e.nextElementSibling, b=e&&e.querySelector('button'); const r=document.createRange(); if(b) r.selectNodeContents(b); return {note:note?note.textContent:'', one:!!b&&r.getClientRects().length===1&&b.scrollWidth<=b.clientWidth+1}; })())`),{}); P.ev('amCloseSheet()');
+          o.toolbox=jpT(ET(P,`JSON.stringify((()=>{ const note=document.getElementById('nx-keep-note'); return {note:note?note.textContent:'', sw:!!document.getElementById('nx-opt-keep'), ver:(document.getElementById('nx-version')||{}).textContent||''}; })())`),{}); P.ev('amCloseSheet()');
           P.f.style.width='768px'; P.f.style.height='900px'; await sleep(200); P.ev('renderMapView()');
           win('tB'); o.wrap768=wraps();
         } finally { ET(P,'amNxShut()'); ET(P,'amCloseSheet()'); }
@@ -7196,7 +7871,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             ['4:もうすぐ・🔒 には 出さない',o.wC.lt===''&&o.wE.lt===''&&o.wK.lt===''],
             ['5:🔒 の 文',/前の 記録から 60分 あける/.test(o.wK.w||'')&&/15:30〜/.test(o.wK.w||'')&&/時刻の 前/.test(o.wE.w||'')&&!/あける/.test(o.wE.w||'')],
             ['6:時刻は 1行・おくれは 別の行（390・768）',o.wrap390.times&&o.wrap390.late&&o.wrap768.times&&o.wrap768.late],
-            ['7:🧰 の keep は 諦める 無し・ボタンは 1行',!!o.toolbox&&/✓ 終わった・名前／取り消し・困った/.test(o.toolbox.note)&&!/諦める/.test(o.toolbox.note)&&o.toolbox.one]],
+            ['7:🧰 の 取りかかり中は 説明だけ（切りかえ なし・諦める 無し・版の 字）',!!o.toolbox&&/✓ 終わった・名前／取り消し・困った/.test(o.toolbox.note)&&!/諦める/.test(o.toolbox.note)&&o.toolbox.sw===false&&o.toolbox.ver==='v5.36.5']],
           `q ${J(o.q)}｜w ${J([o.wA,o.wB,o.wC,o.wE,o.wK])}｜v ${J(o.v)}｜wrap ${J([o.wrap390,o.wrap768])}｜toolbox ${J(o.toolbox)}`);
         P.close();
       });
@@ -7277,7 +7952,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.pending=D.map(d=>d.store.status().pending);
         } finally { for(const d of D){ d.be.setOnline(true); ET(d,'amCloseSheet()'); d.close(); } }
         checkLT('97v1','【5.36 種類と 色】鮮度管理・同名は1つ・8色と解除・c だけ保存・管理者だけ・登録の札と390px折り返し・2台で別の欄・5.31と往復',[
-          ['1:基本と鮮度',o.ver==='5.36'&&o.base===true&&o.gv===true&&o.once===true],
+          ['1:基本と鮮度',o.ver==='5.36.6'&&o.base===true&&o.gv===true&&o.once===true],
           ['2:足して8色',o.add===true&&o.pal===true],['3:c だけ・札と輪',o.only===true&&o.set===true&&o.stamp===true&&o.ring===true],
           ['4:もとの色',o.clear===true],['5:管理者だけ',o.na===true],['6:登録の札',o.chips===true&&o.wrap===true&&o.pick===true&&o.saved===true],
           ['7:別の欄が両方残る',o.merge.every(Boolean)],['8:5.31と往復',o.old===true&&o.round.every(Boolean)&&o.pending.every(n=>n===0)]],J(o));
