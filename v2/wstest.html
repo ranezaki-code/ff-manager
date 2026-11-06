@@ -52,11 +52,57 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     for(const d of [A,B]) d.ev('window.__ft0=amFireTop; amFireTop=function(){ return null; }');   // 5.8：🔥 の案内（カードの名前のボタンが灰色になる）は 試験71 で試す。名前のボタンを押す ほかの試験（35・58・64 など）は、案内を止めた形（5.7 と同じ）で流す
     await sync();
 
+    // 5.37：登録と種類ごとの順を、実際のボタンで検査する。
+    const mergedOrder=A.ev(`(function(){
+      const old=state.amWorks, tags=state.amTags, admin=isAdmin, save=amSave, draw=renderMapView, nx=amNxOn, undo=_amSeqUndo;
+      const out=[], test=(name,ok)=>out.push({name,ok:!!ok}), q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
+      const seed=()=>{ state.amWorks=[{id:'merge-a',name:'Sample A',icon:'🧪',kind:'点検',seq:1000,sch7:[1,0,0,0,0,0,0]},{id:'merge-b',name:'Sample B',kind:'点検',seq:2000,sch7:[1,0,0,0,0,0,0]},{id:'merge-c',name:'Sample C',kind:'点検',seq:3000,sch7:[1,0,0,0,0,0,0]},{id:'merge-d',name:'Sample D',kind:'清掃',seq:4000,sch7:[1,0,0,0,0,0,0]}]; _amRg.q='';_amRg.kind='';_amRg.sort='seq';_amPeek='all';_amRg.open='';_nxo.mv=''; };
+      let saves=0; isAdmin=true; amNxOn=()=>true; amSave=()=>{saves++;}; renderMapView=()=>{};
+      const tap=s=>{ _amfHold=0; q(s).click(); };
+      const snap=()=>JSON.stringify(state.amWorks.map(w=>[w.id,w.seq]));
+      try{
+        amCloseSheet(); seed(); const before=JSON.stringify(state); amNxOrderPanel(); amOpenWorks();
+        test('入口・種類の見出し・閉じた①・旧ボタンなし',amSheetName()==='works'&&qa('#nxo-works .nxo-gh').length===2&&q('#rg-kind-order')?.tagName==='DETAILS'&&!q('#rg-kind-order').open&&!q('#nxo-open3'));
+        test('開く・描くだけでstateも保存回数も変わらない',before===JSON.stringify(state)&&saves===0);
+        test('種類の中の番号',qa('#nxo-works .nxo-i').map(e=>e.textContent).join(',')==='1,2,3,1');
+        test('閉じた行に回数のマスなし',!q('#nxo-works .rg-bands')&&!q('#nxo-works .rg-steps'));
+        amRgTap('merge-a'); test('開くと7つの−＋と鉛筆と複製',qa('#nxo-works .rg-step').length===7&&qa('#nxo-works .rg-step button').length===14&&!!q('#nxo-works [onclick*="amEdTap"]')&&!!q('#nxo-works [onclick*="amRgDup"]'));
+        tap('#nxo-works .rg-step button:last-child'); test('＋の保存',amWork('merge-a').sch7[0]===2&&JSON.stringify(amWork('merge-a').sch)===JSON.stringify(amSchFold([2,0,0,0,0,0,0])));
+        tap('#nxo-works .rg-step button'); test('−の保存',amWork('merge-a').sch7[0]===1);
+        for(const [name,run,selector] of [
+          ['上へ',()=>amNxWMove('merge-b',-1),'[data-row="merge-b"] .nxo-b[aria-label="上へ"]'],
+          ['下へ',()=>amNxWMove('merge-b',1),'[data-row="merge-b"] .nxo-b[aria-label="下へ"]'],
+          ['上と同じ',()=>amNxWSame('merge-b'),'[data-row="merge-b"] .nxo-same']]){
+          seed(); run(); const expected=snap(); seed(); amOpenWorks(); tap(selector); test(name+'は前の保存関数と同じseq',snap()===expected);
+        }
+        seed(); amNxWPlace('merge-c',0); const placed=snap(); seed(); amOpenWorks(); tap('[data-row="merge-c"] button.nxo-i'); tap('#nxo-works .nxo-here'); test('ここへは前と同じseq',snap()===placed);
+        seed(); const tag0=state.amTags; amTagMove('清掃',-1); const tagExpected=JSON.stringify(state.amTags); state.amTags=tag0; amOpenWorks(); tap('#nxo-tags [data-k="清掃"][aria-label="上へ"]'); test('①の↑は前と同じ種類の順',JSON.stringify(state.amTags)===tagExpected);
+        const tag1=state.amTags; amTagMove('清掃',1); const tagDown=JSON.stringify(state.amTags); state.amTags=tag1; amOpenWorks(); q('#rg-kind-order').open=true; tap('#nxo-tags [data-k="清掃"][aria-label="下へ"]'); test('①の↓は前と同じ順・開いたまま',JSON.stringify(state.amTags)===tagDown&&q('#rg-kind-order').open);
+        for(const mode of ['filter','search','name','kind','time']){
+          seed(); if(mode==='filter')_amPeek='floor'; if(mode==='search')_amRg.q='🧪'; if(mode==='name'||mode==='time')_amRg.sort=mode; if(mode==='kind')_amRg.kind='点検'; if(mode==='search')amRgQ(_amRg.q); else amOpenWorks();
+          test(mode+'は順の操作なし・知らせ1行',!q('#am-sheet .nxo-same,#am-sheet .nxo-b,#am-sheet .nxo-here,#am-sheet button.nxo-i')&&qa('.rg-order-note').length===1&&q('.rg-order-note').textContent==='並べかえは、絞りとさがすを外して、やる順の時にできます');
+          if(mode==='search'||mode==='kind')test(mode+'は見える種類だけ',qa('#nxo-works .nxo-gh').length===1);
+        }
+        seed(); amRgQ('no-match-537'); test('0件は見出しなし・知らせと絞りを外す',!q('#nxo-works .nxo-gh')&&!!q('.rg-none [onclick="amRgClear()"]')&&!!q('.rg-order-note'));
+        seed(); amOpenWorks(); const frame=window.frameElement, width=frame.style.width; frame.style.width='390px';
+        for(const w of [390,1280]){
+          frame.style.width=w+'px'; const modal=q('#am-sheet .am-modal');
+          test(w+'幅で横にはみ出さない',modal.scrollWidth<=modal.clientWidth+1&&qa('#nxo-works .nxo-r').every(r=>r.scrollWidth<=r.clientWidth+1));
+          test(w+'幅で行と押せる所44px以上',qa('#nxo-works .nxo-r,#nxo-works button').every(e=>e.getBoundingClientRect().height>=44));
+          _amRg.open='merge-a'; _nxo.mv='merge-c'; amOpenWorks(); q('#rg-kind-order').open=true;
+          test(w+'幅で展開・ここへ・①もはみ出さない',q('#am-sheet .am-modal').scrollWidth<=q('#am-sheet .am-modal').clientWidth+1&&qa('#am-sheet .nxo-r,.rg-ex').every(r=>r.scrollWidth<=r.clientWidth+1));
+          _amRg.open=''; _nxo.mv=''; amOpenWorks();
+        } frame.style.width=width;
+      } finally { amCloseSheet(); state.amWorks=old;state.amTags=tags;isAdmin=admin;amSave=save;renderMapView=draw;amNxOn=nx;_amSeqUndo=undo;_amRg.q='';_amRg.kind='';_amRg.sort='seq';_amPeek='all';_amRg.open='';_nxo.mv=''; }
+      return out;
+    })()`);
+    mergedOrder.forEach((r,i)=>check('merge'+(i+1),'【登録にまとめる】'+r.name,r.ok));
+
     // 5.36.9：保存・描画を控えにして、実関数を作り物だけで検査する。
     const sameOrder=A.ev(`(function(){
-      const old=state.amWorks, admin=isAdmin, save=amSave, draw=renderMapView, panel=amNxOrderPanel, snack=amSnack, sheet=amSheetName, undo=_amSeqUndo;
+      const old=state.amWorks, admin=isAdmin, save=amSave, draw=renderMapView, panel=amNxOrderPanel, snack=amSnack, sheet=amSheetName, undo=_amSeqUndo, nx=amNxOn;
       const out=[], test=(name,ok)=>out.push({name,ok:!!ok}), seed=()=>{ state.amWorks=[{id:'so-z',name:'見本A',kind:'sample',seq:1000},{id:'so-y',name:'見本B',kind:'sample',seq:2000},{id:'so-a',name:'見本C',kind:'sample',seq:2000},{id:'so-b',name:'見本D',kind:'sample',seq:3000}]; }, sq=id=>amSeqOf(amWork(id));
-      let saves=0; isAdmin=true; amSave=()=>{saves++;}; renderMapView=()=>{}; amNxOrderPanel=()=>{}; amSnack=()=>{}; amSheetName=()=>'';
+      let saves=0; amNxOn=()=>true; isAdmin=true; amSave=()=>{saves++;}; renderMapView=()=>{}; amNxOrderPanel=()=>{}; amSnack=()=>{}; amSheetName=()=>'';
       try{
         seed(); const before=JSON.stringify(state), L=amNxOrdered();
         test('同順位は登録順',L.map(x=>x.id).join(',')==='so-z,so-y,so-a,so-b');
@@ -82,7 +128,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const q=[{id:'todo',w:amWork('so-z'),tr:0,k:'todo',aft:0,s:{tm:true,slot:{s:1}}},{id:'late-new',w:amWork('so-y'),tr:0,k:'fire',aft:0,s:{tm:true,slot:{s:3}}},{id:'late-old',w:amWork('so-b'),tr:0,k:'fire',aft:0,s:{tm:true,slot:{s:2}}}];
         test('おくれ→時間帯は変わらない',amNxTabQueue(q,Date.now()).map(x=>x.id).join(',')==='late-old,late-new,todo');
         seed(); state.amWorks.forEach((w,i)=>{w.seq=(i+1)*1000;}); test('全部違う順は前と差0',amNxOrdered().map(x=>x.id).join(',')==='so-z,so-y,so-a,so-b');
-      } finally { state.amWorks=old; isAdmin=admin; amSave=save; renderMapView=draw; amNxOrderPanel=panel; amSnack=snack; amSheetName=sheet; _amSeqUndo=undo; }
+      } finally { state.amWorks=old; isAdmin=admin; amSave=save; renderMapView=draw; amNxOrderPanel=panel; amSnack=snack; amSheetName=sheet; _amSeqUndo=undo; amNxOn=nx; }
       return out;
     })()`);
     sameOrder.forEach((r,i)=>check('same'+(i+1),'【同じ順】'+r.name,r.ok));
@@ -4870,7 +4916,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { P.ev('isAdmin=false; amCloseSheet(); window.confirm=()=>true'); }
         const m=a=>J((a||[]).map(x=>x.join(':')));
         checkLT('97zt9','【🧰 押せる 時間を 0分に】30分前からの 時刻の作業だけ（売場以外・売場・lead の 無い 作業）・60分・時間帯・もう 0 の 作業は 出ない・開いただけでは 書かない・□ で 外した 作業は 変えない・「いいえ」なら 書かない・はい → lead:0・ld0:30・1件ずつ／全部 元に 戻す（ld0 は 消える）・2台 同じ',[
-            ['1:🧰 に ボタン',o.btn===1],['2:一覧',o.list==='f30,o30,oNo'&&/60分（60分前から）/.test(o.oth)],['3:□ で 外す',/2件を 0分に する/.test(o.go)],
+            ['1:🧰 に ボタン',o.btn===0],['2:一覧',o.list==='f30,o30,oNo'&&/60分（60分前から）/.test(o.oth)],['3:□ で 外す',/2件を 0分に する/.test(o.go)],
             ['4:開いただけ・いいえ → 書かない',o.cancel[0]===true&&o.cancel[1]===true],
             ['5:はい → 0 と 前の値',m(o.after)===J(['o30:0:30','o60:60:-','oNo:-:-','f30:0:30','fB:-:-','o0:0:-'])&&o.back===2],
             ['6:1件 戻す',m(o.u1)===J(['o30:30:-','o60:60:-','oNo:-:-','f30:0:30','fB:-:-','o0:0:-'])],
@@ -5769,8 +5815,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           const s0=J(jpT(ET(P,'JSON.stringify(amWorks().map(w=>w.seq===undefined?null:w.seq))'),[])); P.ev(`amNxWMove('w2',-1)`); o.mv=nxQ(P).slice(0,2);
           P.ev('amSeqUndoRun()'); o.undo=[J(jpT(ET(P,'JSON.stringify(amWorks().map(w=>w.seq===undefined?null:w.seq))'),[]))===s0, J(nxQ(P).slice(0,2))];
         } finally { ET(P,'isAdmin=false; amCloseSheet()'); }
-        checkLT('97na8','【管理者】オフ＝種類の 窓に ↑↓ なし・登録の 表に「↕ やる順」なし／オン＝↑↓（いちばん上の ↑ は 押せない）・↕ やる順・やる順の 窓（種類 9・作業 3）・二を 上へ → 元に 戻す',[
-            ['1:オフ',J(o.off)==='[0,0]'],['2:オン',o.on[0]===10&&o.on[1]===1&&o.btn===1],['3:窓',o.ord[0]==='nxord'&&o.ord[1]===10&&o.ord[2]===3],['4:動かす',J(o.mv)==='["w2","w1"]'],['5:戻す',o.undo[0]===true&&o.undo[1]==='["w1","w2"]']],
+        checkLT('97na8','【管理者】オフ＝種類の 窓に ↑↓ なし・登録の 表に「↕ やる順」なし／オン＝↑↓（いちばん上の ↑ は 押せない）・登録にまとめた 窓（種類 10・作業 3）・二を 上へ → 元に 戻す',[
+            ['1:オフ',J(o.off)==='[0,0]'],['2:オン',o.on[0]===10&&o.on[1]===1&&o.btn===1],['3:窓',o.ord[0]==='works'&&o.ord[1]===10&&o.ord[2]===3],['4:動かす',J(o.mv)==='["w2","w1"]'],['5:戻す',o.undo[0]===true&&o.undo[1]==='["w1","w2"]']],
           `off ${J(o.off)}｜on ${J(o.on)} ${o.btn}｜ord ${J(o.ord)}｜mv ${J(o.mv)}｜undo ${J(o.undo)}`);
         P.close();
       });
