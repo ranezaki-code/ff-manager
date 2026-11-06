@@ -3068,6 +3068,18 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .am-reg.nxo .rg-order-note{padding:8px 4px;font-size:14px}
 .am-reg.nxo .nxo-gh{overflow-wrap:anywhere;min-width:0}
 .am-reg.nxo .rg-ex{min-width:0}
+@media(max-width:599px){
+.am-reg.nxo #nxo-works .nxo-r{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;grid-template-rows:auto 44px;gap:0 4px;padding:0 4px}
+.am-reg.nxo #nxo-works .rg-nx-tg{display:flex;grid-area:1/1/3/5;align-self:stretch;align-items:flex-start;width:100%;min-width:0;padding:2px 0 46px}
+.am-reg.nxo #nxo-works .rg-nm{flex:1;min-width:0}
+.am-reg.nxo #nxo-works .nxo-i{grid-area:2/1;position:relative}
+.am-reg.nxo #nxo-works .nxo-same{grid-area:2/2;justify-self:end;position:relative}
+.am-reg.nxo #nxo-works .nxo-b{grid-row:2;position:relative}
+.am-reg.nxo #nxo-works .nxo-b[aria-label="上へ"]{grid-column:3}
+.am-reg.nxo #nxo-works .nxo-b[aria-label="下へ"]{grid-column:4}
+.am-reg.nxo #nxo-works .nxo-here{grid-area:2/3/3/5;position:relative}
+.am-reg.nxo #nxo-works .rg-tm{width:auto;max-width:100%;white-space:normal;overflow-wrap:anywhere;flex-shrink:1}
+}
 /* 5.27：困った（右の 列の 赤い帯・✓ の 窓の「困った」・理由の 窓・管理者の 一覧）と 交代の 引き継ぎ（札・上の 1行） */
 .nxa .nxa-trb{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 14px 8px 10px;border:3px solid var(--late);border-radius:8px;background:#FFF4F2;width:100%;flex:none;box-shadow:0 0 0 3px #FBE1DE}
 .nxa .nxa-trb .ex,.nxt .ex{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;background:#D62B1F;color:#fff;font-size:28px;font-weight:900;line-height:1}
@@ -12850,7 +12862,7 @@ function amToolsHtml(){
     <button type="button" class="btn-secondary" id="snd-toggle" onclick="amSndToggle()" aria-pressed="${on}">🔔 おくれの音：${on?'入':'切'}</button>
     <button type="button" class="btn-secondary" id="tg-open" onclick="amTagPanel()">🏷 作業の 種類（${amTagAll().filter(t=>!t.del&&!t.hide).length}）</button>
     <button type="button" class="btn-secondary" id="ld0-open" onclick="_ld0.msg='';_ld0.off={};amLd0Panel()">⏱ 押せる 時間を 0分に</button>
-    <button type="button" class="btn-secondary" id="nx-cfg-open" onclick="amNxCfgOpen()">🆕 新しい 画面：${amNxOn()?'オン':'オフ'}</button>${amNxOn()?'<button type="button" class="btn-secondary" id="nxo-open" onclick="amNxOrderPanel()">↕ やる順（種類 → 作業）</button>'+(amGvOn()?`<button type="button" class="btn-secondary" id="gv-all" onclick="amNxGvAskAll()">🏳 きょうの おくれを 全部 諦める${amGvNgNames()?`（${escapeHtml(amGvNgNames())}を 除く）`:''}</button>`:''):''}</div>
+    <button type="button" class="btn-secondary" id="nx-cfg-open" onclick="amNxCfgOpen()">🆕 新しい 画面：${amNxOn()?'オン':'オフ'}</button>${amNxOn()?'<button type="button" class="btn-secondary" id="nxo-open" onclick="amRgKindOrder()">↕ やる順（種類 → 作業）</button>'+(amGvOn()?`<button type="button" class="btn-secondary" id="gv-all" onclick="amNxGvAskAll()">🏳 きょうの おくれを 全部 諦める${amGvNgNames()?`（${escapeHtml(amGvNgNames())}を 除く）`:''}</button>`:''):''}</div>
     <div class="am-sub" style="margin:6px 0 0">「見本から 足す」は 中身を 見て 確かめてから 登録します。「厨房の表」は 厨房を している 店だけ。「おくれの音」は、おくれ（🔥）が 新しく 出た時に 短い音が 鳴ります（音が 出せない 端末では 何も 起きません）。全部の 端末に 効きます。「作業の 種類」は、登録の 窓の「種類」で えらぶ 札を 足す・名前を 直す・隠す 所です。「押せる 時間を 0分に」は、30分前から 押せる 時刻の 作業を まとめて 時刻ちょうどから に します（元に 戻せます）。「🆕 新しい 画面」は、売場マップを「今いる人・取りかかり中・次は これ」の 画面に 切りかえます（全部の 端末に 効く・オフで 今の 画面・交代の 時刻も ここ）。</div></details>`;
 }
 /* ===== 5.23（店長 10/21「何分前から押せるかを0分からにして」→ 案 A「30分の 作業だけ 0」）：🧰 押せる 時間を 0分に =====
@@ -14416,6 +14428,8 @@ function amNxAfFoot(wid,src,o){
 }
 /* 管理者：やる順（① 種類の 順 → ② 種類ごとの 作業の 順）。1行 44px・↑↓ は いつも 見える。押すと すぐ 保存 */
 function amNxOrderPanel(){ return amOpenWorks(); }
+function amRgKindOrder(){ amOpenWorks(); const t=document.getElementById('rg-kind-order'); if(t){ t.open=true; t.scrollIntoView({block:'start'}); } }
+function amRgKindNum(id){ const w=amWork(id); return w?amDenseNums(amNxOrdered().filter(x=>String(x.kind||'')===String(w.kind||'')))[id]:null; }
 function amRgNxHtml(v){
   const can=amRgNxCan();
   const tags=amTagSorted(), L=(_amRg.sort==='seq'?amNxOrdered():amRgOrder(v)).filter(amRgPass), use=amTagUse(), kOf=w=>String(w.kind==null?'':w.kind);
@@ -15429,19 +15443,20 @@ function amRgCard(w,v,mv){
     <button type="button" class="rg-pen amw-edit" onclick="amEdTap(event,'${eid}')" aria-label="${nm} を くわしく直す">✏️</button></div>${open?amRgEx(w,v):''}</div>`;
 }
 function amRgNxCan(){ return _amPeek==='all'&&!String(_amRg.q||'').trim()&&!_amRg.kind&&_amRg.sort==='seq'; }
-function amRgNxNote(){ return '<div class="rg-order-note">並べかえは、絞りとさがすを外して、やる順の時にできます</div>'; }
+function amRgNxNote(){ return '<div class="rg-order-note">並べかえは、絞りとさがすを外して、やる順の時にできます'+amTr2('Clear filters and search, then select task order to reorder.','क्रम बदल्न फिल्टर र खोज हटाएर कामको क्रम छान्नुहोस्।')+'</div>'; }
 function amRgNxTags(v){
   const th=amRgNxHtml(v).th;
-  return '<details id="rg-kind-order"><summary>① 種類の 順</summary><div class="nxo-l" id="nxo-tags">'+(amRgNxCan()?th:th.replace(/<button\b[^>]*>[\s\S]*?<\/button>/g,''))+'</div></details>';
+  return '<details id="rg-kind-order"><summary>① 種類の 順'+amTr2('Task type order','कामको प्रकारको क्रम')+'</summary><div class="nxo-l" id="nxo-tags">'+(amRgNxCan()?th:th.replace(/<button\b[^>]*>[\s\S]*?<\/button>/g,''))+'</div></details>';
 }
 function amRgNxCard(w,v,ws,i,nums,can,mvHere,mvW){
   const id=escapeHtml(String(w.id)), open=_amRg.open===String(w.id), same=i>0&&amSeqOf(w)!=null&&amSeqOf(w)===amSeqOf(ws[i-1]), tied=amSeqOf(w)!=null&&ws.some(x=>x!==w&&amSeqOf(x)===amSeqOf(w));
   // 登録の札・訳・開いた中は共通。閉じた行の回数のマスは出さない。
   const card=amRgCard(w,v,null), body=card.slice(card.indexOf('<span class="rg-nm">'),card.indexOf('<span class="rg-when'))+(amIsTimed(w)?`<span class="rg-bd rg-tm">${amTimes(w).map(amTimeTxt).join('・')}</span>`:'');
-  const num=can?`<button type="button" class="nxo-i num" data-w="${id}" onclick="_nxo.mv=(_nxo.mv===this.dataset.w?'':this.dataset.w);amOpenWorks()" aria-label="${nums[w.id]}番（押すと 動かす）">${nums[w.id]}</button>`:`<span class="nxo-i num">${nums[w.id]}</span>`;
+  const num=can?`<button type="button" class="nxo-i num" data-w="${id}" onclick="_nxo.mv=(_nxo.mv===this.dataset.w?'':this.dataset.w);amOpenWorks()" aria-label="${nums[w.id]}番（押すと 動かす）">${nums[w.id]}</button>`:'';
+  const addW=amNxOn()&&_amMoving?amWork(_amMoving):null;
   const me=mvHere&&mvW.id===w.id, moving=escapeHtml(String(mvW?mvW.id:''));
   const controls=can?`<button type="button" class="nxo-same" data-w="${id}" onclick="amNxWSame(this.dataset.w)" aria-pressed="${same}"${i?'':' disabled'}>上と同じ</button>`+(mvHere&&!me?`<button type="button" class="nxo-here" data-w="${moving}" onclick="amNxWPlace(this.dataset.w,${i})">ここへ</button>`:`<button type="button" class="nxo-b" data-w="${id}" onclick="amNxWMove(this.dataset.w,-1)" aria-label="上へ"${i?'':' disabled'}>↑</button><button type="button" class="nxo-b" data-w="${id}" onclick="amNxWMove(this.dataset.w,1)" aria-label="下へ"${i<ws.length-1?'':' disabled'}>↓</button>`):'';
-  return `<div class="amw-row rg-card${amIsOff(w)?' rg-off':''}${amRgRest(w)?' rest':''}${open?' open':''}" data-row="${id}"><div class="nxo-r${tied?' same':''}${me?' mv':''}">${num}<button type="button" class="rg-tg rg-nx-tg" data-w="${id}" onclick="amRgTap(this.dataset.w)" aria-expanded="${open}">${body}</button>${controls}</div>${open?amRgEx(w,v):''}</div>`;
+  return `<div class="amw-row rg-card${amIsOff(w)?' rg-off':''}${amRgRest(w)?' rest':''}${open?' open':''}" data-row="${id}"><div class="nxo-r${tied?' same':''}${me?' mv':''}">${num}<button type="button" class="rg-tg rg-nx-tg" data-w="${id}" onclick="amRgTap(this.dataset.w)" aria-expanded="${open}">${body}</button>${addW?(addW.id!==w.id&&String(addW.kind||'')===String(w.kind||'')?`<button type="button" class="nxo-here" data-w="${id}" onclick="amRowTap(this.dataset.w)">ここへ</button>`:''):controls}</div>${open?amRgEx(w,v):''}</div>`;
 }
 function amRgListHtml(v,mv){
   const ord=amRgOrder(v).filter(amRgPass);
@@ -15511,7 +15526,7 @@ function amOpenWorks(){
   _amRg.sc=0;
   const fresh=(prev!=='works'&&prev!=='edit'&&prev!=='tpl'&&prev!=='kc'&&prev!=='tags');
   const tagOpen=prev==='works'&&!!document.getElementById('rg-kind-order')?.open;
-  if(fresh){ _nxo.mv=''; _amRg.open=''; _amRg.q=''; _amRg.sort='seq'; _amPeek='all'; _amRg.kind=''; }   // 外から 開き直した時は 絞り・検索・ひらいた作業を もとに戻す（窓の中の 行き来では そのまま）
+  if(fresh){ if(amNxOn()) _amfHold=amFT()+AM_HOLD_MS; _nxo.mv=''; _amRg.open=''; _amRg.q=''; _amRg.sort='seq'; _amPeek='all'; _amRg.kind=''; }   // 外から 開き直した時は 絞り・検索・ひらいた作業を もとに戻す（窓の中の 行き来では そのまま）
   const v=amWorksView(), mv=_amMoving, all=amWorks().filter(w=>w&&typeof w==='object');
   const cnt={all:all.length, floor:all.filter(w=>!amIsOff(w)).length, off:all.filter(amIsOff).length, rep:all.filter(amIsRep).length, rest:all.filter(w=>amRgRest(w)).length};
   const chips=AM_RG_FILT.map(([k,l])=>`<button type="button" class="${_amPeek===k?'on':''}" aria-pressed="${_amPeek===k}" onclick="amRgFilt('${k}')"><span class="rg-cl">${l}</span> <b class="rg-cn">${cnt[k]}</b></button>`).join('');   // 5.17f：名前と 数を 分けた（せまい 画面では 2行の 札にして 5つとも 送らずに 見える）。字は 今までどおり「すべて 3」
@@ -15538,7 +15553,7 @@ function amRowEl(id){ const rows=document.querySelectorAll('#am-sheet .amw-row[d
 function amRowShow(id){ const r=amRowEl(id); if(r&&r.scrollIntoView){ try{ r.scrollIntoView({block:'center'}); }catch(_){ r.scrollIntoView(); } } }
 function amMoveStart(id){ if(!isAdmin||!amWork(id))return; _amMoving=id; _amLastMoved=''; amOpenWorks(); }
 /* 動かしている間は、行のどこを押しても「行き先」。自分の行を押すと やめる */
-function amRowTap(id){ if(!_amMoving)return; if(id===_amMoving){ _amMoving=null; amOpenWorks(); return; } const n=amWorksView().num[id]; if(n) amMoveTo(_amMoving,n); }
+function amRowTap(id){ if(!_amMoving)return; if(id===_amMoving){ _amMoving=null; amOpenWorks(); return; } if(amNxOn()&&String(amWork(id)?.kind||'')!==String(amWork(_amMoving)?.kind||'')) return; const n=amWorksView().num[id]; if(n) amMoveTo(_amMoving,n); }
 /* 動かす時の、画面の下の帯（表の窓が開いていて、動かしている作業がある時だけ出る） */
 function amMoveBar(){
   /* 5.17f（テスの点検 10/20）：「1つ上／1つ下」は、いま 見えている 作業（絞り・検索の 中）どうしで 動かす（カードの ↑ 上へ／↓ 下へ と 同じ）。絞りで 見えない 作業とは 入れかわらない（前は 番号だけ 変わって 見えている 並びが 動かなかった）。
@@ -15547,6 +15562,10 @@ function amMoveBar(){
   const w=(_amMoving&&isAdmin&&amSheetName()==='works')?amWork(_amMoving):null;
   if(!w){ if(bar){ bar.classList.remove('show'); bar.innerHTML=''; } amSnackPlace(); return; }
   if(!bar){ bar=document.createElement('div'); bar.id='am-mvbar'; bar.className='am-mvbar'; document.body.appendChild(bar); }
+  if(amNxOn()){
+    bar.innerHTML=`<div class="am-mv-in"><div class="am-mv-msg">${amNoC(amRgKindNum(w.id),'n28')}『${escapeHtml(w.name)}』を 同じ 種類の 中で 動かします。<small>同じ 種類の「ここへ」を 押すと、その 種類の 中の 番号になります。すぐ保存されます</small>${amTr2('Move within this task type. Tap Here to save the position.','यही प्रकारभित्र सार्नुहोस्। स्थान सेभ गर्न यहाँ थिच्नुहोस्।')}</div><div class="am-mv-btns"><button type="button" onclick="amMoveBy('here')">ここでよい</button><button type="button" onclick="amMoveBy('cancel')">やめる</button></div></div>`;
+    bar.classList.add('show'); amSnackPlace(); return;
+  }
   const v=amWorksView(), m=amMvVis(v,w.id), i=m.i, n=v.num[w.id], nw=v.isNew(w), maxPos=v.maxPos(w.id);
   const upOk=m.ok&&i>0, downOk=m.ok&&i>=0&&i<m.vis.length-1&&v.num[m.vis[i+1].id]<=maxPos;
   const note=!m.ok?'（1つ上・1つ下は、並べが「やる順」の 時だけ 使えます）':(m.hid?'（1つ上・1つ下は、いま 見えている 作業の 中で 動きます）':'');
@@ -15580,6 +15599,7 @@ function amSeqRestore(snap){
 function amMoveTo(id,pos,opt){
   if(!isAdmin)return null; opt=opt||{};
   const cur=amWorks(), list=amOrdered(null,cur), from=list.findIndex(w=>w.id===id); if(from<0)return null;
+  const local0=amNxOn()?amRgKindNum(id):null;
   const w=list[from], n0=from+1, any=cur.some(x=>amSeqOf(x)!=null), isNew=x=>any&&amSeqOf(x)==null;
   const firm=list.filter(x=>x!==w&&!isNew(x));                          // 場所が決まっている ほかの作業
   let note='';
@@ -15602,7 +15622,7 @@ function amMoveTo(id,pos,opt){
   _amSeqUndo=()=>{ _amSeqUndo=null; amSeqRestore(snap); _amLastMoved=''; _amMoving=null; if(amSheetName()==='works') amOpenWorks(); renderMapView(); amSnack('元に戻しました',false); };
   if(amSheetName()==='works'){ amOpenWorks(); amRowShow(id); }
   renderMapView();
-  amSnack(opt.here?`${w.name} を ${pos}番に決めました`:`${w.name} を ${n0}番 → ${pos}番にしました${note}`, false, '元に戻す', amSeqUndoRun);   // 窓の上に出す時は2行までなので、短く（保存は すぐ行われる）
+  amSnack(opt.here?`${w.name} を ${amNxOn()?amRgKindNum(id):pos}番に決めました`:`${w.name} を ${amNxOn()?local0:n0}番 → ${amNxOn()?amRgKindNum(id):pos}番にしました${note}`, false, '元に戻す', amSeqUndoRun);   // 窓の上に出す時は2行までなので、短く（保存は すぐ行われる）
   return res;
 }
 function amSeqUndoRun(){ const f=_amSeqUndo; if(f) f(); }
