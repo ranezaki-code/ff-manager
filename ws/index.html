@@ -13857,7 +13857,22 @@ function amNxQueue(now,display=false){
   const activeRuns=amRunActive(now), displayRuns=activeRuns.concat(amNxLongRuns(now));
   amNxOrdered().forEach((w,i)=>{ wi[w.id]=i; });
   const kd=w=>String(w.kind==null?'':w.kind), hid=amNxTrbNow(now).hide, gv=amNxGvNow(now);   // 5.27：困った の 帯の 作業・手が 足りない（15分）は 出さない   // 5.31：諦めた 作業は その 回の 間 出さない
-  const push=x=>{ if((amIsTimed(x.w)&&!x.af&&activeRuns.some(r=>!r.sa&&r.w===x.w.id))||displayRuns.some(r=>amNxSameRun(x,r))||seen[x.id]||hid[x.id]||amNxGvHid(gv,x)) return; seen[x.id]=1; x.g=x.lock?0:G[x.k]; x.tr=(x.tag in tr)?tr[x.tag]:999; x.wi=(x.w.id in wi)?wi[x.w.id]:99999; out.push(x); };
+  const push=x=>{
+    if(x.lock&&displayRuns.some(r=>!r.sa&&r.w===x.w.id)) return;
+    if(x.o&&!x.af&&!amIsTimed(x.w)&&!amIsRep(x.w)){
+      const band=amStatus(x.w,now), old={w:x.w,s:band}, cur=band.cur;
+      if(cur&&x.o.s===cur.s&&band.st==='fire'&&displayRuns.some(r=>amNxSameRun(old,r))&&!displayRuns.some(r=>amNxSameRun(x,r))) x=Object.assign({},x,{k:'fire',due:cur.e});
+    }
+    if(displayRuns.some(r=>amNxSameRun(x,r))&&!x.af&&!amIsTimed(x.w)&&!amIsRep(x.w)){
+      /* 抜けた 回に 印が あっても、今の 別の 枠は 出す。状態の 時刻の 決まりは そのまま。 */
+      const s=x.s||(x.o&&x.o.band), cur=s&&s.cur, old=amNxSlot(x,now);
+      if(cur&&old&&cur.s!==old.s){
+        const band=Object.assign({},s,{nxSlot:cur,deadline:s.st==='fire'?cur.e:s.deadline});
+        x=Object.assign({},x,{s:x.s?band:null,o:x.o?Object.assign({},x.o,cur,{band}):null,due:s.st==='fire'?cur.e:x.due});
+      }
+    }
+    if((!x.af&&activeRuns.some(r=>!r.sa&&r.w===x.w.id))||displayRuns.some(r=>amNxSameRun(x,r))||seen[x.id]||hid[x.id]||amNxGvHid(gv,x)) return; seen[x.id]=1; x.g=x.lock?0:G[x.k]; x.tr=(x.tag in tr)?tr[x.tag]:999; x.wi=(x.w.id in wi)?wi[x.w.id]:99999; out.push(x);
+  };
   amFloorWorks().forEach(a=>{ const s=amStatus(a,now); if(!G[s.st]) return; const gp=amGapLock(a,now), lock=!!(s.tm&&s.lock)||!!gp;
     push({id:a.id, w:a, s, o:null, af:null, k:s.st, lock, lockAt:lock?(gp?gp.until:(s.slot?s.slot.o:NaN)):NaN, due:amNxDue({s}), tag:kd(a), cells:amNxCellsOf(a), name:a.name||'', base:amBaseName(a), tro:a, rep:amIsRep(a), re:false, aft:0}); });
   const off=amOffWorks().length?amOffColData(now).act:[], afs=amAfterList(now).filter(o=>o.up&&G[o.k]);
@@ -13872,6 +13887,7 @@ function amNxQueue(now,display=false){
 function amNxSlot(x,now){
   if(x.o) return x.o;
   const s=x.s||{};
+  if(s.nxSlot) return s.nxSlot;
   if(s.tm&&s.slot) return s.slot;
   if(s.st==='fire'&&s.deadline){ const p=amSlots(x.w,now).find(v=>v.e===s.deadline); if(p) return p; }
   return s.cur||s.next||null;
@@ -13894,6 +13910,7 @@ function amNxSameRun(x,r){
   if(x.af||String(r.w)!==x.w.id) return false;
   const s=amIsTimed(x.w)?amOffNow(x.w,r.s).slot:amNxSlot({w:x.w,s:amStatus(x.w,r.s)},r.s), v=amNxSlot(x,r.s);
   if(!amIsTimed(x.w)&&v&&v.s<=r.s&&r.s<v.e) return true;
+  if(!amIsTimed(x.w)&&!amIsRep(x.w)&&v){ const cur=amSlots(x.w,r.s).find(o=>o.s<=r.s&&r.s<o.e); if(cur&&cur.s===v.s) return true; }
   return !!s&&!!v&&s.s===v.s;
 }
 function amNxShown(q,now,tab=_amNx.tab){
@@ -14335,11 +14352,12 @@ function amNxOnScroll(){ const col=document.getElementById('nxa-col'); if(!col) 
 /* 開いた 行（と その下の 開いた 所）が 列の 中で 見えるように 送る（ページは 送らない） */
 function amNxReveal(id){
   const col=document.getElementById('nxa-col'); if(!col) return; const row=Array.prototype.find.call(col.querySelectorAll('.nxa-it'),e=>e.dataset.w===id); if(!row) return;
+  const anchor=row.closest('.nxa-gvrow')||row;
   const stk=col.querySelector('.nxa-stk:not(.nost)'), sh=stk?stk.offsetHeight+6:0;   // 5.27：上に 貼り付いた 取りかかり中の 下から 見せる
-  const nx=row.nextElementSibling, op=(nx&&nx.classList.contains('nxa-open'))?nx:null, bot=op?op.offsetTop+op.offsetHeight:row.offsetTop+row.offsetHeight, room=col.clientHeight-sh-(op?8:52);   // 開いている 間は「下に あと◯件」を 出さない（amNxBelow）
+  const nx=anchor.nextElementSibling, op=(nx&&nx.classList.contains('nxa-open'))?nx:null, bot=op?op.offsetTop+op.offsetHeight:anchor.offsetTop+anchor.offsetHeight, room=col.clientHeight-sh-(op?8:52);   // 開いている 間は「下に あと◯件」を 出さない（amNxBelow）
   const wb=op&&(op.querySelector('.nxa-names .nxa-who,.nxa-btns,.nxa-lockn')||op.querySelector('.nxa-cl')), wbot=wb?wb.getBoundingClientRect().bottom-col.getBoundingClientRect().top+col.scrollTop:0;   // 5.26（テス：390 幅で「◯◯ が やる」が 下の 帯に 隠れた）：名前の ボタンまでは 必ず 見せる   // 5.31.3：上の ボタン（.nxa-cl）が 先に 来たので、最初の 名前の ボタンを 見る
-  let st=col.scrollTop; if(row.offsetTop<st+sh+4) st=row.offsetTop-sh-8; if(bot>st+sh+room) st=Math.min(row.offsetTop-sh-8,bot-room-sh); if(wbot>st+sh+room) st=wbot-room-sh;
-  { const a=op&&op.querySelector('.nxa-acts.top'); if(a&&st>row.offsetTop-sh-8) st=Math.max(row.offsetTop-sh-8, st-a.offsetHeight, wbot-room-sh); }
+  let st=col.scrollTop; if(anchor.offsetTop<st+sh+4) st=anchor.offsetTop-sh-8; if(bot>st+sh+room) st=Math.min(anchor.offsetTop-sh-8,bot-room-sh); if(wbot>st+sh+room) st=wbot-room-sh;
+  { const a=op&&op.querySelector('.nxa-acts.top'); if(a&&st>anchor.offsetTop-sh-8) st=Math.max(anchor.offsetTop-sh-8, st-a.offsetHeight, wbot-room-sh); }
   col.scrollTop=Math.max(0,st);
   /* 5.26：最初の 名前が 先。実際の 座標で 確かめ、✓できる 時間と 両方 入らない 時も 名前（🔒 は 案内）を 見せる。 */
   if(wb){ const c=col.getBoundingClientRect(), r=wb.getBoundingClientRect(), a=op.querySelector('.nxa-acts.top'), ar=a&&a.getBoundingClientRect(), top=Math.max(c.top+sh+4,ar?ar.bottom+4:c.top), bottom=c.top+col.clientHeight-8; if(r.bottom>bottom) col.scrollTop+=r.bottom-bottom; else if(r.top<top) col.scrollTop-=top-r.top; }
