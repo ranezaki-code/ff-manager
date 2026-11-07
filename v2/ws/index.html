@@ -3329,6 +3329,13 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .nxt.gv .nxt-w small{font-size:13px;color:#7586a0;font-weight:600}
 .nxt .nxt-a.single{grid-template-columns:1fr}   /* 「one」は 520px 以下で 隠れる 札の 名前なので 使わない */
 .nxt.gv .nx-pks{margin-top:4px}
+/* 5.37.3：題と 理由は 残して、窓の 中だけ 指で 動かす */
+#am-sheet[data-name="nxgv"] .am-modal{height:calc(100vh - 78px);height:calc(100dvh - 78px);max-height:100%}
+#am-sheet .nx-gv-sheet{display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden;box-sizing:border-box;background:#fff}
+.nx-gv-sheet>.nxt-h,.nx-gv-sheet>.nxt-w,.nx-gv-sheet>.nx-sh-q{flex-shrink:0}
+.nx-gv-body{min-height:0;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-bottom:env(safe-area-inset-bottom)}
+.nx-gv-sheet .nxa-who{flex-direction:row;text-align:left}
+.nx-gv-sheet .nxa-names{margin-top:4px}
 #who-view .aw-cx.gv{background:#F2F4F7;border-color:#5B6475;color:#344054}
 .aw-tg.gv{background:#E4E7EC;color:#344054}
 #who-view .aw2-t.gv{border-color:#D3DAE4;background:#F8FAFC}
@@ -5127,7 +5134,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.37.2'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.37.3'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -15227,13 +15234,14 @@ function amNxGvSheet(){
   if(G.mode==='all'){ n=amNxGvTargets(now).length; fresh=amNxGvFreshN(now); nm=`きょうの おくれ ${n}件`; if(!n){ _amGv=null; amCloseSheet(); amOpenWorks(); amSnack(fresh?(amGvCfg().set?`おくれは 諦められない 札（${amGvNgNames()}）の ${fresh}件だけです`:`おくれは 鮮度管理の ${fresh}件だけです（諦められません）`):'いま おくれは ありません',false); return; } }
   else { const it=amNxItemOf(G.id,now); if(!it||amNxItemDone(it,now)){ _amGv=null; amCloseSheet(); _amNx.sel=''; renderMapView(); amSnack('この 作業は もう ありません（済）',false); return; } nm=it.name||''; }
   const hd=`<div class="nxt-h"><span class="ex" aria-hidden="true">🏳</span><div><b>${G.y?'だれが 諦める？':'どうして 諦める？'}</b><small>${G.y?'Who gives up? / कसले छोड्ने?':'Why give up? / किन छोड्ने?'}</small></div><span class="one">${G.y?'押すと 外れます':'1つ 押すだけ'}</span></div><div class="nxt-w"><span>${e(nm)}</span>${(G.mode==='all'&&fresh)?(amGvCfg().set?`<small>（諦められない 札 ${e(amGvNgNames())} の ${fresh}件は 残ります）</small>`:`<small>（鮮度管理 ${fresh}件は 残ります）</small>`):''}</div>`;
-  let body;
+  let body, q='';
   if(!G.y) body=`<div class="nxt-g">${AM_NX_GV.map(d=>`<button type="button" class="nxt-b calm" data-y="${d.y}" onclick="amNxGvPick(this.dataset.y)"><span class="ic" aria-hidden="true">${d.ic}</span><span class="tx"><b>${d.t}</b><small>${d.en} / ${d.ne}</small></span></button>`).join('')}</div><div class="nxt-f"><span>諦めても 記録は 残ります（店長の 📊 に 出ます）。きょうの 間は 戻せます</span><button type="button" class="nx-sub" onclick="amNxGvClose()">まちがえた（もどる）</button></div>`;
   else { const d=amNxGvDef(G.y), here=amNxStaffOrd(amNxHere(now)).map(h=>h.n) /* 5.32：登録の 並び */, rest=staffList().filter(x=>!here.includes(x)), names=G.mode==='all'?[]:(here.length?here.concat(G.others?rest:[]):rest);
-    const pk=names.map(nn=>`<button type="button" class="nx-pk" data-n="${e(nn)}" onclick="amNxGvOk(this.dataset.n)">${amNxAv(nn,'big')}<span class="nx-pk-n">${e(nn)}</span></button>`).join('');
+    const pk=names.map(nn=>`<button type="button" class="nx-pk nxb nxa-who" style="--pc:${amNxCol(nn)}" data-n="${e(nn)}" onclick="amNxGvOk(this.dataset.n)">${amNxAv2(nn,32)}<span class="wt"><b>${e(nn)}</b></span></button>`).join('');
     const one=G.mode==='all'?`<button type="button" class="nxt-ok" id="nxgv-all" onclick="amNxGvOk('管理者')">🏳 ${n}件を 諦める<small>${d.ic} ${e(d.t)}・管理者</small></button>`:(names.length?'':`<button type="button" class="nxt-ok" id="nxgv-one" onclick="amNxGvOk('')">🏳 諦める<small>名前なし</small></button>`);
-    body=`<div class="nx-sh-q">${d.ic} ${e(d.t)}${G.mode==='all'?'':amNxTr('Tap your name to give up','छोड्न आफ्नो नाम थिच्नुहोस्')}</div>${pk?`<div class="nx-pks">${pk}</div>`:''}${one?`<div class="nxt-a single">${one}</div>`:''}<div class="nx-sh-f">${(G.mode!=='all'&&here.length&&rest.length&&!G.others)?`<button type="button" class="nx-sub" onclick="_amGv.others=true;amNxGvSheet()">ほかの人 ▾</button>`:''}<button type="button" class="nx-sub" onclick="_amGv.y='';amNxGvSheet()">理由に もどる</button><button type="button" class="nx-sub" onclick="amNxGvClose()">やめる</button></div>`; }
-  _amSheet(`<div class="nx-sh nxt gv"><button class="am-x" onclick="amNxGvClose()" aria-label="閉じる">×</button>${hd}${body}</div>`,'card','nxgv');
+    q=`<div class="nx-sh-q">${d.ic} ${e(d.t)}${G.mode==='all'?'':amNxTr('Tap your name to give up','छोड्न आफ्नो नाम थिच्नुहोस्')}</div>`;
+    body=`${pk?`<div class="nxa-names">${pk}</div>`:''}${one?`<div class="nxt-a single">${one}</div>`:''}<div class="nx-sh-f">${(G.mode!=='all'&&here.length&&rest.length&&!G.others)?`<button type="button" class="nx-sub" onclick="_amGv.others=true;amNxGvSheet()">ほかの人 ▾</button>`:''}<button type="button" class="nx-sub" onclick="_amGv.y='';amNxGvSheet()">理由に もどる</button><button type="button" class="nx-sub" onclick="amNxGvClose()">やめる</button></div>`; }
+  _amSheet(`<div class="nx-sh nxt gv nx-gv-sheet nxa${window.innerWidth<=520?' ph':''}"><button class="am-x" onclick="amNxGvClose()" aria-label="閉じる">×</button>${hd}${q}<div class="nx-gv-body">${body}</div></div>`,'card','nxgv');
 }
 function amNxGvPick(y){ if(!_amGv) return; _amGv.y=amNxGvDef(y).y; amNxGvSheet(); }
 /* 記録を 1件 足す（保存は 呼ぶ側）。戻り値 {key,id} */
