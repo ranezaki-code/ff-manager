@@ -5275,8 +5275,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       const nzT=s=>{ const o=JSON.parse(s); delete o._modifiedAt; return J(o); };
       const stT=()=>JSON.parse(J(st));
       const BT=new Date(); BT.setHours(12,0,0,0);
-      /* 枠の中の 時計：この 試験の 日の h:m:s（24 を こえる 時は 次の日）。進み方は 本物と 同じ */
-      const clkT=(d,h,m,s)=>{ d.ev(`(()=>{ if(window.__tSet) return; const RD=Date, B=new RD(${BT.getTime()}); let off=0; function FD(){ const a=Array.prototype.slice.call(arguments); if(!new.target) return new RD(RD.now()+off).toString(); if(a.length===0) return Reflect.construct(RD,[RD.now()+off],new.target); return Reflect.construct(RD,a,new.target); } FD.prototype=RD.prototype; Object.setPrototypeOf(FD,RD); FD.now=()=>RD.now()+off; window.Date=FD; window.__tSet=(h,m,s)=>{ const t=new RD(B.getFullYear(),B.getMonth(),B.getDate(),h,m,s||0,0).getTime(); off=t-RD.now(); return t; }; })()`); return Number(d.ev(`__tSet(${h},${m},${s||0})`)); };
+      /* 枠の中の 時計：この 試験の 日の h:m:s（24 を こえる 時は 次の日）。進み方は 本物と 同じ。fixed は 境目の 試験で 時計を 止める */
+      const clkT=(d,h,m,s,fixed=false)=>{ d.ev(`(()=>{ if(window.__tSet) return; const RD=Date, B=new RD(${BT.getTime()}); let off=0, fixedNow=null; function FD(){ const a=Array.prototype.slice.call(arguments); if(!new.target) return new RD(FD.now()).toString(); if(a.length===0) return Reflect.construct(RD,[FD.now()],new.target); return Reflect.construct(RD,a,new.target); } FD.prototype=RD.prototype; Object.setPrototypeOf(FD,RD); FD.now=()=>fixedNow==null?RD.now()+off:fixedNow; window.Date=FD; window.__tSet=(h,m,s,fixed)=>{ const t=new RD(B.getFullYear(),B.getMonth(),B.getDate(),h,m,s||0,0).getTime(); off=t-RD.now(); fixedNow=fixed?t:null; return t; }; })()`); return Number(d.ev(`__tSet(${h},${m},${s||0},${fixed})`)); };
       const setWT=(d,ws,map)=>d.ev(`(()=>{ state.amWorks=${J(ws)}; state.areaChecks={}; state.amRun={}; Object.keys(state).filter(k=>/^amLog_/.test(k)).forEach(k=>{ delete state[k]; }); ${map?`state.amMap=${J(map)};`:''} amSave(); renderMapView(); })()`);
       const acT=(d,id)=>Number(ET(d,`((state.areaChecks||{})[${J(id)}]||[]).length`))||0;
       const stOf=(d,id)=>jpT(ET(d,`(()=>{ const s=amStatus(amWork(${J(id)}),Date.now()); return JSON.stringify({st:s.st,tm:!!s.tm,lock:!!s.lock,lv:s.lv,cur:s.cur?amHM(s.cur.s):'',dl:s.deadline?amHM(s.deadline):''}); })()`),{});
@@ -5468,7 +5468,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,10,12); P.ev(`amOpenArea('tG')`); tap(P,'tG',0); P.ev('amCloseSheet()');
           clkT(P,10,25); o.c=runsN(P).join(','); clkT(P,10,33); o.d=[runsN(P).join(','), nextN(P).indexOf('tG')>=0, ckN(P,'tG')];
           o.card=(P.ev('renderMapView()'),qtT(P,'#nx-wrap .nxa-it[data-w="tG"]'));   /* 5.26：行の 下に「⏸ ◯◯ の 途中・✓ 1／2」 */
-          const oldG=String(ET(P,`amNxLongRuns().find(r=>r.w==='tG').k`)); P.ev(`amNxTake(${J(oldG)})`); P.ev(`document.querySelector('.nx-more')?.click();document.querySelector('.nx-pk[data-n="見本 次郎"]').click()`); await syncT(D); o.e=[runsN(Q).join(','), ckN(Q,'tG'), J(logOf(Q,'tG').map(r=>(r.miss?'f':'x')+(r.why||''))), String(ET(Q,`${J(oldG)} in state.amRun`))];
+          const oldG=String(ET(P,`amNxLongRuns().find(r=>r.w==='tG').k`)); P.ev(`amNxTake(${J(oldG)})`); await sleep(550); P.ev(`document.querySelector('.nx-more')?.click();document.querySelector('.nx-pk[data-n="見本 次郎"]').click()`); await syncT(D); o.e=[runsN(Q).join(','), ckN(Q,'tG'), J(logOf(Q,'tG').map(r=>(r.miss?'f':'x')+(r.why||''))), String(ET(Q,`${J(oldG)} in state.amRun`))];
           clkT(P,10,34); P.ev(`amOpenArea('tG')`); tap(P,'tG',1); P.ev(`amRunEnd(${J(kOf(P,'tG'))})`); o.f=[acT(P,'tG'), J(logOf(P,'tG').map(r=>(r.miss?'f':'x')+(r.ck==null?'':r.ck)))];
           clkT(P,11,0); P.ev(`amNxGo('tA','見本 花子')`); clkT(P,11,3); P.ev(`amOpenArea('tA')`); tap(P,'tA',0); clkT(P,11,4); tap(P,'tA',1); P.ev('amCloseSheet()');
           clkT(P,11,30); o.g0=[stOf(P,'tA').st, acT(P,'tA')]; P.ev(`amNxGo('tN','見本 次郎')`); await syncT(D);
@@ -5664,7 +5664,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           P.ev(`amOpenArea('w4')`); o.card=[qnT(P,'#am-sheet .am-fg'), qnT(P,'#am-sheet .am-nxskip'), qnT(P,'#am-sheet .am-nm-st:not([disabled])')];
         } finally { ET(P,'isAdmin=false; amCloseSheet()'); }
         checkLT('97na1','【並べ方】おくれ（点検 → 清掃 → 品出し・同じ 種類は 作業の 順）→ もうすぐ（清掃の 売場以外 → 値引の 時刻）→ 時刻の前・行の 順も 同じ／品出しを いちばん上へ（o＝1〜9）／三を 二の 上へ（seq・前の 版の 番号の 順も 同じ）／カードは 止めずに 注意',[
-            ['1:並び',J(o.q0)==='["w2","w3","w4","w1","tO","tS","tL"]'&&J(o.r0)===J(['w2','w3','w4','tO','w1','tS','tL'])],['2:状態',J(o.st)==='["fire","fire","fire","fire","soon","soon","todoL"]'],
+            ['1:並び',J(o.q0)==='["w2","w3","w4","w1","tO","tS","tL"]'&&J(o.r0)===J(['w2','w3','w4','w1','tO','tS','tL'])],['2:状態',J(o.st)==='["fire","fire","fire","fire","soon","soon","todoL"]'],
             ['3:種類の 順',o.tags[0]==='品出し:1'&&o.tags.every((x,i)=>x.slice(-(':'+(i+1)).length)===':'+(i+1))&&J(o.q1)==='["w1","w2","w3","w4","tO","tS","tL"]'],
             ['4:作業の 順',J(o.q2)==='["w1","w3","w2","w4","tO","tS","tL"]'&&J(o.r2)===J(['w1','w3','w2','w4','tO','tS','tL'])&&o.seq.every(x=>/:true$/.test(x))&&J(o.old)==='["w1","w3","w2","w4","tS","tL"]'],
             ['5:止めない',o.card[0]===0&&o.card[1]===1&&o.card[2]>=3]],
@@ -6080,6 +6080,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,16,58); P.ev(`amNxGo('w3','見本 太郎')`); P.ev('renderMapView()'); o.pre=qnT(P,'#nx-wrap .nxa-hob');
           clkT(P,17,5); P.ev('renderMapView()');
           o.a=[qnT(P,'#nx-wrap .nxa-hob'), qtT(P,'#nx-wrap .nxa-hob'), qtT(P,'#nx-wrap .nxa-it[data-w="tA"]'), qtT(P,'#nx-wrap .nxa-it[data-w="tB"]'), qtT(P,'#nx-wrap .nxa-it[data-w="w1"]'), qtT(P,'#nx-wrap .nxa-rn'), qtT(P,'#nx-wrap .nxa-trb'), String(ET(P,'amNxHo().lab')), jpT(ET(P,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#nx-wrap .nxa-rn'),e=>e.textContent))`),[])];
+          o.long=runsL(P).filter(x=>/@w1$/.test(x));
           P.ev(`_amNx.hold=0; amNxHoOff(document.querySelector('#nx-wrap .nxa-hob').dataset.c)`); o.off=[qnT(P,'#nx-wrap .nxa-hob'), qnT(P,'#nx-wrap .nxa-ho')>0];
           P.ev('_amNx.hoOff=0'); clkT(P,17,31); P.ev('renderMapView()'); o.late=[qnT(P,'#nx-wrap .nxa-hob'), /昼から/.test(qtT(P,'#nx-wrap .nxa-it[data-w="tA"]'))];
           clkT(P,9,5); o.am=String(ET(P,'amNxHo().lab'));
@@ -6087,7 +6088,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { ET(P,'amCloseSheet()'); }
         checkLT('97nb6','【交代の 引き継ぎ】16:58 は 出ない／17:05：1行「昼から 引き継ぎ：前の 時間から ◯件」・時刻 前（16:30）に 昼から・時刻 後（17:30）は 札なし・途中（一）に 昼から・取りかかり中（三）に 昼から・困った の 帯に 昼から／押すと 消える（札は 残る）／17:31 は 出ない（札は 残る）／9:05＝夜から／交代の 時刻なし＝何も 出ない',[
             ['1:前',o.pre===0],['2:1行',o.a[0]===1&&/昼から 引き継ぎ/.test(o.a[1])&&/前の 時間から [3-9]件/.test(o.a[1])&&/困った 1/.test(o.a[1])],
-            ['3:札',/昼から/.test(o.a[2])&&!/昼から/.test(o.a[3])&&/昼から/.test(o.a[4])&&/昼から/.test(o.a[5])&&/昼から/.test(o.a[6])&&o.a[7]==='昼から'&&o.a[8].length===1&&/見本 三/.test(o.a[8][0])],   // 5.36.5：5.36 と 同じ（一 は 15分で 戻るので 急ぐ順の 行に 昼から・⏳ に たたむ）
+            ['3:札',/昼から/.test(o.a[2])&&!/昼から/.test(o.a[3])&&o.a[4]===''&&J(o.long)===J(['見本 花子@w1'])&&/昼から/.test(o.a[5])&&/昼から/.test(o.a[6])&&o.a[7]==='昼から'&&o.a[8].length===1&&/見本 三/.test(o.a[8][0])],   // 長い 一の 回は 一覧から 外す。動いている 三と 困ったの 札は 残す。
             ['4:消える',o.off[0]===0&&o.off[1]===true],['5:30分',o.late[0]===0&&o.late[1]===true],['6:夜から',o.am==='夜から'],['7:交代なし',o.none[0]===0&&o.none[1]===0&&o.none[2]==='null']],
           `pre ${o.pre}｜a ${J(o.a).slice(0,500)}｜off ${J(o.off)}｜late ${J(o.late)}｜am ${o.am}｜none ${J(o.none)}`);
         P.close();
@@ -7193,7 +7194,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       await tryT('97j1',async()=>{
         const all7={sch:[1,1,1,1],sch7:[1,1,1,1,1,1,1]};
         const ws=[bW(Object.assign({id:'tG',name:'見本 拭き',goal:10},all7)),bW(Object.assign({id:'tH',name:'見本 棚',goal:10},all7)),bW(Object.assign({id:'tN',name:'見本 床'},all7)),bW(Object.assign({id:'tP',name:'見本 窓',goal:10},all7))];
-        const o={}, html=d=>nrm(String(ET(d,`(()=>{const root=document.getElementById('nx-wrap');if(!root)return '';const copy=root.cloneNode(true);copy.querySelectorAll('.nxa-tabs,.nxa-schedule').forEach(e=>e.remove());copy.querySelectorAll('.nxa-sec').forEach(e=>{if(/種類ごと/.test(e.textContent))e.innerHTML='急ぐ順<small>Most urgent first / सबैभन्दा छिटो पहिले</small>';});return copy.innerHTML;})()`))).replace(/\d+分/g,'N分').replace(/data-w="r:[^"]*"/g,'data-w="r:K"').replace(/<(div|button)[^>]*class="[^"]*\bnxa-(dn|more)\b[^"]*"[^>]*>[\s\S]*?<\/(div|button)>/g,'<i data-done></i>'), cfgO=d=>jpT(ET(d,'JSON.stringify(amNxOptCfg())'),null);
+        const o={}, html=d=>nrm(String(ET(d,`(()=>{const root=document.getElementById('nx-wrap');if(!root)return '';const copy=root.cloneNode(true);copy.querySelectorAll('.nxa-tabrow,.nxa-tabs,.nxa-schedule,.nxa-band,.nxa-late,.nxa-after').forEach(e=>e.remove());copy.querySelectorAll('.nxa-sec').forEach(e=>{if(/種類ごと/.test(e.textContent))e.innerHTML='急ぐ順<small>Most urgent first / सबैभन्दा छिटो पहिले</small>';});return copy.innerHTML;})()`))).replace(/\d+分/g,'N分').replace(/data-w="r:[^"]*"/g,'data-w="r:K"').replace(/<(div|button)[^>]*class="[^"]*\bnxa-(dn|more)\b[^"]*"[^>]*>[\s\S]*?<\/(div|button)>/g,'<i data-done></i>'), cfgO=d=>jpT(ET(d,'JSON.stringify(amNxOptCfg())'),null);
         const names=d=>jpT(ET(d,`JSON.stringify(Array.prototype.map.call(document.querySelectorAll('#nx-wrap .nxa-open .nxa-who'),b=>[b.dataset.n,b.disabled]))`),[]);
         /* A：設定なし＝新しい版は 残す・5.33 は 時間で 戻す。保存の 形は 同じ（keys＝state の 鍵／recs＝記録ごとの 項目。時刻と why は 変わってよい） */
         const shapeO=d=>jpT(ET(d,`JSON.stringify((()=>{ const keys=Object.keys(state).filter(k=>k!=='_modifiedAt').sort(), recs=[]; Object.keys(state).filter(k=>/^amLog_/.test(k)).sort().forEach(k=>Object.keys(state[k]).sort().forEach(i=>{ const r=state[k][i]; recs.push(k+'|'+i.charAt(0)+'|'+r.w+'|'+r.by+'|'+Object.keys(r).sort().join(',')); })); return {keys,recs:recs.sort(),run:Object.keys(state.amRun||{}).length}; })())`),null);
@@ -7603,7 +7604,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           ['1:締切まで',o.m1025.every(x=>x==='')&&/もう 見本 花子 が/.test(o.ref[0])&&J(o.ref[1])===J(['見本 花子@tF'])],
           ['2:長い 回は 戻さない',J(o.m1031)===J(['','','',''])&&o.row===''&&o.nF===0],
           ['3:時間帯も 戻さない',o.m1200===''&&o.rowB===''],
-          ['4:18:30',J(o.m1830)===J(['','','',''])&&o.keep[0]===true&&o.keep[1]===0&&o.keep[2]===4&&/長い 4件/.test(o.col)&&o.nF2===0&&!/4 おくれ/.test(o.who)],
+          ['4:18:30',J(o.m1830)===J(['','','',''])&&o.keep[0]===true&&o.keep[1]===0&&o.keep[2]===4&&/長い 4件/.test(o.col)&&o.nF2===0&&/いまは 間に合っています/.test(o.col)&&!/4 おくれ/.test(o.who)],
           ['5:窓',/終わっていたら/.test(o.win[0])&&!/次の 回/.test(o.win[0])&&/Finished\?/.test(o.win[0])&&/✓ 終わった/.test(o.win[1])],
           ['6:カード',/残っている 印/.test(o.card[0])&&/印が 残っています/.test(o.card[1])&&o.card[2].indexOf('見本 花子')>=0&&o.card[2].length>=1],
           ['7:別の 人が 取る',J(o.took[0])===J(['見本 次郎@tF','見本 花子@tF'].sort())&&o.took[1]===''&&o.took[2]===true],
@@ -7724,14 +7725,15 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         ${c.rec?`rec(hm(${J(c.rec)}));`:''}
         ${c.af?`const src=hm(${J(c.af)}); rec(src); state.amRun.u1={w:'wk#af',sa:new Date(src).toISOString(),s:new Date(S).toISOString(),by:'見本 花子',d:'x'}; rid=amNxAfId('wk',src);`:`state.amRun.u1={w:'wk',s:new Date(S).toISOString(),by:'見本 花子',d:'x'};`}
         ${c.tick?`const kk=amCkKeys(amWork('wk')), ee={}; ee[kk[0]]=new Date(hm(${J(c.tick)})).toISOString(); state.amCk.wk=ee;`:''}
-        const res=[], end=S+${c.mins||300}*60000; let prev=null, took=false;
+        const res=[], late=[], end=S+${c.mins||300}*60000; let prev=null, took=false;
         for(let now=S; now<=end; now+=60000){
           const q=amNxQueue(now), x=q.find(i=>i.id===rid), free=amNxRunsOfId(rid,now).length===0, st=free?'free':'busy';
           if(typeof amNxLongRuns==='function'&&q.some(i=>amNxLongRuns(now).some(r=>amNxSameRun(i,r)))) return 'エラー：長い 回が 一覧に 戻った '+amHM(now);
           if(${c.take?'true':'false'}&&free&&!took&&now>S+${c.takeAfter||0}*60000){ took=true; state.amRun.u2=${c.af?`{w:'wk#af',sa:state.amRun.u1.sa,s:new Date(now).toISOString(),by:'見本 太郎',d:'y'}`:`{w:'wk',s:new Date(now).toISOString(),by:'見本 太郎',d:'y'}`}; amRunSettle(now); }
+          const saved=state.amRun; let fire; try{ state.amRun={}; fire=amNxQueue(now).filter(i=>i.k==='fire').map(i=>i.id).sort().join(','); } finally { state.amRun=saved; } late.push(amHM(now)+':'+fire);
           const h=new Date(now), lab=amHM(now); if(st!==prev){ res.push(lab+' '+st); prev=st; }
         }
-        return res.join(' | '); })()`));
+        return res.join(' | ')+' / late '+late.join('|'); })()`));
       await tryT('97x4',async()=>{
         const cl=new V2.MemoryCloud(), N=await mkT(cl,'端末NX4','ws',stT()), cl2=new V2.MemoryCloud(), O=await mkT(cl2,'端末OX4','wsold536',stT()), o={diff:[],n:0,ver:[]}, dow=new Date().getDay(), T=(ts,g,x)=>tW(Object.assign({times:ts,lead:0,grace:30,items:[]},g?{goal:g}:{},x||{})), B=(g,x)=>bW(Object.assign({sch:undefined,sch7:[0,0,1,1,0,0,0]},g?{goal:g}:{},x||{})), T3=['10:00','13:00','17:00'], CK=g=>({items:IT.slice(0,3),ck:1,goal:g});
         const cs=[{w:T(['10:00'],10),s:'10:01'},{w:T(['10:00'],0),s:'10:29'},{w:T(['10:00'],60),s:'10:01'},{w:T(['10:00'],180),s:'10:01',mins:480},{w:T(T3,10),s:'12:50'},{w:T(T3,0),s:'13:20'},{w:B(10,{sch7:[0,1,1,1,0,0,0]}),s:'12:05',rec:'8:00'},{w:B(0),s:'12:30'},{w:oW({times:['10:00'],lead:0,grace:30}),s:'10:29'},{w:oW({times:T3,lead:0,grace:30}),s:'10:01'},
@@ -8019,7 +8021,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       await tryT('5371',async()=>{
         const P=await mkT(new V2.MemoryCloud(),'test-5371','ws',stT()), o={};
         try{
-          setWC(P,[bW({id:'band',name:'Sample band',kind:'点検',sch7:[0,0,3,0,0,0,0],sch:[0,3,0,0]}),tW({id:'later',name:'Sample later',kind:'清掃',times:['17:00'],lead:0}),tW({id:'ready',name:'Sample ready',kind:'清掃',times:['10:00'],lead:0,grace:120})]); nxOn(P); clkT(P,10,5);
+          clkT(P,10,5,0,true); setWC(P,[bW({id:'band',name:'Sample band',kind:'点検',sch7:[0,0,3,0,0,0,0],sch:[0,3,0,0]}),tW({id:'later',name:'Sample later',kind:'清掃',times:['17:00'],lead:0}),tW({id:'ready',name:'Sample ready',kind:'清掃',times:['10:00'],lead:0,grace:120})]); nxOn(P); clkT(P,10,5,0,true);
           P.ev(`(()=>{const d=new Date();d.setHours(9,59,0,0);state.areaChecks.band=[{at:d.toISOString(),by:'test-a'}];renderMapView();})()`);
           o.layouts=[];
           for(const width of [390,1280]){
@@ -8045,10 +8047,10 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       await tryT('5371-x3',async()=>{
         const P=await mkT(new V2.MemoryCloud(),'test-x3','ws',stT()),o={};
         try{
-          setWC(P,[bW({id:'sample-band',name:'Sample band',sch:null,sch7:[0,0,1,0,0,0,0]})]);nxOn(P);clkT(P,11,55);
+          clkT(P,11,55,0,true); setWC(P,[bW({id:'sample-band',name:'Sample band',sch:null,sch7:[0,0,1,0,0,0,0]})]);nxOn(P);clkT(P,11,55,0,true);
           P.ev("amNxGo('sample-band','test-a')");
           for(const minute of [5,10]){
-            clkT(P,12,minute);
+            clkT(P,12,minute,0,true);
             o[minute]=P.ev("(()=>{renderMapView();return document.querySelectorAll('.nxa-rn').length===1&&document.querySelectorAll('.nxa-it[data-w=\"sample-band\"]').length===0;})()");
           }
           o.noBand=P.ev("amNxBandRight({w:{sch7:[0,0,0,0,0,0,0]}},Date.now())===''");
@@ -8057,10 +8059,12 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       });
       await tryT('5371-second',async()=>{
         const P=await mkT(new V2.MemoryCloud(),'test-second','ws',stT()),o={};
+        const homeSource=await (await fetch('index.html')).text(), homeFn=homeSource.match(/function hmWs\(\)[\s\S]*?\n}/)[0];
+        const homeRead=()=>Function('frames','Date',homeFn+';return hmWs();')({ws:{contentWindow:P.win}},P.win.Date);
         try{
           setWC(P,[tW({id:'a',name:'Sample A',kind:'清掃',seq:2000,times:['08:00','14:00'],grace:0,lead:0}),tW({id:'b',name:'Sample B',kind:'点検',seq:1000,times:['09:00'],grace:0,lead:0}),tW({id:'f',name:'Sample F',kind:'鮮度管理',times:['08:00'],grace:0,lead:0}),tW({id:'next',name:'Sample Next',times:['17:00'],lead:0})]);nxOn(P);clkT(P,12,0);
           o.sort=P.ev("(()=>{const q=[{id:'a',w:{id:'a'},tr:0,o:{s:20},aft:0},{id:'b',w:{id:'b'},tr:0,o:{s:20},aft:0},{id:'c',w:{id:'c'},tr:1,o:{s:20},aft:0},{id:'d',w:{id:'d'},tr:2,o:{s:10},aft:0}];return amNxListQueue(q,Date.now()).map(x=>x.id).join(',')==='d,b,a,c'&&amNxListQueue(q.filter(x=>x.tr===0),Date.now()).map(x=>x.id).join(',')==='b,a';})()");
-          const homeSame=expected=>P.ev(`(()=>{_amNx.tab=null;const before=JSON.stringify(state);renderMapView();const rows=[...document.querySelectorAll('#nxa-col .nxa-it')].map(r=>r.dataset.w),next=amNxNext().map(x=>x.id),top=amNxFireTop(),ok=rows[0]===${J(expected)}&&top&&top.id===rows[0]&&JSON.stringify(next)===JSON.stringify(rows)&&JSON.stringify(state)===before;_amNx.tab='missing';const filtered=amNxFireTop();_amNx.tab=null;return ok&&filtered&&filtered.id===top.id;})()`);
+          const homeSame=expected=>P.ev(`(()=>{_amNx.tab=null;const before=JSON.stringify(state);renderMapView();const rows=[...document.querySelectorAll('#nxa-col .nxa-it')].map(r=>r.dataset.w),next=amNxNext().map(x=>x.id),top=amNxFireTop(),ok=rows[0]===${J(expected)}&&top&&top.id===rows[0]&&JSON.stringify(next)===JSON.stringify(rows)&&JSON.stringify(state)===before;_amNx.tab='missing';const filtered=amNxFireTop();_amNx.tab=null;return ok&&filtered&&filtered.id===top.id;})()`)&&(()=>{const h=homeRead(),q=P.ev('amNxNext().filter(x=>!x.lock)'),t=q.find(x=>x.k==='fire'||x.k==='soon');return !!h&&h.late===q.filter(x=>x.k==='fire').length&&(t?h.next&&h.next.name===t.name:h.next===null);})();
           o.home=[homeSame('a')];
           clkT(P,7,0);o.home.push(homeSame('a'));clkT(P,12,0);
           P.ev("amNxGo('a','test-a')");o.home.push(homeSame('f'));P.ev('state.amRun={};renderMapView()');
@@ -8076,7 +8080,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.layout=[];for(const width of [390,1280]){P.f.style.setProperty('width',width+'px','important');await sleep(80);P.ev('renderMapView()');o.layout.push(P.ev("(()=>{const r=document.querySelector('.nxa-it[data-w=\"a\"]'),m=r.querySelector('.nxa-gvmark'),h=r.getBoundingClientRect().height;m.remove();return h===r.getBoundingClientRect().height&&document.documentElement.scrollWidth<=innerWidth;})()"));}
           o.old=P.ev("state.amNx.on=0;renderMapView();!document.querySelector('.nxa-gvmark,.nxa-gvrow-btn,.nxa-late')");
         }finally{P.close();}
-        checkLT('5371-second','時間順・おくれ・行の諦める・今日の印',[['時間と種類と作業順',o.sort],['従来の順',o.home],['おくれの区切り',o.group],['ボタンの条件',o.flags],['理由→名前→同じ保存',o.reason&&o.name&&o.save],['記録と印・読むだけ',o.mark],['高さと390/1280',o.layout.every(Boolean)],['旧画面',o.old]],J(o));
+        checkLT('5371-second','時間順・おくれ・行の諦める・今日の印',[['時間と種類と作業順',o.sort],['ホームと 一覧の順',o.home.every(Boolean)],['おくれの区切り',o.group],['ボタンの条件',o.flags],['理由→名前→同じ保存',o.reason&&o.name&&o.save],['記録と印・読むだけ',o.mark],['高さと390/1280',o.layout.every(Boolean)],['旧画面',o.old]],J(o));
       });
       await tryT('97zc',async()=>{
         const P=await mkT(new V2.MemoryCloud(),'test-notice-5368','ws',stT()),o={};
@@ -8101,7 +8105,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             o.sizes.push(jpT(P.ev(`JSON.stringify({width:innerWidth,overlap:Array.from(document.querySelectorAll('.nxa-it:has(>.am-ctrt)')).map(e=>{const a=e.querySelector('.am-ctrt').getBoundingClientRect(),b=e.querySelector('.tm').getBoundingClientRect();return Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top))/Math.max(1,b.height);}),tabs:Array.from(document.querySelectorAll('.nxa-tabs button')).map(e=>({top:e.getBoundingClientRect().top,h:e.getBoundingClientRect().height,b:parseFloat(getComputedStyle(e).borderTopWidth)}))})`),{}));
           }
         }finally{P.close();}
-        checkLT('97zb','地図と別タブの行を開く・表示だけでは保存しない・タブは44pxと枠', [['地図',o.cell&&o.open===1],['同じタブは保つ',o.same],['行',o.sel],['保存しない',o.read],['札と時刻',o.sizes.every(x=>x.overlap.length&&x.overlap.every(v=>v<=.15))],['スマホの折り返し',new Set(o.sizes[0].tabs.map(x=>x.top)).size>=2],['タブ',o.sizes.length===3&&o.sizes.every(x=>x.tabs.length>=3&&x.tabs.every(t=>t.h>=40&&t.b>=1))]],J(o));
+        checkLT('97zb','地図と別タブの行を開く・表示だけでは保存しない・タブは44pxと枠', [['地図',o.cell&&o.open===1],['同じタブは保つ',o.same],['行',o.sel],['保存しない',o.read],['札と時刻',o.sizes.every(x=>x.overlap.length&&x.overlap.every(v=>v<=.15))],['スマホは 横送り',new Set(o.sizes[0].tabs.map(x=>x.top)).size===1],['タブ',o.sizes.length===3&&o.sizes.every(x=>x.tabs.length>=3&&x.tabs.every(t=>t.h>=40&&t.b>=1))]],J(o));
       });
       /* 5.36.8: inherited ticks must not finish a new run before its start. */
       for(const mode of ['cancel','problem','undo','problem-undo','next']) await tryT('97za-'+mode,async()=>{
@@ -8178,7 +8182,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           setWC(P,[tW({id:'one',name:'Sample one',times:['10:00'],lead:0,grace:30,goal:10,items:[]}),tW({id:'repeat',name:'Sample repeat',times:['10:00','13:00'],lead:0,grace:30,goal:10,items:[]})]); staff3(P); nxOn(P); clkT(P,10,1);
           P.ev("amNxGo('one','test-a');amNxGo('repeat','test-a')");
           const inspect=()=>jpT(P.ev(`JSON.stringify((()=>{renderMapView();return {q:amNxQueue().map(x=>x.id),home:amNxNext().map(x=>x.id),rows:[...document.querySelectorAll('#nxa-col .nxa-it')].map(x=>x.dataset.w),long:amNxLongRuns().length};})())`),{});
-          clkT(P,10,20,59); o.before=inspect(); clkT(P,10,21); o.edge=inspect(); clkT(P,10,40); o.late=inspect(); clkT(P,13,0); o.next=inspect();
+          clkT(P,10,20,30); o.before=inspect(); clkT(P,10,21,30); o.edge=inspect(); clkT(P,10,40); o.late=inspect(); clkT(P,13,0); o.next=inspect();
         } finally { P.close(); }
         checkLT('97b1','長い 回は 一覧・ホームから 外す。境目の 前後・締切の 後・同じ 作業の 別の 回',[
           ['境目の 前',o.before.long===0&&o.before.rows.length===0],['境目',o.edge.long===2&&o.edge.q.length===0&&o.edge.home.length===0&&o.edge.rows.length===0],
@@ -8192,7 +8196,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           const seed=String(P.ev('JSON.stringify(state)'));
           o.button=P.ev(`(()=>{const b=document.querySelector('.nxa-take'),r=b.getBoundingClientRect();b.click();return r.height>=40&&r.width>=40;})()`);
           o.pick=P.ev(`amSheetName()==='nxpick'&&document.querySelectorAll('.nx-pk[data-take="${k}"]').length>0&&[...document.querySelectorAll('.nx-pk')].every(b=>b.dataset.take===${J(k)})`);
-          P.ev(`document.querySelector('.nx-more')?.click();document.querySelector('.nx-pk[data-n="見本 太郎"]').click()`);
+          await sleep(550); P.ev(`document.querySelector('.nx-more')?.click();document.querySelector('.nx-pk[data-n="見本 太郎"]').click()`);
           const canon=`(()=>{const s=JSON.parse(JSON.stringify(state));s.amRun=Object.values(s.amRun).sort((a,b)=>a.w.localeCompare(b.w));return JSON.stringify(s);})()`;
           o.actual=String(P.ev(canon)); o.gone=P.ev(`${J(k)} in state.amRun`)===false; o.active=runsN(P); o.ck=ckN(P,'take'); o.log=logOf(P,'take');
           await syncT(D); o.sync=nzT(P.ev('JSON.stringify(state)'))===nzT(Q.ev('JSON.stringify(state)'));
@@ -8231,7 +8235,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           setWC(P,[cW(Object.assign({id:'check'},all7R)),bW(Object.assign({id:'wait'},all7R))]);nxOn(P);clkT(P,10,0);P.ev("amNxGo('check','test-a')");const k=kOf(P,'check');
           P.f.style.setProperty('width','390px','important');P.f.style.height='844px';await sleep(80);P.ev('renderMapView()');
           o.phone=jpT(P.ev(`JSON.stringify(Array.from(document.querySelectorAll('.nxa-rn .nxa-schedule')).map(e=>({font:parseFloat(getComputedStyle(e).fontSize),tr:getComputedStyle(e.querySelector('.am-tr')).display})))`),[]);
-          o.rowTr=P.ev(`getComputedStyle(document.querySelector('.nxa-it .nxa-schedule .am-tr')).display`);o.all=qtT(P,'.nxa-tabs button .am-tr');
+          o.rowTr=P.ev(`getComputedStyle(document.querySelector('.nxa-it .nxa-schedule .am-tr')).display`);o.all=P.ev(`document.querySelector('.nxa-tabs button').title`);
           P.f.style.setProperty('width','1440px','important');await sleep(80);P.ev('renderMapView()');
           o.wide=jpT(P.ev(`JSON.stringify(Array.from(document.querySelectorAll('.nxa-rn .nxa-schedule .am-tr,.nxa-it .nxa-schedule .am-tr')).map(e=>({text:e.textContent,display:getComputedStyle(e).display})))`),[]);
           P.f.style.setProperty('width','800px','important');P.f.style.height='640px';await sleep(80);P.ev(`renderMapView();amNxCkOpen(${J(k)})`);

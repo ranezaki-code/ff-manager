@@ -360,9 +360,9 @@ function hmWs(){   // ワークスケジュールの 中の窓を 読むだけ�
     // つぎ：おくれが あれば WS の「先にやる」（amFireTop）。無ければ 列の「もうすぐ」の1行目。列が無い見かた（厨房・新しい画面）でも うそを言わない
     const clean=s=>String(s||'').replace(/^[\s⏳▶⏸]+/,'').trim();
     let next=null;
-    // WS 5.31：新しい画面の時は「急ぐ順」(amNxQueue) から。諦めた・取りかかり中・困った は WS が外している（WS の 画面と 同じ 数・同じ 先頭）
+    // WS 5.31：新しい画面の時は一覧と 同じ順 (amNxNext) から。諦めた・取りかかり中・困った は WS が外している（WS の 画面と 同じ 数・同じ 先頭）
     if(typeof w.amNxOn==='function'&&w.amNxOn()&&typeof w.amNxQueue==='function'){
-      const q=w.amNxQueue(now).filter(x=>!x.lock), f=q.filter(x=>x.k==='fire').length, t=q.find(x=>x.k==='fire'||x.k==='soon');
+      const q=w.amNxNext(now).filter(x=>!x.lock), f=q.filter(x=>x.k==='fire').length, t=q.find(x=>x.k==='fire'||x.k==='soon');
       return {done,total,late:f,next:t?{name:clean(t.name),late:t.k==='fire',soon:t.k==='soon'}:null};
     }
     if(late&&typeof w.amFireTop==='function'){ const f=w.amFireTop(now); if(f&&f.label) next={name:clean(f.label),late:true}; }

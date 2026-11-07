@@ -3955,10 +3955,12 @@ html.nx-fit::-webkit-scrollbar{width:0}
 .nxa.ph.map .nxa-tabs{flex-wrap:nowrap;overflow-x:auto;flex-shrink:0;max-height:52px;box-sizing:border-box}
 .nxa.ph.map .nxa-tabs .nxb{flex:none}
 .nxa.ph.map .nxa-tabs .am-tr{display:none}
-.nxa .nxa-tabs .nxb{position:relative;flex:none;height:40px;min-height:40px;border:1px solid #b8c4d6;border-radius:6px;padding:3px 8px;background:white;font-size:13px;white-space:nowrap}
-.nxa .nxa-tabs .nxb::after{content:'';position:absolute;inset:-5px 0}
-.nxa.ph.map .nxa-tabs .am-tr,.nxa .nxa-tabs .am-tr{display:block;font-size:9px;line-height:1.1;color:inherit}
-.nxa .nxa-tabs .nxb[aria-pressed="true"]{background:#13294b;color:white}
+.nxa .nxa-tabs .nxb{position:relative;flex:none;height:40px;min-height:40px;isolation:isolate;border:1px solid transparent;border-radius:6px;padding:3px 8px;background:transparent;font-size:13px;white-space:nowrap}
+.nxa .nxa-tabs .nxb::before{content:'';position:absolute;inset:3px -1px;z-index:-1;border:1px solid #b8c4d6;border-radius:6px;background:white}
+.nxa .nxa-take{border:1px solid #b8c4d6;border-radius:8px;background:#fff;padding:8px 12px;color:var(--ink)}
+.nxa.ph.map .nxa-tabs .am-tr,.nxa .nxa-tabs .am-tr{display:block;font-size:11px;line-height:1.1;color:inherit}
+.nxa .nxa-tabs .nxb[aria-pressed="true"]{color:white}
+.nxa .nxa-tabs .nxb[aria-pressed="true"]::before{background:#13294b;border-color:#13294b}
 .nxa .nxa-it,.nxa .nxa-rn{flex-wrap:wrap}
 .nxa.queue .nxa-it,.nxa.queue .nxa-rn{padding-top:6.5px;padding-bottom:6.5px}
 .nxa.queue .nxa-rn.ct{padding-top:15.5px}
@@ -13857,10 +13859,10 @@ function amNxDue(x){ if(x.o) return isFinite(x.o.e)?x.o.e:Infinity; const s=x.s;
 /* 急ぐ順（並べ方は これ 1つ）。1件＝{id, w, s（売場の 状態）, o（売場以外・あとの作業の 回）, af, k:fire／soon／todo, lock, lockAt, due, tag, cells, name, tro（英・ネの 元）, rep, re, aft}。読むだけ */
 function amNxQueue(now,display=false){
   now=now||Date.now(); const G={fire:3,soon:2,todo:1}, tr=amTagRank(), wi={}, out=[], seen={};
-  const displayRuns=amRunActive(now).concat(amNxLongRuns(now));
+  const activeRuns=amRunActive(now), displayRuns=activeRuns.concat(amNxLongRuns(now));
   amNxOrdered().forEach((w,i)=>{ wi[w.id]=i; });
   const kd=w=>String(w.kind==null?'':w.kind), hid=amNxTrbNow(now).hide, gv=amNxGvNow(now);   // 5.27：困った の 帯の 作業・手が 足りない（15分）は 出さない   // 5.31：諦めた 作業は その 回の 間 出さない
-  const push=x=>{ if(displayRuns.some(r=>amNxSameRun(x,r))||seen[x.id]||hid[x.id]||amNxGvHid(gv,x)) return; seen[x.id]=1; x.g=x.lock?0:G[x.k]; x.tr=(x.tag in tr)?tr[x.tag]:999; x.wi=(x.w.id in wi)?wi[x.w.id]:99999; out.push(x); };
+  const push=x=>{ if((amIsTimed(x.w)&&!x.af&&activeRuns.some(r=>!r.sa&&r.w===x.w.id))||displayRuns.some(r=>amNxSameRun(x,r))||seen[x.id]||hid[x.id]||amNxGvHid(gv,x)) return; seen[x.id]=1; x.g=x.lock?0:G[x.k]; x.tr=(x.tag in tr)?tr[x.tag]:999; x.wi=(x.w.id in wi)?wi[x.w.id]:99999; out.push(x); };
   amFloorWorks().forEach(a=>{ const s=amStatus(a,now); if(!G[s.st]) return; const gp=amGapLock(a,now), lock=!!(s.tm&&s.lock)||!!gp;
     push({id:a.id, w:a, s, o:null, af:null, k:s.st, lock, lockAt:lock?(gp?gp.until:(s.slot?s.slot.o:NaN)):NaN, due:amNxDue({s}), tag:kd(a), cells:amNxCellsOf(a), name:a.name||'', base:amBaseName(a), tro:a, rep:amIsRep(a), re:false, aft:0}); });
   const off=amOffWorks().length?amOffColData(now).act:[], afs=amAfterList(now).filter(o=>o.up&&G[o.k]);
@@ -13871,7 +13873,7 @@ function amNxQueue(now,display=false){
   const du=x=>isFinite(x.due)?x.due:9e15;
   return out.sort((x,y)=>(y.g-x.g)||(x.tr-y.tr)||(x.wi-y.wi)||(x.aft-y.aft)||(du(x)-du(y))||(x.id<y.id?-1:x.id>y.id?1:0));
 }
-/* 表示だけのタブ順。ホームの推薦と状態判定は amNxQueue のまま。 */
+/* 種類のタブの並び。状態判定は amNxQueue。 */
 function amNxSlot(x,now){
   if(x.o) return x.o;
   const s=x.s||{};
@@ -13884,7 +13886,7 @@ function amNxTabQueue(q,now){
   const at=x=>{ const v=amNxSlot(x,now); return v&&isFinite(v.s)?v.s:Infinity; };
   return q.slice().sort((a,b)=>(a.tr-b.tr)||((b.k==='fire')-(a.k==='fire'))||((at(a)===at(b))?0:at(a)<at(b)?-1:1)||((reg.get(a.w.id)||0)-(reg.get(b.w.id)||0))||(a.aft-b.aft));
 }
-/* 一覧だけ：始まる 時間 → 種類 → 種類の 中の 順。ホーム・厨房の 順は 変えない。 */
+/* 一覧・ホーム：始まる 時間 → 種類 → 種類の 中の 順。 */
 function amNxListQueue(q,now){
   const reg=new Map(amNxOrdered().map((w,i)=>[w.id,i]));
   const at=x=>{ const v=amNxSlot(x,now); return v&&isFinite(v.s)?v.s:Infinity; };
@@ -13895,8 +13897,8 @@ function amNxTabSet(k){ _amNx.tab=k; _amNx.sel=''; _amNx.sc=0; renderMapView(); 
 function amNxSameRun(x,r){
   if(r.sa) return !!x.af&&String(r.w)===x.w.id+'#af'&&new Date(r.sa).getTime()===x.o.src;
   if(x.af||String(r.w)!==x.w.id) return false;
-  const s=amIsOff(x.w)||amIsTimed(x.w)?amOffNow(x.w,r.s).slot:amNxSlot({w:x.w,s:amStatus(x.w,r.s)},r.s), v=amNxSlot(x,r.s);
-  if(!amIsOff(x.w)&&!amIsTimed(x.w)&&v&&v.s<=r.s&&r.s<v.e) return true;
+  const s=amIsTimed(x.w)?amOffNow(x.w,r.s).slot:amNxSlot({w:x.w,s:amStatus(x.w,r.s)},r.s), v=amNxSlot(x,r.s);
+  if(!amIsTimed(x.w)&&v&&v.s<=r.s&&r.s<v.e) return true;
   return !!s&&!!v&&s.s===v.s;
 }
 function amNxShown(q,now,tab=_amNx.tab){
@@ -13915,7 +13917,7 @@ function amNxBandRight(x,now){
 function amNxTabsHtml(q){
   const keys=Array.from(new Set(q.map(x=>x.tag))).sort((a,b)=>(q.find(x=>x.tag===a).tr-q.find(x=>x.tag===b).tr));
   if(_amNx.tab!=null&&!keys.includes(_amNx.tab)) _amNx.tab=null;
-  const btn=(k,n,rows)=>`<button type="button" class="nxb" aria-pressed="${(_amNx.tab==null?k==null:_amNx.tab===k)}" ${k==null?'onclick="amNxTabSet(null)"':`data-tab="${escapeHtml(k)}" onclick="amNxTabSet(this.dataset.tab)"`}>${escapeHtml(n)}${k==null?amTr2('All','सबै'):''}${rows.some(x=>x.k==='fire')?`・おくれ ${rows.filter(x=>x.k==='fire').length}`:''}</button>`;
+  const btn=(k,n,rows)=>`<button type="button" class="nxb" ${k==null?'title="All / सबै"':''} aria-pressed="${(_amNx.tab==null?k==null:_amNx.tab===k)}" ${k==null?'onclick="amNxTabSet(null)"':`data-tab="${escapeHtml(k)}" onclick="amNxTabSet(this.dataset.tab)"`}>${escapeHtml(n)}${rows.some(x=>x.k==='fire')?`・おくれ ${rows.filter(x=>x.k==='fire').length}`:''}</button>`;
   return `<div class="nxa-tabrow"><div class="nxa-tabs" aria-label="作業の種類">${btn(null,'すべて',q)}${keys.map(k=>btn(k,amKindName(k)||'種類なし',q.filter(x=>x.tag===k))).join('')}</div><button type="button" class="am-ctr-info" aria-label="カウンター内と 外の 説明" onclick="amCtrHelp()"><span aria-hidden="true">i</span></button></div>`;
 }
 function amNxScheduleText(x,now){
@@ -14340,7 +14342,7 @@ function amNxReveal(id){
   const col=document.getElementById('nxa-col'); if(!col) return; const row=Array.prototype.find.call(col.querySelectorAll('.nxa-it'),e=>e.dataset.w===id); if(!row) return;
   const stk=col.querySelector('.nxa-stk:not(.nost)'), sh=stk?stk.offsetHeight+6:0;   // 5.27：上に 貼り付いた 取りかかり中の 下から 見せる
   const nx=row.nextElementSibling, op=(nx&&nx.classList.contains('nxa-open'))?nx:null, bot=op?op.offsetTop+op.offsetHeight:row.offsetTop+row.offsetHeight, room=col.clientHeight-sh-(op?8:52);   // 開いている 間は「下に あと◯件」を 出さない（amNxBelow）
-  const wb=op&&(op.querySelector('.nxa-names .nxa-who,.nxa-btns,.nxa-lockn')||op.querySelector('.nxa-cl')), wbot=wb?wb.offsetTop+wb.offsetHeight:0;   // 5.26（テス：390 幅で「◯◯ が やる」が 下の 帯に 隠れた）：名前の ボタンまでは 必ず 見せる   // 5.31.3：上の ボタン（.nxa-cl）が 先に 来たので、最初の 名前の ボタンを 見る
+  const wb=op&&(op.querySelector('.nxa-names .nxa-who,.nxa-btns,.nxa-lockn')||op.querySelector('.nxa-cl')), wbot=wb?wb.getBoundingClientRect().bottom-col.getBoundingClientRect().top+col.scrollTop:0;   // 5.26（テス：390 幅で「◯◯ が やる」が 下の 帯に 隠れた）：名前の ボタンまでは 必ず 見せる   // 5.31.3：上の ボタン（.nxa-cl）が 先に 来たので、最初の 名前の ボタンを 見る
   let st=col.scrollTop; if(row.offsetTop<st+sh+4) st=row.offsetTop-sh-8; if(bot>st+sh+room) st=Math.min(row.offsetTop-sh-8,bot-room-sh); if(wbot>st+sh+room) st=wbot-room-sh;
   { const a=op&&op.querySelector('.nxa-acts.top'); if(a&&st>row.offsetTop-sh-8) st=Math.max(row.offsetTop-sh-8, st-a.offsetHeight, wbot-room-sh); }
   col.scrollTop=Math.max(0,st);
