@@ -8039,6 +8039,30 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           ['札',o.layouts.every(x=>x.top&&x.heading&&x.height&&x.nowrap&&x.touch)&&o.filter],['点線と番号',o.layouts.every(x=>x.order&&x.after&&x.nums)],['同じ回だけ',o.active&&o.same&&o.af],['時間帯と時刻',o.band&&o.timed],['高さ+5',o.runHeight&&o.layouts.every(x=>x.sizes.length&&x.sizes.every(n=>n>=4&&n<=6))],['state',o.layouts.every(x=>x.read)],['幅',o.layouts.length===2&&o.layouts.every(x=>x.fit)],['古い画面',o.old]
         ],J(o));
       });
+
+      await tryT('5371-second',async()=>{
+        const P=await mkT(new V2.MemoryCloud(),'test-second','ws',stT()),o={};
+        try{
+          setWC(P,[tW({id:'a',name:'Sample A',kind:'清掃',seq:2000,times:['08:00','14:00'],grace:0,lead:0}),tW({id:'b',name:'Sample B',kind:'点検',seq:1000,times:['09:00'],grace:0,lead:0}),tW({id:'f',name:'Sample F',kind:'鮮度管理',times:['08:00'],grace:0,lead:0}),tW({id:'next',name:'Sample Next',times:['17:00'],lead:0})]);nxOn(P);clkT(P,12,0);
+          o.sort=P.ev("(()=>{const q=[{id:'a',w:{id:'a'},tr:0,o:{s:20},aft:0},{id:'b',w:{id:'b'},tr:0,o:{s:20},aft:0},{id:'c',w:{id:'c'},tr:1,o:{s:20},aft:0},{id:'d',w:{id:'d'},tr:2,o:{s:10},aft:0}];return amNxListQueue(q,Date.now()).map(x=>x.id).join(',')==='d,b,a,c'&&amNxListQueue(q.filter(x=>x.tr===0),Date.now()).map(x=>x.id).join(',')==='b,a';})()");
+          const homeSame=expected=>P.ev(`(()=>{_amNx.tab=null;const before=JSON.stringify(state);renderMapView();const rows=[...document.querySelectorAll('#nxa-col .nxa-it')].map(r=>r.dataset.w),next=amNxNext().map(x=>x.id),top=amNxFireTop(),ok=rows[0]===${J(expected)}&&top&&top.id===rows[0]&&JSON.stringify(next)===JSON.stringify(rows)&&JSON.stringify(state)===before;_amNx.tab='missing';const filtered=amNxFireTop();_amNx.tab=null;return ok&&filtered&&filtered.id===top.id;})()`);
+          o.home=[homeSame('a')];
+          clkT(P,7,0);o.home.push(homeSame('a'));clkT(P,12,0);
+          P.ev("amNxGo('a','test-a')");o.home.push(homeSame('f'));P.ev('state.amRun={};renderMapView()');
+          o.group=P.ev("(()=>{renderMapView();const c=document.getElementById('nxa-col'),h=c.querySelector('.nxa-late'),rows=[...c.querySelectorAll('.nxa-it')],n=rows.filter(r=>r.classList.contains('late')).length;return !!h&&h.textContent.includes(String(n))&&rows.slice(0,n).every(r=>r.classList.contains('late'))&&rows.slice(n).every(r=>!r.classList.contains('late'))&&!!(h.compareDocumentPosition(rows[0])&Node.DOCUMENT_POSITION_FOLLOWING)&&c.querySelectorAll('.nxa-after').length===1;})()");
+          o.flags=P.ev("(()=>{const q=amNxQueue(),x=q.find(x=>x.id==='a'),fresh=q.find(x=>x.id==='f'),row=x=>amNxRowHtml(x,1,Date.now(),true,false,false,true,true),has=x=>row(x).includes('nxa-gvrow-btn'),get=amGvOn,fr=amIsFresh;const yes=has(x),noFresh=!has(fresh),noLock=!has({...x,lock:true}),noFuture=!has({...x,k:'todo'});amGvOn=()=>false;const off=!has(x);amGvOn=get;amIsFresh=()=>true;const ng=!has(x);amIsFresh=fr;const b=document.querySelector('.nxa-gvrow-btn[data-w=a]'),r=b.getBoundingClientRect();return yes&&noFresh&&noLock&&noFuture&&off&&ng&&r.width>=40&&r.height>=40&&!b.closest('.nxa-it');})()");
+          P.ev("_amNx.hold=0;document.querySelector('.nxa-gvrow-btn[data-w=\"a\"]').click()");
+          o.reason=P.ev("_amGv&&_amGv.id==='a'&&_amGv.y===''");
+          P.ev("amNxGvPick(amNxGvDef('').y)");o.name=P.ev("!!_amGv.y&&!!document.querySelector('#am-sheet')");
+          o.save=P.ev("(()=>{const x=amNxQueue().find(x=>x.id==='a'),y=_amGv.y,ref=amNxGvPut(x,y,'test-a',Date.now(),0),expected=JSON.stringify(state[ref.key][ref.id]);delete state[ref.key][ref.id];amNxGvOk('test-a');return amNxGvNow().live.some(e=>JSON.stringify(e.r)===expected);})()");
+          o.home.push(homeSame('f'));
+          P.ev("(()=>{const e=amNxGvNow().live.find(e=>e.qid==='a'),log=state[e.key];log.gsample={...e.r,t:new Date(Date.now()-6*3600000).toISOString()};log.gundone={...e.r,u:1};})()");
+          clkT(P,14,0);o.mark=P.ev("(()=>{const x=amNxQueue().find(x=>x.id==='a'),before=JSON.stringify(state);renderMapView();const m=document.querySelector('.nxa-it[data-w=\"a\"] .nxa-gvmark'),day=amLogDayMs(amLogDay(Date.now())),e=amNxGvNow().live.find(e=>e.qid==='a');return !!m&&m.textContent==='🏳2'&&amNxGvNow().live.filter(e=>e.qid==='a').every(e=>m.title.includes(AM_BANDS[amBandIdx((e.t-day)/3600000)].label))&&before===JSON.stringify(state);})()");
+          o.layout=[];for(const width of [390,1280]){P.f.style.setProperty('width',width+'px','important');await sleep(80);P.ev('renderMapView()');o.layout.push(P.ev("(()=>{const r=document.querySelector('.nxa-it[data-w=\"a\"]'),m=r.querySelector('.nxa-gvmark'),h=r.getBoundingClientRect().height;m.remove();return h===r.getBoundingClientRect().height&&document.documentElement.scrollWidth<=innerWidth;})()"));}
+          o.old=P.ev("state.amNx.on=0;renderMapView();!document.querySelector('.nxa-gvmark,.nxa-gvrow-btn,.nxa-late')");
+        }finally{P.close();}
+        checkLT('5371-second','時間順・おくれ・行の諦める・今日の印',[['時間と種類と作業順',o.sort],['従来の順',o.home],['おくれの区切り',o.group],['ボタンの条件',o.flags],['理由→名前→同じ保存',o.reason&&o.name&&o.save],['記録と印・読むだけ',o.mark],['高さと390/1280',o.layout.every(Boolean)],['旧画面',o.old]],J(o));
+      });
       await tryT('97zc',async()=>{
         const P=await mkT(new V2.MemoryCloud(),'test-notice-5368','ws',stT()),o={};
         try{
