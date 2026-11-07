@@ -5347,7 +5347,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.keys=[ET(P,`'amNx' in state`), ET(P,`'amHere' in state`)]; o.ver=[ET(P,'APP_VERSION'),ET(O,'APP_VERSION')];
         } finally { for(const d of D) ET(d,'amCloseSheet()'); }
         checkLT('97nx1','【オフ＝5.36 と 同じ】新しい画面が オフの 時、地図の画面・5つの カード（✓あり・▶・時間帯・時刻・売場以外）・✓・記録・▶・終わった の 後の 画面が 5.36 と 1字も 同じ（▶ の 印の id だけ 消して 比べる）・保存の 中身も 同じ・amNx／amHere を 作らない',[
-            ['1:画面 '+o.eq.length+'か所',o.eq.length>=14&&o.eq.every(Boolean)],['2:保存',o.proj===true],['3:新しい 項目なし',J(o.keys)==='[false,false]'],['4:版',J(o.ver)==='["5.37","5.36"]']],
+            ['1:画面 '+o.eq.length+'か所',o.eq.length>=14&&o.eq.every(Boolean)],['2:保存',o.proj===true],['3:新しい 項目なし',J(o.keys)==='[false,false]'],['4:版',J(o.ver)==='["5.37.1","5.36"]']],
           `違い ${o.bad.slice(0,3).join(' ｜ ')}｜印「〜」${o.tilde}｜版 ${J(o.ver)}`);
         for(const d of D) d.close();
       });
@@ -7173,7 +7173,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         const tx=(r,t,s,dim)=>!!r&&r.t===t&&r.s===s&&r.dim===dim;
         checkLT('97i1','【5.33 時刻の 表示＋今やる 行の 塗り】行の 右＝13:00 おくれ／〜12:00 おくれ（うすく）／15:00 いま／空欄（順番だけ）／16:00 から／14:05 おくれ（あと）・ホームも 同じ 字・窓の「✓できる 時間」4種類（順番だけは 無し）・今やる 行だけ 青・押した 行は 白＋紺・🔒 の 点線は 残る・390 でも 1行・保存の 鍵は 増えない',[
             ['1:行の 右（時刻）',tx(R.tA,'13:00','おくれ',false)&&tx(R.tC,'15:00','いま',false)],
-            ['2:行の 右（時間帯・あと・順番だけ・🔒）',tx(R.tB,'〜12:00','おくれ',true)&&tx(F,'14:05','おくれ',false)&&tx(R.tD,'','',true)&&tx(R.tE,'16:00 から','',false)],
+            ['2:行の 右（時間帯・あと・順番だけ・🔒）',tx(R.tB,'〜12:00','おくれ',true)&&tx(F,'14:05','おくれ',false)&&tx(R.tD,'','0/1',true)&&tx(R.tE,'16:00 から','',false)],
             ['3:amNxWhen・ホームも 同じ 字',J(o.q.map(x=>x[3]))===J(['13:00 おくれ','〜12:00 おくれ','14:05 おくれ','15:00 いま','','16:00 から'])&&!!o.top&&o.top.when==='13:00 おくれ'&&o.n===6],
             ['4:窓（時刻・時間帯・🔒・あと）',!!o.wA.w&&/12:30〜14:00/.test(o.wA.w)&&/基準 13:00（30分 前から・60分 後まで）/.test(o.wA.w)&&o.wA.after===true&&/15:00〜18:00/.test(o.wB.w||'')&&/時間帯の 作業/.test(o.wB.w||'')&&/16:00〜17:30/.test(o.wE.w||'')&&/時刻の 前/.test(o.wE.w||'')&&/14:05〜15:05/.test(o.wF.w||'')&&/元の 記録の 30分 後から/.test(o.wF.w||'')&&/14:30〜16:00/.test(o.wC.w||'')],
             ['5:順番だけは 出さない',o.wD.w===null],
@@ -7245,7 +7245,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         } finally { for(const d of [P,O,R]) ET(d,'amCloseSheet()'); }
         const has=(a,s)=>Array.isArray(a)&&a.indexOf(s)>=0;
         checkLT('97j1','【5.34 設定 noHere・5.36.2 押すまで 残す】設定なし＝新しい版は 残す・保存の 形は 5.33 と 同じ（鍵・記録の 項目・今いる人・設定）・目標の ◯倍・📊・3:00・長い 印は 2つまでに 数えない・noHere で 列なし（登録順で 全員・2つ持ちは ▶ から・amHere は 書く）・形の 検査と 合言葉・keep は 書かない・5.33 と 往復',[
-            ['1:版',J(o.verA)===J(['5.37','5.33'])&&o.old[1]==='5.33'],
+            ['1:版',J(o.verA)===J(['5.37.1','5.33'])&&o.old[1]==='5.33'],
             ['2:設定なし＝動いている 印は 5.33 と 同じ（戻る 時刻で 外れる）',J(o.r1[0])==='[]'&&J(o.r1[1])==='[]'&&J(o.r2[0])===J(['見本 太郎@tH'])&&J(o.r2[1])===J(['見本 太郎@tH'])&&!!o.cfg0&&o.cfg0.set===false&&o.cfg0.keep===1&&o.cfg0.noHere===0],
             ['2b:保存の 形は 同じ（3:00 の 後の 画面・今いる人・設定・鍵・記録の 項目）',o.a3[0]===o.a3[1]&&o.h[0]===o.h[1]&&o.nx[0]===o.nx[1]&&!/keep/.test(o.nx[0])&&!!o.shp[0]&&J(o.shp[0])===J(o.shp[1])&&o.shp[0].run===0&&o.shp[0].recs.length===2],
             ['3:管理者だけ・合言葉・keep は 書かない',o.na[0]===false&&!/noHere/.test(o.na[1])&&o.pw[0]===false&&o.pw[1]===false&&o.pw[2]===true&&o.pw[3]==='false'&&!!o.pw[4]&&o.pw[4].keep===1&&o.pw[4].noHere===0&&o.pw[4].set===true&&o.pw[5]===false&&o.pw[6]===true&&!/keep/.test(o.pw[7])],
@@ -8018,17 +8018,18 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       await tryT('5371',async()=>{
         const P=await mkT(new V2.MemoryCloud(),'test-5371','ws',stT()), o={};
         try{
-          setWC(P,[bW({id:'band',name:'Sample band',kind:'点検',sch7:[0,0,3,0,0,0,0],sch:[0,3,0,0]}),tW({id:'later',name:'Sample later',kind:'清掃',times:['17:00'],lead:0}),tW({id:'ready',name:'Sample ready',kind:'清掃',times:['10:00'],lead:0,grace:120})]); nxOn(P); clkT(P,10,0);
+          setWC(P,[bW({id:'band',name:'Sample band',kind:'点検',sch7:[0,0,3,0,0,0,0],sch:[0,3,0,0]}),tW({id:'later',name:'Sample later',kind:'清掃',times:['17:00'],lead:0}),tW({id:'ready',name:'Sample ready',kind:'清掃',times:['10:00'],lead:0,grace:120})]); nxOn(P); clkT(P,10,5);
+          P.ev(`(()=>{const d=new Date();d.setHours(9,59,0,0);state.areaChecks.band=[{at:d.toISOString(),by:'test-a'}];renderMapView();})()`);
           o.layouts=[];
           for(const width of [390,1280]){
             P.f.style.setProperty('width',width+'px','important');P.f.style.height='844px';await sleep(100);
-            o.layouts.push(jpT(P.ev(`JSON.stringify((()=>{_amNx.tab=null;const before=JSON.stringify(state);renderMapView();const c=document.getElementById('nxa-col'),t=c.querySelector('.nxa-tabs'),bs=[...t.children],rows=[...c.querySelectorAll('.nxa-it')],locks=rows.map(r=>r.classList.contains('lock')),first=locks.indexOf(true);const sizes=rows.map(r=>{const h=r.getBoundingClientRect().height,clone=r.cloneNode(true);clone.style.paddingTop='4px';clone.style.paddingBottom='4px';clone.style.minHeight=document.getElementById('nx-wrap').classList.contains('many')?'46px':'52px';r.after(clone);const delta=h-clone.getBoundingClientRect().height;clone.remove();return delta;});return {top:c.firstElementChild===t.closest(".nxa-tabrow"),heading:!c.textContent.includes('種類ごと'),height:bs.every(b=>b.getBoundingClientRect().height<=36),nowrap:getComputedStyle(t).flexWrap==='nowrap',touch:bs.every(b=>b.getBoundingClientRect().height+10>=40),order:first>0&&locks.slice(first).every(Boolean),after:c.querySelectorAll('.nxa-after').length===1,nums:rows.map(r=>+r.querySelector('.rk').textContent).join(',')===amNxRowNums(amNxShown(amNxQueue(Date.now(),true),Date.now())).join(','),sizes,read:before===JSON.stringify(state),fit:document.documentElement.scrollWidth<=innerWidth&&rows.every(r=>r.getBoundingClientRect().right<=c.getBoundingClientRect().right+1)};})())`),{}));
+            o.layouts.push(jpT(P.ev(`JSON.stringify((()=>{_amNx.tab=null;const before=JSON.stringify(state);renderMapView();const c=document.getElementById('nxa-col'),t=c.querySelector('.nxa-tabs'),bs=[...t.children],rows=[...c.querySelectorAll('.nxa-it')],locks=rows.map(r=>r.classList.contains('lock')),first=locks.indexOf(true);const sizes=rows.map(r=>{const h=r.getBoundingClientRect().height,clone=r.cloneNode(true);clone.style.paddingTop='4px';clone.style.paddingBottom='4px';clone.style.minHeight=document.getElementById('nx-wrap').classList.contains('many')?'46px':'52px';r.after(clone);const delta=h-clone.getBoundingClientRect().height;clone.remove();return delta;});return {top:c.firstElementChild===t.closest(".nxa-tabrow"),heading:!c.textContent.includes('種類ごと'),height:bs.every(b=>b.getBoundingClientRect().height>=40),nowrap:getComputedStyle(t).flexWrap==='nowrap',touch:bs.every(b=>b.getBoundingClientRect().height>=40),order:first>0&&locks.slice(first).every(Boolean),after:c.querySelectorAll('.nxa-after').length===1,nums:rows.map(r=>+r.querySelector('.rk').textContent).join(',')===amNxRowNums(amNxShown(amNxQueue(Date.now(),true),Date.now())).join(','),sizes,read:before===JSON.stringify(state),fit:document.documentElement.scrollWidth<=innerWidth&&rows.every(r=>r.getBoundingClientRect().right<=c.getBoundingClientRect().right+1)};})())`),{}));
           }
           o.filter=P.ev(`(()=>{document.querySelector('[data-tab="清掃"]').click();return _amNx.tab==='清掃'&&[...document.querySelectorAll('#nxa-col .nxa-it')].every(r=>r.dataset.w!=='band');})()`);
           P.ev(`_amNx.tab=null;const t=Date.now()-60000;state[AM_LOG_PRE+amLogDay(t)]={sample:{w:'band',at:new Date(t).toISOString()}};renderMapView()`);
           o.band=P.ev(`(()=>{const r=document.querySelector('[data-w="band"].nxa-it .tm');return !!r.querySelector('.nxa-band')&&r.textContent.includes('1/3')&&r.textContent.includes(AM_BANDS[2].label);})()`);
           o.timed=P.ev(`(()=>{const x=amNxQueue().find(x=>x.id==='later');return document.querySelector('[data-w="later"].nxa-it .tm').textContent===amNxWhen2(x,Date.now()).t;})()`);
-          o.same=P.ev(`(()=>{const w=amWork('band'),s=amSlots(w,Date.now())[0],x={w,id:w.id,s:{cur:s}},r={w:w.id,s:s.s+1};return amNxSameRun(x,r)&&!amNxSameRun({...x,s:{cur:{s:s.s+1,e:s.e}}},r);})()`);
+          o.same=P.ev(`(()=>{const w=amWork('band'),s=amSlots(w,Date.now()).find(v=>v.s<=Date.now()&&Date.now()<v.e),x={w,id:w.id,s:{cur:s}},r={w:w.id,s:s.s+1};return amNxSameRun(x,r)&&!amNxSameRun({...x,s:{cur:{s:s.e,e:s.e+3600000}}},r);})()`);
           o.af=P.ev(`(()=>{const w=amWork('band'),src=Date.now(),r={w:w.id+'#af',sa:new Date(src).toISOString()},x={w,af:{},o:{src}};return amNxSameRun(x,r)&&!amNxSameRun({...x,o:{src:src+1}},r);})()`);
           P.ev(`state.amRun={sample:{w:'ready',s:new Date(Date.now()-60000).toISOString(),by:'test-a'}};renderMapView()`);
           o.active=qnT(P,'#nxa-col .nxa-it[data-w="ready"]')===0;
@@ -8040,6 +8041,19 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         ],J(o));
       });
 
+      await tryT('5371-x3',async()=>{
+        const P=await mkT(new V2.MemoryCloud(),'test-x3','ws',stT()),o={};
+        try{
+          setWC(P,[bW({id:'sample-band',name:'Sample band',sch:null,sch7:[0,0,1,0,0,0,0]})]);nxOn(P);clkT(P,11,55);
+          P.ev("amNxGo('sample-band','test-a')");
+          for(const minute of [5,10]){
+            clkT(P,12,minute);
+            o[minute]=P.ev("(()=>{renderMapView();return document.querySelectorAll('.nxa-rn').length===1&&document.querySelectorAll('.nxa-it[data-w=\"sample-band\"]').length===0;})()");
+          }
+          o.noBand=P.ev("amNxBandRight({w:{sch7:[0,0,0,0,0,0,0]}},Date.now())===''");
+        }finally{P.close();}
+        checkLT('5371-x3','きのうの記録なし・昼前のおくれを開始→昼でも1行・回数なしは空欄',[['12:05',o[5]],['12:10',o[10]],['回数なし',o.noBand]],J(o));
+      });
       await tryT('5371-second',async()=>{
         const P=await mkT(new V2.MemoryCloud(),'test-second','ws',stT()),o={};
         try{
@@ -8086,7 +8100,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             o.sizes.push(jpT(P.ev(`JSON.stringify({width:innerWidth,overlap:Array.from(document.querySelectorAll('.nxa-it:has(>.am-ctrt)')).map(e=>{const a=e.querySelector('.am-ctrt').getBoundingClientRect(),b=e.querySelector('.tm').getBoundingClientRect();return Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top))/Math.max(1,b.height);}),tabs:Array.from(document.querySelectorAll('.nxa-tabs button')).map(e=>({top:e.getBoundingClientRect().top,h:e.getBoundingClientRect().height,b:parseFloat(getComputedStyle(e).borderTopWidth)}))})`),{}));
           }
         }finally{P.close();}
-        checkLT('97zb','地図と別タブの行を開く・表示だけでは保存しない・タブは44pxと枠', [['地図',o.cell&&o.open===1],['同じタブは保つ',o.same],['行',o.sel],['保存しない',o.read],['札と時刻',o.sizes.every(x=>x.overlap.length&&x.overlap.every(v=>v<=.15))],['スマホの折り返し',new Set(o.sizes[0].tabs.map(x=>x.top)).size>=2],['タブ',o.sizes.length===3&&o.sizes.every(x=>x.tabs.length>=3&&x.tabs.every(t=>t.h>=44&&t.b>=1))]],J(o));
+        checkLT('97zb','地図と別タブの行を開く・表示だけでは保存しない・タブは44pxと枠', [['地図',o.cell&&o.open===1],['同じタブは保つ',o.same],['行',o.sel],['保存しない',o.read],['札と時刻',o.sizes.every(x=>x.overlap.length&&x.overlap.every(v=>v<=.15))],['スマホの折り返し',new Set(o.sizes[0].tabs.map(x=>x.top)).size>=2],['タブ',o.sizes.length===3&&o.sizes.every(x=>x.tabs.length>=3&&x.tabs.every(t=>t.h>=40&&t.b>=1))]],J(o));
       });
       /* 5.36.8: inherited ticks must not finish a new run before its start. */
       for(const mode of ['cancel','problem','undo','problem-undo','next']) await tryT('97za-'+mode,async()=>{

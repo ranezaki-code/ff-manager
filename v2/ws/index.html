@@ -3955,12 +3955,13 @@ html.nx-fit::-webkit-scrollbar{width:0}
 .nxa.ph.map .nxa-tabs{flex-wrap:nowrap;overflow-x:auto;flex-shrink:0;max-height:52px;box-sizing:border-box}
 .nxa.ph.map .nxa-tabs .nxb{flex:none}
 .nxa.ph.map .nxa-tabs .am-tr{display:none}
-.nxa .nxa-tabs .nxb{position:relative;flex:none;height:30px;min-height:30px;border:1px solid #b8c4d6;border-radius:6px;padding:3px 8px;background:white;font-size:13px;white-space:nowrap}
+.nxa .nxa-tabs .nxb{position:relative;flex:none;height:40px;min-height:40px;border:1px solid #b8c4d6;border-radius:6px;padding:3px 8px;background:white;font-size:13px;white-space:nowrap}
 .nxa .nxa-tabs .nxb::after{content:'';position:absolute;inset:-5px 0}
-.nxa .nxa-tabs .am-tr{display:none}
+.nxa.ph.map .nxa-tabs .am-tr,.nxa .nxa-tabs .am-tr{display:block;font-size:9px;line-height:1.1;color:inherit}
 .nxa .nxa-tabs .nxb[aria-pressed="true"]{background:#13294b;color:white}
 .nxa .nxa-it,.nxa .nxa-rn{flex-wrap:wrap}
 .nxa.queue .nxa-it,.nxa.queue .nxa-rn{padding-top:6.5px;padding-bottom:6.5px}
+.nxa.queue .nxa-rn.ct{padding-top:15.5px}
 .nxa.queue .nxa-it{min-height:57px}
 .nxa.queue.many .nxa-it{min-height:51px}
 .nxa.queue .nxa-rn{min-height:53px}
@@ -13895,6 +13896,7 @@ function amNxSameRun(x,r){
   if(r.sa) return !!x.af&&String(r.w)===x.w.id+'#af'&&new Date(r.sa).getTime()===x.o.src;
   if(x.af||String(r.w)!==x.w.id) return false;
   const s=amIsOff(x.w)||amIsTimed(x.w)?amOffNow(x.w,r.s).slot:amNxSlot({w:x.w,s:amStatus(x.w,r.s)},r.s), v=amNxSlot(x,r.s);
+  if(!amIsOff(x.w)&&!amIsTimed(x.w)&&v&&v.s<=r.s&&r.s<v.e) return true;
   return !!s&&!!v&&s.s===v.s;
 }
 function amNxShown(q,now,tab=_amNx.tab){
@@ -13903,6 +13905,7 @@ function amNxShown(q,now,tab=_amNx.tab){
   return rows.filter(x=>x.k==='fire').concat(rows.filter(x=>x.k!=='fire'));
 }
 function amNxBandRight(x,now){
+  if(!amSch(x.w).some(n=>n>0)) return '';
   const slot=amNxSlot(x,now); if(!slot) return '';
   const day=amLogDayMs(amLogDay(now)), bi=amBandIdx((slot.s-day)/3600000), b=AM_BANDS[bi];
   const from=day+b.s*3600000, to=day+b.e*3600000;
@@ -14232,6 +14235,7 @@ function amNxRender(view){
   if(_amNx.sel&&!cq.some(x=>x.id===_amNx.sel)) _amNx.sel='';
   const hoN={late:0,mid:0,trb:0};
   if(ho){ q.forEach(x=>{ const dm=amNxDormOfId(x.id,now).some(r=>r.s<ho.cut); if(x.k==='fire'&&isFinite(x.due)&&x.due<=ho.cut){ x.ho=ho.lab; if(!dm) hoN.late++; } else if(dm) x.ho=ho.lab; });   // 5.36.4（テス 5.36.3 △）：印が 残る 作業は 途中（下の act）だけに 数える。おくれにも 足すと 同じ 印を 2回 数える
+    cq.forEach(x=>{ if((x.k==='fire'&&isFinite(x.due)&&x.due<=ho.cut)||amNxDormOfId(x.id,now).some(r=>r.s<ho.cut)) x.ho=ho.lab; });
     act.concat(lgA).forEach(r=>{ if(r.s<ho.cut) hoN.mid++; }); T.band.forEach(e=>{ if(e.t<ho.cut) hoN.trb++; }); }
   const hoT=hoN.late+hoN.mid+hoN.trb, hoH=(ho&&hoT&&now<ho.cut+AM_NX_HO_MIN*60000&&_amNx.hoOff!==ho.cut)
     ?`<button type="button" class="nxb nxa-hob" data-c="${ho.cut}" onclick="amNxHoOff(this.dataset.c)"><span class="hb"><b>${ho.lab} 引き継ぎ：前の 時間から ${hoT}件</b><span class="pts">${hoN.late?`<i class="l">おくれ ${hoN.late}</i>`:''}${hoN.mid?`<i class="m">途中 ${hoN.mid}</i>`:''}${hoN.trb?`<i class="t">困った ${hoN.trb}</i>`:''}</span></span><span class="x" aria-hidden="true">×</span><small>${ho.en}: ${hoT} / ${ho.ne}: ${hoT} ・ 札の 付いた 作業です。押すと 消える</small></button>`:'';
