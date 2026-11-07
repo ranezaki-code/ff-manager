@@ -6816,11 +6816,14 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
       await tryT('97gScroll',async()=>{
         const P=await mkT(new V2.MemoryCloud(),'端末GS','ws',stT()), o={fit:[],other:[]};
         try{
-          setWC(P,[gvW()]); clkT(P,14,0); nxOn(P);
+          setWC(P,[gvW()]); clkT(P,14,0,0,true); nxOn(P);
           P.ev("state.staff=Array.from({length:12},(_,i)=>'見本 札'+String(i+1).padStart(2,'0')); amSave()");
           for(const width of [390,768,1280]){
             P.f.style.width=width+'px'; P.f.style.height='400px'; await sleep(100);
-            P.ev("amCloseSheet(); _amNx.hold=0; amNxSel('tQ'); _amNx.hold=0; amNxGvAskI('tQ'); amNxGvPick('time')");
+            /* 幅ごとに 行を 開き直す。記録で 足された「今いる人」も 戻し、毎回 12人を 出す */
+            P.ev("amCloseSheet(); state.amHere={}; amSave(); _amNx.sel=''; _amNx.hold=0; amNxSel('tQ')");
+            if(qnT(P,'#nxa-col .nxa-open .nxa-names .nxa-who')!==12) throw new Error(width+'px：だれが やる？の 札が 12人では ありません');
+            P.ev("_amNx.hold=0; amNxGvAskI('tQ'); amNxGvPick('time')");
             o.fit.push(P.ev(`(()=>{
               const m=document.querySelector('#am-sheet .am-modal'), sc=m.querySelector('.nx-gv-body'), grid=m.querySelector('.nxa-names'), bs=grid.querySelectorAll('.nxa-who'), last=bs[11], ref=document.querySelector('#nxa-col .nxa-names'), r=m.getBoundingClientRect();
               const fixed=()=>JSON.stringify(['.nxt-h','.nx-sh-q','.am-x'].map(s=>{const r=m.querySelector(s).getBoundingClientRect();return [r.top,r.bottom]})), before=fixed();
