@@ -13856,11 +13856,11 @@ function amNxCellsOf(w){ const map=amMap(); return (map&&w&&!amIsOff(w))?map.cel
 function amNxDue(x){ if(x.o) return isFinite(x.o.e)?x.o.e:Infinity; const s=x.s; if(s.tm&&s.slot) return s.slot.e; if(s.st==='fire'&&s.deadline) return s.deadline; return (s.cur&&isFinite(s.cur.e))?s.cur.e:Infinity; }
 /* 急ぐ順（並べ方は これ 1つ）。1件＝{id, w, s（売場の 状態）, o（売場以外・あとの作業の 回）, af, k:fire／soon／todo, lock, lockAt, due, tag, cells, name, tro（英・ネの 元）, rep, re, aft}。読むだけ */
 function amNxQueue(now,display=false){
-  now=now||Date.now(); const G={fire:3,soon:2,todo:1}, tr=amTagRank(), wi={}, run={}, out=[], seen={};
-  const displayRuns=display?amRunActive(now).concat(amNxLongRuns(now)):[];
-  amNxOrdered().forEach((w,i)=>{ wi[w.id]=i; }); amRunActive(now).forEach(r=>{ run[amNxRid(r)]=1; });
+  now=now||Date.now(); const G={fire:3,soon:2,todo:1}, tr=amTagRank(), wi={}, out=[], seen={};
+  const displayRuns=amRunActive(now).concat(amNxLongRuns(now));
+  amNxOrdered().forEach((w,i)=>{ wi[w.id]=i; });
   const kd=w=>String(w.kind==null?'':w.kind), hid=amNxTrbNow(now).hide, gv=amNxGvNow(now);   // 5.27：困った の 帯の 作業・手が 足りない（15分）は 出さない   // 5.31：諦めた 作業は その 回の 間 出さない
-  const push=x=>{ if((!display&&run[x.id])||(display&&displayRuns.some(r=>amNxSameRun(x,r)))||seen[x.id]||hid[x.id]||amNxGvHid(gv,x)) return; seen[x.id]=1; x.g=x.lock?0:G[x.k]; x.tr=(x.tag in tr)?tr[x.tag]:999; x.wi=(x.w.id in wi)?wi[x.w.id]:99999; out.push(x); };
+  const push=x=>{ if(displayRuns.some(r=>amNxSameRun(x,r))||seen[x.id]||hid[x.id]||amNxGvHid(gv,x)) return; seen[x.id]=1; x.g=x.lock?0:G[x.k]; x.tr=(x.tag in tr)?tr[x.tag]:999; x.wi=(x.w.id in wi)?wi[x.w.id]:99999; out.push(x); };
   amFloorWorks().forEach(a=>{ const s=amStatus(a,now); if(!G[s.st]) return; const gp=amGapLock(a,now), lock=!!(s.tm&&s.lock)||!!gp;
     push({id:a.id, w:a, s, o:null, af:null, k:s.st, lock, lockAt:lock?(gp?gp.until:(s.slot?s.slot.o:NaN)):NaN, due:amNxDue({s}), tag:kd(a), cells:amNxCellsOf(a), name:a.name||'', base:amBaseName(a), tro:a, rep:amIsRep(a), re:false, aft:0}); });
   const off=amOffWorks().length?amOffColData(now).act:[], afs=amAfterList(now).filter(o=>o.up&&G[o.k]);
@@ -13891,7 +13891,7 @@ function amNxListQueue(q,now){
   return q.slice().sort((a,b)=>((at(a)===at(b))?0:at(a)<at(b)?-1:1)||(a.tr-b.tr)||((reg.get(a.w.id)||0)-(reg.get(b.w.id)||0))||(a.aft-b.aft));
 }
 function amNxTabSet(k){ _amNx.tab=k; _amNx.sel=''; _amNx.sc=0; renderMapView(); }
-/* 表示する 列だけ：長い 印も、始めた 回だけ 外す。別の 回と ホームの 順は 変えない。 */
+/* 一覧・ホーム・おくれの 数で 共通：長い 印も、始めた 回だけ 外す。別の 回は 出す。 */
 function amNxSameRun(x,r){
   if(r.sa) return !!x.af&&String(r.w)===x.w.id+'#af'&&new Date(r.sa).getTime()===x.o.src;
   if(x.af||String(r.w)!==x.w.id) return false;
@@ -14268,7 +14268,7 @@ function amNxRender(view){
   const wide=!ph&&C.w>=600;   // 列が 600px 以上の 時だけ 名前と 時間を 横に 並べる
   const rowOf=(r,dp)=>amNxRunRowHtml(r,now,ph,dp,(ho&&r.s<ho.cut)?ho.lab:'',wide), lgM={}; lgA.forEach(r=>{ if(r.by) lgM[r.by]=(lgM[r.by]||0)+1; });   // 5.36.3：長い 印は たたむ（急ぐ順が いつも 最初の 画面に 見える。上限は 付けない）。「2人が 取っています」は 動いている 印だけ
   const lgF=lgA.length?`<button type="button" class="nxb nxa-lgf" id="nxa-lgf" aria-expanded="${!!_amNx.lgOpen}" onclick="amNxLgTgl()"><b>⏳ 長い ${lgA.length}件</b><small>${_amNx.lgOpen?'押すと たたむ / Tap to fold / बन्द गर्न थिच्नुहोस्':'押すと 開く / Long: tap to open / लामो: खोल्न थिच्नुहोस्'}</small></button>`:'';
-  const secRun=`<div class="nxa-sec">取りかかり中<small>In progress / काम गर्दै</small></div>`, runRows=act.map(r=>rowOf(r,dupK[amNxRid(r)]>1)).join('')+lgF+(_amNx.lgOpen?lgA.map(r=>rowOf(r,false)).join(''):'');
+  const secRun=`<div class="nxa-sec">取りかかり中<small>In progress / काम गर्दै</small></div>`, runRows=act.map(r=>rowOf(r,dupK[amNxRid(r)]>1)).join('')+lgF+(_amNx.lgOpen?lgA.map(r=>rowOf(r,false)+`<button type="button" class="nxb nxa-take" style="min-height:44px;min-width:44px" data-k="${escapeHtml(r.k)}" onclick="amNxTake(this.dataset.k)">代わりにやる${amTr2('Take over','सट्टामा गर्ने')}</button>`).join(''):'');
   const runsH=(act.length||lgA.length)?secRun+runRows:'';
   /* 5.27：困った の 赤い帯（右の 列の いちばん上・新しい 順）と 地図の ⚠ */
   const trbH=T.band.map(e=>{ const it=amNxItemOf(e.qid,now), tg=it?String(it.w.kind==null?'':it.w.kind):'', d=e.def, left=d.auto?Math.max(1,Math.ceil((e.t+d.auto*60000-now)/60000)):0;
@@ -14515,14 +14515,18 @@ function amNxPkBtn(n,on,act,free){   // 5.36.3：長い 印は「いま ◯◯ �
 }
 /* 「やる」：今いる人が 1人なら すぐ。2人以上・0人なら 名前を 聞く */
 function amNxDo(id){ if(!amNxItemOf(id)) return; const n=amNxSolo(Date.now()); if(n) return amNxGo(id,n); amNxPick(id,false); }   // 5.26：売場以外・あとの作業も
-function amNxPick(id,more){
+function amNxTake(k){
+  const r=amNxLongRuns().find(x=>x.k===k); if(!r){ renderMapView(); return; }
+  amNxPick(r.sa?amNxAfId(String(r.w).replace(/#af$/,''),r.sa):r.w,false,k);
+}
+function amNxPick(id,more,take=''){
   const it=amNxItemOf(id); if(!it) return; _amfHold=amFT()+AM_HOLD_MS; const now=Date.now(), h=amNxStaffOrd(amNxHere(now)), act=amRunActive(now), names=staffList(), rest=names.filter(n=>!h.some(x=>x.n===n)), eid=escapeHtml(id);   // 5.32（本部 10/27「名前の並びはいつも登録の順」）：今いる人も 登録の 並び（amNxStaffOrd）
-  const btn=n=>amNxPkBtn(n,`amNxGo(this.dataset.w,this.dataset.n)`,act).replace('<button type="button" class="nx-pk',`<button type="button" data-w="${eid}" class="nx-pk`);
+  const btn=n=>amNxPkBtn(n,`amNxGo(this.dataset.w,this.dataset.n,this.dataset.take)`,act).replace('<button type="button" class="nx-pk',`<button type="button" data-take="${escapeHtml(take)}" data-w="${eid}" class="nx-pk`);
   const q=h.length?`だれが やる？${amNxTr('Who?','कसले?')}`:`だれが やる？（入って すぐ 始まる）${amNxTr('Who is starting?','को सुरु गर्दै?')}`;
   _amSheet(`<div class="nx-sh"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="nx-sh-t"><span aria-hidden="true">${escapeHtml(it.icon||'')}</span> ${escapeHtml(it.name||'')}</div><div class="nx-sh-q">${q}</div>
     ${h.length?`<div class="nx-pks">${h.map(x=>btn(x.n)).join('')}</div>`:''}
-    ${rest.length?((h.length&&!more)?`<button type="button" class="nx-more" data-w="${eid}" onclick="amNxPick(this.dataset.w,true)">ほかの人（今いない人） ▾</button>`:`<div class="nx-pks nx-pks-o">${rest.map(btn).join('')}</div>`):''}
-    ${names.length?'':`<button type="button" class="nx-go" data-w="${eid}" onclick="amNxGo(this.dataset.w,'')">▶ 始める</button>`}
+    ${rest.length?((h.length&&!more)?`<button type="button" class="nx-more" data-take="${escapeHtml(take)}" data-w="${eid}" onclick="amNxPick(this.dataset.w,true,this.dataset.take)">ほかの人（今いない人） ▾</button>`:`<div class="nx-pks nx-pks-o">${rest.map(btn).join('')}</div>`):''}
+    ${names.length?'':`<button type="button" class="nx-go" data-take="${escapeHtml(take)}" data-w="${eid}" onclick="amNxGo(this.dataset.w,'',this.dataset.take)">▶ 始める</button>`}
     <div class="nx-sh-n">名前を 押すと 始まる。取りかかり中でも、${AM_NX_HOLD}つまで 取れる（油を 温めながら 補充 など）。</div></div>`,'card','nxpick');
 }
 /* 始める（新しい画面の 道）：済・時刻の前・前の記録から あける作業・もう だれかが 取った・2つまで を 見てから、▶ と 同じ 印を 付ける。
@@ -14539,8 +14543,8 @@ function amNxCtrCheck(it,name,now){
   const key=cut+'|'+Object.keys(outN).sort().join('|'); if(_amNx.ctrOk[key]) return null;
   return {key, other:others[0].by};
 }
-function amNxCtrAsk(id,name,ck){
-  _amfHold=amFT()+AM_HOLD_MS; _amNx.ctrQ={id, name, key:ck.key}; const it=amNxItemOf(id), e=escapeHtml;
+function amNxCtrAsk(id,name,ck,take=''){
+  _amfHold=amFT()+AM_HOLD_MS; _amNx.ctrQ={id, name, key:ck.key, take}; const it=amNxItemOf(id), e=escapeHtml;
   _amSheet(`<div class="nx-sh nxt"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><div class="nxt-h"><span class="ex" aria-hidden="true" style="background:#067647">外</span><div><b>カウンター外が 2人に なります</b><small>2 people outside the counter / काउन्टर बाहिर २ जना</small></div></div>
     <div class="nxt-w">${amCtrChip(it?it.w:null)}<span>${e(it?it.name:'')}</span></div>
     <div class="nx-sh-q">レジは どちらが 見ますか？${amNxTr('Who watches the register?','रजिस्टर कसले हेर्ने?')}</div>
@@ -14549,14 +14553,14 @@ function amNxCtrAsk(id,name,ck){
 function amNxCtrAns(a){
   const q=_amNx.ctrQ; _amNx.ctrQ=null; if(!q){ amCloseSheet(); return; }
   if(a===2){ amCloseSheet(); amSnack(`${q.name} が レジを お願いします（「${(amNxItemOf(q.id)||{}).name||''}」は 始めていません）`,false); return; }
-  _amNx.ctrOk[q.key]=1; amCloseSheet(); amNxGo(q.id,q.name);
+  _amNx.ctrOk[q.key]=1; amCloseSheet(); amNxGo(q.id,q.name,q.take);
 }
-function amNxGo(id,name){
+function amNxGo(id,name,take=''){
   _amNx.num=null;   // 5.28：数字の 窓は 閉じる
   const now=Date.now(), it=amNxItemOf(id,now); name=String(name==null?'':name);
   if(!it){ amCloseSheet(); _amNx.sel=''; renderMapView(); amSnack('この 作業は もう ありません（3:00 を すぎたか、元の 記録が 取り消されました）',false); return; }
   const a=it.w, off=amIsOff(a), os=it.af?null:((off||amIsTimed(a))?amOffNow(a,now):null);
-  { const n0=amRunSettle(now), done=it.af?it.o.k==='done':off?amOffNow(a,now).st==='done':amStatus(a,now).st==='done';
+  { const n0=take?0:amRunSettle(now), done=it.af?it.o.k==='done':off?amOffNow(a,now).st==='done':amStatus(a,now).st==='done';
     if(done){ if(n0) amSave(true); amCloseSheet(); _amNx.sel=''; renderMapView(); amSnack('この 作業は もう 済です（✓ が 全部 入っていたか、ほかの 端末で 記録されました）',false); return; } }   // だれでもに 戻った 作業の ✓ が 全部 入っていた時・窓を 開いている 間に 記録された時
   if(!it.af){
     if(amIsTimed(a)&&os.lock){ amSnack(`${amHM(os.slot.o)} から 始められます`,false); return; }
@@ -14565,7 +14569,15 @@ function amNxGo(id,name){
   if(!name&&staffList().length){ amSnack('名前を えらんで 始めてください',false); return; }
   const rs=amNxRunsOfId(id,now); if(rs.length){ amCloseSheet(); renderMapView(); amSnack(`もう ${rs.map(r=>r.by||'名前なし').join('・')} が 取りかかっています`,false); return; }
   if(name&&amRunActive(now).filter(r=>r.by===name).length>=AM_NX_HOLD){ amSnack(`${name} は もう ${AM_NX_HOLD}つ 取りかかっています。どちらかを 終わってから`,false); return; }
-  { const ck=amNxCtrCheck(it,name,now); if(ck){ amNxCtrAsk(id,name,ck); return; } }   // 5.27：カウンター外が 2人に なる 時は 1回 聞く
+  const old=take?amNxLongRuns(now).find(r=>r.k===take&&(r.sa?amNxAfId(String(r.w).replace(/#af$/,''),r.sa):r.w)===id):null;
+  if(take&&!old){ amCloseSheet(); renderMapView(); amSnack('もう ありません（ほかの 端末で 終わったか、取り消されました）',false); return; }
+  { const ck=amNxCtrCheck(it,name,now); if(ck){ amNxCtrAsk(id,name,ck,take); return; } }   // 5.27：カウンター外が 2人に なる 時は 1回 聞く
+  if(old){
+    const r=amRunMap()[take], tk=amNxRunTakenK(take,r);
+    amNxTakenOut(take);
+    if(tk) amNxLongOut(take,r,amNxClose(r)); else delete amRunEdit()[take];
+    delete _amNxCarry[take]; amRunSettle(now);   // 取り消し → やる と 同じ。新しい 保存の 欄は 作らない
+  }
   if(name) amNxPut(name,now);
   const m=amRunEdit(); let k; do{ k='u'+now.toString(36)+Math.random().toString(36).slice(2,6); }while(k in m);
   m[k]=it.af?{w:a.id+'#af', sa:new Date(it.o.src).toISOString(), s:new Date(now).toISOString(), by:name, d:amDevId()}:{w:id, s:new Date(now).toISOString(), by:name, d:amDevId()};   // 売場・売場以外は 今の ▶ の 印と 1字も 同じ 形（amRunDoStart）

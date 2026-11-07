@@ -5468,7 +5468,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,10,12); P.ev(`amOpenArea('tG')`); tap(P,'tG',0); P.ev('amCloseSheet()');
           clkT(P,10,25); o.c=runsN(P).join(','); clkT(P,10,33); o.d=[runsN(P).join(','), nextN(P).indexOf('tG')>=0, ckN(P,'tG')];
           o.card=(P.ev('renderMapView()'),qtT(P,'#nx-wrap .nxa-it[data-w="tG"]'));   /* 5.26：行の 下に「⏸ ◯◯ の 途中・✓ 1／2」 */
-          P.ev(`amNxGo('tG','見本 次郎')`); await syncT(D); o.e=[runsN(Q).join(','), ckN(Q,'tG'), J(logOf(Q,'tG').map(r=>(r.miss?'f':'x')+(r.why||'')))];
+          const oldG=String(ET(P,`amNxLongRuns().find(r=>r.w==='tG').k`)); P.ev(`amNxTake(${J(oldG)})`); P.ev(`document.querySelector('.nx-more')?.click();document.querySelector('.nx-pk[data-n="見本 次郎"]').click()`); await syncT(D); o.e=[runsN(Q).join(','), ckN(Q,'tG'), J(logOf(Q,'tG').map(r=>(r.miss?'f':'x')+(r.why||''))), String(ET(Q,`${J(oldG)} in state.amRun`))];
           clkT(P,10,34); P.ev(`amOpenArea('tG')`); tap(P,'tG',1); P.ev(`amRunEnd(${J(kOf(P,'tG'))})`); o.f=[acT(P,'tG'), J(logOf(P,'tG').map(r=>(r.miss?'f':'x')+(r.ck==null?'':r.ck)))];
           clkT(P,11,0); P.ev(`amNxGo('tA','見本 花子')`); clkT(P,11,3); P.ev(`amOpenArea('tA')`); tap(P,'tA',0); clkT(P,11,4); tap(P,'tA',1); P.ev('amCloseSheet()');
           clkT(P,11,30); o.g0=[stOf(P,'tA').st, acT(P,'tA')]; P.ev(`amNxGo('tN','見本 次郎')`); await syncT(D);
@@ -5477,9 +5477,9 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           P.ev(`delete state.amNx; amSave();`); clkT(P,12,0); P.ev(`amRunStart('tG','見本 花子')`); clkT(P,12,25); o.i=runsN(P).filter(x=>/tG/.test(x)).length; clkT(P,12,31); o.j=runsN(P).filter(x=>/tG/.test(x)).length;
           await syncT(D); o.sameQ=nzT(P.ev('JSON.stringify(state)'))===nzT(Q.ev('JSON.stringify(state)'));
         } finally { for(const d of D) ET(d,'amCloseSheet()'); }
-        checkLT('97nx6','【だれでもに 戻る（5.36 と 同じ）】目標なし 15分（14分は 取りかかり中・16分で 次は これ に 戻る）・目標 10分は 2倍（✓ の 時刻から 数え直す）・戻った 行に「印が 残っています ✓ 1／2」・次の人が 取ると ✓ 1 の まま 続く（5.36.5：押し忘れ r は 書かない）・終わった で 記録 ck:2・全部 ✓ の 押し忘れは 最後の ✓ の 時刻（11:04）で 済（記録・ck:2・✓ 外れる）・済の 作業は 取らない・オフでは 3倍',[
-            ['1:15分',/tN/.test(o.a[0])&&o.a[1]===false&&!/tN/.test(o.b[0])&&o.b[1]===true],['2:✓ から 数え直す',/tG/.test(o.c)&&!/tG/.test(o.d[0])&&o.d[1]===true&&o.d[2]===1],
-            ['3:行',/印が 残っています・✓ 1／2/.test(o.card)],['4:次の人',/見本 次郎@tG/.test(o.e[0])&&o.e[1]===1&&o.e[2]==='[]'],['5:終わった',o.f[0]===1&&/x2/.test(o.f[1])],
+        checkLT('97nx6','長い 回は 戻さない。目標・✓ からの 時刻・途中の ✓・全部 ✓ の 済・オフの 3倍・2台の 同期',[
+            ['1:15分でも 戻さない',/tN/.test(o.a[0])&&o.a[1]===false&&!/tN/.test(o.b[0])&&o.b[1]===false],['2:✓ から 数え直す・戻さない',/tG/.test(o.c)&&!/tG/.test(o.d[0])&&o.d[1]===false&&o.d[2]===1],
+            ['3:一覧の 行なし',o.card===''],['4:代わりにやる・前の 印なし',/見本 次郎@tG/.test(o.e[0])&&o.e[1]===1&&o.e[2]==='[]'&&o.e[3]==='false'],['5:終わった',o.f[0]===1&&/x2/.test(o.f[1])],
             ['6:押し忘れで 済',o.g0[0]!=='done'&&o.g[0]==='done'&&o.g[1]===1&&o.g[2]==='11:04'&&/x2/.test(o.g[3])&&o.g[4]==='null'],['7:済は 取らない',o.h[1]===0],['8:オフは 3倍',o.i===1&&o.j===0],['9:同じ',o.sameQ===true]],
           `a ${J(o.a)} b ${J(o.b)}｜c ${o.c}｜d ${J(o.d)}｜card ${o.card}｜e ${J(o.e)}｜f ${J(o.f)}｜g0 ${J(o.g0)} g ${J(o.g)}｜h ${J(o.h)}｜i ${o.i} j ${o.j}`);
         for(const d of D) d.close();
@@ -5635,8 +5635,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,12,0); P.ev(`amNxGo('w3','見本 次郎')`); const k4=kOf(P,'w3'); clkT(P,12,20); P.ev(`(state.areaChecks.w3=state.areaChecks.w3||[]).push({at:new Date().toISOString(),by:'見本 次郎'}); amRunSettle(Date.now()); amSave();`);   /* 5.26：新しい画面では 名前だけの 記録は しない＝古い版の 端末の 記録の 形を 直に 入れる */ o.e4=[acT(P,'w3'), lg('w3'), String(ET(P,`${J(k4)} in state.amRun`))]; P.ev(`delete amRunEdit()[${J(k4)}]; amSave();`);
           P.ev(`delete state.amNx; amSave();`); clkT(P,13,0); P.ev(`amOpenArea('tG')`); P.ev(`amRunStart('tG','見本 次郎')`); const k5=kOf(P,'tG'); clkT(P,13,31); P.ev(`amRunEnd(${J(k5)})`); o.off=[snT(P), acT(P,'tG')];
         } finally { ET(P,'amCloseSheet()'); }
-        checkLT('97nx10','【テス TQ10】目標なし 16分（戻った後）でも 本人の ✓ 終わった → 記録（押し忘れ なし）・カードに ✓ 終わった・次は これ に ⏸・目標 10分 21分 でも ✓ を 入れて 記録 ck:2・別の人が 取った後は 押すと 押し忘れ r・古い 端末の 形の 記録の 後も 印は 残る・オフは 3倍で 押し忘れ',[
-            ['1:戻る',o.back[0]===true&&/⏸ 見本 花子 の 印が 残っています/.test(o.back[1])&&o.back[2]===0],['2:カード',o.card[0]===1&&o.card[1]===0],['3:目標なし',o.e1[0]===1&&o.e1[1]==='["x"]'&&o.e1[2]==='false'],
+        checkLT('97nx10','長い 回は ホームと 一覧に 戻さない。本人の 終わった・別の 人が 取った 後・古い 記録・オフ',[
+            ['1:戻さない',o.back[0]===false&&o.back[1]===''&&o.back[2]===0],['2:カード',o.card[0]===1&&o.card[1]===0],['3:目標なし',o.e1[0]===1&&o.e1[1]==='["x"]'&&o.e1[2]==='false'],
             ['4:目標あり',o.ck===2&&o.e2[0]===1&&o.e2[1]==='["x2"]'],['5:取られた後',/閉じました/.test(o.e3[0])&&o.e3[1]===0&&o.e3[2]==='["fr"]'&&o.e3[3]==='見本 太郎@w2'],['6:古い 形の 記録の 後も 残る',o.e4[0]===1&&o.e4[1]==='[]'&&o.e4[2]==='true'],['7:オフ',/押し忘れ/.test(o.off[0])&&o.off[1]===1]],
           `back ${J(o.back).slice(0,160)}｜card ${J(o.card)}｜e1 ${J(o.e1)}｜ck ${o.ck} e2 ${J(o.e2)}｜e3 ${J(o.e3)}｜e4 ${J(o.e4)}｜off ${J(o.off)}`);
         P.close();
@@ -7432,8 +7432,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,10,3); P.ev(`amNxGo('tI','見本 花子')`); const kI=kOf(P,'tI'); clkT(P,18,34); P.ev(`amNxCkOpen(${J(kI)})`); o.win2=[qtT(P,'#nxa-ck .nxa-lgn'), qtT(P,'#nxa-ck .nxa-fin')]; P.ev(`amRunEnd(${J(kI)})`); o.end3=[recS(P).filter(x=>/\|tI\|/.test(x)), acT(P,'tI'), qK(P).filter(x=>/^tI:/.test(x))];
         } finally { ET(P,'amCloseSheet()'); P.close(); }
         const kp=o.m1830[5];
-        checkLT('97s1','【次の 回が 消えない（テス ×）】10:01 に 取って 押し忘れ：戻る 時刻まで 出ない・その後は もうすぐ／おくれ（5.36.5：5.36 と 同じ）・13:00 から 急ぐ順（もうすぐ → おくれ）・字に 印の 人・18:30 も おくれ・別の 人が 取れる・元の 印は そのまま・「2人」と 出ない・後から 押しても 終わった を 足さない・取り消せる・だれも 取らなければ 記録 1件',[
-          ['1:戻る 時刻まで／その後',J(o.m1020)==='[]'&&J(o.m1029)===J(['tF:soon'])&&J(o.m1040)===J(['tF:fire'])&&J(o.m1259)===J(['tF:fire'])],['2:13:00',J(o.m1300[0])===J(['tF:soon'])&&/見本 花子 の 印が 残っています/.test(o.m1300[1])],['3:13:31',J(o.m1331[0])===J(['tF:fire'])&&o.m1331[1]>=1],
+        checkLT('97s1','同じ 回は 戻さず 次の 回を 出す。別の 人の 取りかかり・前の 印の 終わった・取り消し・記録の 二重を 防ぐ',[
+          ['1:同じ 回は 戻さない',J(o.m1020)==='[]'&&J(o.m1029)==='[]'&&J(o.m1040)==='[]'&&J(o.m1259)==='[]'],['2:13:00',J(o.m1300[0])===J(['tF:soon'])&&/見本 花子 の 印が 残っています/.test(o.m1300[1])],['3:13:31',J(o.m1331[0])===J(['tF:fire'])&&o.m1331[1]>=1],
           ['4:18:30',J(o.m1830[0])===J(['tF:fire'])&&/印が 残っています/.test(o.m1830[1])&&o.m1830[2]===true&&o.m1830[3]===0&&!/間に合っています/.test(o.m1830[4])&&/[1-9] おくれ/.test(kp)],
           ['5:別の 人が 押せる',o.open[0].some(x=>x[0]==='見本 太郎'&&x[1]===false)&&/見本 花子 の 印を 開く/.test(o.open[1])],
           ['6:取った',J(o.took[0])===J(['見本 太郎@tF','見本 花子@tF'].sort())&&J(o.took[1])==='[]'&&o.took[2]===0&&o.took[3]===true],
@@ -7466,10 +7466,10 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           P.ev(`(()=>{ const key='amLog_'+amLogDay(Date.now()), t=new Date(Date.now()+4*60000).toISOString(); state[key]=state[key]||{}; state[key]['xdf1']={w:'tD',at:t,by:'見本 太郎',d:'x',df:1,s:t}; state.areaChecks.tD=[{at:t,by:'見本 太郎'}]; amSave(); })()`);
           clkT(P,10,15); o.r0=String(ET(P,`amNxRunPast(state.amRun[${J(kD)}])`)); clkT(P,10,36); o.r1=String(ET(P,`amNxRunPast(state.amRun[${J(kD)}])`)); o.r2=has('tD');
         } finally { ET(P,'amCloseSheet()'); P.close(); }
-        checkLT('97s2','【種類ごと】時間帯・売場以外・✓ の 作業・再チェック・鮮度管理は 戻る 時刻の 後に 急ぐ順に 出る（5.36 と 同じ）／鮮度管理は 諦められない／週1・あとの 作業も 戻る 時刻の 後に 出る',[
-          ['1:すぎた 印',J(o.a)===J(['fire','fire','fire','todo','fire','fire','fire'])],['2:時間帯',o.b[0]==='fire'&&o.b[1]==='fire'&&o.b[2]==='fire'&&/見本 花子 の 印が 残っています/.test(o.b[3])&&/見本 四 の 印が 残っています/.test(o.b[4])&&/✓ 1／2/.test(o.b[4])],
+        checkLT('97s2','種類ごと：長い 回は 戻さず 別の 回を 出す。鮮度は 諦めない・再チェック・週1・あとの 作業',[
+          ['1:同じ 回は 戻さない',J(o.a)===J(['','','','','','',''])],['2:別の 回は 出す',o.b[0]==='fire'&&o.b[1]==='fire'&&o.b[2]==='fire'&&/見本 花子 の 印が 残っています/.test(o.b[3])&&/見本 四 の 印が 残っています/.test(o.b[4])&&/✓ 1／2/.test(o.b[4])],
           ['3:売場以外の 時刻・鮮度',o.c[0]==='fire'&&o.c[1]==='fire'&&o.c[2]==='false'&&o.c[3]==='true'],['4:鮮度は 諦めが 出ない',o.fr[0]===0&&o.fr[1]===9],
-          ['5:再チェックの 作業',o.d[0]==='soon'],['6:週1・あとの 作業',o.e[0]==='todo'&&o.e[1]===true&&o.e[2]===2&&/#af@/.test(o.afId)],['7:再チェックの 枠',o.r0==='false'&&o.r1==='true'&&o.r2==='soon']],J(o));
+          ['5:再チェックの 作業',o.d[0]==='soon'],['6:週1・あとの 作業は 戻さない',o.e[0]===''&&o.e[1]===false&&o.e[2]===2&&/#af@/.test(o.afId)],['7:再チェックの 枠',o.r0==='false'&&o.r1==='true'&&o.r2==='soon']],J(o));
       });
       /* 97s3：2台と 古い 版：新しい 版 2台（別の 人が 取る・元の 人が 閉じる）／電波なしで 2台が それぞれ 押す（記録は 消えない）／5.36 が 取る・5.36 が 記録する（元の 印は 押し忘れ r が 1件） */
       await tryT('97s3',async()=>{
@@ -7599,11 +7599,11 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,18,31,30); P.ev(`amRunEnd(${J(kF)})`); o.shut=[recS(P).filter(x=>/\|tF\|/.test(x)), snT(P), runsL(P).filter(x=>/@tF$/.test(x))]; P.ev(`amRunEnd(${J(kF2)})`); o.end=recS(P).filter(x=>/\|tF\|/.test(x)); o.afterF=qIds(P,'tF');
           clkT(P,18,32); P.ev(`amRunEnd(${J(kO)})`); o.endO=[recS(P).filter(x=>/\|tO\|/.test(x)), qIds(P,'tO')];
         } finally { ET(P,'amCloseSheet()'); P.close(); }
-        checkLT('97w1','【次の 回が 無い 作業（テス ×）】1日1回・売場以外の 1回・時間帯の 1日1回・週1：戻る 時刻まで 出ない・別の 人は 断る／その後は 5.36 と 同じ・字に 印の 人・📊 に 数える・18:30 も 同じ・別の 人が 取れる・閉じると 押し忘れ r が 1件（戻る 時刻）・だれも 取らなければ 終わった 1件',[
+        checkLT('97w1','1回の 作業は 長くても 戻さず おくれに 数えない。印と 終わったは 残す・別の 人が 取った 後の 記録',[
           ['1:締切まで',o.m1025.every(x=>x==='')&&/もう 見本 花子 が/.test(o.ref[0])&&J(o.ref[1])===J(['見本 花子@tF'])],
-          ['2:戻る 時刻の 後',J(o.m1031)===J(['fire','fire','fire','fire'])&&/見本 花子 の 印が 残っています/.test(o.row)&&/10:00/.test(o.row)&&/おくれ/.test(o.row)&&o.nF===4],
-          ['3:時間帯',o.m1200==='fire'&&/見本 花子 の 印が 残っています/.test(o.rowB)],
-          ['4:18:30',J(o.m1830)===J(['fire','fire','fire','fire'])&&o.keep[0]===true&&o.keep[1]===0&&o.keep[2]===4&&!/間に合っています/.test(o.col)&&o.nF2===4&&/4 おくれ/.test(o.who)],
+          ['2:長い 回は 戻さない',J(o.m1031)===J(['','','',''])&&o.row===''&&o.nF===0],
+          ['3:時間帯も 戻さない',o.m1200===''&&o.rowB===''],
+          ['4:18:30',J(o.m1830)===J(['','','',''])&&o.keep[0]===true&&o.keep[1]===0&&o.keep[2]===4&&/長い 4件/.test(o.col)&&o.nF2===0&&!/4 おくれ/.test(o.who)],
           ['5:窓',/終わっていたら/.test(o.win[0])&&!/次の 回/.test(o.win[0])&&/Finished\?/.test(o.win[0])&&/✓ 終わった/.test(o.win[1])],
           ['6:カード',/残っている 印/.test(o.card[0])&&/印が 残っています/.test(o.card[1])&&o.card[2].indexOf('見本 花子')>=0&&o.card[2].length>=1],
           ['7:別の 人が 取る',J(o.took[0])===J(['見本 次郎@tF','見本 花子@tF'].sort())&&o.took[1]===''&&o.took[2]===true],
@@ -7620,8 +7620,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,11,0,30); P.ev(`amRunEnd(${J(kA)})`); o.c=recS(P); P.ev(`amRunEnd(${J(kB)})`); o.d=recS(P).filter(x=>/\|tF\|/.test(x));
           P.ev(`amRunEnd(${J(kH)})`); o.e=[recS(P).filter(x=>/\|tH\|/.test(x)), qIds(P,'tH')]; clkT(P,12,59,30); rd(P); o.f=qIds(P,'tH'); clkT(P,13,0,30); rd(P); o.g=qIds(P,'tH');
         } finally { ET(P,'amCloseSheet()'); P.close(); }
-        checkLT('97w2','【締切と 次の 回の 間（テス ×）】10:40 に おくれ・別の 人が 取れる・「2人」と 出ない・11:00 に 閉じると 押し忘れは 戻る 時刻（10:21。未来に ならない）・元の 人の「終わった」は 11:00 の 記録で 次の 回まで 出ない',[
-          ['1:10:40',o.a[0]==='fire'&&/見本 花子 の 印が 残っています/.test(o.a[1])&&/10:00/.test(o.a[1])],['2:取る',J(o.b[0])===J(['見本 太郎@tF','見本 花子@tF'].sort())&&o.b[1]===''&&o.b[2]===0],
+        checkLT('97w2','締切と 次の 回の 間：長い 回は 戻さない。終わったの 時刻・前の 印を 閉じる・次の 回',[
+          ['1:10:40も 戻さない',o.a[0]===''&&o.a[1]===''],['2:取る',J(o.b[0])===J(['見本 太郎@tF','見本 花子@tF'].sort())&&o.b[1]===''&&o.b[2]===0],
           ['3:閉じる 時刻',J(o.c)===J(['f|tF|見本 花子|r|10:21'])],['4:次の 人',o.d.length===2&&o.d.filter(x=>/^x\|tF\|見本 太郎\|\|11:00/.test(x)).length===1],
           ['5:本人が 押す',J(o.e[0])===J(['x|tH|見本 花子||11:00'])&&o.e[1]===''&&o.f===''&&o.g==='soon']],J(o));
       });
@@ -7710,8 +7710,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           P.ev(`amNxGo(${J(idA)},'見本 太郎')`); const kAf2=kOf(P,'tA#af','見本 太郎'); P.ev(`amRunEnd(${J(kAf2)})`); o.d=[af(P), has(idA)]; P.ev(`amNxCkOpen(${J(kAf)})`); o.e=qtT(P,'#nxa-ck .nxa-fin'); P.ev('amNxShut()'); P.ev(`amRunEnd(${J(kAf)})`); o.f=[af(P).sort(), has(idA)];
           P.ev(`amRunEnd(${J(kEf)})`); o.g=[af(P).filter(x=>/tE#af/.test(x)), has(idE)];
         } finally { ET(P,'amCloseSheet()'); P.close(); }
-        checkLT('97w8','【あとの 作業・時間帯の 週1】戻る 時刻まで 出ない（あとの 作業は 15分・週1 は 目標の 2倍）・その後に 出る（5.36 と 同じ）・別の 人が 取って 終わった 後は 元の 人の 押しは 閉じるだけ・だれも 取らなければ 記録 1件',[
-          ['1:線の 前',J(o.a)===J([false,false,false])],['2:線の 後',o.b[0]===true&&o.b[1]===true&&/見本 花子 の 印が 残っています/.test(o.b[2])&&o.b[3]===true],['3:週1',o.c[0]==='fire'&&/見本 次郎 の 印が 残っています/.test(o.c[1])],
+        checkLT('97w8','あとの 作業・週1も 長い 回は 戻さない。別の 人の 終わった・前の 印を 閉じる・だれも 取らない時の 記録',[
+          ['1:線の 前',J(o.a)===J([false,false,false])],['2:線の 後も 戻さない',o.b[0]===false&&o.b[1]===false&&o.b[2]===''&&o.b[3]===false],['3:週1も 戻さない',o.c[0]===''&&o.c[1]===''],
           ['4:次の 人',o.d[0].length===1&&/^x\|tA#af\|見本 太郎/.test(o.d[0][0])&&o.d[1]===false],['5:閉じる',/印を 閉じる/.test(o.e)&&o.f[0].length===2&&o.f[0].filter(x=>/^f\|tA#af\|見本 花子\|r/.test(x)).length===1&&o.f[1]===false],
           ['6:だれも いない',o.g[0].length===1&&/^x\|tE#af\|見本 太郎/.test(o.g[0][0])&&o.g[1]===false]],J(o));
       });
@@ -7726,7 +7726,8 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         ${c.tick?`const kk=amCkKeys(amWork('wk')), ee={}; ee[kk[0]]=new Date(hm(${J(c.tick)})).toISOString(); state.amCk.wk=ee;`:''}
         const res=[], end=S+${c.mins||300}*60000; let prev=null, took=false;
         for(let now=S; now<=end; now+=60000){
-          const q=amNxQueue(now), x=q.find(i=>i.id===rid), free=amNxRunsOfId(rid,now).length===0, st=(x?(x.lock?'lock':x.k):'-')+'/'+(free?'free':'busy');
+          const q=amNxQueue(now), x=q.find(i=>i.id===rid), free=amNxRunsOfId(rid,now).length===0, st=free?'free':'busy';
+          if(typeof amNxLongRuns==='function'&&q.some(i=>amNxLongRuns(now).some(r=>amNxSameRun(i,r)))) return 'エラー：長い 回が 一覧に 戻った '+amHM(now);
           if(${c.take?'true':'false'}&&free&&!took&&now>S+${c.takeAfter||0}*60000){ took=true; state.amRun.u2=${c.af?`{w:'wk#af',sa:state.amRun.u1.sa,s:new Date(now).toISOString(),by:'見本 太郎',d:'y'}`:`{w:'wk',s:new Date(now).toISOString(),by:'見本 太郎',d:'y'}`}; amRunSettle(now); }
           const h=new Date(now), lab=amHM(now); if(st!==prev){ res.push(lab+' '+st); prev=st; }
         }
@@ -7741,7 +7742,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           for(const c of cs){ const a=swpT(N,c), b=swpT(O,c); o.n++; if(a!==b||/エラー/.test(a)) o.diff.push({c:c.s,now:a,old:b}); }
           o.sample=swpT(N,cs[6]); for(const d of [N,O]) d.ev('state.amRun={}; state.amWorks=[]; state.amCk={}; state.areaChecks={};');
         } finally { N.close(); O.close(); }
-        checkLT('97x4','【5.36 と 1分ごとに 比べる（いちばん 大事）】作業の 種類 × 取った 時刻 '+o.n+' 場面：急ぐ順に 出る 時刻・おくれの 始まり・別の 人が 取れる 時刻が 全部 同じ（別の 人が 取った 後も）',[['1:版',o.ver[0]==='5.37.1'&&o.ver[1]==='5.36'],['2:場面',o.n===20],['3:差 0',o.diff.length===0],['4:時間帯の 抜け（12:26 に おくれ）',/12:2[56] fire\/free/.test(o.sample)]],J(o).slice(0,1500));
+        checkLT('97x4','【20場面を 1分ごとに】長い 回が 一覧に 戻らない。引き継げる 時刻・✓ の 延長は 5.36 と 同じ（別の 人が 取った 後も）',[['1:版',o.ver[0]==='5.37.1'&&o.ver[1]==='5.36'],['2:場面',o.n===20],['3:違反・時刻の 差 0',o.diff.length===0],['4:時間帯の 線',/12:2[56] free/.test(o.sample)]],J(o).slice(0,1500));
       });
       /* 97x1（テス × ①）：時間帯の 作業：8:00 に 記録 → 9〜12時は 記録なし → 12:05 に 取る → 押さない。12:25 に 戻って おくれ（5.36 と 同じ）。別の 人が 取れる・印は 残る・記録は 書かない */
       await tryT('97x1',async()=>{
@@ -7750,12 +7751,12 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           try{
             setWC(P,[bW({id:'tB',name:'見本 床',goal:10,sch:undefined,sch7:[0,1,1,1,0,0,0]})]); staff3(P); nxOn(P); clkT(P,8,0); P.ev(`amNxGo('tB','見本 太郎')`); P.ev(`amRunEnd(${J(kOf(P,'tB'))})`); P.ev('amCloseSheet()');
             clkT(P,12,5); o.m1205=qK(P); P.ev(`amNxGo('tB','見本 花子')`); clkT(P,12,24,30); P.ev('renderMapView()'); o.m1224=qK(P); clkT(P,12,26); P.ev('renderMapView()'); o.m1226=[qK(P), rowS(P,'tB').replace(/見本 [^ ]+ の .*?(残っています|途中)/,'印')]; clkT(P,13,0); P.ev('renderMapView()'); o.m1300=qK(P); o.fire=Number(ET(P,'amNxFireN()'));
-            o.ok=String(ET(P,'document.getElementById("nxa-col").textContent')).indexOf('間に合っています')<0; P.ev(`amNxGo('tB','見本 次郎')`); o.took=runsN(P); if(dir==='ws') o.kept=runsL(P).sort(); o.rec=fRec(P).filter(r=>r.t==='f').length;
+            o.ok=dir==='ws'?/長い 1件/.test(qtT(P,'#nxa-lgf')):qK(P).length>0; P.ev(`amNxGo('tB','見本 次郎')`); o.took=runsN(P); if(dir==='ws') o.kept=runsL(P).sort(); o.rec=fRec(P).filter(r=>r.t==='f').length;
           } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
         const n=res.ws, q=res.wsold536;
-        checkLT('97x1','【テス × ①】時間帯の 作業を 12:05 に 取って 押さない：12:25 まで 出ない・12:26 に おくれ・13:00 も おくれ・「間に合っています」と 出ない・別の 人が 取れる／5.36 と 同じ／印は 残る・押し忘れを 書かない',[
-          ['1:線の 前',J(n.m1224)==='[]'],['2:線の 後',J(n.m1226[0])===J(['tB:fire'])&&J(n.m1300)===J(['tB:fire'])&&n.fire>=1&&n.ok===true],['3:別の 人',J(n.took)===J(['見本 次郎@tB'])],
-          ['4:5.36 と 同じ',J(n.m1205)===J(q.m1205)&&J(n.m1224)===J(q.m1224)&&J(n.m1226[0])===J(q.m1226[0])&&J(n.m1300)===J(q.m1300)&&n.fire===q.fire&&J(n.took)===J(q.took)],
+        checkLT('97x1','時間帯：長い 回は 戻さない。オフとの 一覧の 差・引き継げる 時刻・印と 記録',[
+          ['1:線の 前',J(n.m1224)==='[]'],['2:線の 後も 戻さない',J(n.m1226[0])==='[]'&&J(n.m1300)==='[]'&&n.fire===0&&n.ok===true],['3:別の 人',J(n.took)===J(['見本 次郎@tB'])],
+          ['4:線の 前と 引き継ぎは 同じ・一覧は 外す',J(n.m1205)===J(q.m1205)&&J(n.m1224)===J(q.m1224)&&J(q.m1226[0])===J(['tB:fire'])&&J(q.m1300)===J(['tB:fire'])&&q.fire>=1&&J(n.took)===J(q.took)],
           ['5:印は 残る',J(n.kept)===J(['見本 次郎@tB','見本 花子@tB'])&&n.rec===0&&q.rec===1]],J(res));
       });
       /* 97x2（テス × ②）：✓ を 入れ続けている 人：10:00・締切 30分・目標 10分・✓ 3つを 10:21 に 取り 10:39 に ✓。10:42 は 5.36 と 同じ（別の 人は 断る・本人の ✓ が 続く）。10:59 に 戻る。
@@ -7776,12 +7777,12 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             P.ev(`amRunEnd(${J(kB)})`); o.endB=fRec(P).filter(r=>r.t==='x').map(r=>r.by+'|'+r.ck);
           } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
         const n=res.ws, q=res.wsold536;
-        checkLT('97x2','【テス × ②】✓ を 入れ続けている 人：最後の ✓ から 目標の 2倍（10:59）まで 急ぐ順に 出ない・別の 人は 断る・本人の ✓ の 行が 残る／10:59 に 戻る／本人の ✓ で 数え直す／別の 人の ✓ は 前の 印を 戻さない／5.36 と 同じ',[
-          ['1:10:42',J(n.q42)==='[]'&&n.rows42===3&&n.fin42[1]===1&&n.ref[0]===true&&J(n.ref[1])===J(['見本 花子@tF'])],['2:10:59',J(n.q58)==='[]'&&n.q59.length===1&&J(n.r59)==='[]'],
-          ['3:✓ で 数え直す',J(n.back[0])==='[]'&&J(n.back[1])===J(['見本 花子@tF'])&&J(n.q1119)==='[]'&&n.q1120.length===1],
+        checkLT('97x2','✓ から 線を 数え直す。長い 回は 戻さない・オフとの 一覧の 差・別の 人の ✓ と 終わった',[
+          ['1:10:42',J(n.q42)==='[]'&&n.rows42===3&&n.fin42[1]===1&&n.ref[0]===true&&J(n.ref[1])===J(['見本 花子@tF'])],['2:10:59も 戻さない',J(n.q58)==='[]'&&n.q59.length===0&&J(n.r59)==='[]'],
+          ['3:✓ で 数え直す',J(n.back[0])==='[]'&&J(n.back[1])===J(['見本 花子@tF'])&&J(n.q1119)==='[]'&&n.q1120.length===0],
           ['4:別の 人の ✓',J(n.afterT[0])===J(['見本 太郎@tF'])&&J(n.afterT[1])===J(['見本 太郎@tF','見本 花子@tF'])&&n.afterT[2]['見本 太郎']===1&&!n.afterT[2]['見本 花子']&&n.afterT[3]==='11:19'&&n.wn===0],
           ['5:閉じる',J(n.shut)===J(['r|11:19'])&&/閉じました/.test(n.shutS)],['6:次の 人の 記録',J(n.endB)===J(['見本 太郎|3'])],
-          ['7:5.36 と 同じ',J(n.q42)===J(q.q42)&&n.rows42===q.rows42&&J(n.fin42)===J(q.fin42)&&J(n.ref)===J(q.ref)&&J(n.q58)===J(q.q58)&&J(n.q59)===J(q.q59)&&J(n.r59)===J(q.r59)&&J(n.back)===J(q.back)&&J(n.q1119)===J(q.q1119)&&J(n.q1120)===J(q.q1120)&&J(n.took)===J(q.took)&&J(n.endB)===J(q.endB)]],J(res));
+          ['7:一覧の 差と それ以外の 互換',J(n.q42)===J(q.q42)&&n.rows42===q.rows42&&J(n.fin42)===J(q.fin42)&&J(n.ref)===J(q.ref)&&J(n.q58)===J(q.q58)&&q.q59.length===1&&n.q59.length===0&&J(n.r59)===J(q.r59)&&J(n.back)===J(q.back)&&J(n.q1119)===J(q.q1119)&&q.q1120.length===1&&n.q1120.length===0&&J(n.took)===J(q.took)&&J(n.endB)===J(q.endB)]],J(res));
       });
       /* 97x3：朝 3:00：線が 3:00 より 前＝戻る 時刻・why r で 1件／線が 3:00 より 後＝why 3（2:59）で 1件。3:00 までは 記録を 足しても 押し忘れを 書かない（別の 人が 取っても）。読むだけでは 書かない */
       await tryT('97x3',async()=>{
@@ -7807,7 +7808,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
             setWC(P,[cW(Object.assign({id:'tC',name:'見本 点検',goal:10},all7R)),bW(Object.assign({id:'tE',name:'見本 棚'},all7R))]); staff3(P); nxOn(P); clkT(P,13,0); P.ev(`amNxGo('tC','見本 花子')`); clkT(P,13,4); P.ev(`amOpenArea('tC')`); tap(P,'tC',0); tap(P,'tC',1); P.ev('amCloseSheet()');
             clkT(P,13,30); o.q=qK(P).filter(x=>/^tC:/.test(x)); P.ev(`amNxGo('tE','見本 次郎')`); P.ev(`amRunEnd(${J(kOf(P,'tE'))})`); P.ev('amCloseSheet()'); o.rec=recS(P); o.q2=qK(P).filter(x=>/^tC:/.test(x)); o.left=Object.keys(jpT(ET(P,'JSON.stringify(state.amRun)'),{})).length;
           } finally { ET(P,'amCloseSheet()'); P.close(); } res[dir]=o; }
-        checkLT('97x6','【全部 ✓ の 押し忘れ】戻る 時刻の 後の 記録で 最後の ✓ の 時刻で 済：5.36 と 同じ 記録・同じ 急ぐ順',[['1:済',res.ws.rec.some(x=>/^x\|tC\|見本 花子\|\|13:04/.test(x))&&res.ws.left===0],['2:5.36 と 同じ',J(res.ws)===J(res.wsold536)]],J(res));
+        checkLT('97x6','【全部 ✓ の 押し忘れ】長い 回は 戻さない。次の 記録で 最後の ✓ の 時刻で 済・記録は 5.36 と 同じ',[['1:済',res.ws.rec.some(x=>/^x\|tC\|見本 花子\|\|13:04/.test(x))&&res.ws.left===0],['2:一覧だけ 変わる',J(res.ws.q)==='[]'&&res.wsold536.q.length===1&&J(res.ws.rec)===J(res.wsold536.rec)&&J(res.ws.q2)===J(res.wsold536.q2)&&res.ws.left===res.wsold536.left]],J(res));
       });
       /* 97x5：戻る 時刻の 前は 画面も 5.36 と 同じ（行の 字に「目標の ◯倍」や ⏳ を 出さない。✓ で 線が 動いた 印は 目標の 2倍を すぎても 長く ない） */
       await tryT('97x5',async()=>{
@@ -8168,6 +8169,57 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
         }finally{P.close();Q.close();}
         checkLT('97z5','2台が戻る時刻の前に別々に取り片方が完了。朝に余分な押し忘れを増やさず同期',[
           ['済のみ',o.recs.every(a=>a.length===1&&!a[0].miss)],['印なし',o.left.every(n=>n===0)],['同期',J(o.recs[0])===J(o.recs[1])]],J(o));
+      });
+
+      /* 5.37.1 案B：実際の 行・名前の ボタンと、共通の 抽出を 両方 調べる。 */
+      await tryT('97b1',async()=>{
+        const P=await mkT(new V2.MemoryCloud(),'test-long-list','ws',stT()), o={};
+        try{
+          setWC(P,[tW({id:'one',name:'Sample one',times:['10:00'],lead:0,grace:30,goal:10,items:[]}),tW({id:'repeat',name:'Sample repeat',times:['10:00','13:00'],lead:0,grace:30,goal:10,items:[]})]); staff3(P); nxOn(P); clkT(P,10,1);
+          P.ev("amNxGo('one','test-a');amNxGo('repeat','test-a')");
+          const inspect=()=>jpT(P.ev(`JSON.stringify((()=>{renderMapView();return {q:amNxQueue().map(x=>x.id),home:amNxNext().map(x=>x.id),rows:[...document.querySelectorAll('#nxa-col .nxa-it')].map(x=>x.dataset.w),long:amNxLongRuns().length};})())`),{});
+          clkT(P,10,20,59); o.before=inspect(); clkT(P,10,21); o.edge=inspect(); clkT(P,10,40); o.late=inspect(); clkT(P,13,0); o.next=inspect();
+        } finally { P.close(); }
+        checkLT('97b1','長い 回は 一覧・ホームから 外す。境目の 前後・締切の 後・同じ 作業の 別の 回',[
+          ['境目の 前',o.before.long===0&&o.before.rows.length===0],['境目',o.edge.long===2&&o.edge.q.length===0&&o.edge.home.length===0&&o.edge.rows.length===0],
+          ['締切の 後',o.late.long===2&&o.late.q.length===0&&o.late.home.length===0&&o.late.rows.length===0],['別の 回',J(o.next.q)===J(['repeat'])&&J(o.next.home)===J(['repeat'])&&J(o.next.rows)===J(['repeat'])&&o.next.long===2]],J(o));
+      });
+      await tryT('97b2',async()=>{
+        const cl=new V2.MemoryCloud(), P=await mkT(cl,'test-take-a','ws',stT()), Q=await mkT(cl,'test-take-b','ws'), D=[P,Q], o={};
+        try{
+          setWC(P,[cW({id:'take',name:'Sample take',goal:10,sch:[1,1,1,1]})]); staff3(P); nxOn(P); clkT(P,10,0); P.ev("amNxGo('take','test-a')"); const k=kOf(P,'take','test-a');
+          clkT(P,10,2); P.ev("amOpenArea('take')"); tap(P,'take',0); P.ev('amCloseSheet()'); clkT(P,10,23); P.ev('_amNx.lgOpen=true;renderMapView()');
+          const seed=String(P.ev('JSON.stringify(state)'));
+          o.button=P.ev(`(()=>{const b=document.querySelector('.nxa-take'),r=b.getBoundingClientRect();b.click();return r.height>=40&&r.width>=40;})()`);
+          o.pick=P.ev(`amSheetName()==='nxpick'&&document.querySelectorAll('.nx-pk[data-take="${k}"]').length>0&&[...document.querySelectorAll('.nx-pk')].every(b=>b.dataset.take===${J(k)})`);
+          P.ev(`document.querySelector('.nx-more')?.click();document.querySelector('.nx-pk[data-n="見本 太郎"]').click()`);
+          const canon=`(()=>{const s=JSON.parse(JSON.stringify(state));s.amRun=Object.values(s.amRun).sort((a,b)=>a.w.localeCompare(b.w));return JSON.stringify(s);})()`;
+          o.actual=String(P.ev(canon)); o.gone=P.ev(`${J(k)} in state.amRun`)===false; o.active=runsN(P); o.ck=ckN(P,'take'); o.log=logOf(P,'take');
+          await syncT(D); o.sync=nzT(P.ev('JSON.stringify(state)'))===nzT(Q.ev('JSON.stringify(state)'));
+          P.ev(`state=JSON.parse(${J(seed)});amRunCancel(${J(k)});amNxGo('take','見本 太郎')`); o.expected=String(P.ev(canon));
+        } finally { for(const d of D) d.close(); }
+        checkLT('97b2','代わりにやる → 名前 → 新しい 印。前の 印を 外し、保存は 取り消し → やる と 同じ（途中の ✓・2台）',[
+          ['押す所',o.button],['名前を 聞く',o.pick],['前の 印なし',o.gone],['その人で 始める',J(o.active)===J(['見本 太郎@take'])],
+          ['✓ と 記録',o.ck===1&&o.log.length===0],['保存の 全項目',o.actual===o.expected],['同期',o.sync]],J(o));
+      });
+      await tryT('97b3',async()=>{
+        const P=await mkT(new V2.MemoryCloud(),'test-long-count','ws',stT()), o=[];
+        try{
+          setWC(P,[tW({id:'held',times:['10:00','13:00'],lead:0,grace:30,goal:10,items:[]}),tW({id:'free',times:['10:00','13:00'],lead:0,grace:30,items:[]})]); staff3(P); nxOn(P); clkT(P,10,1); P.ev("amNxGo('held','test-a')");
+          for(const [h,m,n] of [[10,20,0],[10,21,0],[10,31,1],[13,0,0],[13,31,2],[18,0,2]]){
+            clkT(P,h,m); o.push(jpT(P.ev(`JSON.stringify((()=>{_amNx.tab=null;renderMapView();return [amNxFireN(),amNxShown(amNxQueue(Date.now(),true),Date.now(),null).filter(x=>x.k==='fire').length,document.querySelector('.nxa-tabs button').textContent,${n}];})())`),[]));
+          }
+        } finally { P.close(); }
+        checkLT('97b3','ホームと 一覧の おくれは 同じ（6時刻）。長い 回を 数えず 別の 回は 数える',o.map((x,i)=>[String(i+1),x[0]===x[3]&&x[1]===x[3]&&(x[3]?x[2].includes('おくれ '+x[3]):!x[2].includes('おくれ'))]),J(o));
+      });
+      await tryT('97b4',async()=>{
+        const P=await mkT(new V2.MemoryCloud(),'test-long-read','ws',stT()), o={};
+        try{
+          setWC(P,[tW({id:'held',times:['10:00','13:00'],lead:0,grace:30,goal:10,items:[]})]); staff3(P); nxOn(P); clkT(P,10,1); P.ev("amNxGo('held','test-a')"); clkT(P,10,40);
+          o.read=P.ev(`(()=>{const before=JSON.stringify(state),save=amSave;let saves=0;amSave=()=>{saves++;};try{for(let i=0;i<3;i++){amNxQueue();amNxNext();amNxFireN();renderMapView();amNxLgTgl();}document.querySelector('.nxa-take')?.click();amCloseSheet();return before===JSON.stringify(state)&&saves===0;}finally{amSave=save;}})()`);
+          o.long=Number(P.ev('amNxLongRuns().length'));
+        } finally { P.close(); }
+        checkLT('97b4','描く・開く・名前の 窓まででは state と 保存回数を 変えない',[['読むだけ',o.read],['印は 残る',o.long===1]],J(o));
       });
 
       /* ===== 97k1（5.34・5.33 テスの △）：① 390×844 で 2番目以降は 最初の 名前、🔒 は 案内が 見える（✓できる 時間より 優先）
