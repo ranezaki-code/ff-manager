@@ -8022,7 +8022,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           o.layouts=[];
           for(const width of [390,1280]){
             P.f.style.setProperty('width',width+'px','important');P.f.style.height='844px';await sleep(100);
-            o.layouts.push(jpT(P.ev(`JSON.stringify((()=>{_amNx.tab=null;const before=JSON.stringify(state);renderMapView();const c=document.getElementById('nxa-col'),t=c.querySelector('.nxa-tabs'),bs=[...t.children],rows=[...c.querySelectorAll('.nxa-it')],locks=rows.map(r=>r.classList.contains('lock')),first=locks.indexOf(true);const sizes=rows.map(r=>{const h=r.getBoundingClientRect().height,clone=r.cloneNode(true);clone.style.paddingTop='4px';clone.style.paddingBottom='4px';clone.style.minHeight=document.getElementById('nx-wrap').classList.contains('many')?'46px':'52px';r.after(clone);const delta=h-clone.getBoundingClientRect().height;clone.remove();return delta;});return {top:c.firstElementChild===t,heading:!c.textContent.includes('種類ごと'),height:bs.every(b=>b.getBoundingClientRect().height<=36),nowrap:getComputedStyle(t).flexWrap==='nowrap',touch:bs.every(b=>b.getBoundingClientRect().height+10>=40),order:first>0&&locks.slice(first).every(Boolean),after:c.querySelectorAll('.nxa-after').length===1,nums:rows.map(r=>+r.querySelector('.rk').textContent).join(',')===amNxRowNums(amNxShown(amNxQueue(Date.now(),true),Date.now())).join(','),sizes,read:before===JSON.stringify(state),fit:document.documentElement.scrollWidth<=innerWidth&&rows.every(r=>r.getBoundingClientRect().right<=c.getBoundingClientRect().right+1)};})())`),{}));
+            o.layouts.push(jpT(P.ev(`JSON.stringify((()=>{_amNx.tab=null;const before=JSON.stringify(state);renderMapView();const c=document.getElementById('nxa-col'),t=c.querySelector('.nxa-tabs'),bs=[...t.children],rows=[...c.querySelectorAll('.nxa-it')],locks=rows.map(r=>r.classList.contains('lock')),first=locks.indexOf(true);const sizes=rows.map(r=>{const h=r.getBoundingClientRect().height,clone=r.cloneNode(true);clone.style.paddingTop='4px';clone.style.paddingBottom='4px';clone.style.minHeight=document.getElementById('nx-wrap').classList.contains('many')?'46px':'52px';r.after(clone);const delta=h-clone.getBoundingClientRect().height;clone.remove();return delta;});return {top:c.firstElementChild===t.closest(".nxa-tabrow"),heading:!c.textContent.includes('種類ごと'),height:bs.every(b=>b.getBoundingClientRect().height<=36),nowrap:getComputedStyle(t).flexWrap==='nowrap',touch:bs.every(b=>b.getBoundingClientRect().height+10>=40),order:first>0&&locks.slice(first).every(Boolean),after:c.querySelectorAll('.nxa-after').length===1,nums:rows.map(r=>+r.querySelector('.rk').textContent).join(',')===amNxRowNums(amNxShown(amNxQueue(Date.now(),true),Date.now())).join(','),sizes,read:before===JSON.stringify(state),fit:document.documentElement.scrollWidth<=innerWidth&&rows.every(r=>r.getBoundingClientRect().right<=c.getBoundingClientRect().right+1)};})())`),{}));
           }
           o.filter=P.ev(`(()=>{document.querySelector('[data-tab="清掃"]').click();return _amNx.tab==='清掃'&&[...document.querySelectorAll('#nxa-col .nxa-it')].every(r=>r.dataset.w!=='band');})()`);
           P.ev(`_amNx.tab=null;const t=Date.now()-60000;state[AM_LOG_PRE+amLogDay(t)]={sample:{w:'band',at:new Date(t).toISOString()}};renderMapView()`);
@@ -8355,6 +8355,26 @@ o.changed.push(P.ev(`(()=>{const w=amWork(${J(id)}.replace(/#af$/,'')),old=w.seq
           ['6:u 以外と他の鍵は同じ',o.same===true&&o.keepB===true],
           ['7:枠なし・旧画面',o.noSlots===true&&o.oldScreen===true],
           ['8:5.31 と往復',o.oldU===o.rec.u&&o.round[0]===o.rec.u&&o.round[1]===o.rec.u&&J(o.round[2])===J(['9:00'])]],J(o));
+      });
+      /* 5.37.1：カウンター札と、保存に さわらない 図の 説明 */
+      await tryT('97ctr1',async()=>{
+        const P=await mkT(new V2.MemoryCloud(),'端末PW1','ws',stT()), o={fit:[]};
+        try{
+          setWC(P,[bW({id:'ctrE',name:'コピー機の精算',kind:'清掃'}),bW({id:'ctrD',name:'レジ点検',ctr:'in',kind:'清掃'})]); nxOn(P); clkT(P,12,0);
+          o.labels=P.ev(`(()=>{const w={name:'コピー機の精算'},h=amCtrChip(w),s=amCtrChip(w,true);return !/[？?]/.test(h+s)&&!h.includes('title=')&&h.includes('カウンター内')&&h.includes('カウンター外')&&s.includes('>内<')&&s.includes('>外<');})()`);
+          o.switch=P.ev(`(()=>{const w={name:'コピー機の精算'},f=flag=>eval('(function(AM_CTR_SHOW_EST){return '+amCtrChip.toString()+'})')(flag);return AM_CTR_SHOW_EST===true&&f(false)(w)===''&&f(true)(w).includes('カウンター外')&&f(false)({name:'作業',ctr:'out'}).includes('カウンター外');})()`);
+          P.ev('window.__ctrChip=amCtrChip');
+          for(const flag of [true,false]){
+            P.ev(`amCtrChip=eval('(function(AM_CTR_SHOW_EST){return '+window.__ctrChip.toString()+'})')(${flag})`);
+            for(const width of [390,1280]){
+              P.f.style.width=width+'px'; P.f.style.height='844px'; await sleep(100); P.ev('renderMapView()');
+              o.fit.push(P.ev(`(()=>{const row=document.querySelector('.nxa-tabrow'),b=row.querySelector('.am-ctr-info'),r=row.getBoundingClientRect(),br=b.getBoundingClientRect(),before=JSON.stringify(state),tabs=row.innerHTML,scroll=document.getElementById('nxa-col').scrollTop,est=document.querySelector('[data-w="ctrE"]>.am-ctrt'),fixed=document.querySelector('[data-w="ctrD"]>.am-ctrt');b.click();const d=document.getElementById('am-ctr-help'),dr=d.getBoundingClientRect(),svg=d.querySelector('svg'),ok=d.open&&!!svg&&dr.left>=0&&dr.right<=innerWidth&&d.scrollWidth<=d.clientWidth+1;d.querySelector('button').click();return {w:innerWidth,flag:${flag},right:b===row.lastElementChild&&Math.abs(br.right-r.right)<2,size:br.width>=40&&br.height>=40,fit:r.left>=0&&r.right<=innerWidth&&row.scrollWidth<=row.clientWidth+1,modal:ok,closed:!d.open,same:before===JSON.stringify(state)&&row.innerHTML===tabs&&document.getElementById('nxa-col').scrollTop===scroll,chips:!!fixed&&(${flag}?!!est&&est.children.length===2:!est)};})()`));
+            }
+          }
+        }finally{ P.ev('if(window.__ctrChip)amCtrChip=window.__ctrChip'); P.close(); }
+        checkLT('97ctr1','【5.37.1 カウンター】？なし・見こみ切替・両方・右端のi・図と閉じる・state不変・390/1280',[
+          ['札の字',o.labels===true],['定数の切替',o.switch===true],
+          ['4通りの画面',o.fit.length===4&&o.fit.every(x=>x.right&&x.size&&x.fit&&x.modal&&x.closed&&x.same&&x.chips)]],J(o));
       });
       /* ===== 97v1（5.36）：鮮度管理・種類の 色・登録の 札・2台と 古い版で 往復 ===== */
       await tryT('97v1',async()=>{

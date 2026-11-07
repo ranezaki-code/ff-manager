@@ -3131,6 +3131,18 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .am-ctrt i{font-style:normal;font-size:11px;font-weight:800;line-height:14px;padding:1px 7px;color:#fff;background:var(--cc);white-space:nowrap;letter-spacing:.02em}
 .am-ctrt i+i{border-left:1.5px solid #fff}
 .am-ctrt i.est{background:var(--cb);color:var(--cc)}
+.nxa-tabrow{display:flex;align-items:center;gap:4px;min-width:0;flex:none}
+.nxa-tabrow>.nxa-tabs{flex:1;min-width:0}
+.am-ctr-info{flex:none;width:44px;height:40px;padding:7px 8px;border:0;background:transparent;color:#52627a;cursor:pointer}
+.am-ctr-info>span{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.5px solid currentColor;border-radius:50%;font:700 18px Georgia,serif;box-sizing:border-box}
+.am-ctr-help{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);margin:auto;padding:16px;border:1px solid #b8c4d6;border-radius:16px;color:#22324f;box-sizing:border-box;overflow:auto}
+.am-ctr-help::backdrop{background:#14243c66}
+.am-ctr-help .hd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.am-ctr-help h2{font-size:17px;margin:0}
+.am-ctr-help button{width:44px;height:44px;border:0;background:transparent;font-size:26px;cursor:pointer;flex:none}
+.am-ctr-help svg{display:block;width:100%;height:auto;margin:8px 0}
+.am-ctr-help p{font-size:14px;line-height:1.5;margin:10px 0}
+.am-ctr-help .am-tr{display:block;font-size:11px;color:#64748b}
 .nxa .nxa-it,.nxa .nxa-rn{position:relative}
 /* 5.29（店長 10/26「色が濃すぎて目がちかちかする」）：新しい 画面の 行は 白い 地。急ぎの 度合いは 左はしの 太い 線（おくれ＝赤・もうすぐ＝黄・ふつう＝うすい 灰青）と 右の 字の 色だけ。字は 濃い 灰青 */
 .nxa .nxa-it{--edge:#B8C4D6;background:#fff;border:1.5px solid #D3DAE4;border-left:7px solid var(--edge);color:#22324F;padding-left:2px}
@@ -13901,7 +13913,7 @@ function amNxTabsHtml(q){
   const keys=Array.from(new Set(q.map(x=>x.tag))).sort((a,b)=>(q.find(x=>x.tag===a).tr-q.find(x=>x.tag===b).tr));
   if(_amNx.tab!=null&&!keys.includes(_amNx.tab)) _amNx.tab=null;
   const btn=(k,n,rows)=>`<button type="button" class="nxb" aria-pressed="${(_amNx.tab==null?k==null:_amNx.tab===k)}" ${k==null?'onclick="amNxTabSet(null)"':`data-tab="${escapeHtml(k)}" onclick="amNxTabSet(this.dataset.tab)"`}>${escapeHtml(n)}${k==null?amTr2('All','सबै'):''}${rows.some(x=>x.k==='fire')?`・おくれ ${rows.filter(x=>x.k==='fire').length}`:''}</button>`;
-  return `<div class="nxa-tabs" aria-label="作業の種類">${btn(null,'すべて',q)}${keys.map(k=>btn(k,amKindName(k)||'種類なし',q.filter(x=>x.tag===k))).join('')}</div>`;
+  return `<div class="nxa-tabrow"><div class="nxa-tabs" aria-label="作業の種類">${btn(null,'すべて',q)}${keys.map(k=>btn(k,amKindName(k)||'種類なし',q.filter(x=>x.tag===k))).join('')}</div><button type="button" class="am-ctr-info" aria-label="カウンター内と 外の 説明" onclick="amCtrHelp()"><span aria-hidden="true">i</span></button></div>`;
 }
 function amNxScheduleText(x,now){
   const slot=amNxSlot(x,now), due=Number.isFinite(x.due)?x.due:slot&&slot.e;
@@ -14315,7 +14327,7 @@ function amNxLegendHtml(){
   const used=amTagUse(), tags=amTagSorted().filter(t=>used[t.k]); if(!tags.length) return '';
   const tg=tags.map((t,i)=>`<li><span class="o num">${i+1}</span>${amNxStamp(t.k,22)}<b>${escapeHtml(t.n)}</b>${amKindTr(t.k)?`<small>${escapeHtml(amKindTr(t.k))}</small>`:''}</li>`).join('');
   const ln=[['#D62B1F','おくれ','Late'],['#E0A100','もうすぐ','Soon'],['#B8C4D6','これから','Later']].map(x=>`<span class="ln"><i style="background:${x[0]}"></i>${x[1]}<small>${x[2]}</small></span>`).join('');
-  const ct=['in','out'].map(k=>`<span class="am-ctrt st"><i style="--cc:${AM_CTR[k].c};--cb:${AM_CTR[k].b}">${AM_CTR[k].t}</i></span>`).join('')+`<span class="am-ctrt st"><i class="est" style="--cc:${AM_CTR.in.c};--cb:${AM_CTR.in.b}">見こみ？</i></span>`;
+  const ct=['in','out'].map(k=>`<span class="am-ctrt st"><i style="--cc:${AM_CTR[k].c};--cb:${AM_CTR[k].b}">${AM_CTR[k].t}</i></span>`).join('')+ (AM_CTR_SHOW_EST?`<span class="am-ctrt st"><i class="est" style="--cc:${AM_CTR.in.c};--cb:${AM_CTR.in.b}">見こみ</i></span>`:'');
   return `<details class="nxa-lg"${_amNxLg?' open':''} ontoggle="_amNxLg=this.open"><summary>印の 見かた<small>Legend / संकेत</small></summary><div class="b"><div class="h">同じ 急ぎなら、上の 種類から<small>Same urgency: top first</small></div><ol>${tg}</ol><div class="h">左の 線<small>Left line</small></div><div class="lns">${ln}</div><div class="h">右上の 札<small>Counter</small></div><div class="cts">${ct}</div></div></details>`;
 }
 function amNxOnScroll(){ const col=document.getElementById('nxa-col'); if(!col) return; _amNx.sc=col.scrollTop; amNxBelow(); if(!_amNx.raf){ _amNx.raf=requestAnimationFrame(()=>{ _amNx.raf=0; amNxWires(); }); } }
@@ -14631,8 +14643,26 @@ function amCtrOf(w){
   return {v, est:true};
 }
 /* 5.29：行・カード・窓の 右上の 角に 置く 札（親が position を 持つ 所に 置く）。small＝スマホ（「内」「外」だけ） */
-function amCtrChip(w,small){ const c=amCtrOf(w); if(!c.v) return ''; const ks=c.v==='both'?['in','out']:[c.v];
-  return `<span class="am-ctrt" title="${c.est?'見こみ（管理者が 登録で 決められます）':''}">${ks.map(k=>{ const L=AM_CTR[k]; return `<i class="${c.est?'est':''}" style="--cc:${L.c};--cb:${L.b}">${small?L.s:L.t}${c.est?'？':''}</i>`; }).join('')}</span>`; }
+const AM_CTR_SHOW_EST=true;   // false＝管理者が 決めた 作業だけに 札を 出す
+function amCtrHelp(){
+  let d=document.getElementById('am-ctr-help');
+  if(!d){ d=document.createElement('dialog'); d.id='am-ctr-help'; d.className='am-ctr-help'; d.setAttribute('aria-labelledby','am-ctr-help-title'); document.body.appendChild(d); }
+  d.innerHTML=`<div class="hd"><h2 id="am-ctr-help-title">カウンター内・外</h2><button type="button" aria-label="閉じる" onclick="document.getElementById('am-ctr-help').close()">×</button></div>
+    <svg viewBox="0 0 360 220" role="img" aria-label="店を 上から 見た 図。レジと カウンター内は 青、売場と 店外は だいだい">
+      <rect x="8" y="8" width="344" height="204" rx="12" fill="#FBE8DC" stroke="#C8561C" stroke-width="2"/>
+      <rect x="24" y="24" width="312" height="154" rx="8" fill="#fff" stroke="#64748b" stroke-width="2"/>
+      <path d="M24 24H172V108H24Z" fill="#E3EBFA" stroke="#2F5FC4" stroke-width="2"/>
+      <rect x="42" y="75" width="112" height="23" rx="3" fill="#2F5FC4"/>
+      <text x="98" y="56" text-anchor="middle" fill="#2F5FC4" font-size="16">カウンター内</text><text x="98" y="92" text-anchor="middle" fill="#fff" font-size="14">レジ</text>
+      <path d="M204 90h100v18H204zM204 124h100v18H204z" fill="#FBE8DC" stroke="#C8561C"/>
+      <text x="253" y="62" text-anchor="middle" fill="#C8561C" font-size="16">売場</text><text x="100" y="148" text-anchor="middle" fill="#C8561C" font-size="15">カウンター外</text><text x="180" y="201" text-anchor="middle" fill="#C8561C" font-size="15">店の 外</text>
+    </svg>
+    <p><b style="color:#2F5FC4">カウンター内</b>＝レジを 見ながら、お客様が 来たら すぐ 戻れる 作業。${amTr2('Inside: watch the register and return quickly for customers.','भित्र: क्यास काउन्टर हेर्दै ग्राहक आउँदा तुरुन्त फर्कन सकिने काम।')}</p>
+    <p><b style="color:#C8561C">カウンター外</b>＝売場や 店の 外など、レジを 離れて 回る 作業。${amTr2('Outside: work away from the register, on the sales floor or outside.','बाहिर: क्यास काउन्टरबाट टाढा, बिक्री कक्ष वा पसलबाहिर गर्ने काम।')}</p>`;
+  d.showModal();
+}
+function amCtrChip(w,small){ const c=amCtrOf(w); if(!c.v||c.est&&!AM_CTR_SHOW_EST) return ''; const ks=c.v==='both'?['in','out']:[c.v];
+  return `<span class="am-ctrt">${ks.map(k=>{ const L=AM_CTR[k]; return `<i class="${c.est?'est':''}" style="--cc:${L.c};--cb:${L.b}">${small?L.s:L.t}</i>`; }).join('')}</span>`; }
 function amNxTrbDef(y){ return AM_NX_TRB.find(d=>d.y===y)||AM_NX_TRB[AM_NX_TRB.length-1]; }
 function amNxTrbQid(r){ const w=String((r&&r.w)||''); return (r&&r.sa)?amNxAfId(w.replace(/#af$/,''),r.sa):w; }
 /* きょう（3:00 始まり）の 困った：[{id, key, r, t, y, by, qid, def}]（古い 順）。読むだけ。この 端末の 時計より 1分 以上 先の 物は 数えない */
