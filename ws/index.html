@@ -2988,6 +2988,7 @@ html.embedded-in-hub #sync-indicator{padding:3px 8px!important;margin-left:0!imp
 .nxa .nxa-below{position:sticky;bottom:0;flex:none;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--ink);color:#fff;font-weight:800;border-radius:6px;font-size:var(--f16);text-align:center}
 .nxa .nxa-below[hidden]{display:none}
 .nxa .nxa-below small{display:inline;color:#fff;opacity:.8}
+.nxa .nxa-none.long{background:#FFFBEF;border:1px solid #EED9A8;color:#13294B}
 .nxa .nxa-none{background:#fff;border-radius:8px;padding:18px;font-size:var(--f20);font-weight:800;text-align:center;color:var(--done);flex:none}
 .nxa .nxa-ck{position:absolute;z-index:6;background:#fff;border:3px solid var(--pc);border-radius:8px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
 .nxa .nxa-ck .hd{display:flex;gap:8px;align-items:flex-start;flex:none}
@@ -14326,7 +14327,7 @@ function amNxRender(view){
       if(sel&&sel.id===x.id) col+=amNxOpenHtml(x,q,here,hold,now);
     });
     const gvN=amNxGvNow(now).live.length;   // 5.31：きょう 諦めた（取り消して いない）数
-    if(!q.length&&!kcv) col+=lgA.length?`<div class="nxa-none">⏳ 長い ${lgA.length}件があります<small>Long: ${lgA.length} / लामो: ${lgA.length}</small></div>`:amNxMissToday(now)===0?`<div class="nxa-none">✨ ここまで 全部 済<small>All done so far / अहिलेसम्म सबै सकियो</small></div>`:`<div class="nxa-none">✅ いまは 間に合っています${gvN?`<small>諦めた ${gvN}件は 下から 戻せます</small>`:'<small>All caught up / सबै समयमै</small>'}</div>`;   // 5.37.1：長い 回だけ 残る 時は 件数を 出す。きょう 抜けが 無ければ ✨
+    if(!q.length&&!kcv) col+=lgA.length?`<div class="nxa-none long">⏳ 長い ${lgA.length}件があります<small>Long: ${lgA.length} / लामो: ${lgA.length}</small>${gvN?`<small>諦めた ${gvN}件は 下から 戻せます</small>`:''}</div>`:amNxMissToday(now)===0?`<div class="nxa-none">✨ ここまで 全部 済<small>All done so far / अहिलेसम्म सबै सकियो</small></div>`:`<div class="nxa-none">✅ いまは 間に合っています${gvN?`<small>諦めた ${gvN}件は 下から 戻せます</small>`:'<small>All caught up / सबै समयमै</small>'}</div>`;   // 5.37.1：長い 回だけ 残る 時は 件数を 出す。きょう 抜けが 無ければ ✨
     if(gvN&&!kcv) col+=`<button type="button" class="nxb nxa-gvl" id="nxa-gvl" onclick="amNxGvList()">🏳 きょう 諦めた ${gvN}件<small>押すと 戻せる / Given up today</small></button>`;   // 5.31
     col+=`<button type="button" class="nxb nxa-more" onclick="amNxDoneList()">${amNxIco('check',14,'#2F8F5B')}済 ${amNxDoneN(now)}<small>Done</small></button>${amNxLegendHtml()}<button type="button" class="nxb nxa-below" id="nxa-below" hidden onclick="amNxBelowGo()"></button>`;
     h+=`<div class="nxa-col${wide?' nxa-wide':''}" id="nxa-col" style="left:${C.x}px;top:${C.y}px;width:${C.w}px;height:${C.h}px">${col}</div>`;

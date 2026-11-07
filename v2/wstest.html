@@ -7633,7 +7633,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           clkT(P,18,31,30); P.ev(`amRunEnd(${J(kF)})`); o.shut=[recS(P).filter(x=>/\|tF\|/.test(x)), snT(P), runsL(P).filter(x=>/@tF$/.test(x))]; P.ev(`amRunEnd(${J(kF2)})`); o.end=recS(P).filter(x=>/\|tF\|/.test(x)); o.afterF=qIds(P,'tF');
           clkT(P,18,32); P.ev(`amRunEnd(${J(kO)})`); o.endO=[recS(P).filter(x=>/\|tO\|/.test(x)), qIds(P,'tO')];
           P.ev(`amRunActive().concat(amNxLongRuns()).forEach(r=>amRunEnd(r.k))`); setWC(P,[tW({id:'tIdle',name:'見本 確認',times:['23:00'],lead:0,grace:30,goal:10,items:[]})]); rd(P);
-          o.idle=[runsL(P).length, qtT(P,'#nxa-col .nxa-none')];
+          o.idle=[runsL(P).length, qtT(P,'#nxa-col .nxa-none'), qIds(P,'tIdle')];
           clkT(P,23,1); rd(P); o.todo=[qIds(P,'tIdle'), qtT(P,'#nxa-col .nxa-none')];
         } finally { ET(P,'amCloseSheet()'); P.close(); }
         checkLT('97w1','1回の 作業は 長くても 戻さず おくれに 数えない。印と 終わったは 残す・別の 人が 取った 後の 記録',[
@@ -7647,7 +7647,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           ['8:閉じる',/別の 人の 印か 記録/.test(o.win2[0])&&/印を 閉じる/.test(o.win2[1])&&J(o.shut[0])===J(['f|tF|見本 花子|r|10:21'])&&/閉じました/.test(o.shut[1])&&J(o.shut[2])===J(['見本 次郎@tF'])],
           ['9:次の 人',o.end.length===2&&o.end.filter(x=>/^x\|tF\|見本 次郎/.test(x)).length===1&&o.afterF===''],
           ['10:だれも 取らない',J(o.endO[0])===J(['x|tO|見本 太郎||18:32'])&&o.endO[1]===''],
-          ['11:長いも 無い',o.idle[0]===0&&/いまは 間に合っています/.test(o.idle[1])&&!/⏳ 長い/.test(o.idle[1])],
+          ['11:長いも 無い',o.idle[0]===0&&o.idle[1]===''&&o.idle[2]!==''],
           ['12:やる 作業が ある',o.todo[0]!==''&&o.todo[1]==='']],J(o));
       });
       /* 97w2：3回の 作業の 締切と 次の 回の 間：別の 人が 取れる・閉じる 時刻は 戻る 時刻（未来の 時刻に ならない）・元の 人の「終わった」は いまの 回の 記録・次の 回まで 出ない */
@@ -8123,6 +8123,7 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
           P.ev("_amNx.hold=0;document.querySelector('.nxa-gvrow-btn[data-w=\"a\"]').click()");
           o.reason=P.ev("_amGv&&_amGv.id==='a'&&_amGv.y===''");
           P.ev("amNxGvPick(amNxGvDef('').y)");o.name=P.ev("!!_amGv.y&&!!document.querySelector('#am-sheet')");
+          clkT(P,12,0,0,true);   // Freeze milliseconds when comparing identical saves.
           o.save=P.ev("(()=>{const x=amNxQueue().find(x=>x.id==='a'),y=_amGv.y,ref=amNxGvPut(x,y,'test-a',Date.now(),0),expected=JSON.stringify(state[ref.key][ref.id]);delete state[ref.key][ref.id];amNxGvOk('test-a');return amNxGvNow().live.some(e=>JSON.stringify(e.r)===expected);})()");
           o.home.push(homeSame('f'));
           P.ev("(()=>{const e=amNxGvNow().live.find(e=>e.qid==='a'),log=state[e.key];log.gsample={...e.r,t:new Date(Date.now()-6*3600000).toISOString()};log.gundone={...e.r,u:1};})()");
