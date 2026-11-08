@@ -48,6 +48,10 @@ iframe{width:100%;height:420px;border:1px solid #cbd5e1;border-radius:8px;backgr
     const off=()=>{ A.be.setOnline(false); B.be.setOnline(false); }, on=()=>{ A.be.setOnline(true); B.be.setOnline(true); };
     const prod=(d,id)=>JSON.parse(d.ev(`JSON.stringify(S.PM.find(p=>p.id===${J(id)})||null)`));
     const setP=(d,id,k,v)=>d.ev(`(()=>{ const p=S.PM.find(p=>p.id===${J(id)}); p[${J(k)}]=${J(v)}; saveS(); })()`);
+    check('import', 'Import parser and settings sync', A.ev('jiImportParse(JSON.stringify({kind:"ff-jisseki",v:1,items:[{name:"Test product",teika:2,nebiki:1,haiki:0}]})).items.length')===1);
+    A.ev('S.jiImportMap={"Test alias":"p1"};saveS()');
+    await sync();
+    check('import-sync', 'Import mapping follows store settings sync', B.ev('S.jiImportMap["Test alias"]')==='p1');
     await sync();
     check('0','はじめ：B に A と同じデータが届いている',same()&&B.ev('S.PM.length')===3,'商品 '+B.ev('S.PM.length')+'・週 '+B.ev('Object.keys(S.weeks).length'));
 
