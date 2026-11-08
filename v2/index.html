@@ -277,6 +277,7 @@ body.ws-compact{padding-top:env(safe-area-inset-top,0px)}
     <div class="settings-row"><div><div class="label">🔐 合言葉を入れ直す</div><div class="desc">別の合言葉の場所に切り替えます</div></div><button class="btn btn-ghost" id="change-pass-btn">変更</button></div>
     <div class="settings-row" id="gv-row" style="display:none"><div><div class="label">🏳 諦めるボタン</div><div class="desc" id="gv-desc">使うか・諦められない札（店長だけ）</div></div><button class="btn btn-ghost" id="gv-btn">変更</button></div>
     <div class="settings-row" id="nx-row" style="display:none"><div><div class="label">🗂 作業の 画面</div><div class="desc" id="nx-desc">今いる人の 列（店長だけ）</div></div><button class="btn btn-ghost" id="nx-btn">変更</button></div>
+    <div class="settings-row" id="pre-row" style="display:none"><div><div class="label">業務開始前のチェック</div><div class="desc">項目の変更・使う／使わない・記録（店長だけ）</div></div><button class="btn btn-ghost" id="pre-btn">変更・記録</button></div>
     <div class="settings-row"><div><div class="label">古いアプリ（FF・WS）</div><div class="desc">この新しい入口に移りました</div></div></div>
     <div class="muted" id="settings-status"></div>
   </div>
@@ -569,6 +570,40 @@ function gvRow(){   // ⚙ の「🏳 諦めるボタン」の行：店長の時
 let _nx=null;
 function nxWin(){ try{ const w=frames.ws&&frames.ws.contentWindow; return (w&&w.__v2ready&&typeof w.amNxOptCfg==='function'&&typeof w.amNxOptSet==='function')?w:null; }catch(_){ return null; } }
 function nxKey(x){ return JSON.stringify({noHere:x.noHere?1:0}); }
+let _preEdit=null, _preSid='';
+function preOpen(){
+  if(!hmBoss()) return hmAskBoss(preOpen);
+  const w=nxWin(); if(!w||typeof w.amPreCfg!=='function') return nxOpen();
+  closeOverlay('settings-overlay');
+  _preSid=curStore; _preEdit=w.amPreCfg(); preDraw();
+}
+function preRead(){
+  if(!_preEdit) return;
+  document.querySelectorAll('#hm-box [data-pre]').forEach(el=>{ const a=el.dataset.pre.split('.'); let x=_preEdit; a.slice(0,-1).forEach(k=>{x=x[k];}); x[a[a.length-1]]=el.type==='checkbox'?(el.checked?0:1):el.value; });
+}
+function preMove(i,d){ preRead(); const a=_preEdit.items,j=i+d; if(j<0||j>=a.length) return; [a[i],a[j]]=[a[j],a[i]]; preDraw(); }
+function preRemove(i){ preRead(); if(_preEdit.items.length>1) _preEdit.items.splice(i,1); preDraw(); }
+function preAdd(){ preRead(); if(_preEdit.items.length<10) _preEdit.items.push({ja:'',en:'',ne:''}); preDraw(); }
+function preDraw(msg){
+  const c=_preEdit; if(!c||_preSid!==curStore) return hmClose();
+  const fields=(x,key,max)=>['ja','en','ne'].map((lang,i)=>`<label style="display:block">${['日本語','English（任意）','नेपाली（任意）'][i]}<input style="width:100%;box-sizing:border-box" data-pre="${key}.${lang}" maxlength="${max}" value="${escapeHtml(x[lang]||'')}"></label>`).join('');
+  hmOv(`<h3>業務開始前のチェック</h3><div style="max-height:60vh;overflow-y:auto"><label><input type="checkbox" data-pre="off" ${c.off?'':'checked'}>使う（外すと 使わない）</label><p>題</p>${fields(c.title,'title',120)}<p>上の1行</p>${fields(c.intro,'intro',300)}${c.items.map((x,i)=>`<fieldset><legend>項目 ${i+1}</legend>${fields(x,'items.'+i,60)}<button type="button" onclick="preMove(${i},-1)" ${i?'':'disabled'}>↑</button><button type="button" onclick="preMove(${i},1)" ${i<c.items.length-1?'':'disabled'}>↓</button><button type="button" onclick="preRemove(${i})" ${c.items.length>1?'':'disabled'}>消す</button></fieldset>`).join('')}<button type="button" onclick="preAdd()" ${c.items.length<10?'':'disabled'}>項目を足す</button><p>下の注</p>${fields(c.note,'note',300)}</div><p id="pre-msg">${escapeHtml(msg||'')}</p><div class="hm-row2"><button type="button" class="hm-btn p" onclick="preSave()">保存する</button><button type="button" class="hm-btn" onclick="preRecords()">記録を見る</button><button type="button" class="hm-btn" data-o="x">やめる</button></div>`);
+}
+async function preSave(){
+  if(!hmBoss()) return hmAskBoss(preSave); preRead();
+  const w=nxWin(); if(!w||!_preEdit) return; if(_preSid!==curStore) return hmClose();
+  if(!_hmPw) return hmAskBoss(preSave,true);
+  const ok=await w.amPreSet(_preEdit,_hmPw); _hmPw='';
+  if(ok!==true) return preDraw('保存できません。項目は1〜10個、日本語は必須、各言語60字までです。');
+  _preEdit=null; hmClose();
+}
+async function preRecords(){
+  if(!hmBoss()) return hmAskBoss(preRecords); preRead();
+  const w=nxWin(); if(!w) return; if(_preSid!==curStore) return hmClose(); if(!_hmPw) return hmAskBoss(preRecords,true);
+  const rows=await w.amPreRecords(_hmPw); _hmPw='';
+  if(!Array.isArray(rows)) return preDraw('記録を読めませんでした');
+  hmOv(`<h3>業務開始前のチェック：今日と前の7日</h3><div style="max-height:60vh;overflow-y:auto">${rows.length?rows.map(r=>`<p>${escapeHtml(r.date)}　${escapeHtml(r.name||'名前なし')}　${escapeHtml(new Date(r.at).toLocaleTimeString('ja-JP'))}</p>`).join(''):'記録はありません'}</div><button type="button" class="hm-btn" onclick="preDraw()">もどる</button><button type="button" class="hm-btn" data-o="x">閉じる</button>`);
+}
 function nxOpen(){
   if(!hmBoss()) return hmAskBoss(nxOpen);
   closeOverlay('settings-overlay'); _nx=null;
@@ -593,6 +628,7 @@ function nxDraw(msg,info){
   hmOv(`<h3>🗂 作業の 画面（${escapeHtml(s.name||'')}）</h3><p>保存すると、この店の すべての 端末に 効きます（ほかの店は 変わりません）。</p>
   <div class="nx-opt"><div>${x.old?'<b>🕒 いまは 前の 画面です</b><p class="gv-note">前の 画面の 作業中は、目標の 3倍（30〜120分）で 外れます。「急ぐ順」の 新しい 画面（🧰 道具 → 🆕）では、押すまで 残ります。</p>':'<b>🕒 取りかかり中は、押すまで 残ります</b><p class="gv-note">動かないまま 目標の 2倍（✓ を 入れると そこから。目標なしは 15分）たつと、別の 人も 取れるように なります。印は「終わった・取り消し・困った」を 押すまで 残ります。自動で 外れるのは、朝3:00 と、✓ が 全部 入ったまま 長く たった 印（次の 記録の 時に 済）だけです。設定は いりません。</p>'}</div></div>
   <div class="nx-opt"><div><b>👤 上の「今いる人」の 列を 使わない</b><p class="gv-note">上の 丸と ＋を 出しません。名前は 登録の 順で 全員 出ます。データは 消えません。</p></div>${sw(x.noHere,'nxhere','上の 今いる人の 列を 使わない')}</div>
+  <div class="nx-opt"><div><b>業務開始前のチェック</b><p class="gv-note">項目の変更・使う／使わない・今日と前の7日の記録</p></div><button type="button" class="hm-btn" onclick="preOpen()">変更・記録</button></div>
   <div class="hm-foot"><div class="hm-msg${info?' gv-info':''}" id="hm-msg">${msg?escapeHtml(msg):''}</div><div class="hm-row2"><button class="hm-btn p" data-o="nxsave" type="button">保存する</button><button class="hm-btn" data-o="x" type="button">やめる</button></div></div>`);
   $('hm-box').classList.add('gv'); $('hm-box').oninput=null; $('hm-box').onchange=null;
 }
@@ -610,6 +646,7 @@ async function nxSave(){
   _nx=null; hmClose(); hmRender();
 }
 function nxRow(){   // ⚙ の「🗂 作業の 画面」の行：店長の時だけ。説明は WS が 読めれば 今の 設定
+  if($('pre-row')) $('pre-row').style.display=(hmBoss()&&curStore)?'':'none';
   const r=$('nx-row'); if(!r) return; r.style.display=(hmBoss()&&curStore)?'':'none'; if(r.style.display) return;
   let d='今いる人の 列（店長だけ）'; const w=nxWin();
   try{ if(w){ const c=w.amNxOptCfg()||{}; d='今いる人の 列：'+(c.noHere?'使わない':'使う'); } }catch(_){}
@@ -776,6 +813,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('sync').addEventListener('click',openSettings); $('settings-btn').addEventListener('click',openSettings);
   $('gv-btn').addEventListener('click',gvOpen);
   $('nx-btn').addEventListener('click',nxOpen);
+  $('pre-btn').addEventListener('click',preOpen);
   document.addEventListener('click',e=>{ const c=e.target.closest('[data-close]'); if(c)closeOverlay(c.dataset.close); });
   $('history-btn').addEventListener('click',()=>{ if(store&&curStore)openHistory(); });
   $('history-body').addEventListener('click',onHistoryClick);
