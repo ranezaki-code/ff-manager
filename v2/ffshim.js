@@ -5,7 +5,7 @@
    ・ffv6_setup_<店舗>      → 同じ入れ物の「初期設定の済み印」
    ・ffv6_stores / global_stores / ffv6_current / current_store_id → 入口のページの店舗の一覧・いま開いている店舗（読むだけ）
    ・ffv6_lang など端末ごとの設定 → いままでどおり端末の中（言葉の切り替え・カテゴリの開閉・並び順・AI機能の鍵）
-   ・それ以外（端末の中の自動の控え ffv6_snap_* / ffv6_emergency_* / ffv6_pre_import_*、操作の記録、古い同期 Gist の設定）
+   ・それ以外（端末の中の自動の控え ffv6_snap_* / ffv6_emergency_*、操作の記録、古い同期 Gist の設定）
        → この画面を開いている間だけの仮の箱。端末にもネットにも残さない＝新しい作りでは「止める」（代わりは 入口の ⚙️ → 履歴）
    ・IndexedDB の自動の控え・ほかのタブへの知らせ（BroadcastChannel）も止める（いまのアプリの控えに混ざらないように） */
 const __realLS = window.localStorage;
@@ -24,9 +24,13 @@ const V2FF = (function () {
   function seedStores() { mem.ffv6_stores = S(stores.map(s => ({ id: s.id, name: s.name || '' }))); mem.global_stores = S(stores); }
   function block(what) { console.warn('v2：' + what + ' は新しいシステムでは行いません'); if (!warned) { warned = true; try { alert('この操作（' + what + '）は、新しいシステムでは使えません。\nデータを戻したい時は、入口の ⚙️ →「履歴・前の状態に戻す」を使ってください。'); } catch (e) {} } }
 
+  // 読み込み直前の控えは、画面を閉じても復元できるよう端末に残す。
+  const IMPORT = /^ffv6_pre_import_/;
+  function backupPrefix() { return 'v2ff_backup_' + encodeURIComponent(store.space) + '_'; }
   function getItem(k) {
     k = String(k);
     if (LOCAL.test(k)) return __realLS.getItem(k);
+    if (!MEM && IMPORT.test(k)) return __realLS.getItem(backupPrefix() + k);
     if (k === 'ffv6_current' || k === 'current_store_id') return (k in mem) ? mem[k] : (sid || null);
     let id = idOf(k, 'ffv6_store_'); if (id) { seen[id] = stateStr(id); return seen[id]; }
     id = idOf(k, 'ffv6_setup_'); if (id) return ('s:__setup' in colls[id].view()) ? '1' : null;
@@ -35,6 +39,7 @@ const V2FF = (function () {
   function setItem(k, v) {
     k = String(k); v = String(v);
     if (LOCAL.test(k)) { __realLS.setItem(k, v); return; }
+    if (!MEM && IMPORT.test(k)) { __realLS.setItem(backupPrefix() + k, v); return; }
     let id = idOf(k, 'ffv6_store_');
     if (id) {
       const c = colls[id]; let st; try { st = JSON.parse(v); } catch (e) { console.error('v2：保存する中身を読めません', e); return; }
@@ -49,6 +54,7 @@ const V2FF = (function () {
   function removeItem(k) {
     k = String(k);
     if (LOCAL.test(k)) { __realLS.removeItem(k); return; }
+    if (!MEM && IMPORT.test(k)) { __realLS.removeItem(backupPrefix() + k); return; }
     if (idOf(k, 'ffv6_store_')) { block('店舗のデータをまるごと消す'); return; }
     if (idOf(k, 'ffv6_setup_')) { block('初期設定をやり直す'); return; }
     delete mem[k];
@@ -56,7 +62,7 @@ const V2FF = (function () {
   function keys() {
     const out = Object.keys(mem);
     Object.keys(colls).forEach(id => { if (hasData(id)) out.push('ffv6_store_' + id); if ('s:__setup' in colls[id].view()) out.push('ffv6_setup_' + id); });
-    for (let i = 0; i < __realLS.length; i++) { const k = __realLS.key(i); if (LOCAL.test(k)) out.push(k); }
+    for (let i = 0; i < __realLS.length; i++) { const k = __realLS.key(i); if (LOCAL.test(k)) out.push(k); if (!MEM && k.indexOf(backupPrefix()) === 0) out.push(k.slice(backupPrefix().length)); }
     return out.filter((k, i, a) => a.indexOf(k) === i);
   }
   const api = { getItem, setItem, removeItem, key: i => keys()[i] === undefined ? null : keys()[i], clear: () => block('全部消す') };

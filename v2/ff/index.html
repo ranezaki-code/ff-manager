@@ -610,8 +610,9 @@ html.embedded-in-hub .card:has(button[onclick="resetSetup()"]){display:none!impo
         <div class="card">
           <div class="flex justify-between items-center mb-2" style="flex-wrap:wrap;gap:6px">
             <div class="section-title" style="margin:0" id="jisseki-title">実績入力</div>
-            <div class="flex gap-2 items-center">
-              <button class="btn-secondary" style="min-height:44px" onclick="openJiImport()" data-i18n="jiImport.open">📥 実績を読み込む</button>
+            <div class="flex gap-2 items-center" id="ji-import-actions" style="max-width:100%">
+              <style>#ji-import-actions button{white-space:nowrap;min-height:44px}@media(max-width:480px){#ji-import-actions{gap:4px}#ji-import-actions button{padding:6px;font-size:11px}}</style>
+              <button class="btn-secondary" style="min-height:44px" onclick="openJiImport()" title="📥 実績を読み込む" data-i18n="jiImport.short">📥 読込</button>
               <button class="btn-secondary" onclick="loadPrevJisseki()" data-i18n="jisseki.prevWeek">前週引継ぎ</button>
               <button type="button" onclick="openRecoveryModal()" title="消えた週や商品を、この端末に自動保存されたスナップショットから戻す" style="padding:6px 10px;font-size:12px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px">🛟 データ復元</button>
               <button type="button" onclick="resetJisseki()" title="この週の実績を全て0に戻す（確認あり）" style="padding:6px 10px;font-size:12px;background:transparent;color:#94a3b8;border:1px solid #e5e7eb;border-radius:8px" data-i18n="common.reset">リセット</button>
@@ -1141,6 +1142,8 @@ const I18N = {
     "jiImport.values":"今 → 新（定価 / 値引 / 廃棄）",
     "jiImport.unmatched":"結べない行",
     "jiImport.missing":"ファイルに無い商品（今のまま）",
+    "jiImport.duplicate":"同じ名前が{0}行（足して入れます）",
+    "jiImport.short":"📥 読込",
     "jiImport.bad":"読めない行（行番号）",
     "jiImport.cust":"曜日・時間帯の客数も入れる",
     "jiImport.apply":"入れる",
@@ -1727,13 +1730,15 @@ const I18N = {
     "jiImport.values":"Current → New (regular / discount / waste)",
     "jiImport.unmatched":"Unmatched rows",
     "jiImport.missing":"Missing products (unchanged)",
+    "jiImport.duplicate":"Same name in {0} rows (added together)",
+    "jiImport.short":"📥 Import",
     "jiImport.bad":"Invalid rows (row numbers)",
     "jiImport.cust":"Import customer counts by day and hour",
     "jiImport.apply":"Import",
     "jiImport.size":"Maximum file size is 1MB",
     "jiImport.error":"Cannot read format. Check JSON/CSV and numbers",
     "jiImport.backup":"Backup failed; nothing imported",
-    "jiImport.done":"Imported {0} products, {1} rows (undo with 🛟 Data recovery)",
+    "jiImport.done":"Imported {0} products, {1} rows (undo with 🛟 データ復元)",
     'jisseki.custInput':'Customer count by day & hour',
     'jisseki.custResetAll':'Reset all to 0',
     'jisseki.salesTotal':'Sales',
@@ -2283,13 +2288,15 @@ const I18N = {
     "jiImport.values":"हाल → नयाँ (नियमित / छुट / फोहोर)",
     "jiImport.unmatched":"नमिलेका पङ्क्ति",
     "jiImport.missing":"फाइलमा नभएका सामान (यथावत्)",
+    "jiImport.duplicate":"एउटै नाम {0} पङ्क्तिमा (जोडेर राखिन्छ)",
+    "jiImport.short":"📥 पढ्नुहोस्",
     "jiImport.bad":"पढ्न नसकिने पङ्क्ति (नम्बर)",
     "jiImport.cust":"दिन र घण्टाका ग्राहक संख्या पनि राख्नुहोस्",
     "jiImport.apply":"राख्नुहोस्",
     "jiImport.size":"फाइल बढीमा 1MB",
     "jiImport.error":"ढाँचा पढ्न सकिएन। JSON/CSV र संख्या जाँच्नुहोस्",
     "jiImport.backup":"जगेडा राख्न सकिएन; केही राखिएन",
-    "jiImport.done":"{0} सामान, {1} पङ्क्ति राखियो (फर्काउन 🛟 Data recovery)",
+    "jiImport.done":"{0} सामान, {1} पङ्क्ति राखियो (फर्काउन 🛟 データ復元)",
     'jisseki.custInput':'दिन र घण्टा अनुसार ग्राहक संख्या',
     'jisseki.custResetAll':'सबै 0 गर्नुहोस्',
     'jisseki.salesTotal':'बिक्री','jisseki.wasteTotal':'खेर','jisseki.discountTotal':'डिस्काउन्ट',
@@ -2918,7 +2925,7 @@ function _ffSaveObj(){
   return {
     storeName:S.storeName,chainName:S.chainName,
     PM:S.PM,catOn:S.catOn,catCfg:S.catCfg,
-    ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,jiImportMap:S.jiImportMap||{},
+    ji:S.ji,prevJi:S.prevJi,cust:S.cust,ext:S.ext,...(S.jiImportMap&&Object.keys(S.jiImportMap).length?{jiImportMap:S.jiImportMap}:{}),
     rules:S.rules,checks:S.checks,skipped:S.skipped,orderChecks:S.orderChecks,soldOuts:S.soldOuts,leftovers:S.leftovers,hourRate:S.hourRate,deleted:S.deleted,budget:S.budget,discHist:S.discHist,discountSchedule:S.discountSchedule,
     施策:S.施策,
     gaibu:S.gaibu,
