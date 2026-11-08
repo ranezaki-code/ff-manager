@@ -1149,7 +1149,7 @@ const I18N = {
     "jiImport.apply":"入れる",
     "jiImport.size":"ファイルは 1MB までです",
     "jiImport.error":"形式を読めません。JSON・CSV と数を確かめてください",
-    "jiImport.backup":"控えを保存できないため、入れませんでした",
+    "jiImport.backup":"端末の保存がいっぱいか、控えを保存できないため、入れませんでした",
     "jiImport.done":"{0}商品・{1}件を入れました（戻す時は 🛟 データ復元）",
     'jisseki.custInput':'曜日別・時間帯別客数',
     'jisseki.custResetAll':'全て0にリセット',
@@ -3150,16 +3150,19 @@ async function idbListSnapshots(){
 // ============================================================
 const _QUOTA_THRESHOLD=4500000; // 4.5MB相当
 function _estimateLocalStorageUsage(){
+  if(!V2FF.MEM)return V2FF.storageUsage();
   let n=0;
   try{
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);
-      n+=(k||'').length+(localStorage.getItem(k)||'').length;
+      n+=2*((k||'').length+(localStorage.getItem(k)||'').length);
     }
   }catch(_){}
   return n;
 }
 function _trimAllBackupsIfNeeded(){
+  // 長く残す控えは、書き込み時に店ごと3件に制限する。
+  if(!V2FF.MEM)return;
   if(_estimateLocalStorageUsage()<_QUOTA_THRESHOLD)return;
   const prefixes=['snap','autobackup','pre_pull','pre_import','emergency'];
   for(const prefix of prefixes){

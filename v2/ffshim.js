@@ -27,6 +27,36 @@ const V2FF = (function () {
   // 読み込み直前の控えは、画面を閉じても復元できるよう端末に残す。
   const IMPORT = /^ffv6_pre_import_/;
   function backupPrefix() { return 'v2ff_backup_' + encodeURIComponent(store.space) + '_'; }
+  // 実際の端末の保存領域を、キーも含め UTF-16 のバイト数で数える。
+  function storageUsage() {
+    let n = 0;
+    for (let i = 0; i < __realLS.length; i++) {
+      const k = __realLS.key(i);
+      n += 2 * (k.length + (__realLS.getItem(k) || '').length);
+    }
+    return n;
+  }
+  function writeImport(k, v) {
+    const match = /^ffv6_pre_import_(.+)_(\d{10,})$/.exec(k);
+    if (!match) throw new Error('Invalid import backup key');
+    const prefix = backupPrefix(), keys = [];
+    for (let i = 0; i < __realLS.length; i++) {
+      const key = __realLS.key(i);
+      if (!key.startsWith(prefix)) continue;
+      const m = /^ffv6_pre_import_(.+)_(\d{10,})$/.exec(key.slice(prefix.length));
+      if (m && m[1] === match[1]) keys.push({ key, t: Number(m[2]) });
+    }
+    keys.sort((a, b) => a.t - b.t);
+    let stamp = Math.max(Number(match[2]), keys.length ? keys[keys.length - 1].t + 1 : 0);
+    while (__realLS.getItem(prefix + 'ffv6_pre_import_' + match[1] + '_' + stamp) !== null) stamp++;
+    const target = prefix + 'ffv6_pre_import_' + match[1] + '_' + stamp;
+    const old = keys.slice(0, Math.max(0, keys.length - 2));
+    const freed = old.reduce((n, x) => n + 2 * (x.key.length + (__realLS.getItem(x.key) || '').length), 0);
+    // 小さい上限や他のタブとの競合は、setItem の例外でも検出する。
+    if (storageUsage() - freed + 2 * (target.length + v.length) > 5 * 1024 * 1024) throw new Error('Storage full');
+    old.forEach(x => __realLS.removeItem(x.key));
+    __realLS.setItem(target, v);
+  }
   function getItem(k) {
     k = String(k);
     if (LOCAL.test(k)) return __realLS.getItem(k);
@@ -39,7 +69,7 @@ const V2FF = (function () {
   function setItem(k, v) {
     k = String(k); v = String(v);
     if (LOCAL.test(k)) { __realLS.setItem(k, v); return; }
-    if (!MEM && IMPORT.test(k)) { __realLS.setItem(backupPrefix() + k, v); return; }
+    if (!MEM && IMPORT.test(k)) { writeImport(k, v); return; }
     let id = idOf(k, 'ffv6_store_');
     if (id) {
       const c = colls[id]; let st; try { st = JSON.parse(v); } catch (e) { console.error('v2：保存する中身を読めません', e); return; }
@@ -119,6 +149,6 @@ const V2FF = (function () {
     init(null).catch(e => { console.error('v2 ff start', e); note('データを読み込めませんでした：' + (e && e.message || e)); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  return { ls, keys, MEM };
+  return { ls, keys, MEM, storageUsage };
 })();
 const localStorage = V2FF.ls;

@@ -58,13 +58,14 @@ async function page(url){const {targetId}=await cmd('Target.createTarget',{url:'
           const c=await store.open('ff~test','ff');c.setState(JSON.parse(st));await store.settle();
           window.V2APP={store:()=>store,stores:()=>[{id:'test',name:'Synthetic'}],storeId:()=> 'test',openStore:async()=>c};
           const load=async()=>{const f=document.createElement('iframe');document.body.appendChild(f);await new Promise(r=>{f.onload=r;f.src='ff/index.html?embedded=1';});for(let i=0;i<200&&!f.contentWindow.__v2ready;i++)await new Promise(r=>setTimeout(r,30));f.contentWindow.alert=()=>{};f.contentWindow.confirm=()=>true;return f;};
-          let f=await load(),w=f.contentWindow;const old=w.eval('JSON.stringify(S.ji)'),name=w.eval('S.PM[0].name');
-          w.openJiImport();w.jiImportRead(JSON.stringify({kind:'ff-jisseki',v:1,items:[{name,teika:123,nebiki:12,haiki:3}]}));w.document.getElementById('ji-import-anyway').checked=true;w.jiImportApply();await store.settle();
+          let f=await load(),w=f.contentWindow;const name=w.eval('S.PM[0].name');
+          for(let i=0;i<10;i++){w.openJiImport();w.jiImportRead(JSON.stringify({kind:'ff-jisseki',v:1,items:[{name,teika:114+i,nebiki:12,haiki:3}]}));w.document.getElementById('ji-import-anyway').checked=true;w.jiImportApply();await store.settle();}
           const imported=w.eval('S.ji[S.PM[0].id].teika')===123;f.remove();f=await load();w=f.contentWindow;
           const reopened=w.eval('S.ji[S.PM[0].id].teika')===123;w.openRecoveryModal();await w.renderRecoveryList();
           const idx=w.eval('_recItems.findIndex(x=>x.prefix==="pre_import")');
-          if(idx>=0)w.restoreWeekFromRecovery(idx,w.eval('S.activeWeek'));
-          const restored=w.eval('JSON.stringify(S.ji)')===old;f.remove();return {imported,reopened,listed:idx>=0,restored};
+          const backups=w.eval('_recItems.map((x,i)=>({x,i})).filter(r=>r.x.prefix==="pre_import")');
+          const values=[];for(const r of backups){w.restoreWeekFromRecovery(r.i,w.eval('S.activeWeek'));values.push(w.eval('S.ji[S.PM[0].id].teika'));}
+          const restored=JSON.stringify(values.sort((a,b)=>a-b))===JSON.stringify([120,121,122]);f.remove();return {imported,reopened,listed:idx>=0,three:backups.length===3,restored};
         })()`);console.log('recovery',JSON.stringify(recovery));assert.ok(Object.values(recovery).every(Boolean));
       }
       await cmd('Target.closeTarget',{targetId:p.targetId});
