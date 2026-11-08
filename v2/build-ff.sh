@@ -7,6 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 SRC=ff/index.html; DST=v2/ff/index.html
 mkdir -p v2/ff
+cp ff/jisseki-import.js v2/ff/jisseki-import.js
 MAIN=$(grep -n '^<script>$' "$SRC" | tail -1 | cut -d: -f1)          # いちばん大きい本体のスクリプトの始まり
 BOOT=$(grep -n "^window.addEventListener('DOMContentLoaded',async()=>{$" "$SRC" | cut -d: -f1)
 [ -n "$MAIN" ] && [ -n "$BOOT" ] && [ "$(echo "$BOOT" | wc -l)" = "1" ] || { echo "差し替える場所が見つかりません（いまの FF管理の形が変わった可能性）。止めます。"; exit 1; }
