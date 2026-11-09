@@ -363,7 +363,7 @@ function hmWs(){   // ワークスケジュールの 中の窓を 読むだけ�
     let next=null;
     // WS 5.31：新しい画面の時は一覧と 同じ順 (amNxNext) から。諦めた・取りかかり中・困った は WS が外している（WS の 画面と 同じ 数・同じ 先頭）
     if(typeof w.amNxOn==='function'&&w.amNxOn()&&typeof w.amNxQueue==='function'){
-      const q=w.amNxNext(now).filter(x=>!x.lock), f=q.filter(x=>x.k==='fire').length, t=q.find(x=>x.k==='fire'||x.k==='soon');
+      const q=w.amNxNext(now).filter(x=>!x.lock), f=w.amNxFireN(now), t=q.find(x=>x.k==='fire'||x.k==='soon');
       return {done,total,late:f,next:t?{name:clean(t.name),late:t.k==='fire',soon:t.k==='soon'}:null};
     }
     if(late&&typeof w.amFireTop==='function'){ const f=w.amFireTop(now); if(f&&f.label) next={name:clean(f.label),late:true}; }
@@ -593,7 +593,7 @@ async function preSave(){
   if(!hmBoss()) return hmAskBoss(preSave); preRead();
   const w=nxWin(); if(!w||!_preEdit) return; if(_preSid!==curStore) return hmClose();
   if(!_hmPw) return hmAskBoss(preSave,true);
-  if([_preEdit.title,..._preEdit.items].some(x=>!String(x.ja||'').trim())) return preDraw('保存できません。日本語を 入れてください。');
+  if([_preEdit.title,..._preEdit.items].some(x=>!String(x.ja||'').trim())){ _hmPw=''; return preDraw('保存できません。日本語を 入れてください。'); }
   const changed=[_preEdit.title,_preEdit.intro,_preEdit.note,..._preEdit.items].filter(x=>x._jaBefore&&x.ja!==x._jaBefore.ja&&((x.en&&x.en===x._jaBefore.en)||(x.ne&&x.ne===x._jaBefore.ne)));
   if(changed.length&&confirm('英語・ネパール語を空にしますか？（空にする／そのまま）')) changed.forEach(x=>{ if(x.en===x._jaBefore.en) x.en=''; if(x.ne===x._jaBefore.ne) x.ne=''; });
   const ok=await w.amPreSet(_preEdit,_hmPw); _hmPw='';

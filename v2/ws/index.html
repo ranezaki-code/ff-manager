@@ -5153,7 +5153,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.38.2'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.38.3'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -13412,7 +13412,7 @@ function amRecordAfter(wid, src, name){
 /* 5.31.1（テス 10/27：丸の 数と「つぎ」が 5.31 の 諦めた・取りかかり中・困った を 知らず、新しい画面の 急ぐ順と ちがった）：新しい画面が オンの 時は、急ぐ順（amNxQueue）から 数える・えらぶ。オフの 時は 5.31 の まま。
    amNxFireN＝急ぐ順の おくれ（k:fire）の 数（列の 上の「おくれ ◯」・📊 と 同じ 数え方）。
    amNxFireTop＝急ぐ順の 先頭の おくれ（無ければ 先頭の もうすぐ）。{id（急ぐ順の id）, wid（作業の id）, label, k:'fire'|'soon'|'todo', name, when（行の 右の 字）, due}。無ければ null。読むだけ・保存しない */
-function amNxFireN(now){ return amNxQueue(now||Date.now()).filter(x=>x.k==='fire').length; }
+function amNxFireN(now){ now=now||Date.now(); return amNxQueue(now).filter(x=>x.k==='fire').length+amNxLongLate(now).length; }
 function amNxFireTop(now){
   now=now||Date.now(); const x=amNxNext(now)[0]; if(!x) return null;
   return {id:x.id, wid:x.w.id, label:`${x.w.icon||''} ${x.name||''}`.trim(), k:x.k, name:x.name||'', when:amNxWhen(x,now), due:x.due};
@@ -13884,13 +13884,13 @@ function amNxCellsOf(w){ const map=amMap(); return (map&&w&&!amIsOff(w))?map.cel
 /* 「次は これ」の 期限（5.25 と 同じ）：おくれ＝ぬけた 枠の 終わり／時刻の 作業＝その 回の 締切／ほか＝今の 枠の 終わり */
 function amNxDue(x){ if(x.o) return isFinite(x.o.e)?x.o.e:Infinity; const s=x.s; if(s.tm&&s.slot) return s.slot.e; if(s.st==='fire'&&s.deadline) return s.deadline; return (s.cur&&isFinite(s.cur.e))?s.cur.e:Infinity; }
 /* 急ぐ順（並べ方は これ 1つ）。1件＝{id, w, s（売場の 状態）, o（売場以外・あとの作業の 回）, af, k:fire／soon／todo, lock, lockAt, due, tag, cells, name, tro（英・ネの 元）, rep, re, aft}。読むだけ */
-function amNxQueue(now,display=false){
+function amNxQueue(now,display=false,includeHeld=false){
   now=now||Date.now(); const G={fire:3,soon:2,todo:1}, tr=amTagRank(), wi={}, out=[], seen={};
   const activeRuns=amRunActive(now), displayRuns=activeRuns.concat(amNxLongRuns(now));
   amNxOrdered().forEach((w,i)=>{ wi[w.id]=i; });
   const kd=w=>String(w.kind==null?'':w.kind), hid=amNxTrbNow(now).hide, gv=amNxGvNow(now);   // 5.27：困った の 帯の 作業・手が 足りない（15分）は 出さない   // 5.31：諦めた 作業は その 回の 間 出さない
   const push=x=>{
-    if(x.lock&&displayRuns.some(r=>!r.sa&&r.w===x.w.id)) return;
+    if(!includeHeld&&x.lock&&displayRuns.some(r=>!r.sa&&r.w===x.w.id)) return;
     if(x.o&&!x.af&&!amIsTimed(x.w)&&!amIsRep(x.w)){
       const band=amStatus(x.w,now), old={w:x.w,s:band}, cur=band.cur;
       if(cur&&x.o.s===cur.s&&band.st==='fire'&&displayRuns.some(r=>amNxSameRun(old,r))&&!displayRuns.some(r=>amNxSameRun(x,r))) x=Object.assign({},x,{k:'fire',due:cur.e});
@@ -13903,7 +13903,7 @@ function amNxQueue(now,display=false){
         x=Object.assign({},x,{s:x.s?band:null,o:x.o?Object.assign({},x.o,cur,{band}):null,due:s.st==='fire'?cur.e:x.due});
       }
     }
-    if((!x.af&&activeRuns.some(r=>!r.sa&&r.w===x.w.id))||displayRuns.some(r=>amNxSameRun(x,r))||seen[x.id]||hid[x.id]||amNxGvHid(gv,x)) return; seen[x.id]=1; x.g=x.lock?0:G[x.k]; x.tr=(x.tag in tr)?tr[x.tag]:999; x.wi=(x.w.id in wi)?wi[x.w.id]:99999; out.push(x);
+    if((!includeHeld&&((!x.af&&displayRuns.some(r=>!r.sa&&r.w===x.w.id))||displayRuns.some(r=>amNxSameRun(x,r))))||seen[x.id]||hid[x.id]||amNxGvHid(gv,x)) return; seen[x.id]=1; x.g=x.lock?0:G[x.k]; x.tr=(x.tag in tr)?tr[x.tag]:999; x.wi=(x.w.id in wi)?wi[x.w.id]:99999; out.push(x);
   };
   amFloorWorks().forEach(a=>{ const s=amStatus(a,now); if(!G[s.st]) return; const gp=amGapLock(a,now), lock=!!(s.tm&&s.lock)||!!gp;
     push({id:a.id, w:a, s, o:null, af:null, k:s.st, lock, lockAt:lock?(gp?gp.until:(s.slot?s.slot.o:NaN)):NaN, due:amNxDue({s}), tag:kd(a), cells:amNxCellsOf(a), name:a.name||'', base:amBaseName(a), tro:a, rep:amIsRep(a), re:false, aft:0}); });
@@ -13936,7 +13936,16 @@ function amNxListQueue(q,now){
   return q.slice().sort((a,b)=>((at(a)===at(b))?0:at(a)<at(b)?-1:1)||(a.tr-b.tr)||((reg.get(a.w.id)||0)-(reg.get(b.w.id)||0))||(a.aft-b.aft));
 }
 function amNxTabSet(k){ _amNx.tab=k; _amNx.sel=''; _amNx.sc=0; renderMapView(); }
-/* 一覧・ホーム・おくれの 数で 共通：長い 印も、始めた 回だけ 外す。別の 回は 出す。 */
+/* 一覧・ホーム・おくれの 数で 共通：長い 印も 作業 id ごと 外す。あとの 作業は 回ごと。 */
+/* 長い 印の 別の 回の おくれ。読むだけ・作業ごと 1件。 */
+function amNxLongLate(now){
+  now=now||Date.now(); const runs=amNxLongRuns(now), active=amRunActive(now);
+  return amNxQueue(now,false,true).filter(x=>!x.af&&!x.lock&&x.k==='fire'&&!active.some(r=>!r.sa&&r.w===x.w.id)&&runs.some(r=>!r.sa&&r.w===x.w.id&&!amNxSameRun(x,r)));
+}
+function amNxLongLateHtml(r,now){
+  if(r.sa||!amNxIsLong(r,now)) return ''; const x=amNxLongLate(now).find(x=>x.w.id===r.w); if(!x) return '';
+  const due=amHM(x.due); return `<small class="nxa-run-late">〜${escapeHtml(due)} の回も おくれ${amTr2('Round until '+due+' also overdue',due+' सम्मको पालो पनि ढिलो')}</small>`;
+}
 function amNxSameRun(x,r){
   if(r.sa) return !!x.af&&String(r.w)===x.w.id+'#af'&&new Date(r.sa).getTime()===x.o.src;
   if(x.af||String(r.w)!==x.w.id) return false;
@@ -13947,7 +13956,7 @@ function amNxSameRun(x,r){
 }
 function amNxShown(q,now,tab=_amNx.tab){
   const runs=amRunActive(now).concat(amNxLongRuns(now));
-  const rows=amNxListQueue(q,now).filter(x=>(tab==null||x.tag===tab)&&!runs.some(r=>amNxSameRun(x,r)));
+  const rows=amNxListQueue(q,now).filter(x=>(tab==null||x.tag===tab)&&!runs.some(r=>(!x.af&&!r.sa&&r.w===x.w.id)||amNxSameRun(x,r)));
   return rows.filter(x=>x.k==='fire').concat(rows.filter(x=>x.k!=='fire'));
 }
 function amNxBandRight(x,now){
@@ -14212,7 +14221,7 @@ function amNxRunRowHtml(r,now,ph,dup,hoLab,wide=false){   // 5.27：hoLab＝前�
   const L=amNxRunLabel(r), w=L.w, g=(w&&!r.sa)?amGoalOf(w):0, mn=amRunMin(r,now), ck=(w&&!r.sa&&amCkReq(w,null))?amNxCkMine(r,amCkNow(w,now),now):null, lg0=!g&&amNxIsLong(r,now), ov=(!!g&&mn>=g)||lg0, c=r.by?amNxCol(r.by):'#98a2b3';   // 5.36.2：lg0＝目標の 無い 作業が 戻る 時刻を すぎた
   const ct=amCtrChip(L.base,ph);   // 5.29：右上の 角の 札
   const xg=amNxLongX(r,now);   // 5.34 ⑥：目標の 2倍を すぎた 行は「目標の ◯倍」を うすく（5.36.2：どの 店も）
-  return `<button type="button" class="nxb nxa-rn${ov?' over':''}${_amNx.ck===r.k?' sel':''}${ct?' ct':''}" data-w="r:${escapeHtml(r.k)}" data-k="${escapeHtml(r.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxCkOpen(this.dataset.k)">${ct}${amNxAv2(r.by,30)}<span class="nm">${ph?'':amNxStamp(L.tag,18)}<span>${hoLab?`<span class="nxa-ho">${hoLab}</span> `:''}${escapeHtml(L.name)}${dup?'<span class="wn">⚠ 2人が 取っています</span>':''}</span>${wide?amNxRunSchedule(r,now):''}</span>${wide?'':amNxRunSchedule(r,now)}<span class="tm num">${mn}${g?'/'+g:''}分${ck?`<br>✓${ck.n}/${ck.keys.length}`:''}${xg?`<br><small class="xg">目標の ${xg}倍</small>`:lg0?'<br><small class="xg">長い</small>':''}</span></button>`;
+  return `<button type="button" class="nxb nxa-rn${ov?' over':''}${_amNx.ck===r.k?' sel':''}${ct?' ct':''}" data-w="r:${escapeHtml(r.k)}" data-k="${escapeHtml(r.k)}" style="--pc:${c};--pt:${amNxTint(c)}" onclick="amNxCkOpen(this.dataset.k)">${ct}${amNxAv2(r.by,30)}<span class="nm">${ph?'':amNxStamp(L.tag,18)}<span>${hoLab?`<span class="nxa-ho">${hoLab}</span> `:''}${escapeHtml(L.name)}${dup?'<span class="wn">⚠ 2人が 取っています</span>':''}</span>${amNxLongLateHtml(r,now)}${wide?amNxRunSchedule(r,now):''}</span>${wide?'':amNxRunSchedule(r,now)}<span class="tm num">${mn}${g?'/'+g:''}分${ck?`<br>✓${ck.n}/${ck.keys.length}`:''}${xg?`<br><small class="xg">目標の ${xg}倍</small>`:lg0?'<br><small class="xg">長い</small>':''}</span></button>`;
 }
 /* 5.34 ⑥：戻る 時刻を すぎた 印の「目標の ◯倍」（始めてからの 分。小数 1けた・切り捨て）。目標の 無い 作業・あとの 作業は ''（長いかは amNxIsLong で 見る）。5.36.5：戻る 時刻より 前は ''（5.36 の 行と 同じ） */
 function amNxLongX(r,now){
@@ -14313,7 +14322,7 @@ function amNxRender(view){
   const dupK={}; act.forEach(r=>{ const id=amNxRid(r); dupK[id]=(dupK[id]||0)+1; });
   const wide=!ph&&C.w>=600;   // 列が 600px 以上の 時だけ 名前と 時間を 横に 並べる
   const rowOf=(r,dp)=>amNxRunRowHtml(r,now,ph,dp,(ho&&r.s<ho.cut)?ho.lab:'',wide), lgM={}; lgA.forEach(r=>{ if(r.by) lgM[r.by]=(lgM[r.by]||0)+1; });   // 5.36.3：長い 印は たたむ（急ぐ順が いつも 最初の 画面に 見える。上限は 付けない）。「2人が 取っています」は 動いている 印だけ
-  const lgF=lgA.length?`<button type="button" class="nxb nxa-lgf" id="nxa-lgf" aria-expanded="${!!_amNx.lgOpen}" onclick="amNxLgTgl()"><b>⏳ 長い ${lgA.length}件</b><small>${_amNx.lgOpen?'押すと たたむ / Tap to fold / बन्द गर्न थिच्नुहोस्':'押すと 開く / Long: tap to open / लामो: खोल्न थिच्नुहोस्'}</small></button>`:'';
+  const lgF=lgA.length?`<button type="button" class="nxb nxa-lgf" id="nxa-lgf" aria-expanded="${!!_amNx.lgOpen}" onclick="amNxLgTgl()"><b>⏳ 長い ${lgA.length}件</b><small>${amNxLongLate(now).length?`おくれ ${amNxLongLate(now).length} / Overdue / ढिलो भएको ・ `:''}${_amNx.lgOpen?'押すと たたむ / Tap to fold / बन्द गर्न थिच्नुहोस्':'押すと 開く / Long: tap to open / लामो: खोल्न थिच्नुहोस्'}</small></button>`:'';
   const secRun=`<div class="nxa-sec">取りかかり中<small>In progress / काम गर्दै</small></div>`, runRows=act.map(r=>rowOf(r,dupK[amNxRid(r)]>1)).join('')+lgF+(_amNx.lgOpen?lgA.map(r=>rowOf(r,false)+`<button type="button" class="nxb nxa-take" style="min-height:44px;min-width:44px" data-k="${escapeHtml(r.k)}" onclick="amNxTake(this.dataset.k)">代わりにやる${amTr2('Take over','सट्टामा गर्ने')}</button>`).join(''):'');
   const runsH=(act.length||lgA.length)?secRun+runRows:'';
   /* 5.27：困った の 赤い帯（右の 列の いちばん上・新しい 順）と 地図の ⚠ */
@@ -15210,7 +15219,7 @@ function amGreenDays(now){
   return {days, green, todayMs, monthMs:m0.getTime(), from};
 }
 function amWhoNxToday(now,names){
-  if(!amNxOn()) return ''; const e=escapeHtml, G=amGreenDays(now), q=amNxQueue(now), late=q.filter(x=>x.k==='fire').length, trb=amNxTrbNow(now).band.length, run=amRunActive(now).length+amNxLongRuns(now).length;
+  if(!amNxOn()) return ''; const e=escapeHtml, G=amGreenDays(now), q=amNxQueue(now), late=amNxFireN(now), trb=amNxTrbNow(now).band.length, run=amRunActive(now).length+amNxLongRuns(now).length;
   const t=(cls,big,lab,sub)=>`<div class="aw2-t ${cls}"><b>${big}</b><span>${lab}</span><small>${sub}</small></div>`;
   const lng=amNxLongRuns(now).map(r=>{ const x=amNxLongX(r,now), m=amRunMin(r,now); return {x, m, rk:x?Number(x):m/AM_NX_IDLE, name:amNxRunLabel(r).name}; }).sort((a,b)=>b.rk-a.rk);   // 5.34 ⑥：長い 取りかかり中（作業の 名前と 倍だけ・人の 名前は 出さない）。5.36.2：目標の 無い 作業は 分で
   const gvN=amNxGvDayN(amLogDayMs(amLogDay(now))), gvTop=amNxGvTop(now,7);   // 5.31：きょう 諦めた 数・この 7日で よく 諦められた 作業（上位 3つ・人は 出さない）
