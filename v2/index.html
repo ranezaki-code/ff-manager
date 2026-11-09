@@ -579,7 +579,7 @@ function preOpen(){
 }
 function preRead(){
   if(!_preEdit) return;
-  document.querySelectorAll('#hm-box [data-pre]').forEach(el=>{ const a=el.dataset.pre.split('.'); let x=_preEdit; a.slice(0,-1).forEach(k=>{x=x[k];}); x[a[a.length-1]]=el.type==='checkbox'?(el.checked?0:1):el.value; });
+  document.querySelectorAll('#hm-box [data-pre]').forEach(el=>{ const a=el.dataset.pre.split('.'); let x=_preEdit; a.slice(0,-1).forEach(k=>{x=x[k];}); if(a[a.length-1]==='ja'&&x.ja!==el.value&&!x._jaBefore) x._jaBefore={ja:x.ja,en:x.en,ne:x.ne}; x[a[a.length-1]]=el.type==='checkbox'?(el.checked?0:1):el.value; });
 }
 function preMove(i,d){ preRead(); const a=_preEdit.items,j=i+d; if(j<0||j>=a.length) return; [a[i],a[j]]=[a[j],a[i]]; preDraw(); }
 function preRemove(i){ preRead(); if(_preEdit.items.length>1) _preEdit.items.splice(i,1); preDraw(); }
@@ -587,12 +587,14 @@ function preAdd(){ preRead(); if(_preEdit.items.length<10) _preEdit.items.push({
 function preDraw(msg){
   const c=_preEdit; if(!c||_preSid!==curStore) return hmClose();
   const fields=(x,key,max)=>['ja','en','ne'].map((lang,i)=>`<label style="display:block">${['日本語','English（任意）','नेपाली（任意）'][i]}<input style="width:100%;box-sizing:border-box" data-pre="${key}.${lang}" maxlength="${max}" value="${escapeHtml(x[lang]||'')}"></label>`).join('');
-  hmOv(`<h3>業務開始前のチェック</h3><div style="max-height:60vh;overflow-y:auto"><label><input type="checkbox" data-pre="off" ${c.off?'':'checked'}>使う（外すと 使わない）</label><p>題</p>${fields(c.title,'title',120)}<p>上の1行</p>${fields(c.intro,'intro',300)}${c.items.map((x,i)=>`<fieldset><legend>項目 ${i+1}</legend>${fields(x,'items.'+i,60)}<button type="button" onclick="preMove(${i},-1)" ${i?'':'disabled'}>↑</button><button type="button" onclick="preMove(${i},1)" ${i<c.items.length-1?'':'disabled'}>↓</button><button type="button" onclick="preRemove(${i})" ${c.items.length>1?'':'disabled'}>消す</button></fieldset>`).join('')}<button type="button" onclick="preAdd()" ${c.items.length<10?'':'disabled'}>項目を足す</button><p>下の注</p>${fields(c.note,'note',300)}</div><p id="pre-msg">${escapeHtml(msg||'')}</p><div class="hm-row2"><button type="button" class="hm-btn p" onclick="preSave()">保存する</button><button type="button" class="hm-btn" onclick="preRecords()">記録を見る</button><button type="button" class="hm-btn" data-o="x">やめる</button></div>`);
+  hmOv(`<h3>業務開始前のチェック</h3><div id="pre-editor" style="max-height:60vh;overflow-y:auto"><style>#pre-editor button,#pre-editor>label{min-width:44px;min-height:44px}#pre-editor>label{display:flex;align-items:center}</style><label><input type="checkbox" data-pre="off" ${c.off?'':'checked'}>使う（外すと 使わない）</label><p>題</p>${fields(c.title,'title',120)}<p>上の1行</p>${fields(c.intro,'intro',300)}${c.items.map((x,i)=>`<fieldset><legend>項目 ${i+1}</legend>${fields(x,'items.'+i,60)}<button type="button" onclick="preMove(${i},-1)" ${i?'':'disabled'}>↑</button><button type="button" onclick="preMove(${i},1)" ${i<c.items.length-1?'':'disabled'}>↓</button><button type="button" onclick="preRemove(${i})" ${c.items.length>1?'':'disabled'}>消す</button></fieldset>`).join('')}<button type="button" onclick="preAdd()" ${c.items.length<10?'':'disabled'}>項目を足す</button><p>下の注</p>${fields(c.note,'note',300)}</div><p id="pre-msg">${escapeHtml(msg||'')}</p><div class="hm-row2"><button type="button" class="hm-btn p" onclick="preSave()">保存する</button><button type="button" class="hm-btn" onclick="preRecords()">記録を見る</button><button type="button" class="hm-btn" data-o="x">やめる</button></div>`);
 }
 async function preSave(){
   if(!hmBoss()) return hmAskBoss(preSave); preRead();
   const w=nxWin(); if(!w||!_preEdit) return; if(_preSid!==curStore) return hmClose();
   if(!_hmPw) return hmAskBoss(preSave,true);
+  const changed=[_preEdit.title,_preEdit.intro,_preEdit.note,..._preEdit.items].filter(x=>x._jaBefore&&x.ja!==x._jaBefore.ja&&((x.en&&x.en===x._jaBefore.en)||(x.ne&&x.ne===x._jaBefore.ne)));
+  if(changed.length&&confirm('日本語を 直しました。英語・ネパール語も 直しますか？\n［OK］空にする ／ ［キャンセル］そのまま')) changed.forEach(x=>{ if(x.en===x._jaBefore.en) x.en=''; if(x.ne===x._jaBefore.ne) x.ne=''; });
   const ok=await w.amPreSet(_preEdit,_hmPw); _hmPw='';
   if(ok!==true) return preDraw('保存できません。項目は1〜10個、日本語は必須、各言語60字までです。');
   _preEdit=null; hmClose();
@@ -627,7 +629,7 @@ function nxDraw(msg,info){
   const sw=(on,o,lbl)=>`<button class="hm-sw${on?'':' o'}" data-o="${o}" type="button" role="switch" aria-checked="${on?'true':'false'}" aria-label="${lbl}"></button>`;
   hmOv(`<h3>🗂 作業の 画面（${escapeHtml(s.name||'')}）</h3><p>保存すると、この店の すべての 端末に 効きます（ほかの店は 変わりません）。</p>
   <div class="nx-opt"><div>${x.old?'<b>🕒 いまは 前の 画面です</b><p class="gv-note">前の 画面の 作業中は、目標の 3倍（30〜120分）で 外れます。「急ぐ順」の 新しい 画面（🧰 道具 → 🆕）では、押すまで 残ります。</p>':'<b>🕒 取りかかり中は、押すまで 残ります</b><p class="gv-note">動かないまま 目標の 2倍（✓ を 入れると そこから。目標なしは 15分）たつと、別の 人も 取れるように なります。印は「終わった・取り消し・困った」を 押すまで 残ります。自動で 外れるのは、朝3:00 と、✓ が 全部 入ったまま 長く たった 印（次の 記録の 時に 済）だけです。設定は いりません。</p>'}</div></div>
-  <div class="nx-opt"><div><b>👤 上の「今いる人」の 列を 使わない</b><p class="gv-note">上の 丸と ＋を 出しません。名前は 登録の 順で 全員 出ます。データは 消えません。</p></div>${sw(x.noHere,'nxhere','上の 今いる人の 列を 使わない')}</div>
+  <div class="nx-opt"><div><b>👤 上の「今いる人」の 列を 使わない</b><p class="gv-note">今いる人の 列を 出しません。名前は 登録の 順で 全員 出ます。データは 消えません。</p></div>${sw(x.noHere,'nxhere','上の 今いる人の 列を 使わない')}</div>
   <div class="nx-opt"><div><b>業務開始前のチェック</b><p class="gv-note">項目の変更・使う／使わない・今日と前の7日の記録</p></div><button type="button" class="hm-btn" onclick="preOpen()">変更・記録</button></div>
   <div class="hm-foot"><div class="hm-msg${info?' gv-info':''}" id="hm-msg">${msg?escapeHtml(msg):''}</div><div class="hm-row2"><button class="hm-btn p" data-o="nxsave" type="button">保存する</button><button class="hm-btn" data-o="x" type="button">やめる</button></div></div>`);
   $('hm-box').classList.add('gv'); $('hm-box').oninput=null; $('hm-box').onchange=null;
