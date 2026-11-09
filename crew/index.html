@@ -311,6 +311,7 @@ details.donebox summary{cursor:pointer;font-size:12px;font-weight:700;color:var(
   <div id="view-duty" class="view"><iframe id="duty-frame" title="担当業務"></iframe></div>
 
   <div id="view-info" class="view">
+    <button class="btn btn-line" id="crew-export-btn">📤 オフィスへ移す</button>
     <!-- ロック中はこの画面だけを出し、クルーの一覧は画面に描かない -->
     <div id="info-lock" class="card lockbox" style="display:none">
       <div class="lock-ico">🔒</div>
@@ -798,12 +799,51 @@ function saveCriteria(){ ['regular','subleader','leader'].forEach(k=>{ S.criteri
 
 // ============ モーダル ============
 function setModal(html){$('modal').innerHTML=html;$('overlay').classList.add('show');$('modal').scrollTop=0;}
-function closeModal(){$('overlay').classList.remove('show');_personOpen=null;}
+function closeModal(){const field=$('crew-export-text');if(field){field.value='';$('modal').innerHTML='';}$('overlay').classList.remove('show');_personOpen=null;}
+
+// オフィスへ渡す文字は、この窓の中だけに置く。保存先には書かない。
+function openCrewExport(){
+  if(!infoUnlocked()){ switchView('info'); return; }
+  const stores=Object.create(null);
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i), m=/^(crew|bumon)_v1(?:_store_(.+))?$/.exec(key||'');
+      if(!m)continue;
+      // 既存の退避・履歴は移行の対象に含めない。
+      if(/_(?:corrupt_backup|backup|snap)_/.test(m[2]||''))continue;
+      const id=m[2]||'_none';
+      if(!stores[id])stores[id]=Object.create(null);
+      stores[id][m[1]]=JSON.parse(localStorage.getItem(key));
+    }
+  }catch(_){ toast('読み取れない保存があるため、移す文字を作れませんでした'); return; }
+  const counts=Object.entries(stores).map(([id,s])=>{
+    const crew=Array.isArray(s.crew?.members)?s.crew.members.length:0;
+    const areas=new Set([...Object.keys(s.bumon?.assignments||{}),...(Array.isArray(s.bumon?.sheets)?s.bumon.sheets:[]).map(x=>x?.areaId).filter(Boolean)]);
+    return `<div>店 ${esc(id)}：クルー ${crew}人・保存のある部門 ${areas.size}件</div>`;
+  }).join('');
+  setModal(`<h2>📤 オフィスへ移す</h2><p>これをコピーして、オフィスのクルーの画面の『取り込み』に貼ります<br>この窓を閉じると、字は消えます（この端末に保存はされません）<br>貼り終えたら、別の字をコピーして、クリップボードを上書きしてください</p><div>${counts||'保存はありません'}</div><textarea id="crew-export-text" aria-label="オフィスへ移す文字" readonly spellcheck="false" style="width:100%;height:40vh;font-size:18px;margin:12px 0"></textarea><div id="crew-export-status" role="status"></div><button class="btn btn-pri" id="crew-export-copy">コピー</button> <button class="btn btn-line" data-close>閉じる</button>`);
+  $('crew-export-text').value=JSON.stringify({kind:'crew-export',v:1,at:new Date().toISOString(),stores});
+}
+async function copyCrewExport(){
+  if(!infoUnlocked()){lockInfo();return;}
+  const field=$('crew-export-text'); if(!field)return;
+  try{
+    await navigator.clipboard.writeText(field.value);
+    if($('crew-export-text')===field)$('crew-export-status').textContent='コピーしました';
+  }catch(_){
+    if($('crew-export-text')!==field)return;
+    if(!infoUnlocked()){lockInfo();return;}
+    field.focus(); field.select(); field.setSelectionRange(0,field.value.length);
+    $('crew-export-status').textContent='長押しでコピー';
+  }
+}
 
 // ============ イベント（ページ全体で1本の委譲：人物パネルは情報／ランクどちらでも同じ動作） ============
 const sp=v=>{const s=String(v);const i=s.indexOf('|');return [s.slice(0,i),s.slice(i+1)];};
 document.addEventListener('click',e=>{
   const t=e.target;
+  if(t.id==='crew-export-btn'){openCrewExport();return;}
+  if(t.id==='crew-export-copy'){copyCrewExport();return;}
   const st=t.closest('.subtab'); if(st){switchView(st.dataset.view);return;}
   if(t.closest('[data-close]')){closeModal();return;}
   const pid=()=>{ const p=t.closest('.person'); return p?p.dataset.person:null; };
