@@ -593,8 +593,9 @@ async function preSave(){
   if(!hmBoss()) return hmAskBoss(preSave); preRead();
   const w=nxWin(); if(!w||!_preEdit) return; if(_preSid!==curStore) return hmClose();
   if(!_hmPw) return hmAskBoss(preSave,true);
+  if([_preEdit.title,..._preEdit.items].some(x=>!String(x.ja||'').trim())) return preDraw('保存できません。日本語を 入れてください。');
   const changed=[_preEdit.title,_preEdit.intro,_preEdit.note,..._preEdit.items].filter(x=>x._jaBefore&&x.ja!==x._jaBefore.ja&&((x.en&&x.en===x._jaBefore.en)||(x.ne&&x.ne===x._jaBefore.ne)));
-  if(changed.length&&confirm('日本語を 直しました。英語・ネパール語も 直しますか？\n［OK］空にする ／ ［キャンセル］そのまま')) changed.forEach(x=>{ if(x.en===x._jaBefore.en) x.en=''; if(x.ne===x._jaBefore.ne) x.ne=''; });
+  if(changed.length&&confirm('英語・ネパール語を空にしますか？（空にする／そのまま）')) changed.forEach(x=>{ if(x.en===x._jaBefore.en) x.en=''; if(x.ne===x._jaBefore.ne) x.ne=''; });
   const ok=await w.amPreSet(_preEdit,_hmPw); _hmPw='';
   if(ok!==true) return preDraw('保存できません。項目は1〜10個、日本語は必須、各言語60字までです。');
   _preEdit=null; hmClose();
