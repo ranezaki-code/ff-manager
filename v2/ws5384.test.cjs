@@ -14,7 +14,7 @@ for(const file of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){
     const html=fs.readFileSync(path.join(root,file),'utf8');
     assert.equal(html.includes('\r'),false);
     assert.equal(html.includes('\uFFFD'),false);
-    assert.ok(html.includes('5.38.4'));
+    assert.ok(html.includes('5.39.0'));
     let count=0;
     for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)){
       if(/\bsrc=/.test(match[1])||(/\btype=/.test(match[1])&&!match[1].includes('id="v2-main"')))continue;
