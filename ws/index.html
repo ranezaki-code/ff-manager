@@ -4094,6 +4094,7 @@ html.nx-fit::-webkit-scrollbar{width:0}
 .nxa .ws539-list .nxa-it>.rk,.nxa .ws539-list .nxa-it>.nxa-mark{grid-row:1 / span 2}
 }
 
+.ws5391-missed{margin:8px 0;padding:10px;background:#fff;border:1px solid #d3dae4;border-radius:10px;overflow-wrap:anywhere;font-size:16px}.ws5391-missed summary{min-height:46px;cursor:pointer;display:flex;align-items:center;font-weight:800}.ws5391-missed summary::after{content:'▾';margin-left:auto}.ws5391-missed[open] summary::after{content:'▴'}.ws5391-missed small{display:block;font-size:14px;color:#667085}.ws5391-missed>div{padding:8px 0;border-top:1px solid #eee}
 </style>
 <!-- 統合アプリ(app.html)内で開かれた時だけ重複UIを隠す＋Gist同期を停止（単体URLでは従来通り） -->
 <script>window.__EMBEDDED=false;try{if(location.search.indexOf('embedded=1')>=0){window.__EMBEDDED=true;document.documentElement.classList.add('embedded-in-hub');}}catch(e){}</script>
@@ -5232,7 +5233,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.39.0'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.39.1'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -12172,7 +12173,7 @@ const OMACHI_MAP = (function(){
 
 /* マップ機能からの保存は必ずここを通す：amUsed の印を付けて、WS の「空データで上書きしない」保護に
    マップ・作業の登録や点検記録だけの店舗も「データあり」と認識させる（初期値に戻す・取り消しの保存が止まらないように） */
-function amSave(resetTab){ if(resetTab) _amNx.tab=null; state.amUsed=true; saveState(); }
+function amSave(resetTab){ if(resetTab) _amNx.tab=null; if(am5391Enabled()){if(!state.wsOverdueSince)state.wsOverdueSince=am5391Since(Date.now()); am5391Settle();} state.amUsed=true; saveState(); }
 /* ---- データの読み出し（未登録なら初期値） ---- */
 function amStoreName(){ try{ const s=(_gs.stores||[]).find(x=>x.id===_STORE_ID); return (s&&s.name)||''; }catch(_){ return ''; } }
 function amDefaultMap(){ return /大町/.test(amStoreName()) ? OMACHI_MAP : null; }
@@ -12321,6 +12322,10 @@ let _amOffDoneOpen=false;
 function amToggleOffDone(){ _amOffDoneOpen=!_amOffDoneOpen; renderMapView(); }
 function amOffColData(now){
   const G={fire:3,soon:2,todo:1}, ol=amOffList(now), by=(a,b)=>(a.s-b.s)||(String(a.w.id)<String(b.w.id)?-1:1);
+  if(am5391Enabled())amOffWorks().filter(w=>amIsTimed(w)&&!amIsRep(w)&&am5391Keep(w)).forEach(w=>{
+    const st=amOffStatus(w,now),x=st.slot;
+    if(st.st==='fire'&&x&&!ol.some(o=>o.w.id===w.id&&o.s===x.s))ol.push({w,s:x.s,e:x.e,a:x.o,t:true,k:'fire',burn:true,lock:false,st:'miss'});
+  });
   const act=ol.filter(o=>G[o.k]).sort((a,b)=>(G[b.k]-G[a.k])||by(a,b)), done=ol.filter(o=>o.k==='done').sort(by);   // 記録なしで過ぎた回（gone）は 出さない
   return {act, done, nF:act.filter(o=>o.k==='fire').length, nS:act.filter(o=>o.k==='soon').length};
 }
@@ -13603,9 +13608,12 @@ function amRunDoEndOne(k,now,v,fl){
   let rid=id; while(state[key][rid]&&state[key][rid].u) rid=id+'_'+now.toString(36)+Math.random().toString(36).slice(2,6);
   const run=JSON.parse(JSON.stringify(r)); let lg=null; const cw=af?null:amWork(wid), ckN=fl?((typeof fl.ck==='number')?fl.ck:-1):((cw&&amCkReq(cw,null))?amCkNow(cw,now).n:-1);   // 5.24：✓ の数は 記録を 足す 前に 数える
   if(!(rid in state[key])){
+    if(cw&&typeof am5391Enabled==='function'&&am5391Enabled()&&amIsTimed(cw)){
+      const slot=amOffStatus(cw,new Date(r.s).getTime()).slot;if(slot)rec.wsScheduled=slot.s;
+    }
     if(!af){ const all=_amChecks(); if(!Array.isArray(all[wid])) all[wid]=[];
       all[wid].push(rec); if(all[wid].length>40) all[wid]=all[wid].slice(-40); }
-    state[key][rid]={w:wid, at:rec.at, by:rec.by, d:amDevId(), s:String(r.s)}; lg={key,id:rid}; if(ckN>=0) state[key][rid].ck=ckN;
+    state[key][rid]={w:wid, at:rec.at, by:rec.by, d:amDevId(), s:String(r.s)}; lg={key,id:rid}; if(rec.wsScheduled!=null)state[key][rid].wsScheduled=rec.wsScheduled; if(ckN>=0) state[key][rid].ck=ckN;
     if(v&&typeof v==='object'&&Object.keys(v).length) state[key][rid].v=v; if(fl&&fl.df) state[key][rid].df=1; if(fl&&fl.re) state[key][rid].re=1;
     if(fl&&fl.qn) state[key][rid].qn=1; if(fl&&fl.qa&&typeof fl.qa==='object'&&Object.keys(fl.qa).length) state[key][rid].qa=fl.qa;   // 5.30：くじを 数えた 回・質問の 答え（足すだけ）
     if(af){ state[key][rid].af=1; state[key][rid].ow=wid.replace(/#af$/,''); state[key][rid].sa=String(r.sa); }
@@ -13817,12 +13825,82 @@ function am539DutyChoices(){
   const labels={order_aico:'商品発注・AICOカテゴリ',order_ff:'商品発注・ファストフード',order_kitchen:'商品発注・店内厨房',order_machicafe:'商品発注・マチカフェ',order_drink:'商品発注・飲料',order_processed:'商品発注・加工食品',order_sweets:'商品発注・菓子',order_daily:'商品発注・日用品／たばこ',clean:'清掃',consumable:'消耗品',training:'新人教育',three:'3つの徹底'};
   return [...new Set(Object.keys(labels).concat(Object.keys((am539Duty()||{}).assignments||{})))].map(k=>[k,labels[k]||k]);
 }
+/* 5.39.1：表示を下げても既存の記録は変えない。読む時は保存しない。 */
+function am5391Enabled(){ return amNxOn(); }
+function am5391Since(now){ return Number(state.wsOverdueSince)||amLogDayMs(amLogDay(now))+3*3600000; }
+function am5391TimeChange(w,times,now=Date.now()){
+ if(JSON.stringify(amTimes(w))===JSON.stringify(times||[]))return;
+ const id='wsTimeChange_'+encodeURIComponent(w.id)+'_'+now+'_'+Math.random().toString(36).slice(2,9);
+ state[id]={w:w.id,changedAt:now,times:(times||[]).slice()};
+}
+function am5391TimeSince(w){
+ return Object.keys(state).filter(k=>k.indexOf('wsTimeChange_')===0).reduce((t,k)=>{const r=state[k];return r&&r.w===w.id?Math.max(t,Number(r.changedAt)||0):t;},0);
+}
+function am5391Forgot(w,o,end){
+ return Object.keys(state).filter(k=>/^amLog_\d{4}-\d{2}-\d{2}$/.test(k)).some(k=>Object.values(state[k]||{}).some(r=>r&&!r.u&&r.nf&&r.miss&&!r.af&&String(r.w)===String(w)&&Date.parse(r.s)>=o&&Date.parse(r.s)<end));
+}
+function am5391Keep(w){ return typeof w.wsOverdueKeep==='boolean'?w.wsOverdueKeep:amIsFreshLegacy(w); }
+function am5391Toggle(id){
+ if(!isAdmin)return; const w=amWorksEdit().find(w=>w.id===id);if(!w)return;
+ am5391Settle(); w.wsOverdueKeep=!am5391Keep(w);w.wsOverdueChangedAt=Date.now();amSave();renderMapView();am539Settings(id);
+}
+function am5391Cut(w,x,nx){
+ if(!am5391Enabled()||x.re)return amOffCut(x,nx);
+ if(am5391Keep(w))return Infinity;
+ return Math.max(Math.min(nx?nx.s:Infinity,amNext3am(x.s)),Number(w.wsOverdueChangedAt)||0);
+}
+function am5391Slots(w,now,rs){
+ const base=amOffSlots(w,now,rs);if(!am5391Enabled()||!am5391Keep(w))return base;
+ const checks=_amChecksRead()[w.id]||[],last=checks.reduce((t,r)=>Math.max(t,new Date(r.at).getTime()||0),0);
+ const start=Math.max(am5391Since(now),amWorkSince(w),last);
+ if(start>=now-2*86400000)return base;
+ const all=new Map(base.map(x=>[x.s+'|'+(x.re||0),x]));
+ // 最後の完了（または使い始め）から、次の曜日の回まで。長く残る保護の回も落とさない。
+ for(let i=0;i<8;i++)amOffSlots(w,start+i*86400000,rs).forEach(x=>{if(!x.re)all.set(x.s+'|0',x);});
+ return [...all.values()].sort((a,b)=>a.o-b.o||a.s-b.s);
+}
+function am5391Rounds(w,now,observed=now){
+ if(!am5391Enabled()||!amIsTimed(w)||amIsRep(w))return [];
+ const since=Math.max(amWorkSince(w),am5391Since(observed));
+ const rs=amOffRecsOf(w,now).concat((_amChecksRead()[w.id]||[]).map(r=>({t:new Date(r.at).getTime(),by:r.by,wsScheduled:r.wsScheduled}))),slots=am5391Slots(w,now,rs).filter(x=>!x.re);
+ return slots.map((x,i)=>{
+  const nx=slots[i+1],end=am5391Cut(w,x,nx),recEnd=am5391Keep(w)?Infinity:nx?nx.o:Infinity,done=rs.some(r=>r.wsScheduled!=null?r.wsScheduled===x.s:(r.t>=x.o&&r.t<recEnd)||(r.s&&new Date(r.s).getTime()>=x.o&&new Date(r.s).getTime()<recEnd)),day=amLogDay(x.s);
+  return {w:w.id,name:w.name||'',s:x.s,e:x.e,o:x.o,end,day,round:slots.filter(v=>amLogDay(v.s)===day&&v.s<=x.s).length,done,eligible:x.e>since&&x.s>=am5391TimeSince(w)};
+ });
+}
+function am5391Missed(day,now){
+ const rows=new Map(),key=AM_LOG_PRE+day;
+ Object.entries(state[key]||{}).forEach(([id,r])=>{if(r&&r.wsMissed===1&&!am5391Forgot(r.w,Date.parse(r.scheduled)-amOffLead(amWorks().find(w=>w.id===r.w)||{})*60000,Date.parse(r.hiddenAt)))rows.set(id,r);});
+ amWorks().forEach(w=>am5391Rounds(w,amLogDayMs(day)+12*3600000,now).forEach(x=>{
+  if(x.day!==day||!x.eligible||x.done||!(now>=x.end)||x.end<=x.e||am5391Forgot(x.w,x.o,x.end))return;
+  if(amRunActive(now).concat(amNxLongRuns(now)).some(r=>!r.sa&&r.w===x.w&&r.s>=x.o&&r.s<x.end))return;
+  const id='wsMiss_'+encodeURIComponent(x.w)+'_'+x.s;
+  if(!rows.has(id))rows.set(id,{w:x.w,name:x.name,round:x.round,scheduled:new Date(x.s).toISOString(),hiddenAt:new Date(x.end).toISOString(),at:new Date(x.end).toISOString(),by:'',miss:1,wsMissed:1});
+ }));
+ return [...rows.entries()].map(([id,r])=>Object.assign({id},r));
+}
+function am5391Settle(now){
+ if(!am5391Enabled())return 0;
+ now=now||Date.now();let n=0;
+ for(let i=0;i<AM_LOG_DAYS;i++){
+  const day=amLogDay(now-i*86400000),rows=am5391Missed(day,now),key=AM_LOG_PRE+day;
+  rows.forEach(({id,...r})=>{if(!state[key])state[key]={};if(!(id in state[key])){state[key][id]=r;n++;}});
+ }
+ return n;
+}
+function am5391Html(day,now){
+ const rows=am5391Missed(day,now);if(!rows.length)return '';
+ return '<details class="ws5391-missed"><summary>間に合わなかった '+rows.length+'件</summary><small>見るだけ'+amTr2('Missed rounds: view only','छुटेका पालाहरू: हेर्न मात्र')+'</small>'+rows.map(r=>'<div>'+escapeHtml(r.name||r.w)+'・'+r.round+'回目・'+amHM(Date.parse(r.scheduled))+'<small>下げた時刻 '+amHM(Date.parse(r.hiddenAt))+'</small></div>').join('')+'</details>';
+}
+function am5391Admin(now){
+ return '<div class="dash-card"><h3>間に合わなかった（日ごと）</h3>'+Array.from({length:AM_LOG_DAYS},(_,i)=>{const day=amLogDay(now-i*86400000),html=am5391Html(day,now);return html?'<div>'+day+html+'</div>':'';}).join('')+'</div>';
+}
 function am539Settings(id){
   const w=amWork(id); if(!w) return;
   const c=am539Crew(), p=am539Permission(w)||{ranks:[],duties:[],members:[]}, d=am539Duty();
   const choices=(key,vals)=>vals.map(([v,label])=>'<button type="button" class="nx-sub'+(p[key].includes(v)?' on':'')+'" data-w="'+escapeHtml(id)+'" data-k="'+key+'" data-v="'+escapeHtml(v)+'" onclick="am539PermToggle(this.dataset.w,this.dataset.k,this.dataset.v)"'+(isAdmin?'':' disabled')+'>'+(p[key].includes(v)?'✓ ':'')+escapeHtml(label)+'</button>').join('');
   const eligible=am539Restricted(w)?am539AllowedIds(w).map(id=>id.replace(/^name:/,'')):c.members.map(m=>m.name), ns=[...new Set(c.members.map(m=>m.name).concat(eligible))];
-  _amSheet('<div class="nx-sh ws539-settings"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><h2>⚙ 作業の設定：'+escapeHtml(w.name)+'</h2><button type="button" class="nx-sub" data-w="'+escapeHtml(id)+'" onclick="am539TrainingToggle(this.dataset.w)"'+(isAdmin?'':' disabled')+'>'+(w.wsTraining?'✓ ':'')+'練習中の印を 使う</button><h3>この作業を 選べる人</h3><button type="button" class="nx-sub" data-w="'+escapeHtml(id)+'" onclick="am539PermClear(this.dataset.w)"'+(isAdmin?'':' disabled')+'>だれでも</button><h4>ランクで選ぶ（いくつでも）</h4><div class="ws539-chips">'+choices('ranks',am539Ranks())+'</div><h4>担当業務で選ぶ（いくつでも）</h4><div class="ws539-chips">'+choices('duties',am539DutyChoices())+'</div><h4>クルーの名前で選ぶ（いくつでも）</h4><div class="ws539-chips">'+choices('members',ns.map(n=>{const m=c&&c.members.find(m=>m.name===n);return [m?m.id:'name:'+n,n];}))+'</div><div class="ws539-result">いま選べる人：'+eligible.length+'人（'+eligible.map(escapeHtml).join('・')+'）<small>店長（いつでも）</small><small>ランク・担当業務・名前の どれか1つに 当てはまれば 選べます。</small></div>'+am539LearningHtml(w,ns)+'</div>','card','ws539settings');
+  _amSheet('<div class="nx-sh ws539-settings"><button class="am-x" onclick="amCloseSheet()" aria-label="閉じる">×</button><h2>⚙ 作業の設定：'+escapeHtml(w.name)+'</h2><button type="button" class="nx-sub" data-w="'+escapeHtml(id)+'" onclick="am539TrainingToggle(this.dataset.w)"'+(isAdmin?'':' disabled')+'>'+(w.wsTraining?'✓ ':'')+'練習中の印を 使う</button><button type="button" class="nx-sub" data-w="'+escapeHtml(id)+'" onclick="am5391Toggle(this.dataset.w)"'+(isAdmin?'':' disabled')+'>'+((typeof w.wsOverdueKeep==='boolean'?w.wsOverdueKeep:(/鮮度/.test(String(w.kind||''))||/鮮度管理/.test(String(w.name||''))||/鮮度/.test(String(typeof amKindName==='function'?amKindName(w.kind):''))))?'✓ ':'')+'おくれても下げない</button><h3>この作業を 選べる人</h3><button type="button" class="nx-sub" data-w="'+escapeHtml(id)+'" onclick="am539PermClear(this.dataset.w)"'+(isAdmin?'':' disabled')+'>だれでも</button><h4>ランクで選ぶ（いくつでも）</h4><div class="ws539-chips">'+choices('ranks',am539Ranks())+'</div><h4>担当業務で選ぶ（いくつでも）</h4><div class="ws539-chips">'+choices('duties',am539DutyChoices())+'</div><h4>クルーの名前で選ぶ（いくつでも）</h4><div class="ws539-chips">'+choices('members',ns.map(n=>{const m=c&&c.members.find(m=>m.name===n);return [m?m.id:'name:'+n,n];}))+'</div><div class="ws539-result">いま選べる人：'+eligible.length+'人（'+eligible.map(escapeHtml).join('・')+'）<small>店長（いつでも）</small><small>ランク・担当業務・名前の どれか1つに 当てはまれば 選べます。</small></div>'+am539LearningHtml(w,ns)+'</div>','card','ws539settings');
 }
 function am539TrainingToggle(id){
   if(!isAdmin)return;const w=amWorksEdit().find(w=>w.id===id);if(!w)return;w.wsTraining=!w.wsTraining;amSave();renderMapView();am539Settings(id);
@@ -14274,7 +14352,7 @@ function amNxTabsHtml(q){
 }
 function amNxScheduleText(x,now){
   const slot=amNxSlot(x,now), due=Number.isFinite(x.due)?x.due:slot&&slot.e;
-  const time=slot&&isFinite(slot.s)?amHM(slot.s):'時刻なし';
+  const main=amNxSetAt(x); const time=isFinite(main)?amHM(main):slot&&isFinite(slot.s)?amHM(slot.s):'時刻なし';
   const end=Number.isFinite(due)?amHM(due)+'まで':'期限なし';
   const from=amNext3am(now)-86400000, to=amNext3am(now);
   const recs=amLogRange(from,Math.min(now+1,to)).filter(r=>r.w===x.w.id&&!r.re&&!r.af);
@@ -14309,7 +14387,9 @@ function amNxSetAt(x){ const t=(x.s&&x.s.tm&&x.s.slot)?x.s.slot.s:(x.o&&(x.o.t||
    時刻の 作業（売場の 時刻・売場以外の 時刻・再チェック・あとの 作業＝元の 記録＋◯分）＝決めた 時刻（amNxSetAt）。時間帯の 作業＝「〜枠の 終わり」を うすく。
    順番だけ（時間帯の これから）＝空欄（左の 線と 色だけ）。🔒＝「◯時 から」・持ち越し＝そのまま。ホームの「つぎは これ」は amNxWhen（同じ 字を 1行に）。計算・並び・保存は 変えない */
 function amNxWhen2(x,now){
-  if(x.lock&&isFinite(x.lockAt)) return {t:`${amHM(x.lockAt)} から`, s:'', dim:false};
+  const main=amNxSetAt(x),slot=amNxSlot(x,now),open=slot&&(slot.o==null?slot.a:slot.o);
+  if(x.lock&&isFinite(x.lockAt))return {t:amHM(isFinite(main)?main:x.lockAt)+'から',s:'',dim:false};
+  if(isFinite(main)&&isFinite(open)&&open<main&&now>=open&&now<main)return {t:amHM(main)+'から',s:amHM(open)+'から押せます',dim:false};
   const d=x.due, sm=x.k==='fire'?'おくれ':x.k==='soon'?'いま':'';
   if(x.k==='fire'&&((x.s&&x.s.carry)||(x.o&&x.o.carry))) return {t:'持ち越し', s:'', dim:false};
   if(!isFinite(d)) return {t:'', s:sm, dim:true};
@@ -14662,6 +14742,7 @@ function amNxRender(view){
     const gvN=amNxGvNow(now).live.length;   // 5.31：きょう 諦めた（取り消して いない）数
     if(!q.length&&!kcv) col+=lgA.length?`<div class="nxa-none long">⏳ 長い ${lgA.length}件があります<small>Long: ${lgA.length} / लामो: ${lgA.length}</small>${gvN?`<small>諦めた ${gvN}件は 下から 戻せます</small>`:''}</div>`:amNxMissToday(now)===0?`<div class="nxa-none">✨ ここまで 全部 済<small>All done so far / अहिलेसम्म सबै सकियो</small></div>`:`<div class="nxa-none">✅ いまは 間に合っています${gvN?`<small>諦めた ${gvN}件は 下から 戻せます</small>`:'<small>All caught up / सबै समयमै</small>'}</div>`;   // 5.37.1：長い 回だけ 残る 時は 件数を 出す。きょう 抜けが 無ければ ✨
     if(gvN&&!kcv) col+=`<button type="button" class="nxb nxa-gvl" id="nxa-gvl" onclick="amNxGvList()">🏳 きょう 諦めた ${gvN}件<small>押すと 戻せる / Given up today</small></button>`;   // 5.31
+    col+=am5391Html(amLogDay(now),now);
     col+=`<button type="button" class="nxb nxa-more" onclick="amNxDoneList()">${amNxIco('check',14,'#2F8F5B')}済 ${amNxDoneN(now)}<small>Done</small></button>${amNxLegendHtml()}<button type="button" class="nxb nxa-below" id="nxa-below" hidden onclick="amNxBelowGo()"></button>`;
     h+=`<div class="nxa-col${wide?' nxa-wide':''}" id="nxa-col" style="left:${C.x}px;top:${C.y}px;width:${C.w}px;height:${C.h}px">${col}</div>`;
   }
@@ -16443,7 +16524,7 @@ function amSaveWork(id){
    比べ方：空の字・無し・null は 同じ／回数は 7つの値で（古い欄 sch だけの作業を 開いただけでは sch7 を 書かない）／押せる時間・締切は 決めていない時の値と 同じなら 同じ／確認項目は 先頭の2つ（確認する事・NG時）だけを 比べる。
    消す欄（fo.del）は、窓を開いた時に あった物だけ。base が 無い時は 今までどおり 全部の欄を 書く（nWrote≥1） */
 function amApplyPatch(w,rec,sb,fo,base){
-  if(!base){ const ol=w.lead; Object.assign(w,rec); if(!sb) delete w.sch7; fo.del.forEach(k=>{ delete w[k]; }); if(('ld0' in w)&&('lead' in fo.set)&&+fo.set.lead!==+ol) delete w.ld0; return 1; }   // 5.24（テスの 提案③）：lead を 変えた時は 🧰 の 前の値の 控え ld0 も 消す
+  if(!base){ if('times' in fo.set)am5391TimeChange(w,fo.set.times); const ol=w.lead; Object.assign(w,rec); if(!sb) delete w.sch7; fo.del.forEach(k=>{ delete w[k]; }); if(('ld0' in w)&&('lead' in fo.set)&&+fo.set.lead!==+ol) delete w.ld0; return 1; }   // 5.24（テスの 提案③）：lead を 変えた時は 🧰 の 前の値の 控え ld0 も 消す
   const J=JSON.stringify, em=v=>(v==null||v===''), same=(a,b)=>(em(a)&&em(b))||J(a)===J(b);
   let n=0; const put=(k,v)=>{ if(!same(v,base[k])){ w[k]=v; n++; } };
   ['name','icon','kind','zone','sub','days'].forEach(k=>put(k,rec[k]));
@@ -16459,6 +16540,7 @@ function amApplyPatch(w,rec,sb,fo,base){
     if(k==='recheck'&&+b===v) return;
     if(k==='reN'&&v===amReMax(base)) return;   // 5.15：窓に出ていた 今の回数（reN が無ければ 2）と同じなら 変更ではない（開いて 保存しても reN を 足さない）
     if(same(v,b)||(Array.isArray(v)&&!v.length&&!Array.isArray(b))) return;
+    if(k==='times')am5391TimeChange(w,v);
     w[k]=v; n++;
     if(k==='lead'&&('ld0' in w)){ delete w.ld0; n++; }   // 5.24（テスの 提案③）：lead を 変えた時は 🧰 の 前の値の 控え ld0 も 消す（lead 60 などに 古い 控えが 残らない）
   });
@@ -16852,6 +16934,7 @@ function amLogKeys(){ return Object.keys(state).filter(k=>/^amLog_\d{4}-\d{2}-\d
 /* 1件足す。戻り値＝{key,id}（取り消しで同じ1件を消すための控え）。d＝この端末の印（下の amDevId。時計がずれた端末の守りに使う）。
    5.8：fl＝{df,re}。df:1＝「DF中」で記録（◯分後に もう一度 出る）／re:1＝再チェックの枠の記録。無い時は、今までと1字も同じ形で入れる */
 function amLogAdd(wid, rec, v, fl){
+  am5391Settle(new Date(rec.at).getTime());
   const key=AM_LOG_PRE+amLogDay(new Date(rec.at).getTime());
   if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key])) state[key]={};
   let id; do{ id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }while(id in state[key]);
@@ -16910,7 +16993,7 @@ function amLogPrune(now){
 function amLogRange(from,to){
   const out=[], seen={}, d0=amLogDay(from), d1=amLogDay(to);
   amLogKeys().forEach(k=>{ const day=k.slice(AM_LOG_PRE.length); if(day<d0||day>d1) return; const o=state[k];
-    Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||r.miss||r.af) return; const t=new Date(r.at).getTime(); if(!(t>=from&&t<to)) return; const row={id, key:k, w:r.w, t, by:r.by||'', v:(r.v&&typeof r.v==='object')?r.v:null}; if(r.df) row.df=1; if(r.re) row.re=1; if(r.s) row.s=r.s; out.push(row); seen[r.w+'|'+t]=1; }); });   // 5.8：df・re は 付いている時だけ足す
+    Object.keys(o).forEach(id=>{ const r=o[id]; if(!r||typeof r!=='object'||r.u||r.miss||r.af) return; const t=new Date(r.at).getTime(); if(!(t>=from&&t<to)) return; const row={id, key:k, w:r.w, t, by:r.by||'', v:(r.v&&typeof r.v==='object')?r.v:null}; if(r.df) row.df=1; if(r.re) row.re=1; if(r.s) row.s=r.s; if(r.wsScheduled!=null)row.wsScheduled=r.wsScheduled; out.push(row); seen[r.w+'|'+t]=1; }); });   // 5.8：df・re は 付いている時だけ足す
   const all=_amChecksRead();
   Object.keys(all).forEach(w=>{ const arr=all[w]; if(!Array.isArray(arr)) return; arr.forEach(r=>{ if(!r) return; const t=new Date(r.at).getTime(); if(!(t>=from&&t<to)||seen[w+'|'+t]) return; seen[w+'|'+t]=1; out.push({id:'', key:'', w, t, by:r.by||'', v:null}); }); });
   return out.sort((a,b)=>a.t-b.t);
@@ -16977,15 +17060,18 @@ function amOffStatus(w, now){
   now=now||Date.now();
   if(amIsRep(w)) return amRepOffStatus(w, now);   // 5.9：くり返し（週1・月1）の時刻の作業だけ別の道。毎日の作業は これより下を そのまま通る
   const rcOn=amRecheckMin(w)>0, rs=rcOn?amOffRecsOf(w,now):null;   // 5.8：再チェックを決めている作業だけ、記録を 日ごとの記録からも読む（df の印を見るため）。決めていない作業は 今までどおり 直近40件だけ
-  const sl=amOffSlots(w,now,rs), R={st:'none', lock:false, slot:null, next:null, rec:null};
+  const sl=am5391Slots(w,now,rs), R={st:'none', lock:false, slot:null, next:null, rec:null};
   if(!sl.length) return R;
   let ai=-1; for(let i=0;i<sl.length;i++){ if(sl[i].o<=now) ai=i; }
   if(ai<0){ R.st='todo'; R.lock=true; R.slot=sl[0]; R.next=sl[0]; return R; }
-  const x=sl[ai], nx=sl[ai+1]||null, end=nx?nx.o:Infinity, arr=rcOn?rs.map(r=>({at:new Date(r.t).toISOString(), by:r.by})):_amChecksRead()[w.id];
+  const pending=am5391Rounds(w,now).find(v=>v.eligible&&!v.done&&now>v.e&&now<v.end);
+  if(pending){const i=sl.findIndex(v=>v.s===pending.s);if(i>=0)ai=i;}
+  const x=sl[ai], nx=sl[ai+1]||null, end=nx?nx.o:Infinity, arr=rcOn?rs.map(r=>({at:new Date(r.t).toISOString(), by:r.by,wsScheduled:r.wsScheduled})):_amChecksRead()[w.id];
   const wait=()=>{ if(nx){ R.st='todo'; R.lock=true; R.slot=nx; R.next=nx; } else { R.st='none'; R.slot=null; R.next=null; } return R; };
-  if(now>=amOffCut(x,nx)) return wait();   // 🔥 の終わり（次の回が押せる・締切の後の 3:00）を過ぎた回：持ちこさない（次の回を待つ）
+  if(now>=am5391Cut(w,x,nx)) return wait();   // 🔥 の終わり（次の回が押せる・締切の後の 3:00）を過ぎた回：持ちこさない（次の回を待つ）
+  if(am5391Enabled()&&am5391Keep(w)&&!x.re&&x.e<=am5391Since(now))return wait();
   R.slot=x; R.next=nx;
-  if(Array.isArray(arr)){ for(let i=0;i<arr.length;i++){ const r=arr[i]; if(!r) continue; const t=new Date(r.at).getTime(); if(t>=x.o&&t<end){ R.rec=r; break; } } }
+  if(Array.isArray(arr)){ for(let i=0;i<arr.length;i++){ const r=arr[i]; if(!r) continue; const t=new Date(r.at).getTime(); if(r.wsScheduled!=null?r.wsScheduled===x.s:t>=x.o&&t<(am5391Keep(w)&&!x.re?Infinity:end)){ R.rec=r; break; } } }
   if(R.rec){ R.st='done'; return R; }
   if(now>x.e&&x.e<=amWorkSince(w)) return wait();   // 登録した時には もう締切を過ぎていた回：🔥 を出さない（次の回から）
   R.st=now<=x.e?'soon':'fire'; R.deadline=x.e;
@@ -17162,9 +17248,9 @@ function amDayOcc(dayMs, ctx){
       const nxt=sl[i+1]||null, a=timed?x.o:(i>0?sl[i-1].e:x.s-12*H), b=timed?(nxt?(x.re?Math.max(nxt.o,x.e):nxt.o):x.s+48*H):x.e;   // 5.8：再チェックの枠は、次の回が（再チェックの締切より）先に押せるようになっても、締切までの記録を 再チェックの記録と見る（次の回の記録が 再チェックもかねる）
       const o={w, s:x.s, e:x.e, a, b, t:timed, rec:null, next:null, st:'', fe:x.e, burn:false, pre:x.e<=since, bi:amBandIdx((x.s-dayMs)/H)};
       if(x.re){ o.re=x.re; o.from=x.from; }   // 5.8：再チェックの枠（何回目か・もとの記録の時刻）
-      const rec=rs.find(r=>r.t>=a&&r.t<b)||null;
+      const rec=rs.find(r=>timed&&r.wsScheduled!=null?r.wsScheduled===x.s:r.t>=a&&r.t<(timed&&am5391Keep(w)&&!x.re?Infinity:b))||null;
       if(timed){
-        const cut=amOffCut(x,nxt);   // 🔥 の終わり＝次の回が押せるようになる時か、締切の後の 3:00（amOffStatus と同じ切り方。5.7）
+        const cut=am5391Cut(w,x,nxt);   // 🔥 の終わり＝次の回が押せるようになる時か、締切の後の 3:00（amOffStatus と同じ切り方。5.7）
         if(rec){ o.rec=rec; o.st=rec.t>x.e?'late':'on'; o.fe=rec.t; }
         else if(now<x.o) o.st='fut';
         else if(now>=cut){ o.st='miss'; o.fe=cut; }   // 次の回が押せるようになった・締切の後に 3:00 をまたいだ → 🔥 は外れている
@@ -17489,6 +17575,7 @@ function amWhoNumCard(from,to,names,wk){
 }
 function renderWhoView(){
   const view=document.getElementById('who-view'); if(!view||!isAdmin)return;
+  const missedPanel=am5391Admin(Date.now());
   const now=Date.now(), DAY=86400000, today=amLogDayMs(amLogDay(now)), names=staffList();
   const dayOf=off=>{ const d=new Date(today); d.setDate(d.getDate()+off); return d.getTime(); };
   const md=ms=>{ const d=new Date(ms); return `${d.getMonth()+1}/${d.getDate()}`; }, dow=ms=>'日月火水木金土'[new Date(ms).getDay()];
@@ -17501,7 +17588,7 @@ function renderWhoView(){
     view.innerHTML=`<div class="dash-card aw-head"><h3>📊 だれが・いつ <button type="button" class="aw-helpbtn" onclick="amWho('help')" aria-label="数字の見方">？</button></h3>${_who.help?help:''}
       <div class="aw-say">🔥 は「記録が 無い」の 意味。「やっていない」とは かぎりません。</div>
       <div class="dash-empty aw-none">まだ 記録が ありません。<br>🗺 売場マップ か ⏰ 売場以外で 名前を 押すと、その日から ここに 出ます（${AM_LOG_DAYS}日ぶん 残ります）。</div></div>`;
-    return;
+    view.insertAdjacentHTML('beforeend',missedPanel); return;
   }
   const sinceDay=amLogDayMs(amLogDay(since));
   const stats=offs.map(off=>{ const ms=dayOf(off); if(ms<sinceDay) return null; const occ=amDayOcc(ms,ctx).filter(amWhoKind); return Object.assign(amWhoStat(occ),{occ, ms, off}); });
@@ -17590,6 +17677,7 @@ function renderWhoView(){
   const sc0=view.querySelector('.aw-list'), st0=sc0?sc0.scrollTop:0;   // 1分ごとの描き直しで、一覧の送った位置が上に戻らないように
   view.innerHTML=head+body;
   const sc1=view.querySelector('.aw-list'); if(sc1&&st0) sc1.scrollTop=st0;
+  view.insertAdjacentHTML('beforeend',missedPanel);
 }
 /* 📊 のタブを描く：上＝だれが・いつ（読むだけ）。下にたたんだ「これまでのダッシュボード」は、開いている時だけ描く（開いていない間は、繰り返しタスクの作成も走らない） */
 function renderDashTab(){
