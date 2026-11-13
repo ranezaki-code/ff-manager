@@ -47,7 +47,7 @@ test('main time and early availability stay distinct',()=>{
 });
 test('all inline scripts parse, LF and version, source and generated main agree',()=>{
  for(const file of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,file),'utf8');assert.ok(!s.includes('\r'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g))if(!/src=/.test(m[1])&&(!/type=/.test(m[1])||/id="v2-main"/.test(m[1])))new vm.Script(m[2],{filename:file});}
- assert.match(source,/APP_VERSION = '5.39.1'/);
+ assert.match(source,/APP_VERSION = '5.39.2'/);
 });
 
 async function browser(){

@@ -5233,7 +5233,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.39.1'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.39.2'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -13837,6 +13837,10 @@ function am5391TimeSince(w){
  return Object.keys(state).filter(k=>k.indexOf('wsTimeChange_')===0).reduce((t,k)=>{const r=state[k];return r&&r.w===w.id?Math.max(t,Number(r.changedAt)||0):t;},0);
 }
 function am5391Forgot(w,o,end){
+ if(typeof _am5392Forgot!=='undefined'&&_am5392Forgot){
+  if(!_am5392Forgot.index)_am5392Forgot.index=am5392ForgotIndex();
+  return (_am5392Forgot.index.get(String(w))||[]).some(t=>t>=o&&t<end);
+ }
  return Object.keys(state).filter(k=>/^amLog_\d{4}-\d{2}-\d{2}$/.test(k)).some(k=>Object.values(state[k]||{}).some(r=>r&&!r.u&&r.nf&&r.miss&&!r.af&&String(r.w)===String(w)&&Date.parse(r.s)>=o&&Date.parse(r.s)<end));
 }
 function am5391Keep(w){ return typeof w.wsOverdueKeep==='boolean'?w.wsOverdueKeep:amIsFreshLegacy(w); }
@@ -13859,19 +13863,23 @@ function am5391Slots(w,now,rs){
  for(let i=0;i<8;i++)amOffSlots(w,start+i*86400000,rs).forEach(x=>{if(!x.re)all.set(x.s+'|0',x);});
  return [...all.values()].sort((a,b)=>a.o-b.o||a.s-b.s);
 }
-function am5391Rounds(w,now,observed=now){
+function am5391Rounds(w,now,observed=now,dayOnly=''){
  if(!am5391Enabled()||!amIsTimed(w)||amIsRep(w))return [];
- const since=Math.max(amWorkSince(w),am5391Since(observed));
+ const since=Math.max(amWorkSince(w),am5391Since(observed)),timeSince=am5391TimeSince(w);
+ const rounds=new Map();
  const rs=amOffRecsOf(w,now).concat((_amChecksRead()[w.id]||[]).map(r=>({t:new Date(r.at).getTime(),by:r.by,wsScheduled:r.wsScheduled}))),slots=am5391Slots(w,now,rs).filter(x=>!x.re);
+ const days=slots.map(x=>amLogDay(x.s));
+ slots.forEach((x,i)=>{const day=days[i];if(dayOnly&&day!==dayOnly)return;if(!rounds.has(day))rounds.set(day,[]);rounds.get(day).push(x.s);});
  return slots.map((x,i)=>{
-  const nx=slots[i+1],end=am5391Cut(w,x,nx),recEnd=am5391Keep(w)?Infinity:nx?nx.o:Infinity,done=rs.some(r=>r.wsScheduled!=null?r.wsScheduled===x.s:(r.t>=x.o&&r.t<recEnd)||(r.s&&new Date(r.s).getTime()>=x.o&&new Date(r.s).getTime()<recEnd)),day=amLogDay(x.s);
-  return {w:w.id,name:w.name||'',s:x.s,e:x.e,o:x.o,end,day,round:slots.filter(v=>amLogDay(v.s)===day&&v.s<=x.s).length,done,eligible:x.e>since&&x.s>=am5391TimeSince(w)};
- });
+  if(dayOnly&&days[i]!==dayOnly)return null;
+  const nx=slots[i+1],end=am5391Cut(w,x,nx),recEnd=am5391Keep(w)?Infinity:nx?nx.o:Infinity,done=rs.some(r=>r.wsScheduled!=null?r.wsScheduled===x.s:(r.t>=x.o&&r.t<recEnd)||(r.s&&new Date(r.s).getTime()>=x.o&&new Date(r.s).getTime()<recEnd)),day=days[i];
+  return {w:w.id,name:w.name||'',s:x.s,e:x.e,o:x.o,end,day,round:rounds.get(day).filter(t=>t<=x.s).length,done,eligible:x.e>since&&x.s>=timeSince};
+ }).filter(Boolean);
 }
 function am5391Missed(day,now){
  const rows=new Map(),key=AM_LOG_PRE+day;
  Object.entries(state[key]||{}).forEach(([id,r])=>{if(r&&r.wsMissed===1&&!am5391Forgot(r.w,Date.parse(r.scheduled)-amOffLead(amWorks().find(w=>w.id===r.w)||{})*60000,Date.parse(r.hiddenAt)))rows.set(id,r);});
- amWorks().forEach(w=>am5391Rounds(w,amLogDayMs(day)+12*3600000,now).forEach(x=>{
+ amWorks().forEach(w=>am5391Rounds(w,amLogDayMs(day)+12*3600000,now,day).forEach(x=>{
   if(x.day!==day||!x.eligible||x.done||!(now>=x.end)||x.end<=x.e||am5391Forgot(x.w,x.o,x.end))return;
   if(amRunActive(now).concat(amNxLongRuns(now)).some(r=>!r.sa&&r.w===x.w&&r.s>=x.o&&r.s<x.end))return;
   const id='wsMiss_'+encodeURIComponent(x.w)+'_'+x.s;
@@ -13882,11 +13890,25 @@ function am5391Missed(day,now){
 function am5391Settle(now){
  if(!am5391Enabled())return 0;
  now=now||Date.now();let n=0;
+ // 利用開始より前に締切も過ぎた日は、追加できる回がない。既存の記録はそのまま。
+ const oldest=typeof amWorks==='function'?amLogDay(am5391Since(now)-Math.max(0,...amWorks().filter(w=>w&&amIsTimed(w)).map(amOffGrace))*60000):'';
+ // 足すのは miss だけ。完了の読み取り結果は、この保存の間は変わらない。
+ const read=typeof amLogRange==='function'?amLogRange:null,cache=new Map();
+ const dayRead=typeof am5392DayMemo==='function'?amLogDay:null;
+ if(dayRead)amLogDay=am5392DayMemo(dayRead);
+ const slots=typeof amOffSlots==='function'&&typeof am5392SlotsMemo==='function'?amOffSlots:null;
+ if(slots)amOffSlots=am5392SlotsMemo(slots);
+ const forgot=typeof _am5392Forgot==='undefined'?null:_am5392Forgot;
+ if(typeof _am5392Forgot!=='undefined'&&!forgot)_am5392Forgot={index:null};
+ if(read)amLogRange=function(from,to){const key=from+'|'+to;if(!cache.has(key))cache.set(key,read(from,to));return cache.get(key);};
+ try{
  for(let i=0;i<AM_LOG_DAYS;i++){
-  const day=amLogDay(now-i*86400000),rows=am5391Missed(day,now),key=AM_LOG_PRE+day;
+  const day=amLogDay(now-i*86400000);if(day<oldest)continue;
+  const rows=am5391Missed(day,now),key=AM_LOG_PRE+day;
   rows.forEach(({id,...r})=>{if(!state[key])state[key]={};if(!(id in state[key])){state[key][id]=r;n++;}});
  }
  return n;
+ }finally{if(read)amLogRange=read;if(slots)amOffSlots=slots;if(dayRead)amLogDay=dayRead;if(typeof _am5392Forgot!=='undefined')_am5392Forgot=forgot;}
 }
 function am5391Html(day,now){
  const rows=am5391Missed(day,now);if(!rows.length)return '';
@@ -14524,12 +14546,13 @@ function amLblSvg(c,r,F,sc,col,fw,cls){
 }
 /* 5.29（テス：字体に よって 縦の 字の 箱が 見積りより 広い 時が ある＝和洋菓子 0.8px）：描いた 後に 実際の 字の 箱を 測り、マスの 外へ 出る 名前は 消す（字の 大きさは 変えない・外には 出さない） */
 function amLblGuard(svg){
-  try{ if(!svg) return 0; let n=0;
+  try{ if(!svg) return 0; const remove=[];
     svg.querySelectorAll('g.cell,g.am-cell').forEach(g=>{ const ts=g.querySelectorAll('text'); if(!ts.length||g.querySelector('line')) return;
       const rc=[].slice.call(g.querySelectorAll('rect')).find(x=>!x.getAttribute('fill-opacity')); if(!rc) return; const b=rc.getBoundingClientRect(); if(!(b.width>0)) return;
       let out=false; ts.forEach(t=>{ const a=t.getBoundingClientRect(); if(a.width>0&&(a.left<b.left-0.6||a.right>b.right+0.6||a.top<b.top-0.6||a.bottom>b.bottom+0.6)) out=true; });   // 0.6px まで（字の 箱の 端の あき。字の 形は 中）
-      if(out){ const lb=g.querySelector('g.lbl'); if(lb) lb.remove(); else ts.forEach(t=>t.remove()); n++; } });
-    return n; }catch(_){ return 0; }
+      if(out){ const lb=g.querySelector('g.lbl'); remove.push(lb?[lb]:[].slice.call(ts)); } });
+    remove.forEach(nodes=>nodes.forEach(node=>node.remove()));
+    return remove.length; }catch(_){ return 0; }
 }
 function amNxTw(s,fs){ let w=0; for(const ch of String(s)) w+=/[\x20-\x7e]/.test(ch)?fs*.58:fs; return w; }
 /* 5.27（店長 10/26「マップの表記が文字がおかしい。文字を小さくしてでも、マップ上でマス内に綺麗に収まるように」「マップが拡大縮小するのに合わせて文字も収まるように」）：
@@ -14665,7 +14688,52 @@ function amNxCkHtml(r,now,B,ph){
     ${compact?'':cancel}<div class="nxa-finr">${compact?cancel:''}<button type="button" class="nxb nxa-trbb" data-k="${escapeHtml(r.k)}" onclick="amNxTrbAskT(this.dataset.k)"><span class="ex" aria-hidden="true">!</span><span>困った<small>Problem / समस्या</small></span></button><button type="button" class="nxb nxa-fin" data-k="${escapeHtml(r.k)}" onclick="amNxFinTap(this.dataset.k)"${left?' disabled':''}>${amNxIco('check',26,left?'#465773':'#fff')}<span>${left?(compact?`あと ${left}つ ✓`:`あと ${left}つ ✓ で 終わる`):tk?'印を 閉じる':am539People(r).length>1?(compact?'✓ 全員ぶん':'✓ 終わった（全員ぶん）'):'✓ 終わった'}<small>${left?`${left} left / ${left} बाँकी`:tk?'Close / बन्द':'Done / सकियो'}</small></span></button></div></div>`;   // 5.27：「困った」は 終わったの 左に 小さく
 }
 /* 新しい画面を 描く（renderMapView から）。読むだけ・保存しない。大きさは 今の 画面から 決める（ページが 送れない形） */
+/* 5.39.2：同じ描画の中だけ、読み取りを共用する。
+   次の操作へ持ち越さず、例外でも必ず元に戻す。 */
+function am5392Memo(read){
+ const cache=new Map(),value=Symbol();
+ return function(...args){
+  let at=cache; for(const arg of args){if(!at.has(arg))at.set(arg,new Map());at=at.get(arg);}
+  if(!at.has(value))at.set(value,read.apply(this,args));return at.get(value);
+ };
+}
+let _am5392Forgot=null;
+function am5392DayMemo(read){
+ const cache=new Map();
+ return function(ms){
+  if(!ms||!Number.isFinite(ms))return read(ms);
+  if(!cache.has(ms))cache.set(ms,read(ms));return cache.get(ms);
+ };
+}
+function am5392SlotsMemo(read){
+ const cache=new Map();
+ return function(w,now,rs){
+  if(!Number.isFinite(now)||amRecheckMin(w))return read(w,now,rs);
+  const key=JSON.stringify([amLogDay(now),amTimes(w),w.days,amOffLead(w),amOffGrace(w)]);
+  if(!cache.has(key))cache.set(key,read(w,now,rs));
+  return cache.get(key).map(x=>Object.assign({},x));
+ };
+}
+function am5392ForgotIndex(){
+ const index=new Map();
+ Object.keys(state).filter(k=>/^amLog_\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k=>Object.values(state[k]||{}).forEach(r=>{
+  if(!r||r.u||!r.nf||!r.miss||r.af)return;const id=String(r.w);
+  if(!index.has(id))index.set(id,[]);index.get(id).push(Date.parse(r.s));
+ }));
+ return index;
+}
+function am5392ReadFrame(draw){
+ const forgot=_am5392Forgot;_am5392Forgot={index:null};
+ const dayRead=amLogDay;amLogDay=am5392DayMemo(dayRead);
+ const slots=amOffSlots;amOffSlots=am5392SlotsMemo(slots);
+ const reads=[amLogRange,amOffStatus,amOffRecsOf,am5391Rounds,am5391TimeSince,am539Crew,am539Duty,am539AllowedIds,am539Learn,am539Tracked];
+ [amLogRange,amOffStatus,amOffRecsOf,am5391Rounds,am5391TimeSince,am539Crew,am539Duty,am539AllowedIds,am539Learn,am539Tracked]=reads.map(am5392Memo);
+ try{return draw();}finally{[amLogRange,amOffStatus,amOffRecsOf,am5391Rounds,am5391TimeSince,am539Crew,am539Duty,am539AllowedIds,am539Learn,am539Tracked]=reads;amOffSlots=slots;amLogDay=dayRead;_am5392Forgot=forgot;}
+}
 function amNxRender(view){
+ return am5392ReadFrame(()=>amNxRenderBody(view));
+}
+function amNxRenderBody(view){
   const now=Date.now(), map=amMap(), de=document.documentElement; if(_amNx.mapPresent!==!!map){_amNx.sc=0;_amNx.mapPresent=!!map;} de.classList.remove('amf-fit','amf-shut'); de.classList.add('nx-fit'); _amfNo={}; _amfAt=now;
   const kcv=amKcViewOn(), here=amNxHere(now), act=amRunActive(now), lgA=amNxLongRuns(now), hold=amNxHoldMap(now), q=kcv?amNxQueue(now).filter(x=>amKcIs(x.w)):amNxQueue(now), T=amNxTrbNow(now), ho=amNxHo(now);   // 5.27：困った・交代の 引き継ぎ   // 5.29：「🍳 厨房」の 間は 厨房の 作業だけ（列・地図・線）
   { const m=amRunMap(), sk=_amNx.ckSnap&&_amNx.ckSnap.k; Object.keys(_amNxCarry).forEach(k=>{ if(k!==sk&&!amRunOk(m[k])) delete _amNxCarry[k]; }); }   // 5.27（5.26 テス r3 の 残り）：終わった・取り消された 印の 持ち越し（温度）を メモリに 残さない
@@ -14959,6 +15027,9 @@ function amNxTake(k){
   amNxPick(r.sa?amNxAfId(String(r.w).replace(/#af$/,''),r.sa):r.w,false,k);
 }
 function amNxPick(id,more,take=''){
+ return am5392ReadFrame(()=>amNxPickBody(id,more,take));
+}
+function amNxPickBody(id,more,take=''){
   const it=amNxItemOf(id); if(!it) return; _amfHold=amFT()+AM_HOLD_MS; const now=Date.now(), h=amNxStaffOrd(amNxHere(now)), act=amRunActive(now), names=[...new Set(staffList().concat(am539Restricted(it.w)?am539AllowedIds(it.w).map(id=>id.replace(/^name:/,'')):[]))], rest=names.filter(n=>!h.some(x=>x.n===n)), eid=escapeHtml(id);   // 5.32（本部 10/27「名前の並びはいつも登録の順」）：今いる人も 登録の 並び（amNxStaffOrd）
   const btn=n=>am539NameButton(it.w,n,`amNxGo(this.dataset.w,this.dataset.n,this.dataset.take)`,!take&&(amNxHoldMap(now)[n]||0)>=AM_NX_HOLD,!!take).replace('<button type="button"',`<button type="button" data-take="${escapeHtml(take)}" data-w="${eid}"`);
   const q=h.length?`だれが やる？${amNxTr('Who?','कसले?')}`:`だれが やる？（入って すぐ 始まる）${amNxTr('Who is starting?','को सुरु गर्दै?')}`;
@@ -15088,6 +15159,9 @@ function amNxGo(id,name,take='',preDone=false){
 }
 /* 名前の 押しまちがい：取りかかり中の 帯の 丸 → 選び直す／取り消す */
 function amNxFix(k,more){
+ return am5392ReadFrame(()=>amNxFixBody(k,more));
+}
+function amNxFixBody(k,more){
   const r=amRunMap()[k]; if(!amRunOk(r)){ amCloseSheet(); renderMapView(); return; } const w0=amWork(r.w), w=w0||(r.sa?{icon:amNxRunLabel(r).icon, name:amNxRunLabel(r).name}:null); _amfHold=amFT()+AM_HOLD_MS;   // 5.26：あとの作業の 印は その 名前
   const now=Date.now(), h=amNxHere(now).filter(x=>x.n!==r.by), act=amRunActive(now).filter(x=>x.k!==k), names=staffList(), rest=names.filter(n=>n!==r.by&&!h.some(x=>x.n===n)), lgM=amNxIsLong(r,now);
   const btn=n=>am539NameButton(amNxRunLabel(r).base,n,`amNxRe('${k}',this.dataset.n)`,!lgM&&(amNxHoldMap(now)[n]||0)>=AM_NX_HOLD,lgM);
@@ -17064,7 +17138,8 @@ function amOffStatus(w, now){
   if(!sl.length) return R;
   let ai=-1; for(let i=0;i<sl.length;i++){ if(sl[i].o<=now) ai=i; }
   if(ai<0){ R.st='todo'; R.lock=true; R.slot=sl[0]; R.next=sl[0]; return R; }
-  const pending=am5391Rounds(w,now).find(v=>v.eligible&&!v.done&&now>v.e&&now<v.end);
+  const main=sl.filter(x=>!x.re);
+  const pending=main.some((x,i)=>now>x.e&&now<am5391Cut(w,x,main[i+1]))?am5391Rounds(w,now).find(v=>v.eligible&&!v.done&&now>v.e&&now<v.end):null;
   if(pending){const i=sl.findIndex(v=>v.s===pending.s);if(i>=0)ai=i;}
   const x=sl[ai], nx=sl[ai+1]||null, end=nx?nx.o:Infinity, arr=rcOn?rs.map(r=>({at:new Date(r.t).toISOString(), by:r.by,wsScheduled:r.wsScheduled})):_amChecksRead()[w.id];
   const wait=()=>{ if(nx){ R.st='todo'; R.lock=true; R.slot=nx; R.next=nx; } else { R.st='none'; R.slot=null; R.next=null; } return R; };
