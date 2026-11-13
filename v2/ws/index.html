@@ -5238,7 +5238,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.39.2'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.39.3'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -5360,8 +5360,7 @@ function _wsTrimAllIfNeeded(){
 function saveState(){
   // 【再発防止1】空state上書き拒否：既存に意味のあるデータがあり、新stateが空なら保存中止
   try{
-    const prevRaw=localStorage.getItem(STORAGE_KEY)||'';
-    if(_wsHasMeaningfulExisting(prevRaw) && _wsLooksEmpty(state)){
+    if(_wsLooksEmpty(state) && _wsHasMeaningfulExisting(localStorage.getItem(STORAGE_KEY)||'')){
       const el=document.getElementById('save-info');
       if(el)el.textContent='保存中止: 空データで上書きを防止';
       console.error('WS: 空のstateで既存データを上書きしようとしたため保存を中止');
@@ -13892,9 +13891,75 @@ function am5391Missed(day,now){
  }));
  return [...rows.entries()].map(([id,r])=>Object.assign({id},r));
 }
+/* 締めの覚えは計算だけ。保存・同期する state には足さない。 */
+function am5393Plan(now){
+ const D=86400000,today=amLogDay(now),works=amWorks();
+ const previous=am5393Plan.memo,buckets=new Map(),dirty=new Set();
+ const config=JSON.stringify([works,works.map(amWorkSince),state.amTags,am5391Since(now),Object.keys(state).filter(k=>k.indexOf('wsTimeChange_')===0).map(k=>[k,state[k]])]);
+ const copy=v=>v&&typeof v==='object'?JSON.parse(JSON.stringify(v)):v;
+ const record=(r,day)=>{
+  // 締めの判定に使う欄だけを覚える。名前・人数・点数などの複製は要らない。
+  const alias=r&&typeof r==='object'&&Object.prototype.hasOwnProperty.call(r,'id');
+  const value=alias?r:r&&typeof r==='object'?{w:r.w,at:r.at,s:r.s,sa:r.sa,wsScheduled:r.wsScheduled,u:r.u,miss:r.miss,nf:r.nf,af:r.af,wsMissed:r.wsMissed,scheduled:r.scheduled,hiddenAt:r.hiddenAt}:r,json=(alias?'id:':'')+JSON.stringify(value);
+  return {day,r:value&&typeof value==='object'?{w:copy(value.w),at:copy(value.at),s:copy(value.s),wsScheduled:copy(value.wsScheduled)}:value,json,alias:alias&&r.wsMissed===1};
+ };
+ const snapshot=()=>{
+  const rows=new Map();
+  Object.keys(state).filter(k=>k.indexOf(AM_LOG_PRE)===0).forEach(k=>{
+   const json=JSON.stringify(state[k]),versions=previous&&previous.buckets.has(k)?previous.buckets.get(k).slice():[];
+   let bucket=versions.find(v=>v.json===json);
+   if(!bucket){bucket={json,rows:new Map(Object.entries(state[k]||{}).map(([id,r])=>[k+'|'+id,record(r,k.slice(AM_LOG_PRE.length))]))};versions.push(bucket);if(versions.length>2)versions.shift();}
+   buckets.set(k,versions);bucket.rows.forEach((r,id)=>rows.set(id,r));
+  });
+  Object.entries(_amChecksRead()).forEach(([w,rs])=>{if(Array.isArray(rs))rs.forEach((r,i)=>rows.set('check|'+w+'|'+i,record({...r,w})));});
+  amRunActive(now).concat(amNxLongRuns(now)).forEach((r,i)=>rows.set('run|'+i,{...record({...r,s:new Date(r.s).toISOString()}),run:true}));
+  return rows;
+ };
+ const rows=snapshot(),days=new Set(),entries=new Map();
+ const reset=!previous||previous.config!==config||now<previous.now;
+ const changed=[],missing=[],generated=reset?new Map():new Map(previous.generated),restore=new Map();
+ // 覚えも35日ぶんだけ。古い日の記録そのものは変えない。
+ const firstDay=amLogDay(now-(AM_LOG_DAYS-1)*D);generated.forEach((out,k)=>{if(out.day<firstDay||out.day>today)generated.delete(k);});
+ if(!reset){
+  rows.forEach((v,k)=>{const old=previous.rows.get(k);if(!old||old.json!==v.json){changed.push(v);if(old)changed.push(old);}});
+  previous.rows.forEach((v,k)=>{if(!rows.has(k)){const out=generated.get(k);if(out&&out.input.json===v.json)missing.push(out);else changed.push(v);}});
+ }
+ for(let i=0;i<AM_LOG_DAYS;i++){
+  const day=amLogDay(now-i*D),entry=!reset&&previous.entries.get(day);
+  if(!entry){days.add(day);continue;}
+  entries.set(day,entry);
+  if(now>=entry.next||(previous.today!==today&&(day===previous.today||day===today))||changed.some(v=>{
+   if(v.day===day)return true;
+   const r=v.r;if(!r)return false;
+   const t=new Date(r.at).getTime(),s=new Date(r.s).getTime();
+   // 完了・押し忘れ・作業中の変更が、この日の回の窓に入る時だけ見直す。
+   return entry.windows.some(x=>String(r.w)===String(x.w)&&(v.run?s>=x.o&&s<x.cut:r.wsScheduled===x.s||(t>=x.o&&t<x.end)||(s>=x.o&&s<x.end)));
+  }))days.add(day);
+ }
+ // 別のidへ写す古い形式は、通常の回の窓に入らない押し忘れもあるので毎回確かめる。
+ rows.forEach(v=>{if(v.alias&&v.day)days.add(v.day);});
+ // 自分が足した締めだけが欠け、判定の材料が同じなら、前と同じ字をそのまま補う。
+ missing.forEach(out=>{if(!days.has(out.day)){if(!restore.has(out.day))restore.set(out.day,[]);restore.get(out.day).push(out);}});
+ restore.forEach(list=>list.sort((a,b)=>a.order-b.order));
+ am5393Plan.done=()=>{
+  dirty.forEach(k=>{const json=JSON.stringify(state[k]),versions=buckets.get(k)||[];if(!versions.some(v=>v.json===json)){versions.push({json,rows:new Map(Object.keys(state[k]).map(id=>[k+'|'+id,rows.get(k+'|'+id)]))});if(versions.length>2)versions.shift();}buckets.set(k,versions);});
+  am5393Plan.memo={config,today,now,rows,entries,generated,buckets};
+ };
+ return {days,entries,rows,record,generated,restore,dirty};
+}
 function am5391Settle(now){
  if(!am5391Enabled())return 0;
  now=now||Date.now();let n=0;
+ const memo=typeof am5393Plan==='function'?am5393Plan(now):null;
+ const rounds=memo?am5391Rounds:null;let entry=null;
+ if(rounds)am5391Rounds=function(...args){
+  const rows=rounds(...args),w=args[0];
+  if(entry&&rows.length&&!am5391Keep(w)){
+   const slots=amOffSlots(w,args[1],[]).filter(x=>!x.re);let cursor=0;
+   rows.forEach(x=>{const i=slots.findIndex((v,j)=>j>=cursor&&v.s===x.s),nx=i<0?null:slots[i+1];if(i>=0)cursor=i+1;entry.windows.push({w:x.w,s:x.s,o:x.o,cut:x.end,end:nx?Math.max(nx.o,x.end):Infinity});if(x.eligible&&!x.done&&x.end>now)entry.next=Math.min(entry.next,x.end);});
+  }
+  return rows;
+ };
  // 利用開始より前に締切も過ぎた日は、追加できる回がない。既存の記録はそのまま。
  const oldest=typeof amWorks==='function'?amLogDay(am5391Since(now)-Math.max(0,...amWorks().filter(w=>w&&amIsTimed(w)).map(amOffGrace))*60000):'';
  // 足すのは miss だけ。完了の読み取り結果は、この保存の間は変わらない。
@@ -13908,12 +13973,18 @@ function am5391Settle(now){
  if(read)amLogRange=function(from,to){const key=from+'|'+to;if(!cache.has(key))cache.set(key,read(from,to));return cache.get(key);};
  try{
  for(let i=0;i<AM_LOG_DAYS;i++){
-  const day=amLogDay(now-i*86400000);if(day<oldest)continue;
-  const rows=am5391Missed(day,now),key=AM_LOG_PRE+day;
-  rows.forEach(({id,...r})=>{if(!state[key])state[key]={};if(!(id in state[key])){state[key][id]=r;n++;}});
+  const day=amLogDay(now-i*86400000),key=AM_LOG_PRE+day;if(day<oldest)continue;
+  if(memo&&!memo.days.has(day)){
+   (memo.restore.get(day)||[]).forEach(out=>{if(!state[key])state[key]={};if(!(out.id in state[key])){state[key][out.id]=out.row?{...out.row}:JSON.parse(out.payload);memo.rows.set(out.key,out.input);memo.dirty.add(key);n++;}});
+   continue;
+  }
+  if(memo){entry={next:Infinity,windows:[]};memo.entries.set(day,entry);memo.generated.forEach((out,k)=>{if(out.day===day)memo.generated.delete(k);});}
+  const aliases=memo?new Set(Object.values(state[key]||{}).filter(r=>r&&Object.prototype.hasOwnProperty.call(r,'id')).map(r=>r.id)):null,rows=am5391Missed(day,now);
+  rows.forEach(({id,...r},order)=>{if(!state[key])state[key]={};if(!(id in state[key])){state[key][id]=r;n++;if(memo){const k=key+'|'+id,input=memo.record(r,day);memo.rows.set(k,input);if(!aliases.has(id))memo.generated.set(k,{day,id,key:k,input,order,payload:JSON.stringify(r),row:Object.values(r).every(v=>v===null||typeof v!=='object')?{...r}:null});memo.dirty.add(key);}}});
  }
+ if(memo)am5393Plan.done();
  return n;
- }finally{if(read)amLogRange=read;if(slots)amOffSlots=slots;if(dayRead)amLogDay=dayRead;if(typeof _am5392Forgot!=='undefined')_am5392Forgot=forgot;}
+ }finally{if(rounds)am5391Rounds=rounds;if(read)amLogRange=read;if(slots)amOffSlots=slots;if(dayRead)amLogDay=dayRead;if(typeof _am5392Forgot!=='undefined')_am5392Forgot=forgot;}
 }
 function am5391Html(day,now){
  const rows=am5391Missed(day,now);if(!rows.length)return '';

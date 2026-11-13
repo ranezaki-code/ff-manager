@@ -70,7 +70,7 @@ test('day formatting caches explicit timestamps but preserves live default-time 
 });
 test('all 18 inline scripts parse; UTF-8, LF, version and generated main remain correct',()=>{
  let count=0;for(const file of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,file),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'),file);for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;const r=cp.spawnSync(process.execPath,['--check'],{input:m[2],encoding:'utf8'});assert.equal(r.status,0,r.stderr);count++;}}
- assert.equal(count,18);assert.match(source,/APP_VERSION = '5.39.2'/);
+ assert.equal(count,18);assert.match(source,/APP_VERSION = '5.39.3'/);
  const built=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8').match(/<script type="text\/plain" id="v2-main">([\s\S]*?)<\/script>/)[1],main=source.match(/<script>\n('use strict';[\s\S]*?)<\/script>/)[1];
  const normalize=s=>s.replace(/^    if\(fromHub.*$/m,'    embedded navigation').replaceAll('../app.html?sys=ws','../index.html?sys=ws').trim();assert.equal(normalize(built),normalize(main));
 });
