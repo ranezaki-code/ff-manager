@@ -5241,7 +5241,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.40.3'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.40.4'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -14835,9 +14835,9 @@ function amNxRenderBody(view){
   if(_amNx.qz){ const Q=_amNx.qz; if(!amWork(Q.w)||(!amRunOk(amRunMap()[Q.k])&&!amNxOldMiss(Q.k))){ _amNx.qz=null; setTimeout(()=>amSnack('もう 終わっています（ほかの 端末で 押されたか、取り消されました）',false),0); } else { ckR=null; _amNx.ck=''; } }
   const vng=amNxVngNow(now), NA=isAdmin?amNumAlertsToday(now):[];   // 5.28：範囲の 外の 赤い 札（クルー）／知らせ（管理者）
   if(isAdmin&&NA.length){ const nw=NA.filter(x=>!_amNx.numSeen[x.id]&&(x.y==='out'||x.y==='dz'||x.y==='exp')); NA.forEach(x=>{ _amNx.numSeen[x.id]=1; }); if(nw.length) setTimeout(()=>{ const sn=document.getElementById('am-snack'); if(sn&&sn.classList.contains('show')) return; amSnack(`🔔 知らせ：${nw[0].y==='dz'?'前の 回と ずれ':nw[0].y==='exp'?'期限切れの 日付':'範囲の 外'}：${(nw[0].w&&nw[0].w.name)||''}${nw.length>1?` ほか ${nw.length-1}件`:''}`,false,'見る',amNumAlertList); },0); }   // 出ている お知らせ（取り消せる 記録の 知らせ 等）は 上書きしない
-  if(typeof amHoTabsSize==='function') amHoTabsSize();
+  if(typeof amHoTabsSize==='function') amHoTabsSize(view,!!map&&!ckR);
   const vr=view.getBoundingClientRect(), vis=vr.width>0, W=vis?Math.round(view.clientWidth):1024, ph=W<600, footH=(window.innerWidth>=621)?22:0;
-  const topY=vis?vr.top+(window.scrollY||window.pageYOffset||0):60, H=Math.max(ph?(map&&!ckR?520:0):440, Math.floor((window.innerHeight||768)-topY-footH));
+  const topY=vis?vr.top+(window.scrollY||window.pageYOffset||0):60, H=Math.max(amHoMapMin(ph,!!map&&!ckR), Math.floor((window.innerHeight||768)-topY-footH));
   const adH=isAdmin?(ph?96:52):0, topH=ph?56:64, bodyH=H-adH-topH, g=ph?8:16, gut=ph?0:44, port=!ph&&H>W;   // 5.31：スマホの 管理者の 帯は 2段（96px）
   let M=null, C;
   if(map&&!ph){ let mh=bodyH-2*g, mw=mh*map.w/map.h; const maxW=port?330:W*0.38; if(mw>maxW){ mw=maxW; mh=mw*map.h/map.w; } M={x:g,y:g,w:mw,h:mh}; C={x:Math.round(g+mw+gut),y:g,w:Math.round(W-(g+mw+gut)-g),h:bodyH-2*g}; }
@@ -20793,7 +20793,9 @@ const AM_HO_WORDS = {
   ]
 };
 function amHoText(key){ const t=AM_HO_WORDS[key]; return (key==='undone'?t[0].split(' ').map(w=>'<span style="display:inline-block">'+escapeHtml(w)+'</span>').join(' '):escapeHtml(t[0]))+amTr2(t[1],t[2]); }
-function amHoTabsSize(){
+function amHoMapMin(ph,mapColumn){ return ph?(mapColumn?520:0):440; }
+let amHoMapColumn=false;
+function amHoTabsSize(view,mapColumn){
   if(!AM_HO_LIST||typeof getComputedStyle!=='function') return;
   const tabs=document.getElementById('view-tabs'); if(!tabs) return;
   const css=getComputedStyle(tabs), px=k=>parseFloat(css[k])||0, buttons=Array.from(tabs.children).filter(b=>b.offsetWidth>0);
@@ -20807,16 +20809,26 @@ function amHoTabsSize(){
     if(used&&used+gap+w>available){ rows++; used=0; }
     used+=(used?gap:0)+w;
   }
-  const two=rows===2;
+  const padding=px('paddingTop')+px('paddingBottom')+border, twoHeight=96+px('rowGap')+padding;
+  if(mapColumn!==undefined) amHoMapColumn=mapColumn;
+  if(!view&&amNxOn()) view=document.getElementById('map-view');
+  // 2段に した 後の 地図の 上の はしを 先に 出す
+  let fits=true;
+  if(rows===2&&view&&view.clientWidth){
+    const top=view.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)+twoHeight-tabs.getBoundingClientRect().height;
+    const footH=window.innerWidth>=621?22:0;
+    fits=Math.floor((window.innerHeight||768)-top-footH)>=amHoMapMin(view.clientWidth<600,amHoMapColumn);
+  }
+  const two=rows===2&&fits;
   if(tabs.classList.contains('am-ho-two')!==two) tabs.classList.toggle('am-ho-two',two);
-  const height=((two?96+px('rowGap'):44)+px('paddingTop')+px('paddingBottom')+border+(overflow&&!two?10:0))+'px'; if(tabs.style.height!==height) tabs.style.height=height;
+  const height=(two?twoHeight:44+padding+(overflow?10:0))+'px'; if(tabs.style.height!==height) tabs.style.height=height;
 }
 function amHoMount(){
   if(!AM_HO_LIST||document.getElementById('tab-handover')) return;
   const tab=document.getElementById('tab-request'), view=document.getElementById('request-view'); if(!tab||!view) return;
   tab.insertAdjacentHTML('afterend','<button id="tab-handover" aria-label="引継ぎ" style="min-height:48px;min-width:48px;width:48px;padding:0;margin-block:-2px;position:relative;justify-content:center" onclick="setView(&quot;handover&quot;)">🤝 <span id="tab-handover-badge" class="tab-count-badge" style="display:none;position:absolute;right:0;top:0;margin:0;padding:1px 3px">0</span></button>');
   view.insertAdjacentHTML('afterend','<div id="handover-view" style="display:none;padding:14px;background:#f8fafc;min-height:60vh"><div id="ho-list" class="nxt"></div><div id="ho-notes"></div></div>');
-  amHoTabsSize(); if(typeof window!=='undefined') window.addEventListener('resize',amHoTabsSize);
+  amHoTabsSize(); if(typeof window!=='undefined') window.addEventListener('resize',()=>amHoTabsSize());
   if(typeof MutationObserver!=='undefined'){const observer=new MutationObserver(records=>{if(records.some(r=>r.type!=='attributes'||r.target!==document.getElementById('view-tabs'))) amHoTabsSize();});observer.observe(document.body,{attributes:true,attributeFilter:['class']});observer.observe(document.getElementById('view-tabs'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['style','class']});}
 }
 function amHoBadge(q,lgA){

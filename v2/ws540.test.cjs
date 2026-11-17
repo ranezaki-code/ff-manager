@@ -43,7 +43,7 @@ test('97ho7 mutation checks reject state writes, badge recomputation and false m
  const c2=context(source.replace("if(!AM_HO_LIST||document.getElementById('tab-handover')) return;","if(document.getElementById('tab-handover')) return;"),false);run(c2,'amHoMount()');assert.throws(()=>assert.equal(c2.nodes['tab-handover'],undefined));
 });
 test('97ho8 syntax, LF, Unicode and generated body agree',()=>{
- let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.3'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
+ let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.4'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
 });
 
 function tabsCheck(s=source){
@@ -56,7 +56,7 @@ function reviewCheck(s=source){tabsCheck(s);
  assert.match(h,/1回目/);assert.match(h,/下げた時刻/);assert.match(h,/Freshness control/);assert.doesNotMatch(h,/<span style="display:inline-block;padding:2px[^>]*>[^<]*<small>/);
  assert.match(fn('amHoMount',s),/MutationObserver/);assert.match(fn('amHoMount',s),/aria-label="引継ぎ"/);assert.match(fn('amHoText',s),/display:inline-block/);assert.doesNotMatch(fn('initVersionInfo',s),/5.39.3|AM_HO_LIST/);assert.doesNotMatch(fn('amNxCfgOpen',s),/5.39.3/);
 }
-test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.40.3',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.40.3');});
+test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.40.4',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.40.4');});
 test('97ho9 review fixes: complete Japanese then one translation, fresh badge, missed words, sizing and version',()=>reviewCheck());
 test('97ho10 each of five review regressions is rejected',()=>{
  const old=cp.execFileSync('git',['show','aa11df4:ws/index.html'],{cwd:root,encoding:'utf8',maxBuffer:8e6});
@@ -65,30 +65,30 @@ test('97ho10 each of five review regressions is rejected',()=>{
 
 test('97ho12 admin tab height is settled before map and band measurement; missing call is rejected',()=>{
  const check=(text,enabled=true)=>{for(const width of [390,768,800]){
-  const c=context(text,enabled),tabs={classList:tabClasses(),style:{height:'61px'},clientWidth:width,children:[{offsetWidth:width+20}],get offsetHeight(){return parseInt(this.style.height);}};
+  const c=context(text,enabled),tabs={classList:tabClasses(),style:{height:'61px'},clientWidth:width,children:[{offsetWidth:width+20}],get offsetHeight(){return parseInt(this.style.height);},getBoundingClientRect(){return {height:this.offsetHeight};}};
   c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',borderBottomWidth:'1'});
   c.view={clientWidth:width,getBoundingClientRect:()=>({width,top:100+tabs.offsetHeight})};c.window={innerWidth:width,innerHeight:1024,scrollY:0};c.map=null;c.ckR=null;c.isAdmin=true;
-  const body=fn('amNxRenderBody',text),a=body.indexOf("  if(typeof amHoTabsSize==='function') amHoTabsSize();"),b=body.indexOf('  let M=null, C;');
+  const body=fn('amNxRenderBody',text),a=body.indexOf("  if(typeof amHoTabsSize==='function') amHoTabsSize(view,!!map&&!ckR);"),b=body.indexOf('  let M=null, C;');
   const start=a>=0?a:body.indexOf('  const vr=view.getBoundingClientRect()');
   const measured=run(c,'(()=>{'+body.slice(start,b)+'return {topY,H,bodyH};})()');
   run(c,'amHoTabsSize()');const settled=100+tabs.offsetHeight;
   assert.equal(tabs.style.height,enabled?'71px':'61px');assert.equal(measured.topY,settled,'map/band top at width '+width);assert.equal(measured.H,Math.floor(1024-settled-(width>=621?22:0)));
  }};
  check(source);check(source,false);
- const broken=source.replace("  if(typeof amHoTabsSize==='function') amHoTabsSize();\n",'');assert.notEqual(broken,source);assert.throws(()=>check(broken),/map\/band top/);
+ const broken=source.replace("  if(typeof amHoTabsSize==='function') amHoTabsSize(view,!!map&&!ckR);\n",'');assert.notEqual(broken,source);assert.throws(()=>check(broken),/map\/band top/);
 });
 
 test('97ho13 two rows settle before map/band at admin widths; removing wrap is rejected',()=>{
  const check=text=>{for(const width of [390,768,800]){
-  const c=context(text),tabs={classList:tabClasses(),style:{height:'61px'},clientWidth:width,children:Array.from({length:3},()=>({offsetWidth:Math.floor(width*0.4)})),get offsetHeight(){return parseInt(this.style.height);}};
+  const c=context(text),tabs={classList:tabClasses(),style:{height:'61px'},clientWidth:width,children:Array.from({length:3},()=>({offsetWidth:Math.floor(width*0.4)})),get offsetHeight(){return parseInt(this.style.height);},getBoundingClientRect(){return {height:this.offsetHeight};}};
   c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',borderBottomWidth:'1',columnGap:'6',rowGap:'6'});
   c.view={clientWidth:width,getBoundingClientRect:()=>({width,top:100+tabs.offsetHeight})};c.window={innerWidth:width,innerHeight:1024,scrollY:0};c.map=null;c.ckR=null;c.isAdmin=true;
-  const body=fn('amNxRenderBody',text),a=body.indexOf("  if(typeof amHoTabsSize==='function') amHoTabsSize();"),b=body.indexOf('  let M=null, C;');
+  const body=fn('amNxRenderBody',text),a=body.indexOf("  if(typeof amHoTabsSize==='function') amHoTabsSize(view,!!map&&!ckR);"),b=body.indexOf('  let M=null, C;');
   const measured=run(c,'(()=>{'+body.slice(a,b)+'return {topY,H};})()');run(c,'amHoTabsSize()');
   assert.equal(tabs.classList.contains('am-ho-two'),true,'two rows');assert.equal(tabs.style.height,'119px');assert.equal(measured.topY,100+tabs.offsetHeight,'map/band top');
   assert.equal(measured.H,Math.floor(1024-measured.topY-(width>=621?22:0)));
  }};check(source);
- const broken=source.replace('const two=rows===2;','const two=false;');assert.notEqual(broken,source);assert.throws(()=>check(broken),/two rows/);
+ const broken=source.replace('const two=rows===2&&fits;','const two=false;');assert.notEqual(broken,source);assert.throws(()=>check(broken),/two rows/);
 });
 
 test('97ho14 own tab attributes do not repeat sizing; role, badges and child lists still resize',()=>{
@@ -105,9 +105,30 @@ test('97ho15 fractional button widths cannot hide a third row',()=>{
  tabs.children.forEach(b=>b.getBoundingClientRect=()=>({width:191.75}));run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'119px');tabs.children=tabs.children.slice(0,2);tabs.children.forEach(b=>b.getBoundingClientRect=()=>({width:192.25}));run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'119px');tabs.clientWidth=800;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');
 });
 
+test('97ho16 short staff view keeps the bottom of the map column in view',()=>{
+ const check=(text,width,height,overhang)=>{
+  const c=context(text),tabs={classList:tabClasses(),style:{height:'119px'},clientWidth:width,children:[200,100,100].map(offsetWidth=>({offsetWidth})),getBoundingClientRect(){return {height:parseInt(this.style.height)};}};
+  c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',borderBottomWidth:'1',columnGap:'6',rowGap:'6'});
+  c.view={clientWidth:width,getBoundingClientRect:()=>({width,top:height+overhang-520-119+tabs.getBoundingClientRect().height})};
+  let resize;
+  c.window={innerWidth:width,innerHeight:height,scrollY:0,addEventListener(type,handler){assert.equal(type,'resize');resize=handler;}};c.map={};c.ckR=null;c.isAdmin=false;
+  c.nodes['map-view']=c.view;
+  const body=fn('amNxRenderBody',text),a=body.indexOf("  if(typeof amHoTabsSize==='function')"),b=body.indexOf('  let M=null, C;');
+  const bottom=run(c,'(()=>{'+body.slice(a,b)+'return topY+H;})()');
+  assert.ok(bottom<=height,'map bottom at '+width+'x'+height+': '+bottom);
+  run(c,'amHoMount()');tabs.style.height='119px';resize({type:'resize'});
+  assert.equal(tabs.style.height,'71px','resize event keeps the short staff view in one row');
+ };
+ const broken=source.replace('const two=rows===2&&fits;','const two=rows===2;');assert.notEqual(broken,source);
+ for(const [width,height,overhang] of [[375,667,16],[360,640,43]]){
+  check(source,width,height,overhang);
+  assert.throws(()=>check(broken,width,height,overhang),new RegExp('map bottom at '+width+'x'+height+': '+(height+overhang)));
+ }
+});
+
 // Run unchanged regression tests with only the exact current-version expectation adapted in memory.
 if(process.argv.includes('--regressions'))for(const f of ['ws5390.test.cjs','ws5391.test.cjs','ws5392.test.cjs','ws5393.test.cjs','ws-settle-equivalence.test.cjs']){
- let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.3'");new Function('require','__dirname','process',code)(require,__dirname,process);
+ let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.4'");new Function('require','__dirname','process',code)(require,__dirname,process);
 }
 // Existing single-process speed runner; output uses os.tmpdir and no external origin is allowed.
 async function reviewGeometry({ev,send,setRevision,load,out}){
@@ -159,7 +180,7 @@ async function integration({ev,send,out,html,setRevision}){
   }.toString())}+')()')`));
  }
  assert.equal(probes[1].tabs,probes[0].tabs,'disabled tabs identical');assert.equal(probes[1].map,probes[0].map,'disabled map DOM identical');
- assert.equal(probes[1].displayedVersion,'v5.40.3');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
+ assert.equal(probes[1].displayedVersion,'v5.40.4');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
  assert.equal(JSON.stringify(probes[2].geometry),JSON.stringify(probes[0].geometry),'map geometry unchanged with the new tab');
  fs.writeFileSync(path.join(out,'probe-detail.json'),JSON.stringify(probes));
  for(const p of probes){assert.equal(p.readOnlyAfterClock,true);assert.equal(p.initial,probes[0].initial);assert.equal(JSON.stringify(p.trace),JSON.stringify(probes[0].trace),'operation bytes');assert.equal(JSON.stringify(p.boundary),JSON.stringify(probes[0].boundary),'boundary bytes');}
