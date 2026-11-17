@@ -42,7 +42,7 @@ test('97ho7 mutation checks reject state writes, badge recomputation and false m
  const c2=context(source.replace("if(!AM_HO_LIST||document.getElementById('tab-handover')) return;","if(document.getElementById('tab-handover')) return;"),false);run(c2,'amHoMount()');assert.throws(()=>assert.equal(c2.nodes['tab-handover'],undefined));
 });
 test('97ho8 syntax, LF, Unicode and generated body agree',()=>{
- let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.1'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
+ let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.2'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
 });
 
 function tabsCheck(s=source){
@@ -55,15 +55,31 @@ function reviewCheck(s=source){tabsCheck(s);
  assert.match(h,/1回目/);assert.match(h,/下げた時刻/);assert.match(h,/Freshness control/);assert.doesNotMatch(h,/<span style="display:inline-block;padding:2px[^>]*>[^<]*<small>/);
  assert.match(fn('amHoMount',s),/MutationObserver/);assert.match(fn('amHoMount',s),/aria-label="引継ぎ"/);assert.match(fn('amHoText',s),/display:inline-block/);assert.doesNotMatch(fn('initVersionInfo',s),/5.39.3|AM_HO_LIST/);assert.doesNotMatch(fn('amNxCfgOpen',s),/5.39.3/);
 }
-test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.40.1',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.40.1');});
+test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.40.2',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.40.2');});
 test('97ho9 review fixes: complete Japanese then one translation, fresh badge, missed words, sizing and version',()=>reviewCheck());
 test('97ho10 each of five review regressions is rejected',()=>{
  const old=cp.execFileSync('git',['show','aa11df4:ws/index.html'],{cwd:root,encoding:'utf8',maxBuffer:8e6});
  const variants=[source.replace("'<span data-ho-jp>'+jp+'</span>'+amTr2", "amTr2"),source.replace(fn('amHoMount'),fn('amHoMount',old)),source.replace("e(AM_HO_WORDS.round[0])", "''"),source.replace("e(AM_HO_WORDS.fresh[0])", "amHoText('fresh')"),source.replace(fn('initVersionInfo'),fn('initVersionInfo',old))];for(let i=0;i<variants.length;i++)assert.throws(()=>reviewCheck(variants[i]),'review regression '+(i+1));
 });
+
+test('97ho12 admin tab height is settled before map and band measurement; missing call is rejected',()=>{
+ const check=(text,enabled=true)=>{for(const width of [390,768,800]){
+  const c=context(text,enabled),tabs={style:{height:'61px'},clientWidth:width,children:[{offsetWidth:width+20}],get offsetHeight(){return parseInt(this.style.height);}};
+  c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',borderBottomWidth:'1'});
+  c.view={clientWidth:width,getBoundingClientRect:()=>({width,top:100+tabs.offsetHeight})};c.window={innerWidth:width,innerHeight:1024,scrollY:0};c.map=null;c.ckR=null;c.isAdmin=true;
+  const body=fn('amNxRenderBody',text),a=body.indexOf("  if(typeof amHoTabsSize==='function') amHoTabsSize();"),b=body.indexOf('  let M=null, C;');
+  const start=a>=0?a:body.indexOf('  const vr=view.getBoundingClientRect()');
+  const measured=run(c,'(()=>{'+body.slice(start,b)+'return {topY,H,bodyH};})()');
+  run(c,'amHoTabsSize()');const settled=100+tabs.offsetHeight;
+  assert.equal(tabs.style.height,enabled?'71px':'61px');assert.equal(measured.topY,settled,'map/band top at width '+width);assert.equal(measured.H,Math.floor(1024-settled-(width>=621?22:0)));
+ }};
+ check(source);check(source,false);
+ const broken=source.replace("  if(typeof amHoTabsSize==='function') amHoTabsSize();\n",'');assert.notEqual(broken,source);assert.throws(()=>check(broken),/map\/band top/);
+});
+
 // Run unchanged regression tests with only the exact current-version expectation adapted in memory.
 if(process.argv.includes('--regressions'))for(const f of ['ws5390.test.cjs','ws5391.test.cjs','ws5392.test.cjs','ws5393.test.cjs','ws-settle-equivalence.test.cjs']){
- let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.1'");new Function('require','__dirname','process',code)(require,__dirname,process);
+ let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.2'");new Function('require','__dirname','process',code)(require,__dirname,process);
 }
 // Existing single-process speed runner; output uses os.tmpdir and no external origin is allowed.
 async function reviewGeometry({ev,send,setRevision,load,out}){
@@ -115,7 +131,7 @@ async function integration({ev,send,out,html,setRevision}){
   }.toString())}+')()')`));
  }
  assert.equal(probes[1].tabs,probes[0].tabs,'disabled tabs identical');assert.equal(probes[1].map,probes[0].map,'disabled map DOM identical');
- assert.equal(probes[1].displayedVersion,'v5.40.1');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
+ assert.equal(probes[1].displayedVersion,'v5.40.2');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
  assert.equal(JSON.stringify(probes[2].geometry),JSON.stringify(probes[0].geometry),'map geometry unchanged with the new tab');
  fs.writeFileSync(path.join(out,'probe-detail.json'),JSON.stringify(probes));
  for(const p of probes){assert.equal(p.readOnlyAfterClock,true);assert.equal(p.initial,probes[0].initial);assert.equal(JSON.stringify(p.trace),JSON.stringify(probes[0].trace),'operation bytes');assert.equal(JSON.stringify(p.boundary),JSON.stringify(probes[0].boundary),'boundary bytes');}

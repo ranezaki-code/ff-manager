@@ -5233,7 +5233,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.40.1'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.40.2'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -14827,6 +14827,7 @@ function amNxRenderBody(view){
   if(_amNx.qz){ const Q=_amNx.qz; if(!amWork(Q.w)||(!amRunOk(amRunMap()[Q.k])&&!amNxOldMiss(Q.k))){ _amNx.qz=null; setTimeout(()=>amSnack('もう 終わっています（ほかの 端末で 押されたか、取り消されました）',false),0); } else { ckR=null; _amNx.ck=''; } }
   const vng=amNxVngNow(now), NA=isAdmin?amNumAlertsToday(now):[];   // 5.28：範囲の 外の 赤い 札（クルー）／知らせ（管理者）
   if(isAdmin&&NA.length){ const nw=NA.filter(x=>!_amNx.numSeen[x.id]&&(x.y==='out'||x.y==='dz'||x.y==='exp')); NA.forEach(x=>{ _amNx.numSeen[x.id]=1; }); if(nw.length) setTimeout(()=>{ const sn=document.getElementById('am-snack'); if(sn&&sn.classList.contains('show')) return; amSnack(`🔔 知らせ：${nw[0].y==='dz'?'前の 回と ずれ':nw[0].y==='exp'?'期限切れの 日付':'範囲の 外'}：${(nw[0].w&&nw[0].w.name)||''}${nw.length>1?` ほか ${nw.length-1}件`:''}`,false,'見る',amNumAlertList); },0); }   // 出ている お知らせ（取り消せる 記録の 知らせ 等）は 上書きしない
+  if(typeof amHoTabsSize==='function') amHoTabsSize();
   const vr=view.getBoundingClientRect(), vis=vr.width>0, W=vis?Math.round(view.clientWidth):1024, ph=W<600, footH=(window.innerWidth>=621)?22:0;
   const topY=vis?vr.top+(window.scrollY||window.pageYOffset||0):60, H=Math.max(ph?(map&&!ckR?520:0):440, Math.floor((window.innerHeight||768)-topY-footH));
   const adH=isAdmin?(ph?96:52):0, topH=ph?56:64, bodyH=H-adH-topH, g=ph?8:16, gut=ph?0:44, port=!ph&&H>W;   // 5.31：スマホの 管理者の 帯は 2段（96px）
