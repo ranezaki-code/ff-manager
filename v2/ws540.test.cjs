@@ -14,7 +14,7 @@ function context(s=source,enabled=true){
 }
 const run=(c,s)=>vm.runInContext(s,c);
 test('97ho1 all store configurations mount once, after request, without writes',()=>{
- for(const config of [{},{amNx:{}},{amNx:{on:1}},{amNx:{on:1,gv:{on:1}}}]){const c=context();c.state=config;const before=JSON.stringify([c.state,c.storage]);run(c,'amHoMount();amHoMount()');assert.ok(c.nodes['tab-handover']);assert.ok(c.nodes['handover-view']);assert.ok(c.nodes['ho-notes']);assert.match(c.nodes['tab-request'].html,/🤝 引継ぎ/);assert.equal((c.nodes['tab-request'].html.match(/id="tab-handover"/g)||[]).length,1);assert.equal(JSON.stringify([c.state,c.storage]),before);}
+ for(const config of [{},{amNx:{}},{amNx:{on:1}},{amNx:{on:1,gv:{on:1}}}]){const c=context();c.state=config;const before=JSON.stringify([c.state,c.storage]);run(c,'amHoMount();amHoMount()');assert.ok(c.nodes['tab-handover']);assert.ok(c.nodes['handover-view']);assert.ok(c.nodes['ho-notes']);assert.match(c.nodes['tab-request'].html,/aria-label="引継ぎ"/);assert.equal((c.nodes['tab-request'].html.match(/id="tab-handover"/g)||[]).length,1);assert.equal(JSON.stringify([c.state,c.storage]),before);}
 });
 test('97ho2 all sections and tiles, freshness, deduplication, read only',()=>{
  const c=context();c.queue=[0,1,2].map(i=>({k:'fire',w:{fresh:i===2},name:'作業'+i}));c.long=[{k:'long',w:'残った作業',by:'クルーA'}];c.active=[...c.long,{k:'a',w:'作業中A',by:'クルーB'},{k:'b',w:'作業中B',by:'クルーC'}];c.state.amRun=Object.fromEntries(c.active.map(r=>[r.k,r]));const def={ic:'!',t:'物が ない',en:'Missing item',ne:'सामान छैन'};c.trouble=[{qid:'困った作業',def}];c.given=[{qid:'諦めた作業',def,by:'クルーD',t:0}];c.missed=[{w:'間に合わなかった作業',round:1,scheduled:new Date().toISOString(),hiddenAt:new Date().toISOString()}];c.amWork=()=>({});
@@ -42,22 +42,44 @@ test('97ho7 mutation checks reject state writes, badge recomputation and false m
  const c2=context(source.replace("if(!AM_HO_LIST||document.getElementById('tab-handover')) return;","if(document.getElementById('tab-handover')) return;"),false);run(c2,'amHoMount()');assert.throws(()=>assert.equal(c2.nodes['tab-handover'],undefined));
 });
 test('97ho8 syntax, LF, Unicode and generated body agree',()=>{
- let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.0'/);assert.match(source,/🤝 引継ぎ/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
+ let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.1'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
+});
+
+function tabsCheck(s=source){
+ const c=context(s),tabs={style:{},clientWidth:300,children:[{id:'tab-map',offsetWidth:200,offsetHeight:44},{id:'tab-handover',offsetWidth:48,offsetHeight:48}],offsetHeight:61,clientHeight:60,scrollWidth:300};c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',paddingLeft:'12',paddingRight:'12',borderTopWidth:'0',borderBottomWidth:'1',columnGap:'6'});
+ run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');tabs.children.push({id:'tab-db',offsetWidth:100,offsetHeight:44});run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'71px');tabs.clientWidth=500;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');tabs.children[0].offsetWidth=450;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'71px');
+}
+function reviewCheck(s=source){tabsCheck(s);
+ const c=context(s);c.long=[{k:'a',w:'残った作業',by:'クルーA'}];c.active=[{k:'b',w:'作業中',by:'クルーB'}];c.state.amRun={a:c.long[0],b:c.active[0]};c.given=[{qid:'諦めた作業',def:{ic:'!',t:'理由',en:'Reason',ne:'कारण'},by:'クルーC',t:0}];c.missed=[{w:'作業',round:1,scheduled:'2026-11-17T02:00:00Z',hiddenAt:'2026-11-17T10:00:00Z'}];c.amWork=()=>({});c.amNxRunLabel=r=>({icon:'!',full:r.w,base:{fresh:true}});run(c,'amHoRender()');const h=c.nodes['ho-list'].innerHTML;
+ for(const key of ['long','run','given','missed']){const section=h.split('data-ho="'+key+'"')[1].split('</section>')[0],detail=section.split('<div class="tx">')[1];assert.equal((detail.match(/<small>/g)||[]).length,2,key);assert.match(detail,/<span data-ho-jp>[^]*<\/span><small>/,key);}
+ assert.match(h,/1回目/);assert.match(h,/下げた時刻/);assert.match(h,/Freshness control/);assert.doesNotMatch(h,/<span style="display:inline-block;padding:2px[^>]*>[^<]*<small>/);
+ assert.match(fn('amHoMount',s),/MutationObserver/);assert.match(fn('amHoMount',s),/aria-label="引継ぎ"/);assert.match(fn('amHoText',s),/display:inline-block/);assert.doesNotMatch(fn('initVersionInfo',s),/5.39.3|AM_HO_LIST/);assert.doesNotMatch(fn('amNxCfgOpen',s),/5.39.3/);
+}
+test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.40.1',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.40.1');});
+test('97ho9 review fixes: complete Japanese then one translation, fresh badge, missed words, sizing and version',()=>reviewCheck());
+test('97ho10 each of five review regressions is rejected',()=>{
+ const old=cp.execFileSync('git',['show','aa11df4:ws/index.html'],{cwd:root,encoding:'utf8',maxBuffer:8e6});
+ const variants=[source.replace("'<span data-ho-jp>'+jp+'</span>'+amTr2", "amTr2"),source.replace(fn('amHoMount'),fn('amHoMount',old)),source.replace("e(AM_HO_WORDS.round[0])", "''"),source.replace("e(AM_HO_WORDS.fresh[0])", "amHoText('fresh')"),source.replace(fn('initVersionInfo'),fn('initVersionInfo',old))];for(let i=0;i<variants.length;i++)assert.throws(()=>reviewCheck(variants[i]),'review regression '+(i+1));
 });
 // Run unchanged regression tests with only the exact current-version expectation adapted in memory.
 if(process.argv.includes('--regressions'))for(const f of ['ws5390.test.cjs','ws5391.test.cjs','ws5392.test.cjs','ws5393.test.cjs','ws-settle-equivalence.test.cjs']){
- let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.0'");new Function('require','__dirname','process',code)(require,__dirname,process);
+ let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.1'");new Function('require','__dirname','process',code)(require,__dirname,process);
 }
 // Existing single-process speed runner; output uses os.tmpdir and no external origin is allowed.
+async function reviewGeometry({ev,send,setRevision,load,out}){
+ const rows=[];for(const revision of ['3a70166','working']){setRevision(revision);await load();await ev('w.eval('+JSON.stringify('('+handoverFixture.toString()+')()')+')');for(const width of [1280,1024,820,800,768,412,390,375]){await send('Emulation.setDeviceMetricsOverride',{width,height:1024,deviceScaleFactor:1,mobile:false});await ev('document.querySelector("iframe").style.width='+JSON.stringify(width+'px'));for(const admin of [false,true]){await ev('w.eval('+JSON.stringify('isAdmin='+admin+';document.body.classList.toggle("admin-mode",isAdmin);renderMapView();')+')');await new Promise(r=>setTimeout(r,60));rows.push(await ev('w.eval('+JSON.stringify('(()=>{const t=document.getElementById("view-tabs");t.scrollLeft=0;const r=t.getBoundingClientRect();return {width:innerWidth,admin:isAdmin,height:r.height,overflow:t.scrollWidth-t.clientWidth,tabs:[...t.children].filter(b=>b.offsetWidth).map(b=>{const q=b.getBoundingClientRect();return {id:b.id,visible:100*Math.max(0,Math.min(q.right,r.right)-Math.max(q.left,r.left))/q.width};})};})()')+')'));rows[rows.length-1].revision=revision;}}}for(const r of rows){if(r.revision==='working'){const base=rows.find(b=>b.revision==='3a70166'&&b.width===r.width&&b.admin===r.admin);r.targets=r.tabs.filter(t=>t.id!=='tab-handover').map(t=>({id:t.id,pass:t.visible+0.1>=base.tabs.find(b=>b.id===t.id).visible}));r.heightPass=r.height===(r.overflow?71:61);}}fs.writeFileSync(path.join(out,'tabs5401.json'),JSON.stringify(rows,null,2));for(const r of rows.filter(r=>r.revision==='working'))assert.equal(r.heightPass,true,'tab height '+r.width+' '+r.admin);
+}
 async function integration({ev,send,out,html,setRevision}){
  console.log('RUN_ARTIFACTS',out);
  const load=async()=>{
   await ev(`(async()=>{document.querySelector('iframe')?.remove();const f=document.createElement('iframe');f.style.cssText='position:fixed;inset:0;width:1280px;height:844px;border:0';document.body.append(f);await new Promise(r=>{f.onload=r;f.src='/v2/ws/index.html?embedded=1&mem=1&wait=1'});window.w=f.contentWindow;const store=new V2.Store({backend:new V2.MemoryCloud().device(),space:'ho-test',device:'synthetic',kv:new V2.MemKV(),snapshot:false});await w.__v2go({store,stores:[{id:'synthetic',name:'見本の店'}],current:'synthetic',state:JSON.stringify({staff:[],amUsed:true,amNx:{on:1,pre:{off:1}}})});})()`);
  };
  await load();await ev('w.eval('+JSON.stringify('('+handoverFixture.toString()+')()')+')');
+ await reviewGeometry({ev,send,setRevision,load,out});setRevision('working');await load();await ev('w.eval('+JSON.stringify('('+handoverFixture.toString()+')()')+')');
+ const lines=[];for(const width of [1280,768,390,375]){await ev('document.querySelector("iframe").style.width='+JSON.stringify(width+'px'));await ev('w.__hoShow(false)');lines.push(await ev('w.eval('+JSON.stringify('(()=>{const rows=[...document.querySelectorAll("#ho-list section .nxt-li")];return {width:innerWidth,rows:rows.map(r=>{const d=r.querySelector(".tx > small"),jp=d.querySelector("[data-ho-jp]");return {jp:jp?.textContent||null,translations:d.querySelectorAll(".am-tr").length,html:d.innerHTML};}),heading:[...document.querySelectorAll("#ho-list h3 > span")].map(s=>({text:s.textContent,rects:s.getClientRects().length})),badges:[...document.querySelectorAll("#ho-list b > span")].map(s=>({text:s.textContent,height:s.getBoundingClientRect().height,translations:s.children.length}))};})()')+')'));}fs.writeFileSync(path.join(out,'lines5401.json'),JSON.stringify(lines,null,2));for(const line of lines){for(const r of line.rows)assert.equal(r.translations,1,'one trailing translation at '+line.width);for(const b of line.badges){assert.equal(b.text,'鮮度管理');assert.equal(b.translations,0);assert.ok(b.height<30);}assert.ok(line.heading.some(h=>h.text==='ここに'));}
  const result=await ev('w.__hoCheck()');assert.deepEqual(result.counts,[3,1,2,1,1,1]);assert.equal(result.pure,true);assert.equal(result.badge,4);assert.equal(result.sections,6);assert.equal(result.lazy,true);assert.equal(result.old,true);assert.equal(result.future,true);assert.equal(result.global,true);
  fs.writeFileSync(path.join(out,'handover-integration.json'),JSON.stringify(result,null,2));console.log('HANDOVER_INTEGRATION',JSON.stringify(result));
- for(const [width,height] of [[1280,844],[390,844],[768,1024]]){
+ for(const [width,height] of [[1280,844],[1024,844],[390,844],[768,1024]]){
   await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
   for(const empty of width===768?[false]:[false,true]){
    await ev(`document.querySelector('iframe').style.cssText='position:fixed;inset:0;width:${width}px;height:${height}px;border:0';w.__hoShow(${empty});1`);
@@ -77,7 +99,7 @@ async function integration({ev,send,out,html,setRevision}){
  for(const version of ['3a70166','disabled','working']){
   setRevision(version);await load();await ev('w.eval('+JSON.stringify('('+handoverFixture.toString()+')()')+')');
   probes.push(await ev(`w.eval('('+${JSON.stringify(function(){
-   const tabs=document.getElementById('view-tabs').innerHTML,map=document.getElementById('map-view').innerHTML, visible=document.body.innerText, geometry=['top-stack','map-view'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.x,r.y,r.width,r.height];});
+   const tabs=document.getElementById('view-tabs').innerHTML,map=document.getElementById('map-view').innerHTML, visible=(()=>{const nodes=[...document.querySelectorAll('#version-num,#nx-version')],text=nodes.map(n=>n.textContent);nodes.forEach(n=>n.textContent='vVERSION');const visible=document.body.innerText;nodes.forEach((n,i)=>n.textContent=text[i]);return visible;})(), geometry=['top-stack','map-view'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.x,r.y,r.width,r.height];});
    const initial=JSON.stringify(state),trace=[];let serial=0;Math.random=()=>0.1234+(++serial)/1000000;amDevId=()=> 'synthetic';
    const Native=Date;let clock=Date.now();window.Date=class extends Native{constructor(...a){super(...(a.length?a:[clock]));}static now(){return clock;}};
    const record=()=>{amSave(true);trace.push(JSON.stringify([state,Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)])]));};record();
@@ -89,11 +111,11 @@ async function integration({ev,send,out,html,setRevision}){
    if(typeof amHoData==='function'&&AM_HO_LIST){setView('handover');renderMapView();setView('request');setView('handover');renderMapView();setView('map');}
    const readOnlyAfterClock=beforeRead===JSON.stringify([state,Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)])]);
    const boundary=[new Date(2026,10,18,2,59),new Date(2026,10,18,3,0),new Date(2026,10,18,3,1),new Date(2026,10,17,17,0,-30),new Date(2026,10,17,17,0,30)].map(t=>{const n=t.getTime();return JSON.stringify([amLogDay(n),amNxQueue(n),amNxLongRuns(n),amNxTrbNow(n),amNxGvNow(n),am5391Missed(amLogDay(n),n)]);});
-   return {tabs,map,initial,trace,boundary,geometry,readOnlyAfterClock,visible};
+   return {tabs,map,initial,trace,boundary,geometry,readOnlyAfterClock,visible,displayedVersion:document.getElementById('version-num').textContent};
   }.toString())}+')()')`));
  }
  assert.equal(probes[1].tabs,probes[0].tabs,'disabled tabs identical');assert.equal(probes[1].map,probes[0].map,'disabled map DOM identical');
- assert.equal(probes[1].visible,probes[0].visible,'disabled visible DOM text and order identical, including version');
+ assert.equal(probes[1].displayedVersion,'v5.40.1');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
  assert.equal(JSON.stringify(probes[2].geometry),JSON.stringify(probes[0].geometry),'map geometry unchanged with the new tab');
  fs.writeFileSync(path.join(out,'probe-detail.json'),JSON.stringify(probes));
  for(const p of probes){assert.equal(p.readOnlyAfterClock,true);assert.equal(p.initial,probes[0].initial);assert.equal(JSON.stringify(p.trace),JSON.stringify(probes[0].trace),'operation bytes');assert.equal(JSON.stringify(p.boundary),JSON.stringify(probes[0].boundary),'boundary bytes');}
@@ -139,7 +161,7 @@ async function pairedPerformance({ev,send,setRevision,fixture,out}){
   await send('Page.setWebLifecycleState',{state:'frozen'});
   await command('Page.enable');await command('Network.enable');await command('Network.setBlockedURLs',{urls:['https://*']});await command('Emulation.setDeviceMetricsOverride',{width:768,height:1024,deviceScaleFactor:1,mobile:false});await command('Emulation.setCPUThrottlingRate',{rate:4});await command('Page.navigate',{url:origin+'/fixture'});
   for(let i=0;i<100;i++){if(await evaluate('!!window.V2'))break;await new Promise(r=>setTimeout(r,50));}
-  for(const version of ['3a70166','working']){
+  for(const version of ['3a70166','working','working','3a70166']){
    setRevision(version);await evaluate(`(async()=>{document.querySelector('iframe')?.remove();const f=document.createElement('iframe');f.style.cssText='position:fixed;inset:0;width:768px;height:1024px;border:0';document.body.append(f);await new Promise(r=>{f.onload=r;f.src='/v2/ws/index.html?embedded=1&mem=1&wait=1'});window.w=f.contentWindow;const store=new V2.Store({backend:new V2.MemoryCloud().device(),space:'paired',device:'synthetic',kv:new V2.MemKV(),snapshot:false});await w.__v2go({store,stores:[{id:'synthetic',name:'見本の店'}],current:'synthetic',state:JSON.stringify({staff:[],amUsed:true,amNx:{on:1,pre:{off:1}}})});})()`);
    await evaluate('w.eval('+JSON.stringify('('+fixture.toString()+')()')+')');
    await evaluate(`w.eval(${JSON.stringify(`window.__clock540=Date;const prepare540=__prepare;window.__prepare=async action=>{window.Date=__clock540;setView('map');await prepare540(action==='handover'?'side':action);if(action==='handover')window.__target=document.getElementById('tab-handover');};window.__measureTime540=async()=>{const R=__clock540,n=R.now()+160*60000;window.Date=class extends R{constructor(...a){super(...(a.length?a:[n]));}static now(){return n;}};const before=JSON.stringify(state),begin=performance.now();amTick30();await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));if(before!==JSON.stringify(state))throw Error('time redraw wrote state');return {ms:performance.now()-begin,dom:document.getElementById('map-view').textContent};};`)})`);
@@ -152,9 +174,9 @@ async function pairedPerformance({ev,send,setRevision,fixture,out}){
      const r=await evaluate(action==='time'?'w.__measureTime540()':'w.__measure('+JSON.stringify(action)+')');
      if(i>=0){samples.push(r.ms);dom.push(r.dom);callSamples.push(r.calls||{});}
     }
-    const sorted=samples.slice().sort((a,b)=>a-b);rows[action]={median:(sorted[9]+sorted[10])/2,max:sorted[19],samples,dom,callSamples};console.log('PAIRED_540',version,action,rows[action].median.toFixed(1),rows[action].max.toFixed(1));
+    const sorted=samples.slice().sort((a,b)=>a-b);rows[action]={median:(sorted[9]+sorted[10])/2,min:sorted[0],max:sorted[19],samples,dom,callSamples};console.log('PAIRED_540',version,action,rows[action].median.toFixed(1),rows[action].max.toFixed(1));
    }
-   results.versions[version]=rows;
+   if(!results.runs)results.runs=[];results.runs.push({version,rows});results.versions[version]=rows;
   }
   fs.writeFileSync(path.join(out,'paired540.json'),JSON.stringify(results,null,2));checkPerformance(results,out);
   const time={action:'time',dom:JSON.stringify(results.versions['3a70166'].time.dom)===JSON.stringify(results.versions.working.time.dom),speed:results.versions.working.time.max<=results.versions['3a70166'].time.max};fs.writeFileSync(path.join(out,'time540.json'),JSON.stringify(time));console.log('TIME_540',JSON.stringify(time));if(!time.dom||!time.speed)process.exitCode=1;
@@ -165,7 +187,7 @@ if(process.argv.includes('--browser')||process.argv.includes('--integration')){
  let code=fs.readFileSync(path.join(__dirname,'ws-speed.test.cjs'),'utf8');
  code=code.replace(" const u=new URL(req.url,'http://localhost');"," res.sendDate=false;const u=new URL(req.url,'http://localhost');");
  code=code.replace("const allowed=['/v2/ws/index.html'","const allowed=['/v2/index.html','/v2/ws/index.html'").replace("img-src 'self' data:;","img-src 'self' data: blob:;");
- code=code.replace("path.resolve(root,'../speed-records/run-'+Date.now())","fs.mkdtempSync(path.join(require('node:os').tmpdir(),'ws540-speed-'))");
+ code=code.replace("path.resolve(root,'../speed-records/run-'+Date.now())","fs.mkdtempSync(path.join(path.resolve(root,'../records/ws5401-20261117-codex'),'run-'))");
  code=code.replace("let revision='ac802b4';","let revision='3a70166';").replace("const versions=['3933277','65efd8c','ac802b4'];","const versions=['3a70166'];");
  code=code.replace(/if\(process\.argv\.includes\('--after'\)\)\{\r?\n const checks=/, "if(process.argv.includes('--after'))checkPerformance(results,out);if(false){\n const checks=");
  code=code.replace("for(revision of process.argv.includes('--after')?versions.concat('working'):versions){", "while(process.env.WS540_WAIT&&!fs.existsSync(process.env.WS540_WAIT)){await new Promise(r=>setTimeout(r,1000));}for(revision of process.argv.includes('--after')?versions.concat('working'):versions){");
@@ -195,5 +217,5 @@ if(process.argv.includes('--browser')||process.argv.includes('--integration')){
   code=code.replaceAll("revision='working';await send('Page.addScriptToEvaluateOnNewDocument'","revision='3a70166';await send('Page.addScriptToEvaluateOnNewDocument'");
   code=code.replace("fs.readFileSync(path.join(root,u.pathname))", "(u.pathname==='/v2/wstest.html'?cp.execFileSync('git',['show','3a70166:v2/wstest.html'],{cwd:root,encoding:'utf8',maxBuffer:8e6}):fs.readFileSync(path.join(root,u.pathname)))");
  }
- new Function('require','__dirname','process','integration','checkPerformance','pairedPerformance',code)(require,__dirname,process,integration,checkPerformance,pairedPerformance);
+ new Function('require','__dirname','process','integration','checkPerformance','pairedPerformance','reviewGeometry',code)(require,__dirname,process,integration,checkPerformance,pairedPerformance,reviewGeometry);
 }
