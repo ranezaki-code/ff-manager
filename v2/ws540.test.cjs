@@ -13,6 +13,7 @@ function context(s=source,enabled=true){
  vm.runInContext(s.slice(start,end).replace('const AM_HO_LIST = true','const AM_HO_LIST = '+enabled),c);return c;
 }
 const run=(c,s)=>vm.runInContext(s,c);
+function tabClasses(){const values=new Set();return {contains:k=>values.has(k),toggle(k,on){if(on)values.add(k);else values.delete(k);}};}
 test('97ho1 all store configurations mount once, after request, without writes',()=>{
  for(const config of [{},{amNx:{}},{amNx:{on:1}},{amNx:{on:1,gv:{on:1}}}]){const c=context();c.state=config;const before=JSON.stringify([c.state,c.storage]);run(c,'amHoMount();amHoMount()');assert.ok(c.nodes['tab-handover']);assert.ok(c.nodes['handover-view']);assert.ok(c.nodes['ho-notes']);assert.match(c.nodes['tab-request'].html,/aria-label="引継ぎ"/);assert.equal((c.nodes['tab-request'].html.match(/id="tab-handover"/g)||[]).length,1);assert.equal(JSON.stringify([c.state,c.storage]),before);}
 });
@@ -42,12 +43,12 @@ test('97ho7 mutation checks reject state writes, badge recomputation and false m
  const c2=context(source.replace("if(!AM_HO_LIST||document.getElementById('tab-handover')) return;","if(document.getElementById('tab-handover')) return;"),false);run(c2,'amHoMount()');assert.throws(()=>assert.equal(c2.nodes['tab-handover'],undefined));
 });
 test('97ho8 syntax, LF, Unicode and generated body agree',()=>{
- let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.2'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
+ let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.3'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
 });
 
 function tabsCheck(s=source){
- const c=context(s),tabs={style:{},clientWidth:300,children:[{id:'tab-map',offsetWidth:200,offsetHeight:44},{id:'tab-handover',offsetWidth:48,offsetHeight:48}],offsetHeight:61,clientHeight:60,scrollWidth:300};c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',paddingLeft:'12',paddingRight:'12',borderTopWidth:'0',borderBottomWidth:'1',columnGap:'6'});
- run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');tabs.children.push({id:'tab-db',offsetWidth:100,offsetHeight:44});run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'71px');tabs.clientWidth=500;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');tabs.children[0].offsetWidth=450;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'71px');
+ const c=context(s),tabs={classList:tabClasses(),style:{},clientWidth:300,children:[{id:'tab-map',offsetWidth:200,offsetHeight:44},{id:'tab-handover',offsetWidth:48,offsetHeight:48}],offsetHeight:61,clientHeight:60,scrollWidth:300};c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',paddingLeft:'12',paddingRight:'12',borderTopWidth:'0',borderBottomWidth:'1',columnGap:'6',rowGap:'6'});
+ run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');tabs.children.push({id:'tab-db',offsetWidth:100,offsetHeight:44});run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'119px');tabs.clientWidth=500;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');tabs.children[0].offsetWidth=450;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'119px');tabs.children[0].offsetWidth=500;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'71px');tabs.children=Array.from({length:5},()=>({offsetWidth:200}));run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'71px');assert.equal(tabs.classList.contains('am-ho-two'),false);tabs.clientWidth=1100;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');
 }
 function reviewCheck(s=source){tabsCheck(s);
  const c=context(s);c.long=[{k:'a',w:'残った作業',by:'クルーA'}];c.active=[{k:'b',w:'作業中',by:'クルーB'}];c.state.amRun={a:c.long[0],b:c.active[0]};c.given=[{qid:'諦めた作業',def:{ic:'!',t:'理由',en:'Reason',ne:'कारण'},by:'クルーC',t:0}];c.missed=[{w:'作業',round:1,scheduled:'2026-11-17T02:00:00Z',hiddenAt:'2026-11-17T10:00:00Z'}];c.amWork=()=>({});c.amNxRunLabel=r=>({icon:'!',full:r.w,base:{fresh:true}});run(c,'amHoRender()');const h=c.nodes['ho-list'].innerHTML;
@@ -55,7 +56,7 @@ function reviewCheck(s=source){tabsCheck(s);
  assert.match(h,/1回目/);assert.match(h,/下げた時刻/);assert.match(h,/Freshness control/);assert.doesNotMatch(h,/<span style="display:inline-block;padding:2px[^>]*>[^<]*<small>/);
  assert.match(fn('amHoMount',s),/MutationObserver/);assert.match(fn('amHoMount',s),/aria-label="引継ぎ"/);assert.match(fn('amHoText',s),/display:inline-block/);assert.doesNotMatch(fn('initVersionInfo',s),/5.39.3|AM_HO_LIST/);assert.doesNotMatch(fn('amNxCfgOpen',s),/5.39.3/);
 }
-test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.40.2',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.40.2');});
+test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.40.3',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.40.3');});
 test('97ho9 review fixes: complete Japanese then one translation, fresh badge, missed words, sizing and version',()=>reviewCheck());
 test('97ho10 each of five review regressions is rejected',()=>{
  const old=cp.execFileSync('git',['show','aa11df4:ws/index.html'],{cwd:root,encoding:'utf8',maxBuffer:8e6});
@@ -64,7 +65,7 @@ test('97ho10 each of five review regressions is rejected',()=>{
 
 test('97ho12 admin tab height is settled before map and band measurement; missing call is rejected',()=>{
  const check=(text,enabled=true)=>{for(const width of [390,768,800]){
-  const c=context(text,enabled),tabs={style:{height:'61px'},clientWidth:width,children:[{offsetWidth:width+20}],get offsetHeight(){return parseInt(this.style.height);}};
+  const c=context(text,enabled),tabs={classList:tabClasses(),style:{height:'61px'},clientWidth:width,children:[{offsetWidth:width+20}],get offsetHeight(){return parseInt(this.style.height);}};
   c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',borderBottomWidth:'1'});
   c.view={clientWidth:width,getBoundingClientRect:()=>({width,top:100+tabs.offsetHeight})};c.window={innerWidth:width,innerHeight:1024,scrollY:0};c.map=null;c.ckR=null;c.isAdmin=true;
   const body=fn('amNxRenderBody',text),a=body.indexOf("  if(typeof amHoTabsSize==='function') amHoTabsSize();"),b=body.indexOf('  let M=null, C;');
@@ -77,13 +78,40 @@ test('97ho12 admin tab height is settled before map and band measurement; missin
  const broken=source.replace("  if(typeof amHoTabsSize==='function') amHoTabsSize();\n",'');assert.notEqual(broken,source);assert.throws(()=>check(broken),/map\/band top/);
 });
 
+test('97ho13 two rows settle before map/band at admin widths; removing wrap is rejected',()=>{
+ const check=text=>{for(const width of [390,768,800]){
+  const c=context(text),tabs={classList:tabClasses(),style:{height:'61px'},clientWidth:width,children:Array.from({length:3},()=>({offsetWidth:Math.floor(width*0.4)})),get offsetHeight(){return parseInt(this.style.height);}};
+  c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',borderBottomWidth:'1',columnGap:'6',rowGap:'6'});
+  c.view={clientWidth:width,getBoundingClientRect:()=>({width,top:100+tabs.offsetHeight})};c.window={innerWidth:width,innerHeight:1024,scrollY:0};c.map=null;c.ckR=null;c.isAdmin=true;
+  const body=fn('amNxRenderBody',text),a=body.indexOf("  if(typeof amHoTabsSize==='function') amHoTabsSize();"),b=body.indexOf('  let M=null, C;');
+  const measured=run(c,'(()=>{'+body.slice(a,b)+'return {topY,H};})()');run(c,'amHoTabsSize()');
+  assert.equal(tabs.classList.contains('am-ho-two'),true,'two rows');assert.equal(tabs.style.height,'119px');assert.equal(measured.topY,100+tabs.offsetHeight,'map/band top');
+  assert.equal(measured.H,Math.floor(1024-measured.topY-(width>=621?22:0)));
+ }};check(source);
+ const broken=source.replace('const two=rows===2;','const two=false;');assert.notEqual(broken,source);assert.throws(()=>check(broken),/two rows/);
+});
+
+test('97ho14 own tab attributes do not repeat sizing; role, badges and child lists still resize',()=>{
+ const c=context(),callbacks=[],tabs={},body={};c.nodes['view-tabs']=tabs;c.document.body=body;
+ c.MutationObserver=class{constructor(callback){callbacks.push(callback);}observe(){}};
+ run(c,'amHoMount()');let calls=0;c.amHoTabsSize=()=>calls++;
+ callbacks[0]([{type:'attributes',target:tabs}]);assert.equal(calls,0);
+ for(const r of [{type:'attributes',target:body},{type:'characterData',target:c.nodes['tab-handover-badge']},{type:'childList',target:tabs}])callbacks[0]([r]);assert.equal(calls,3);
+});
+
+test('97ho15 fractional button widths cannot hide a third row',()=>{
+ const c=context(),tabs={classList:tabClasses(),style:{},clientWidth:390,children:Array.from({length:4},()=>({offsetWidth:192,getBoundingClientRect:()=>({width:192.25})}))};c.nodes['view-tabs']=tabs;c.getComputedStyle=()=>({paddingTop:'8',paddingBottom:'8',borderBottomWidth:'1',columnGap:'6',rowGap:'6'});
+ run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'71px');assert.equal(tabs.classList.contains('am-ho-two'),false);
+ tabs.children.forEach(b=>b.getBoundingClientRect=()=>({width:191.75}));run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'119px');tabs.children=tabs.children.slice(0,2);tabs.children.forEach(b=>b.getBoundingClientRect=()=>({width:192.25}));run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'119px');tabs.clientWidth=800;run(c,'amHoTabsSize()');assert.equal(tabs.style.height,'61px');
+});
+
 // Run unchanged regression tests with only the exact current-version expectation adapted in memory.
 if(process.argv.includes('--regressions'))for(const f of ['ws5390.test.cjs','ws5391.test.cjs','ws5392.test.cjs','ws5393.test.cjs','ws-settle-equivalence.test.cjs']){
- let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.2'");new Function('require','__dirname','process',code)(require,__dirname,process);
+ let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.3'");new Function('require','__dirname','process',code)(require,__dirname,process);
 }
 // Existing single-process speed runner; output uses os.tmpdir and no external origin is allowed.
 async function reviewGeometry({ev,send,setRevision,load,out}){
- const rows=[];for(const revision of ['3a70166','working']){setRevision(revision);await load();await ev('w.eval('+JSON.stringify('('+handoverFixture.toString()+')()')+')');for(const width of [1280,1024,820,800,768,412,390,375]){await send('Emulation.setDeviceMetricsOverride',{width,height:1024,deviceScaleFactor:1,mobile:false});await ev('document.querySelector("iframe").style.width='+JSON.stringify(width+'px'));for(const admin of [false,true]){await ev('w.eval('+JSON.stringify('isAdmin='+admin+';document.body.classList.toggle("admin-mode",isAdmin);renderMapView();')+')');await new Promise(r=>setTimeout(r,60));rows.push(await ev('w.eval('+JSON.stringify('(()=>{const t=document.getElementById("view-tabs");t.scrollLeft=0;const r=t.getBoundingClientRect();return {width:innerWidth,admin:isAdmin,height:r.height,overflow:t.scrollWidth-t.clientWidth,tabs:[...t.children].filter(b=>b.offsetWidth).map(b=>{const q=b.getBoundingClientRect();return {id:b.id,visible:100*Math.max(0,Math.min(q.right,r.right)-Math.max(q.left,r.left))/q.width};})};})()')+')'));rows[rows.length-1].revision=revision;}}}for(const r of rows){if(r.revision==='working'){const base=rows.find(b=>b.revision==='3a70166'&&b.width===r.width&&b.admin===r.admin);r.targets=r.tabs.filter(t=>t.id!=='tab-handover').map(t=>({id:t.id,pass:t.visible+0.1>=base.tabs.find(b=>b.id===t.id).visible}));r.heightPass=r.height===(r.overflow?71:61);}}fs.writeFileSync(path.join(out,'tabs5401.json'),JSON.stringify(rows,null,2));for(const r of rows.filter(r=>r.revision==='working'))assert.equal(r.heightPass,true,'tab height '+r.width+' '+r.admin);
+ const rows=[];for(const revision of ['3a70166','working']){setRevision(revision);await load();await ev('w.eval('+JSON.stringify('('+handoverFixture.toString()+')()')+')');for(const width of [1280,1024,820,800,768,412,390,375]){await send('Emulation.setDeviceMetricsOverride',{width,height:1024,deviceScaleFactor:1,mobile:false});await ev('document.querySelector("iframe").style.width='+JSON.stringify(width+'px'));for(const admin of [false,true]){await ev('w.eval('+JSON.stringify('isAdmin='+admin+';document.body.classList.toggle("admin-mode",isAdmin);renderMapView();')+')');await new Promise(r=>setTimeout(r,60));rows.push(await ev('w.eval('+JSON.stringify('(()=>{const t=document.getElementById("view-tabs");t.scrollLeft=0;const r=t.getBoundingClientRect();return {width:innerWidth,admin:isAdmin,height:r.height,two:t.classList.contains("am-ho-two"),overflow:t.scrollWidth-t.clientWidth,tabs:[...t.children].filter(b=>b.offsetWidth).map(b=>{const q=b.getBoundingClientRect();return {id:b.id,visible:100*Math.max(0,Math.min(q.right,r.right)-Math.max(q.left,r.left))/q.width};})};})()')+')'));rows[rows.length-1].revision=revision;}}}for(const r of rows){if(r.revision==='working'){const base=rows.find(b=>b.revision==='3a70166'&&b.width===r.width&&b.admin===r.admin);r.targets=r.tabs.filter(t=>t.id!=='tab-handover').map(t=>({id:t.id,pass:t.visible+0.1>=base.tabs.find(b=>b.id===t.id).visible}));r.heightPass=r.height===(r.two?119:r.overflow?71:61);}}fs.writeFileSync(path.join(out,'tabs5401.json'),JSON.stringify(rows,null,2));for(const r of rows.filter(r=>r.revision==='working'))assert.equal(r.heightPass,true,'tab height '+r.width+' '+r.admin);
 }
 async function integration({ev,send,out,html,setRevision}){
  console.log('RUN_ARTIFACTS',out);
@@ -131,7 +159,7 @@ async function integration({ev,send,out,html,setRevision}){
   }.toString())}+')()')`));
  }
  assert.equal(probes[1].tabs,probes[0].tabs,'disabled tabs identical');assert.equal(probes[1].map,probes[0].map,'disabled map DOM identical');
- assert.equal(probes[1].displayedVersion,'v5.40.2');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
+ assert.equal(probes[1].displayedVersion,'v5.40.3');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
  assert.equal(JSON.stringify(probes[2].geometry),JSON.stringify(probes[0].geometry),'map geometry unchanged with the new tab');
  fs.writeFileSync(path.join(out,'probe-detail.json'),JSON.stringify(probes));
  for(const p of probes){assert.equal(p.readOnlyAfterClock,true);assert.equal(p.initial,probes[0].initial);assert.equal(JSON.stringify(p.trace),JSON.stringify(probes[0].trace),'operation bytes');assert.equal(JSON.stringify(p.boundary),JSON.stringify(probes[0].boundary),'boundary bytes');}

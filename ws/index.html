@@ -2168,6 +2168,9 @@ body:not(.ws-legacy) .ws-gw{display:none!important}
 .am-bd-h{font-size:15px;font-weight:700;color:#475569;font-variant-numeric:tabular-nums}
 .am-bd-t{flex:1 1 11em;font-size:14px}
 #view-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);padding:8px 12px;gap:6px;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;scrollbar-width:thin;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+#view-tabs.am-ho-two{flex-wrap:wrap;overflow-x:hidden;align-content:flex-start}
+#view-tabs.am-ho-two > button[onclick]{min-height:48px;margin-block:0!important}
+#view-tabs-wrap:has(> #view-tabs.am-ho-two)::after{opacity:0}
 #view-tabs::-webkit-scrollbar{height:6px}
 #view-tabs::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
 #view-tabs::-webkit-scrollbar-track{background:transparent}
@@ -5233,7 +5236,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.40.2'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.40.3'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -20791,7 +20794,17 @@ function amHoTabsSize(){
   const css=getComputedStyle(tabs), px=k=>parseFloat(css[k])||0, buttons=Array.from(tabs.children).filter(b=>b.offsetWidth>0);
   const border=px('borderTopWidth')+px('borderBottomWidth'), width=buttons.reduce((n,b)=>n+b.offsetWidth,0)+Math.max(0,buttons.length-1)*px('columnGap');
   const overflow=width>tabs.clientWidth-px('paddingLeft')-px('paddingRight');
-  const height=(44+px('paddingTop')+px('paddingBottom')+border+(overflow?10:0))+'px'; if(tabs.style.height!==height) tabs.style.height=height;
+  const available=tabs.clientWidth-px('paddingLeft')-px('paddingRight'), gap=px('columnGap');
+  let rows=1, used=0;
+  for(const b of buttons){
+    const w=b.getBoundingClientRect?b.getBoundingClientRect().width:b.offsetWidth;
+    if(w>available){ rows=3; break; }
+    if(used&&used+gap+w>available){ rows++; used=0; }
+    used+=(used?gap:0)+w;
+  }
+  const two=rows===2;
+  if(tabs.classList.contains('am-ho-two')!==two) tabs.classList.toggle('am-ho-two',two);
+  const height=((two?96+px('rowGap'):44)+px('paddingTop')+px('paddingBottom')+border+(overflow&&!two?10:0))+'px'; if(tabs.style.height!==height) tabs.style.height=height;
 }
 function amHoMount(){
   if(!AM_HO_LIST||document.getElementById('tab-handover')) return;
@@ -20799,7 +20812,7 @@ function amHoMount(){
   tab.insertAdjacentHTML('afterend','<button id="tab-handover" aria-label="引継ぎ" style="min-height:48px;min-width:48px;width:48px;padding:0;margin-block:-2px;position:relative;justify-content:center" onclick="setView(&quot;handover&quot;)">🤝 <span id="tab-handover-badge" class="tab-count-badge" style="display:none;position:absolute;right:0;top:0;margin:0;padding:1px 3px">0</span></button>');
   view.insertAdjacentHTML('afterend','<div id="handover-view" style="display:none;padding:14px;background:#f8fafc;min-height:60vh"><div id="ho-list" class="nxt"></div><div id="ho-notes"></div></div>');
   amHoTabsSize(); if(typeof window!=='undefined') window.addEventListener('resize',amHoTabsSize);
-  if(typeof MutationObserver!=='undefined'){const observer=new MutationObserver(amHoTabsSize);observer.observe(document.body,{attributes:true,attributeFilter:['class']});observer.observe(document.getElementById('view-tabs'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['style','class']});}
+  if(typeof MutationObserver!=='undefined'){const observer=new MutationObserver(records=>{if(records.some(r=>r.type!=='attributes'||r.target!==document.getElementById('view-tabs'))) amHoTabsSize();});observer.observe(document.body,{attributes:true,attributeFilter:['class']});observer.observe(document.getElementById('view-tabs'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['style','class']});}
 }
 function amHoBadge(q,lgA){
   if(!AM_HO_LIST) return;
