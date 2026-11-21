@@ -8667,6 +8667,7 @@ o.changed.push(P.ev(`(()=>{const w=amWork(${J(id)}.replace(/#af$/,'')),old=w.seq
             setView('handover');
             const q=JSON.stringify(amNxQueue(n)), snapshot=()=>JSON.stringify([state.amRun,state.amHere,state.areaChecks,state.amNx]);
             const protectedBefore=snapshot(), openBefore=JSON.stringify(state);
+            const originalFT=amFT; let tick=originalFT(); amFT=()=>tick;
             const click=(sel)=>{_amNx.hold=0;const el=document.querySelector(sel);if(!el)throw Error(sel);el.click();return el;};
             click('[data-ho-add]');click('[data-ho-sheet] [data-ho-value="hb2"]');
             const pure=openBefore===JSON.stringify(state);
@@ -8681,9 +8682,10 @@ o.changed.push(P.ev(`(()=>{const w=amWork(${J(id)}.replace(/#af$/,'')),old=w.seq
             setView('map');
             const pin=document.querySelector('.ws539-column.out .nxa-it')?.dataset.w==='hb2'&&!!document.querySelector('[data-ho-pin]');
             const undo=()=>amSnackAct();undo();setView('handover');
+            tick+=800;
             const undone=state[key][id].ou>received.ok&&entries().length===1;
             click('[data-ho=want] [data-ho-take]');
-            const again=state[key][id].ok>state[key][id].ou;
+            amFT=originalFT; const again=state[key][id].ok>state[key][id].ou;
             return {pure,fields,waiting,count,got,pin,undone,again,by:pending.by==='クルーA',ob:received.ob==='クルーA',queue:q===JSON.stringify(amNxQueue(n)),protected:protectedBefore===snapshot(),one:entries().length===1};
           })()`);
         }finally{P.close();}

@@ -37,7 +37,7 @@ function setup(s=source,enabled=true){
 const records=c=>Object.entries(c.state[c.key]||{}).filter(([id])=>id.startsWith('h'));
 const tap=(c,code)=>{c.tick+=500;run(c,code);};
 const choose=(c,value)=>tap(c,'amHoChoose('+JSON.stringify(value)+')');
-const take=(c,kind,value)=>tap(c,'amHoOpen("take",'+JSON.stringify(kind)+','+JSON.stringify(value)+')');
+const take=(c,kind,value)=>{c.tick+=300;tap(c,'amHoOpen("take",'+JSON.stringify(kind)+','+JSON.stringify(value)+')');};
 function add(c,id,reason='mid',name){
   tap(c,'amHoOpen("add")');assert.match(c.sheet,/どの 作業/);
   choose(c,id);assert.match(c.sheet,/どうして/);choose(c,reason);
@@ -169,3 +169,70 @@ test('97hb13 detects the six requested regressions',()=>{
     assert.throws(()=>check(setup(changed,enabled),changed),'mutation '+(i+1));
   });
 });
+
+test('97hb14 blocks the next row at 600ms and allows it at 800ms',()=>{
+  const c=setup();
+  take(c,'late','late');
+  c.tick+=600;
+  run(c,'amHoOpen("take","late",q[2].id)');
+  assert.equal(c.saves,1);
+  c.tick+=200;
+  run(c,'amHoOpen("take","late",q[2].id)');
+  assert.equal(c.saves,2);
+});
+
+test('97hb15 pending handovers show the date only for an earlier business day',()=>{
+  const c=setup();
+  const yesterday=now-day;
+  seed(c,c.key,'htoday',{h:1,w:'late',t:iso(now),y:'time'});
+  seed(c,'amLog_'+run(c,'amLogDay(clock-86400000)'),'hyesterday',{h:1,w:'future',t:iso(yesterday),y:'kikai'});
+  run(c,'amHoRender()');
+  const html=c.nodes['ho-list'].innerHTML;
+  assert.match(html,/<wbr>11\/20 12:00/);
+  assert.match(html,/<wbr>12:00/);
+});
+
+function morningSaves(s,enabled){
+  const spec=fs.readFileSync(path.join(__dirname,'ws-settle-equivalence.test.cjs'),'utf8');
+  const body=spec.slice(spec.indexOf('const spec='),spec.indexOf("test('real settlement"));
+  const {c,writes}=new Function('fs','path','vm','fn','__dirname','latest',body+'return setup(latest,3);')(fs,path,vm,fn,__dirname,s);
+  const helpers=['am5393Plan','amRunDoStart','amRunDoEnd','amRunDoEndOne','_amChecks','amNxTrbPut','amNxGvPut','amNxGvDue','amNxGvUndo','amLogRemove'];
+  run(c,'const AM_HO_LIST='+enabled+';\n'+helpers.map(n=>fn(n,s)).join('\n'));
+  c.Date=class extends Date{static now(){return c.now;}};
+  c.now=new Date(2026,10,13,19,10).getTime();
+  c.amRunActive=()=>[];
+  c.amRunMap=c.amRunEdit=()=>c.state.amRun;
+  c._amChecksRead=()=>c.state.areaChecks||{};
+  Object.assign(c,{amDevId:()=> 'fixture',amRunOk:r=>!!r,amWork:id=>c.works.find(w=>w.id===id),amCkSettle:()=>{},amCkReq:()=>false,
+    amNxTrbDef:y=>({y}),amNxItemOf:id=>({id}),amNxItemDone:()=>false,amNxTrbWho:()=>A,amNxTrbName:id=>id,amNxTrbQid:r=>r.w,
+    amLogPrune:()=>{},amRepSettle:()=>{},amRunSettle:()=>{},amCloseSheet:()=>{},renderMapView:()=>{},amSnack:()=>{},amSheetName:()=>'',amNxGvList:()=>{}});
+  const added={h:1,w:'synthetic2',t:iso(c.now),d:'other',src:'add'};
+  const key='amLog_'+run(c,'amLogDay(now)');
+  seed(c,key,'hmorning',added);
+  c.now=new Date(2026,10,14,3,5).getTime();
+  const save=(action,verify)=>{
+    const count=writes.length;
+    run(c,action);
+    assert.equal(writes.length,count+1);
+    const stored=JSON.parse(writes.at(-1)[1]);
+    assert.deepEqual(stored[key].hmorning,added);
+    verify(stored);
+  };
+  save('amSave(false)',st=>assert.ok(Object.values(st[key]).some(r=>r.wsMissed===1)));
+  const next='amLog_'+run(c,'amLogDay(now)');
+  save('mark=amRunDoStart("synthetic2","",now);amSave(false)',st=>assert.ok(st.amRun[c.mark]));
+  save('now+=60000;amRunDoEnd(mark,now);amSave(false)',st=>assert.ok(Object.values(st[next]).some(r=>r.w==='synthetic2'&&r.at)));
+  save('_amNx.trbSrc={id:"synthetic3"};amNxTrbPut("te")',st=>assert.ok(Object.values(st[next]).some(r=>r.p===1)));
+  save('ref=amNxGvPut({id:"synthetic4"},"time","",now);amSave(false)',st=>assert.equal(st[next][c.ref.id].g,1));
+  save('amNxGvUndo(ref.key,ref.id)',st=>assert.ok(st[next][c.ref.id].u));
+}
+
+for(const enabled of [true,false]){
+  test('97hb16 five saves after the morning settle with AM_HO_LIST='+enabled,()=>{
+    morningSaves(source,enabled);
+    const fixed="Object.keys(state[k]).filter(id=>id[0]!=='h').map(id=>[k+'|'+id,rows.get(k+'|'+id)])";
+    assert.ok(source.includes(fixed));
+    const broken=source.replace(fixed,"Object.keys(state[k]).map(id=>[k+'|'+id,rows.get(k+'|'+id)])");
+    assert.throws(()=>morningSaves(broken,enabled),/Cannot read properties of undefined/);
+  });
+}

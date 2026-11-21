@@ -1483,6 +1483,10 @@ body.admin-mode .task-icon-btn.up,body.admin-mode .task-icon-btn.down,body.admin
 .am-cfg-act{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 .am-snack{position:fixed;left:12px;right:12px;bottom:22px;margin:0 auto;width:fit-content;max-width:640px;background:#0f172a;color:#fff;font-size:16px;font-weight:700;padding:9px 12px 9px 18px;border-radius:24px;z-index:9500;display:none;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.3);line-height:1.4}
 .am-snack.show{display:flex}
+@media(max-width:480px){
+  .am-snack.am-snack-handover{top:8px;bottom:auto;max-width:calc(100% - 24px);box-sizing:border-box}
+  #ho-list [data-ho-jp],[data-ho-sheet] button{word-break:keep-all}
+}
 /* 窓が開いている間は、画面の上（窓の上に空けてある所）に出す。2行までに おさめる（高さが決まる＝窓にかぶらない） */
 .am-snack.am-snack-top{top:8px;bottom:auto}
 .am-snack.am-snack-top>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
@@ -13940,7 +13944,7 @@ function am5393Plan(now){
  missing.forEach(out=>{if(!days.has(out.day)){if(!restore.has(out.day))restore.set(out.day,[]);restore.get(out.day).push(out);}});
  restore.forEach(list=>list.sort((a,b)=>a.order-b.order));
  am5393Plan.done=()=>{
-  dirty.forEach(k=>{const json=JSON.stringify(state[k]),versions=buckets.get(k)||[];if(!versions.some(v=>v.json===json)){versions.push({json,rows:new Map(Object.keys(state[k]).map(id=>[k+'|'+id,rows.get(k+'|'+id)]))});if(versions.length>2)versions.shift();}buckets.set(k,versions);});
+  dirty.forEach(k=>{const json=JSON.stringify(state[k]),versions=buckets.get(k)||[];if(!versions.some(v=>v.json===json)){versions.push({json,rows:new Map(Object.keys(state[k]).filter(id=>id[0]!=='h').map(id=>[k+'|'+id,rows.get(k+'|'+id)]))});if(versions.length>2)versions.shift();}buckets.set(k,versions);});
   am5393Plan.memo={config,today,now,rows,entries,generated,buckets};
  };
  return {days,entries,rows,record,generated,restore,dirty};
@@ -16066,7 +16070,7 @@ function amSnackAct(){ const f=_amSnackFn; _amSnackFn=null; const s=document.get
 function amSnackPlace(){
   const s=document.getElementById('am-snack'); if(!s)return;
   const top=amSheetShown()||(typeof currentView!=='undefined'&&currentView==='map'&&!!document.getElementById('nx-wrap'));   // 5.26：新しい画面では 上に 出す（下の「やる」「下に あと◯件」に かぶらない）
-  s.classList.toggle('am-snack-top',top); s.style.bottom='';
+  s.classList.toggle('am-snack-top',top); s.classList.toggle('am-snack-handover',currentView==='handover'); s.style.bottom='';
   const r=(!top&&currentView==='map')?(document.getElementById('amf-snk')||document.getElementById('amf-rule')):null, b=r?r.getBoundingClientRect():null, ok=!!(b&&b.width>=160);   // 5.29：上の 行の 空いた 所（決まりの 文は 列の 下へ 移した）
   s.classList.toggle('am-snack-rule',ok);
   if(ok){ const row=r.parentNode.getBoundingClientRect(), rs=document.documentElement.style; rs.setProperty('--amf-st',Math.round(row.top)+'px'); rs.setProperty('--amf-sl',Math.round(b.left)+'px'); rs.setProperty('--amf-sw',Math.round(b.width)+'px'); }
@@ -17131,7 +17135,7 @@ function amLogPrune(now){
   const P=AM_LOG_PRE.length, today=amLogDay(now), keys=amLogKeys().filter(k=>k.slice(P)<=today);
   if(keys.length<=AM_LOG_DAYS) return 0;
   const me=amDevId(); let od='';
-  keys.forEach(k=>{ const o=state[k]; if(Object.keys(o).some(id=>{ const r=o[id]; return !!r&&typeof r==='object'&&String(r.d||'')!==me; })) od=k.slice(P); });   // 日付の順なので、最後に残った物が いちばん新しい日
+  keys.forEach(k=>{ const o=state[k]; if(Object.keys(o).some(id=>{ const r=o[id]; return id[0]!=='h'&&!!r&&typeof r==='object'&&String(r.d||'')!==me; })) od=k.slice(P); });   // 日付の順なので、最後に残った物が いちばん新しい日
   const ref=(od&&Math.round((amLogDayMs(today)-amLogDayMs(od))/86400000)>=2)?od:today;
   const lim=amLogDay(amLogDayMs(ref)+12*3600000-(AM_LOG_DAYS-1)*86400000);
   const old=keys.slice(0,keys.length-AM_LOG_DAYS).filter(k=>k.slice(P)<lim);
@@ -20939,7 +20943,7 @@ function amHoChoices(now){
   }
   return targets;
 }
-let amHoAction=null;
+let amHoAction=null, amHoTakeUntil=0;
 function amHoTap(){
   if(!AM_HO_LIST||!amNxOn()||currentView!=='handover'||amFT()<(_amNx.hold||0)) return false;
   _amNx.hold=amFT()+AM_HOLD_MS;
@@ -20954,7 +20958,7 @@ function amHoNames(target,take,now){
   return {here,rest,restricted,solo:present.length===1&&here.length===1};
 }
 function amHoOpen(mode,kind,value){
-  if(!amHoTap()) return;
+  if((mode==='take'&&amFT()<amHoTakeUntil)||!amHoTap()) return;
   const now=Date.now(), data=amHoRead(now);
   if(mode==='add') amHoAction={mode,step:'task'};
   else{
@@ -21066,6 +21070,7 @@ function amHoCommit(name,now){
   amHoAction=null;
   if(amSheetName()==='handover') amCloseSheet();
   amHoWrite(ref,r);
+  if(take) amHoTakeUntil=amFT()+800;
   amSnack(take?(name||AM_HO_WORDS.noName[0])+' '+AM_HO_WORDS.taken[0]:AM_HO_WORDS.added[0],false,AM_HO_WORDS.undo[0],()=>amHoUndo(ref,take,r));
   const button=document.querySelector('#am-snack button');
   if(button){button.style.minHeight='48px';button.style.minWidth='48px';}
@@ -21099,8 +21104,9 @@ function amHoRender(){
   const take=(kind,value)=>amHoButton(amHoText('got'),"amHoOpen('take','"+kind+"',this.dataset.hoValue)",value,'data-ho-take');
   const handover=(x,received)=>{
     const r=x.r, label=amNxRunLabel(r), reason=AM_HO_WORDS[r.y];
+    const date=new Date(x.t), stamp=(amLogDay(x.t)===amLogDay(now)?'':(date.getMonth()+1)+'/'+date.getDate()+' ')+amHM(x.t);
     const jp=received?e(AM_HO_WORDS.got[0])+'・'+e(r.ob||AM_HO_WORDS.noName[0])+'・'+amHM(Date.parse(r.ok))+'（'+amHoFrom(r.by)+'）':
-      amHoFrom(r.by)+(reason?'・'+e(reason[3]+' '+reason[0]):'')+'・'+amHM(x.t)+' → '+e(AM_HO_WORDS.next[0]);
+      amHoFrom(r.by)+(reason?'・<wbr>'+e(reason[3]+' '+reason[0]):'')+'・<wbr>'+stamp+' → '+e(AM_HO_WORDS.next[0]);
     return row(label.icon,label.full||label.name,detail(jp,received?AM_HO_WORDS.got[1]:[reason&&reason[1],AM_HO_WORDS.next[1]].filter(Boolean).join(' · '),received?AM_HO_WORDS.got[2]:[reason&&reason[2],AM_HO_WORDS.next[2]].filter(Boolean).join(' · ')),amIsFreshLegacy(label.base||{}),false,received?'':take('want',x.key+'|'+x.id));
   };
   const run=(r,left)=>{const l=amNxRunLabel(r), names=am539People(amRunMap()[r.k]||r).map(p=>p.n).filter(Boolean).join('・'), min=amRunMin(r,now), fresh=amIsFreshLegacy(l.base||{});return row(l.icon,l.full||l.name,detail(e(names)+(left?' '+e(AM_HO_WORDS.left[0]):'')+'・<span style="display:inline-block">'+min+e(AM_HO_WORDS.minute[0])+'</span>',(left?AM_HO_WORDS.left[1]+': ':'')+min+' '+AM_HO_WORDS.minute[1],(left?AM_HO_WORDS.left[2]+': ':'')+min+' '+AM_HO_WORDS.minute[2],fresh),fresh,!left,left?take('long',r.k):'');};
