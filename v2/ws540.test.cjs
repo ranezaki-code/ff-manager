@@ -8,7 +8,7 @@ function context(s=source,enabled=true){
  const nodes={},calls={},storage={synthetic:'unchanged'},reads=name=>{calls[name]=(calls[name]||0)+1;};
  const element=()=>({style:{},textContent:'',innerHTML:'',classList:{toggle(){}},insertAdjacentHTML(where,html){for(const m of html.matchAll(/id="([^"]+)"/g))nodes[m[1]]=element();this.html=(this.html||'')+html;}});
  for(const id of ['tab-request','request-view','ho-list','tab-handover-badge'])nodes[id]=element();
- const c=vm.createContext({state:{amRun:{}},storage,calls,nodes,currentView:'handover',Date,Set,document:{getElementById:id=>nodes[id]},escapeHtml:x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;'),amTr2:(en,ne)=>'<small>'+en+' / '+ne+'</small>',amNxOn:()=>c.on!==false,amLogDay:()=> '2026-11-17',amNxQueue:()=>{reads('queue');return c.queue;},amNxLongRuns:()=>c.long,amRunActive:()=>c.active,amNxTrbNow:()=>{reads('trouble');return {band:c.trouble};},amNxGvNow:()=>{reads('given');return {live:c.given};},am5391Missed:()=>{reads('missed');return c.missed;},amNxRunLabel:r=>({icon:'📋',full:r.w,base:{}}),am539People:r=>[{n:r.by}],amRunMap:()=>c.state.amRun,amRunMin:()=>20,am5392ReadFrame:f=>f(),amIsFreshLegacy:w=>!!w.fresh,amNxTrbName:id=>id,amHM:()=> '12:00',queue:[],long:[],active:[],trouble:[],given:[],missed:[]});
+ const c=vm.createContext({state:{amRun:{}},storage,calls,nodes,currentView:'handover',Date,Set,document:{getElementById:id=>nodes[id]},escapeHtml:x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;'),amTr2:(en,ne)=>'<small>'+en+' / '+ne+'</small>',amNxOn:()=>c.on!==false,AM_LOG_PRE:'amLog_',amNxRid:r=>r.w,amLogDay:()=> '2026-11-17',amNxQueue:()=>{reads('queue');return c.queue;},amNxLongRuns:()=>c.long,amRunActive:()=>c.active,amNxTrbNow:()=>{reads('trouble');return {band:c.trouble};},amNxGvNow:()=>{reads('given');return {live:c.given};},am5391Missed:()=>{reads('missed');return c.missed;},amNxRunLabel:r=>({icon:'📋',full:r.w,base:{}}),am539People:r=>[{n:r.by}],amRunMap:()=>c.state.amRun,amRunMin:()=>20,am5392ReadFrame:f=>f(),amIsFreshLegacy:w=>!!w.fresh,amNxTrbName:id=>id,amHM:()=> '12:00',queue:[],long:[],active:[],trouble:[],given:[],missed:[]});
  const start=s.indexOf('const AM_HO_LIST'),end=s.indexOf('/* バージョン表示を初期化 */',start);
  vm.runInContext(s.slice(start,end).replace('const AM_HO_LIST = true','const AM_HO_LIST = '+enabled),c);return c;
 }
@@ -20,11 +20,11 @@ test('97ho1 all store configurations mount once, after request, without writes',
 test('97ho2 all sections and tiles, freshness, deduplication, read only',()=>{
  const c=context();c.queue=[0,1,2].map(i=>({k:'fire',w:{fresh:i===2},name:'作業'+i}));c.long=[{k:'long',w:'残った作業',by:'クルーA'}];c.active=[...c.long,{k:'a',w:'作業中A',by:'クルーB'},{k:'b',w:'作業中B',by:'クルーC'}];c.state.amRun=Object.fromEntries(c.active.map(r=>[r.k,r]));const def={ic:'!',t:'物が ない',en:'Missing item',ne:'सामान छैन'};c.trouble=[{qid:'困った作業',def}];c.given=[{qid:'諦めた作業',def,by:'クルーD',t:0}];c.missed=[{w:'間に合わなかった作業',round:1,scheduled:new Date().toISOString(),hiddenAt:new Date().toISOString()}];c.amWork=()=>({});
  const before=JSON.stringify([c.state,c.storage]);for(let i=0;i<3;i++)run(c,'amHoRender()');const h=c.nodes['ho-list'].innerHTML;
- assert.equal(JSON.stringify([c.state,c.storage]),before);for(const k of ['late','long','run','trouble','given','missed'])assert.ok(h.includes('data-ho="'+k+'"'),k);assert.match(h,/data-ho-tile="undone"[^]*?<b[^>]*>4<\/b>/);assert.equal((h.match(/残った作業/g)||[]).length,1);assert.match(h,/鮮度管理/);assert.match(h,/amNxGvList\(\)/);assert.doesNotMatch(h,/amNxGvUndo|しめ なし|受けた|退勤|＋/);
+ assert.equal(JSON.stringify([c.state,c.storage]),before);for(const k of ['late','long','run','trouble','given','missed'])assert.ok(h.includes('data-ho="'+k+'"'),k);assert.match(h,/data-ho-tile="undone"[^]*?<b[^>]*>4<\/b>/);assert.equal((h.match(/残った作業/g)||[]).length,1);assert.match(h,/鮮度管理/);assert.match(h,/amNxGvList\(\)/);assert.match(h,/data-ho-add/);assert.equal((h.match(/data-ho-take/g)||[]).length,4);assert.doesNotMatch(h,/amNxGvUndo|しめ なし|退勤/);
 });
 test('97ho3 badge reuses supplied global queue, never builds list or reads history',()=>{
  const c=context();c.amHoData=()=>{throw Error('badge must not build list');};run(c,"amHoBadge([{k:'fire'},{k:'soon'},{k:'fire'}],[{}])");assert.equal(c.nodes['tab-handover-badge'].textContent,'3');assert.deepEqual(c.calls,{});run(c,'amHoBadge([],[])');assert.equal(c.nodes['tab-handover-badge'].style.display,'none');
- const body=fn('amNxRenderBody');assert.match(body,/hoQ=amNxQueue\(now\), q=kcv\?hoQ\.filter/);assert.match(body,/amHoBadge\(hoQ,lgA\)/);
+ const body=fn('amNxRenderBody');assert.match(body,/hoQ=amNxQueue\(now\), q=kcv\?hoQ\.filter/);assert.match(body,/amHoBadge\(hoQ,lgA,now,hoRead\)/);
 });
 test('97ho4 closed tab skips every list read; old screen and empty messages are pure',()=>{
  const c=context();c.currentView='map';run(c,'amHoRender()');assert.deepEqual(c.calls,{});c.currentView='handover';c.on=false;const before=JSON.stringify([c.state,c.storage]);run(c,'amHoRender()');assert.match(c.nodes['ho-list'].innerHTML,/新しい 画面で 見られます/);assert.deepEqual(c.calls,{});c.on=true;c.nodes['tab-handover-badge'].textContent='4';run(c,'amHoRender()');assert.match(c.nodes['ho-list'].innerHTML,/いま 引き継ぐ 物は ありません/);assert.equal(c.nodes['tab-handover-badge'].textContent,'0');assert.equal(c.nodes['tab-handover-badge'].style.display,'none');assert.equal(JSON.stringify([c.state,c.storage]),before);
@@ -43,7 +43,7 @@ test('97ho7 mutation checks reject state writes, badge recomputation and false m
  const c2=context(source.replace("if(!AM_HO_LIST||document.getElementById('tab-handover')) return;","if(document.getElementById('tab-handover')) return;"),false);run(c2,'amHoMount()');assert.throws(()=>assert.equal(c2.nodes['tab-handover'],undefined));
 });
 test('97ho8 syntax, LF, Unicode and generated body agree',()=>{
- let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.40.4'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
+ let count=0;for(const f of ['ws/index.html','v2/ws/index.html','v2/wstest.html']){const s=fs.readFileSync(path.join(root,f),'utf8');assert.ok(!s.includes('\r')&&!s.includes('\uFFFD'));for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/src=/.test(m[1])||(/type=/.test(m[1])&&!/id="v2-main"/.test(m[1])))continue;new vm.Script(m[2]);count++;}}assert.equal(count,18);assert.match(source,/APP_VERSION = '5.41.0'/);assert.match(source,/aria-label="引継ぎ"/);assert.match(source,/नयाँ स्क्रिनमा/);const gen=fs.readFileSync(path.join(root,'v2/ws/index.html'),'utf8');assert.equal(fn('amHoRender',gen),fn('amHoRender'));
 });
 
 function tabsCheck(s=source){
@@ -52,11 +52,11 @@ function tabsCheck(s=source){
 }
 function reviewCheck(s=source){tabsCheck(s);
  const c=context(s);c.long=[{k:'a',w:'残った作業',by:'クルーA'}];c.active=[{k:'b',w:'作業中',by:'クルーB'}];c.state.amRun={a:c.long[0],b:c.active[0]};c.given=[{qid:'諦めた作業',def:{ic:'!',t:'理由',en:'Reason',ne:'कारण'},by:'クルーC',t:0}];c.missed=[{w:'作業',round:1,scheduled:'2026-11-17T02:00:00Z',hiddenAt:'2026-11-17T10:00:00Z'}];c.amWork=()=>({});c.amNxRunLabel=r=>({icon:'!',full:r.w,base:{fresh:true}});run(c,'amHoRender()');const h=c.nodes['ho-list'].innerHTML;
- for(const key of ['long','run','given','missed']){const section=h.split('data-ho="'+key+'"')[1].split('</section>')[0],detail=section.split('<div class="tx">')[1];assert.equal((detail.match(/<small>/g)||[]).length,2,key);assert.match(detail,/<span data-ho-jp>[^]*<\/span><small>/,key);}
+ for(const key of ['long','run','given','missed']){const section=h.split('data-ho="'+key+'"')[1].split('</section>')[0],detail=section.split('<div class="tx">')[1].split('</div>')[0];assert.equal((detail.match(/<small>/g)||[]).length,2,key);assert.match(detail,/<span data-ho-jp>[^]*<\/span><small>/,key);}
  assert.match(h,/1回目/);assert.match(h,/下げた時刻/);assert.match(h,/Freshness control/);assert.doesNotMatch(h,/<span style="display:inline-block;padding:2px[^>]*>[^<]*<small>/);
  assert.match(fn('amHoMount',s),/MutationObserver/);assert.match(fn('amHoMount',s),/aria-label="引継ぎ"/);assert.match(fn('amHoText',s),/display:inline-block/);assert.doesNotMatch(fn('initVersionInfo',s),/5.39.3|AM_HO_LIST/);assert.doesNotMatch(fn('amNxCfgOpen',s),/5.39.3/);
 }
-test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.40.4',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.40.4');});
+test('97ho11 false shows APP_VERSION in version DOM',()=>{const c=context(source,false);c.nodes['version-num']={};run(c,"const APP_VERSION='5.41.0',APP_BUILD='synthetic';"+fn('initVersionInfo')+';initVersionInfo()');assert.equal(c.nodes['version-num'].textContent,'v5.41.0');});
 test('97ho9 review fixes: complete Japanese then one translation, fresh badge, missed words, sizing and version',()=>reviewCheck());
 test('97ho10 each of five review regressions is rejected',()=>{
  const old=cp.execFileSync('git',['show','aa11df4:ws/index.html'],{cwd:root,encoding:'utf8',maxBuffer:8e6});
@@ -128,7 +128,7 @@ test('97ho16 short staff view keeps the bottom of the map column in view',()=>{
 
 // Run unchanged regression tests with only the exact current-version expectation adapted in memory.
 if(process.argv.includes('--regressions'))for(const f of ['ws5390.test.cjs','ws5391.test.cjs','ws5392.test.cjs','ws5393.test.cjs','ws-settle-equivalence.test.cjs']){
- let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.40.4'");new Function('require','__dirname','process',code)(require,__dirname,process);
+ let code=fs.readFileSync(path.join(__dirname,f),'utf8').replace(/APP_VERSION = '5\.39\.3'/g,"APP_VERSION = '5.41.0'");new Function('require','__dirname','process',code)(require,__dirname,process);
 }
 // Existing single-process speed runner; output uses os.tmpdir and no external origin is allowed.
 async function reviewGeometry({ev,send,setRevision,load,out}){
@@ -180,7 +180,7 @@ async function integration({ev,send,out,html,setRevision}){
   }.toString())}+')()')`));
  }
  assert.equal(probes[1].tabs,probes[0].tabs,'disabled tabs identical');assert.equal(probes[1].map,probes[0].map,'disabled map DOM identical');
- assert.equal(probes[1].displayedVersion,'v5.40.4');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
+ assert.equal(probes[1].displayedVersion,'v5.41.0');assert.equal(probes[1].visible,probes[0].visible,'disabled DOM text and order, only version nodes normalized');
  assert.equal(JSON.stringify(probes[2].geometry),JSON.stringify(probes[0].geometry),'map geometry unchanged with the new tab');
  fs.writeFileSync(path.join(out,'probe-detail.json'),JSON.stringify(probes));
  for(const p of probes){assert.equal(p.readOnlyAfterClock,true);assert.equal(p.initial,probes[0].initial);assert.equal(JSON.stringify(p.trace),JSON.stringify(probes[0].trace),'operation bytes');assert.equal(JSON.stringify(p.boundary),JSON.stringify(probes[0].boundary),'boundary bytes');}

@@ -5236,7 +5236,7 @@ const _STORE_ID=_gs.currentId;
 /* ========== 状態管理 ========== */
 const STORAGE_KEY = _STORE_ID?'ws_v1_store_'+_STORE_ID:'ws_v1';
 const DEFAULT_CATEGORIES = ['清掃', '補充', '確認', '修正', '作成', '値引', '発注'];
-const APP_VERSION = '5.40.4'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
+const APP_VERSION = '5.41.0'; // 機能更新ごとに数字を上げる（更新が分かりやすいように）
 const APP_BUILD = 'e5a8e46'; // 自動更新（push時に書き換え）
 const DEFAULT_GAME_SETTINGS = {
   pointsBase: 2,
@@ -12172,10 +12172,10 @@ const OMACHI_MAP = (function(){
   return { w:985, h:1808, frame:{x:0,y:0,w:878,h:1803},
     cells: raw.map(r=>({id:r[0],label:r[1],x:r[2]-ox,y:r[3]-oy,w:r[4]-r[2],h:r[5]-r[3],zone:r[6],works:r[7],kind:r[8],icon:r[9]})) };
 })();
-
-/* マップ機能からの保存は必ずここを通す：amUsed の印を付けて、WS の「空データで上書きしない」保護に
-   マップ・作業の登録や点検記録だけの店舗も「データあり」と認識させる（初期値に戻す・取り消しの保存が止まらないように） */
-function amSave(resetTab){ if(resetTab) _amNx.tab=null; if(am5391Enabled()){if(!state.wsOverdueSince)state.wsOverdueSince=am5391Since(Date.now()); am5391Settle();} state.amUsed=true; saveState(); }
+/* amUsed は、マップや 点検だけの 店でも 空データ扱いで 保存が 止まらない ための 印。 */
+function amSave(resetTab, handover){
+  if(handover) return _origSaveState();   // 日ごとの 引き継ぎだけを 保存する
+  /* 通常の 保存と 締め */         if(resetTab) _amNx.tab=null; if(am5391Enabled()){if(!state.wsOverdueSince)state.wsOverdueSince=am5391Since(Date.now()); am5391Settle();} state.amUsed=true; saveState(); }
 /* ---- データの読み出し（未登録なら初期値） ---- */
 function amStoreName(){ try{ const s=(_gs.stores||[]).find(x=>x.id===_STORE_ID); return (s&&s.name)||''; }catch(_){ return ''; } }
 function amDefaultMap(){ return /大町/.test(amStoreName()) ? OMACHI_MAP : null; }
@@ -13906,7 +13906,7 @@ function am5393Plan(now){
   Object.keys(state).filter(k=>k.indexOf(AM_LOG_PRE)===0).forEach(k=>{
    const json=JSON.stringify(state[k]),versions=previous&&previous.buckets.has(k)?previous.buckets.get(k).slice():[];
    let bucket=versions.find(v=>v.json===json);
-   if(!bucket){bucket={json,rows:new Map(Object.entries(state[k]||{}).map(([id,r])=>[k+'|'+id,record(r,k.slice(AM_LOG_PRE.length))]))};versions.push(bucket);if(versions.length>2)versions.shift();}
+   if(!bucket){bucket={json,rows:new Map(Object.entries(state[k]||{}).filter(([id])=>id[0]!=='h').map(([id,r])=>[k+'|'+id,record(r,k.slice(AM_LOG_PRE.length))]))};versions.push(bucket);if(versions.length>2)versions.shift();}
    buckets.set(k,versions);bucket.rows.forEach((r,id)=>rows.set(id,r));
   });
   Object.entries(_amChecksRead()).forEach(([w,rs])=>{if(Array.isArray(rs))rs.forEach((r,i)=>rows.set('check|'+w+'|'+i,record({...r,w})));});
@@ -14094,17 +14094,17 @@ function am539Columns(shown,q,here,hold,now,sel,ph=false,wide=false){
  if(!amWorks().some(w=>['in','out','both'].includes(w.ctr))){const nums=amNxRowNums(shown);let html='';
     let after=false;
     shown.forEach((x,i)=>{
-      if(x.k!=='fire'&&!after&&amNxSlot(x,now)&&amNxSlot(x,now).s>now){ after=true; html+=`<div class="nxa-sec nxa-after">このあと<small>Later / यसपछि</small></div>`; }
+      if(!x.handover&&x.k!=='fire'&&!after&&amNxSlot(x,now)&&amNxSlot(x,now).s>now){ after=true; html+=`<div class="nxa-sec nxa-after">このあと<small>Later / यसपछि</small></div>`; }
       if(i===0&&showGo&&q[0]&&q[0].id===x.id) html+=`<div class="nxa-nf" style="--pc:${amNxCol(free[0].n)}">${free.length===1?`${amNxAv2(free[0].n,24)}${escapeHtml(free[0].n)} は、次に これ`:'あいている人は、次に これ'}<small>Next / अब यो</small></div>`;
       html+=amNxRowHtml(x,nums[i],now,ph,!!sel&&sel.id===x.id,wide,i===0,true);
       if(i===0&&showGo&&q[0]&&q[0].id===x.id) html+=`<div class="nxa-gos" style="grid-template-columns:repeat(${free.length},minmax(0,1fr))">${free.map(p=>`<button type="button" class="nxb nxa-go" style="--pc:${amNxCol(p.n)}" data-w="${escapeHtml(x.id)}" data-n="${escapeHtml(p.n)}" onclick="amNxWhoTap(this)">${amNxIco('play',20,'#fff')}${escapeHtml(p.n)} が やる<small>Start / सुरु</small></button>`).join('')}</div>`;
       if(sel&&sel.id===x.id) html+=amNxOpenHtml(x,q,here,hold,now);
     });
 return html;}
- const sideRows=k=>shown.filter(x=>{const v=am539Side(x.w);return v===k||v==='both'||(k==='in'&&v==='unknown');});
+ const sideRows=k=>shown.filter(x=>{if(x.handoverRun)return false;const v=am539Side(x.w);return v===k||v==='both'||(k==='in'&&v==='unknown');});
  const column=k=>{const wide=false,rows=shown.filter(x=>{const v=am539Side(x.w);return v===k||v==='both'||(k==='in'&&v==='unknown');}),nums=amNxRowNums(rows);let html='',after=false;
      rows.forEach((x,i)=>{
-      if(x.k!=='fire'&&!after&&amNxSlot(x,now)&&amNxSlot(x,now).s>now){ after=true; html+=`<div class="nxa-sec nxa-after">このあと<small>Later / यसपछि</small></div>`; }
+      if(!x.handover&&x.k!=='fire'&&!after&&amNxSlot(x,now)&&amNxSlot(x,now).s>now){ after=true; html+=`<div class="nxa-sec nxa-after">このあと<small>Later / यसपछि</small></div>`; }
       if(i===0&&showGo&&q[0]&&q[0].id===x.id) html+=`<div class="nxa-nf" style="--pc:${amNxCol(free[0].n)}">${free.length===1?`${amNxAv2(free[0].n,24)}${escapeHtml(free[0].n)} は、次に これ`:'あいている人は、次に これ'}<small>Next / अब यो</small></div>`;
       html+=amNxRowHtml(x,nums[i],now,ph,!!sel&&sel.id===x.id,wide,i===0,true);
       if(i===0&&showGo&&q[0]&&q[0].id===x.id) html+=`<div class="nxa-gos" style="grid-template-columns:repeat(${free.length},minmax(0,1fr))">${free.map(p=>`<button type="button" class="nxb nxa-go" style="--pc:${amNxCol(p.n)}" data-w="${escapeHtml(x.id)}" data-n="${escapeHtml(p.n)}" onclick="amNxWhoTap(this)">${amNxIco('play',20,'#fff')}${escapeHtml(p.n)} が やる<small>Start / सुरु</small></button>`).join('')}</div>`;
@@ -14709,10 +14709,10 @@ function amNxLongX(r,now){
 }
 function amNxRowHtml(x,rk,now,ph,isSel,wide=false,first=rk===1,list=false){
   const cls=x.lock?'lock':x.k==='fire'?'late':x.k==='soon'?'soon':'later';
-  const ct=amCtrChip(x.w,ph), mk=(x.ho?`<small class="nxa-ho">${x.ho}</small>`:'')+(x.af?'<small>➡ あと</small>':'')+(x.re?'<small>🔁 再チェック</small>':'')+(x.rep?`<small>${escapeHtml(amRepTag(x.w))}</small>`:'');
+  const ct=amCtrChip(x.w,ph), mk=(x.handover?'<small class="nxa-ho" data-ho-pin>🤝 '+x.handover+'</small>':'')+(x.ho?`<small class="nxa-ho">${x.ho}</small>`:'')+(x.af?'<small>➡ あと</small>':'')+(x.re?'<small>🔁 再チェック</small>':'')+(x.rep?`<small>${escapeHtml(amRepTag(x.w))}</small>`:'');
   const dm=amNxDormOfId(x.id,now), cn=(!x.af&&amCkOn(x.w))?amCkNow(x.w,now):null, sub=dm.length?`<span class="sb">⏸ ${escapeHtml(dm.map(r=>r.by||'名前なし').join('・'))} の 印が 残っています${(cn&&cn.n)?`・✓ ${cn.n}／${cn.keys.length}`:''}</span>`:'';   // 5.36.5：だれでもに 戻った 印が 残っている 作業：その 人と ✓ の 数
   const gv=list&&x.k==='fire'&&!x.lock&&amGvOn()&&!amIsFresh(x.w);
-  const html=`<button type="button" class="nxb nxa-it ${cls}${am539Restricted(x.w)?' permission':''}${isSel?' sel':''}${first?' first':''}${typeof rk==='string'?' kcr':''}" data-w="${escapeHtml(x.id)}" onclick="amNxSel(this.dataset.w,this.closest('.ws539-column')?.classList.contains('out')?'out':'in')">${ct}<span class="rk num">${rk}</span>${list?`<span class="nxa-mark">${amNxStamp(x.tag,ph?24:28)}${amNxGvMark(x,now)}</span>`:amNxStamp(x.tag,ph?24:28)}<span class="tx"><span class="nm">${am539Restricted(x.w)?'<small class="ws539-lock">🔒 権限の人だけ</small>':''}${escapeHtml(x.base||x.name)}${(x.base&&x.name.length>x.base.length)?`<small class="zs">${escapeHtml(x.name.slice(x.base.length))}</small>`:''}${mk}</span>${sub}${wide?`<span class="nxa-schedule">${escapeHtml(amNxScheduleText(x,now))}${amNxScheduleTr(amNxScheduleText(x,now))}</span>`:''}</span>${!wide?`<span class="nxa-schedule">${escapeHtml(amNxScheduleText(x,now))}${amNxScheduleTr(amNxScheduleText(x,now))}</span>`:''}${(()=>{ const wn=amNxWhen2(x,now); return `<span class="tm num${wn.dim?' dim':''}">${!wn.t&&!amKcViewOn()?amNxBandRight(x,now):`<b>${escapeHtml(wn.t)}</b>${wn.s?`<small>${wn.s}</small>`:''}`}</span>`; })()}</button>`;
+  const html=`<button type="button" class="nxb nxa-it ${cls}${am539Restricted(x.w)?' permission':''}${isSel?' sel':''}${first?' first':''}${typeof rk==='string'?' kcr':''}" data-w="${escapeHtml(x.id)}" onclick="${x.handoverRun?'amNxCkOpen(this.dataset.hoRun)':"amNxSel(this.dataset.w,this.closest('.ws539-column')?.classList.contains('out')?'out':'in')"}"${x.handoverRun?' data-ho-run="'+escapeHtml(x.handoverRun)+'"':''}>${ct}<span class="rk num">${rk}</span>${list?`<span class="nxa-mark">${amNxStamp(x.tag,ph?24:28)}${amNxGvMark(x,now)}</span>`:amNxStamp(x.tag,ph?24:28)}<span class="tx"><span class="nm">${am539Restricted(x.w)?'<small class="ws539-lock">🔒 権限の人だけ</small>':''}${escapeHtml(x.base||x.name)}${(x.base&&x.name.length>x.base.length)?`<small class="zs">${escapeHtml(x.name.slice(x.base.length))}</small>`:''}${mk}</span>${sub}${wide?`<span class="nxa-schedule">${escapeHtml(amNxScheduleText(x,now))}${amNxScheduleTr(amNxScheduleText(x,now))}</span>`:''}</span>${!wide?`<span class="nxa-schedule">${escapeHtml(amNxScheduleText(x,now))}${amNxScheduleTr(amNxScheduleText(x,now))}</span>`:''}${(()=>{ const wn=amNxWhen2(x,now); return `<span class="tm num${wn.dim?' dim':''}">${!wn.t&&!amKcViewOn()?amNxBandRight(x,now):`<b>${escapeHtml(wn.t)}</b>${wn.s?`<small>${wn.s}</small>`:''}`}</span>`; })()}</button>`;
   return gv?`<div class="nxa-gvrow">${html}<button type="button" class="nxb nxa-gvrow-btn" aria-label="諦める" data-w="${escapeHtml(x.id)}" onclick="amNxGvAskI(this.dataset.w)">🏳</button></div>`:html;   // 時刻が 無い 行には 時間帯と 済／予定（保存しない）
 }
 /* 5.27.1（テス △1）：今いる人の 並び。きょうの 人（交代・朝3時の 後に 入った 人。入った 順）→ 前からの 人（新しい 順）。 */
@@ -14811,7 +14811,7 @@ function amNxRenderBody(view){
   const now=Date.now(), map=amMap(), de=document.documentElement; if(_amNx.mapPresent!==!!map){_amNx.sc=0;_amNx.mapPresent=!!map;} de.classList.remove('amf-fit','amf-shut'); de.classList.add('nx-fit'); _amfNo={}; _amfAt=now;
   const kcv=amKcViewOn(), here=amNxHere(now), act=amRunActive(now), lgA=amNxLongRuns(now), hold=amNxHoldMap(now), hoQ=amNxQueue(now), q=kcv?hoQ.filter(x=>amKcIs(x.w)):hoQ, T=amNxTrbNow(now), ho=amNxHo(now);   // 5.27：困った・交代の 引き継ぎ   // 5.29：「🍳 厨房」の 間は 厨房の 作業だけ（列・地図・線）
   { const m=amRunMap(), sk=_amNx.ckSnap&&_amNx.ckSnap.k; Object.keys(_amNxCarry).forEach(k=>{ if(k!==sk&&!amRunOk(m[k])) delete _amNxCarry[k]; }); }   // 5.27（5.26 テス r3 の 残り）：終わった・取り消された 印の 持ち越し（温度）を メモリに 残さない
-  const cq=kcv?q:amNxQueue(now,true);
+  const cq=kcv?q:amNxQueue(now,true), hoRead=AM_HO_LIST?amHoRead(now,false):null;
   if(_amNx.sel&&!cq.some(x=>x.id===_amNx.sel)) _amNx.sel='';
   const hoN={late:0,mid:0,trb:0};
   if(ho){ q.forEach(x=>{ const dm=amNxDormOfId(x.id,now).some(r=>r.s<ho.cut); if(x.k==='fire'&&isFinite(x.due)&&x.due<=ho.cut){ x.ho=ho.lab; if(!dm) hoN.late++; } else if(dm) x.ho=ho.lab; });   // 5.36.4（テス 5.36.3 △）：印が 残る 作業は 途中（下の act）だけに 数える。おくれにも 足すと 同じ 印を 2回 数える
@@ -14881,7 +14881,7 @@ function amNxRenderBody(view){
     const lateN=shown.filter(x=>x.k==='fire').length+amNxLongLate(now).filter(x=>_amNx.tab==null||x.tag===_amNx.tab).length;
     if(!kcv&&lateN) col+=`<div class="nxa-sec nxa-late">おくれ ${lateN}<small>Overdue / ढिलो भएको</small></div>`;
     let after=false;
-    if(!kcv) col+=am539Columns(shown,q,here,hold,now,sel,ph,wide);
+    if(!kcv) col+=am539Columns(AM_HO_LIST?amHoPin(shown,now,hoRead,act.concat(lgA)):shown,q,here,hold,now,sel,ph,wide);
     const gvN=amNxGvNow(now).live.length;   // 5.31：きょう 諦めた（取り消して いない）数
     if(!q.length&&!kcv) col+=lgA.length?`<div class="nxa-none long">⏳ 長い ${lgA.length}件があります<small>Long: ${lgA.length} / लामो: ${lgA.length}</small>${gvN?`<small>諦めた ${gvN}件は 下から 戻せます</small>`:''}</div>`:amNxMissToday(now)===0?`<div class="nxa-none">✨ ここまで 全部 済<small>All done so far / अहिलेसम्म सबै सकियो</small></div>`:`<div class="nxa-none">✅ いまは 間に合っています${gvN?`<small>諦めた ${gvN}件は 下から 戻せます</small>`:'<small>All caught up / सबै समयमै</small>'}</div>`;   // 5.37.1：長い 回だけ 残る 時は 件数を 出す。きょう 抜けが 無ければ ✨
     if(gvN&&!kcv) col+=`<button type="button" class="nxb nxa-gvl" id="nxa-gvl" onclick="amNxGvList()">🏳 きょう 諦めた ${gvN}件<small>押すと 戻せる / Given up today</small></button>`;   // 5.31
@@ -14903,7 +14903,7 @@ function amNxRenderBody(view){
   amNxFitTop(); amNxFitCk(); amNxBelow();
   if(ph&&!map&&!keep&&!sel&&!ckR&&col){const row=[...col.querySelectorAll('.nxa-it')].find(e=>e.getBoundingClientRect().width>0),below=document.getElementById('nxa-below');if(row){const r=row.getBoundingClientRect(),c=col.getBoundingClientRect(),edge=Math.min(innerHeight,c.bottom,below&&!below.hidden?below.getBoundingClientRect().top:Infinity);if(r.bottom>edge&&r.height<edge-c.top)col.scrollTop+=r.bottom-edge+1;}}
   amNxWires();
-  updateMapBadge(); amOffRefresh(); amSnackPlace(); if(AM_HO_LIST) amHoBadge(hoQ,lgA);
+  updateMapBadge(); amOffRefresh(); amSnackPlace(); if(AM_HO_LIST) amHoBadge(hoQ,lgA,now,hoRead);
 }
 /* 5.29（店長 10/26「マークがなんのタグなのかってのもどこかに優先順位表見たいのが小さくあると嬉しい」）：列の いちばん 下に たためる 小さな 表。
    種類の 絵と 名前を「同じ 急ぎなら 先に やる 順」（amTagSorted＝管理者の ↕ やる順）で。左の 線の 色・内／外の 札も。開いて いるかは この 端末の メモリだけ */
@@ -15337,9 +15337,9 @@ function amNxTrbAll(now){
   return out.sort((a,b)=>(a.t-b.t)||(a.id<b.id?-1:a.id>b.id?1:0));
 }
 /* 困った の 後に 終わった 記録が 入ったか（名前の 記録・▶ の 終わった・古い版の 記録・あとの作業の 記録） */
-function amNxTrbDoneAfter(e,now){
+function amNxTrbDoneAfter(e,now,readChecks=_amChecksRead){
   if(e.r.sa){ const sa=new Date(e.r.sa).getTime(), ow=String(e.r.w).replace(/#af$/,''); return amAfRecs(e.t, now+3600000).some(x=>x.ow===ow&&x.sa===sa&&x.t>e.t); }
-  const hs=_amChecksRead()[String(e.r.w)]; return Array.isArray(hs)&&hs.some(x=>new Date(x&&x.at).getTime()>e.t);
+  const hs=readChecks()[String(e.r.w)]; return Array.isArray(hs)&&hs.some(x=>new Date(x&&x.at).getTime()>e.t);
 }
 /* 1件の 今：band＝赤い帯／hide＝帯に しないが 急ぐ順から 外す（手が 足りない）／off＝もう 効かない */
 function amNxTrbState(e,now){
@@ -17101,13 +17101,13 @@ function amLogRemove(ref){ const o=ref&&state[ref.key]; if(o&&typeof o==='object
    ・それ以外：本物の localStorage の v2_device（新しいシステムの入口が 端末ごとに作って持ち続けている物。v2 の中でも window.localStorage は本物）の終わりの 8字。
      無ければ（新しいシステムを一度も開いていない端末の 元の版）、ws_am_dev を作って 本物の localStorage に保存する。元の版と v2 で 同じ端末は 同じ印になる。
    ・localStorage を読めない時（プライベートの窓など）：このタブの間だけの印（読み込み直すと変わる＝その端末は 自分の時計で外す。10/12 の形と同じ）。 */
-let _amDev='';
-function amDevId(){
-  if(_amDev) return _amDev;
+let _amDev='', amHoTempDev='';
+function amDevId(remember=true){
+  if(_amDev) return _amDev; if(!remember&&amHoTempDev) return amHoTempDev;
   let d='';
   try{ if(typeof V2WS!=='undefined'&&V2WS&&V2WS.MEM&&window.__v2&&window.__v2.store) d=String(window.__v2.store.device||''); }catch(_){}
   if(!d){ try{ d=String(window.localStorage.getItem('v2_device')||''); }catch(_){} }
-  if(!d){ try{ d=String(window.localStorage.getItem('ws_am_dev')||''); if(!d){ d='d'+Date.now().toString(36).slice(-3)+Math.random().toString(36).slice(2,6); window.localStorage.setItem('ws_am_dev',d); } }catch(_){} }
+  if(!d){ try{ d=String(window.localStorage.getItem('ws_am_dev')||''); if(!d){ d='d'+Date.now().toString(36).slice(-3)+Math.random().toString(36).slice(2,6); if(remember) window.localStorage.setItem('ws_am_dev',d); else return amHoTempDev||(amHoTempDev=d); } }catch(_){} }
   if(!d) d='t'+Math.random().toString(36).slice(2,9);
   _amDev=d.slice(-8);
   return _amDev;
@@ -20711,8 +20711,31 @@ window.addEventListener('beforeunload', () => {
 
 // 操作ログに 入る 行番号を 変えないため、追加は 保存の 関数より 後に まとめる。
 const AM_HO_LIST = true;   // false にすると 引継ぎの タブと 一覧が 出なくなり、5.39.3 と 同じ 動き
-// 段1の 言葉（読むだけ。店の 設定には 保存しない）
+// 引き継ぎの 言葉（読むだけ。店の 設定には 保存しない）
 const AM_HO_WORDS = {
+  add: ["＋ 足す","Add","थप्ने"],
+  want: ["受けて ほしい","Waiting for someone","लिन बाँकी"],
+  got: ["受けた","Got it","मैले लिएँ"],
+  task: ["どの 作業？","Which task?","कुन काम?"],
+  why: ["どうして？（1つ 押す）","Why? (tap one)","किन? (एउटा थिच्नुहोस्)"],
+  whoAdd: ["だれが 足す？","Who is adding?","कसले थप्ने?"],
+  whoTake: ["だれが 受ける？","Who is taking it?","कसले लिने?"],
+  others: ["ほかの人 ▾","Other people ▾","अरू मानिस ▾"],
+  noName: ["名前なし","No name","नाम बिना"],
+  allowed: ["権限の ある 人が 受けます","An authorized person can take it","अनुमति भएको व्यक्तिले लिन्छ"],
+  previous: ["前の 時間から","From the previous shift","अघिल्लो सिफ्टबाट"],
+  from: ["から","From","बाट"],
+  next: ["次の 人","Next person","अर्को व्यक्ति"],
+  added: ["引き継ぎに 足しました","Handover added","हस्तान्तरण थपियो"],
+  taken: ["が 受けました。急ぐ順の いちばん上に 出ます","took it. It appears first in the urgent list","ले लिए। जरुरी सूचीको माथि देखिन्छ"],
+  undo: ["取り消す","Undo","रद्द गर्ने"],
+  undoneAction: ["取り消しました","Undone","रद्द गरियो"],
+  back: ["もどる","Back","फर्कने"],
+  mid: ["途中まで やった","Half done","आधा भयो","◐"],
+  time: ["時間が 無かった","No time","समय भएन","⏳"],
+  mono: ["物が 無い・届くのを 待つ","Waiting for stock","सामान पर्खँदै","📦"],
+  kikai: ["機械・道具が だめ","Machine / tool problem","मेसिन बिग्रियो","🔧"],
+  hoka: ["そのほか","Other","अन्य","❔"],
   "title": [
     "🤝 引き継ぎ（きょう）",
     "Handover today",
@@ -20826,35 +20849,274 @@ function amHoMount(){
   amHoTabsSize(); if(typeof window!=='undefined') window.addEventListener('resize',()=>amHoTabsSize());
   if(typeof MutationObserver!=='undefined'){const observer=new MutationObserver(records=>{if(records.some(r=>r.type!=='attributes'||r.target!==document.getElementById('view-tabs'))) amHoTabsSize();});observer.observe(document.body,{attributes:true,attributeFilter:['class']});observer.observe(document.getElementById('view-tabs'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['style','class']});}
 }
-function amHoBadge(q,lgA){
+// 日ごとの 箱が 同期で 入れ替わった 時と、引き継ぎを 書いた 時だけ h を 拾い直す。
+const amHoDays = new Map();
+const AM_HO_REASONS = ['mid','time','mono','kikai','hoka'];
+function amHoRecords(now){
+  if(!AM_HO_LIST) return [];
+  const keys=new Set(), rows=[];
+  for(let i=0;i<7;i++){
+    const key=AM_LOG_PRE+amLogDay(now-i*86400000), bucket=state[key];
+    keys.add(key);
+    let entry=amHoDays.get(key);
+    if(!entry||entry.bucket!==bucket){
+      const hs=[];
+      for(const id of Object.keys(bucket||{})){
+        if(id[0]!=='h') continue;
+        const r=bucket[id];
+        if(r&&r.h===1) hs.push({key,id,r,qid:amNxRid(r),t:Date.parse(r.t)});
+      }
+      entry={bucket,hs}; amHoDays.set(key,entry);
+    }
+    for(const x of entry.hs) rows.push(x);
+  }
+  for(const key of amHoDays.keys()) if(!keys.has(key)) amHoDays.delete(key);
+  return rows;
+}
+function amHoRead(now,details=true){
+  const live=new Map(), want=[], got=[], pins=new Map(), rows=amHoRecords(now);
+  let checks;
+  const readChecks=()=>checks||(checks=_amChecksRead());
+  for(const x of rows){
+    const r=x.r;
+    if(r.u||!Number.isFinite(x.t)||x.t>=now+60000) continue;
+    const ok=Date.parse(r.ok), taken=ok<now+60000&&!(Date.parse(r.ou)>ok);
+    const done=amNxTrbDoneAfter(x,now,readChecks), old=live.get(x.qid);
+    if(!done&&(!old||old.t<x.t)) live.set(x.qid,{...x,taken});
+    if(taken){
+      if(details&&amLogDay(ok)===amLogDay(now)) got.push(x);
+      const pin=pins.get(x.qid);
+      if((!done||ok>x.t&&!amNxTrbDoneAfter({r,t:ok},now,readChecks))&&(!pin||Date.parse(pin.r.ok)<ok)) pins.set(x.qid,x);
+    }
+  }
+  for(const x of live.values()) if(!x.taken) want.push(x);
+  if(details){
+    want.sort((a,b)=>b.t-a.t);
+    got.sort((a,b)=>Date.parse(b.r.ok)-Date.parse(a.r.ok));
+  }
+  return {live,want,got,pins};
+}
+function amHoFrom(by){ return by?escapeHtml(by)+' '+escapeHtml(AM_HO_WORDS.from[0]):escapeHtml(AM_HO_WORDS.previous[0]); }
+function amHoPin(rows,now,data,runs=[]){
+  if(!AM_HO_LIST) return rows;
+  const {pins}=data||amHoRead(now,false);
+  if(!pins.size) return rows;
+  const first=[], rest=[];
+  for(const x of rows){
+    const pin=pins.get(x.id);
+    if(pin) first.push({...x,handover:amHoFrom(pin.r.by)});
+    else rest.push(x);
+  }
+  // 印が 残っている 時は、印と 列の 数は そのまま、受けた 作業も 列に 出す。
+  const held=new Map(runs.map(r=>[amNxRid(r),r.k])), shown=new Set(rows.map(x=>x.id));
+  if(Array.from(pins.keys()).some(id=>held.has(id)&&!shown.has(id))){
+    for(const x of amNxQueue(now,true,true)){
+      const pin=pins.get(x.id), rk=held.get(x.id);
+      if(pin&&rk&&!shown.has(x.id)&&(_amNx.tab==null||x.tag===_amNx.tab)){
+        first.push({...x,handover:amHoFrom(pin.r.by),handoverRun:rk});
+      }
+    }
+  }
+  return first.concat(rest);
+}
+function amHoButton(label,action,value='',extra=''){
+  return '<button type="button" class="nx-sub" style="min-height:48px;min-width:48px;max-width:100%;white-space:normal" data-ho-value="'+escapeHtml(value)+'" onclick="'+action+'" '+extra+'>'+label+'</button>';
+}
+function amHoTarget(x,r){
+  if(r){
+    const label=amNxRunLabel(r), people=am539People(amRunMap()[r.k]||r);
+    return {qid:amNxRid(r),w:r.w,sa:r.sa,rk:r.k,by:(people[0]||{}).n||'',name:label.full||label.name,icon:label.icon,base:label.base||label.w};
+  }
+  return {qid:x.id,w:x.af?String(x.w.id)+'#af':x.id,sa:x.af?new Date(x.o.src).toISOString():undefined,o:amNxGvDue(x),name:x.name,icon:x.w.icon,base:x.w,late:x.k==='fire'};
+}
+function amHoChoices(now){
+  const {live}=amHoRead(now), targets=new Map();
+  const queue=amNxQueue(now);
+  for(const x of queue) if(!live.has(x.id)) targets.set(x.id,amHoTarget(x));
+  for(const r of amRunActive(now).concat(amNxLongRuns(now))){
+    const id=amNxRid(r), x=targets.get(id);
+    if(!live.has(id)&&(!x||!x.rk)) targets.set(id,{...amHoTarget(null,r),late:!!(x&&x.late)});
+  }
+  return targets;
+}
+let amHoAction=null;
+function amHoTap(){
+  if(!AM_HO_LIST||!amNxOn()||currentView!=='handover'||amFT()<(_amNx.hold||0)) return false;
+  _amNx.hold=amFT()+AM_HOLD_MS;
+  return true;
+}
+function amHoNames(target,take,now){
+  const restricted=take&&am539Restricted(target.base);
+  const allowed=n=>!restricted||am539Allowed(target.base,n);
+  const present=amNxStaffOrd(amNxHere(now)).map(h=>h.n);
+  const here=present.filter(allowed);
+  const rest=staffList().filter(n=>!here.includes(n)&&allowed(n));
+  return {here,rest,restricted,solo:present.length===1&&here.length===1};
+}
+function amHoOpen(mode,kind,value){
+  if(!amHoTap()) return;
+  const now=Date.now(), data=amHoRead(now);
+  if(mode==='add') amHoAction={mode,step:'task'};
+  else{
+    let target, ref;
+    if(kind==='want'){
+      ref=data.want.find(x=>x.key+'|'+x.id===value);
+      if(ref) target={...ref.r,qid:ref.qid,base:amWork(String(ref.r.w).replace(/#af$/,''))};
+    }else if(kind==='long'){
+      const r=amNxLongRuns(now).find(r=>r.k===value);
+      if(r) target=amHoTarget(null,r);
+    }else{
+      const x=amNxQueue(now).find(x=>x.id===value&&x.k==='fire');
+      if(x) target=amHoTarget(x);
+    }
+    if(!target||(!ref&&data.live.has(target.qid))) return;
+    amHoAction={mode,step:'name',target,ref,y:''};
+    const {here,solo}=amHoNames(target,true,now);
+    if(solo){amHoCommit(here[0],now);return;}
+  }
+  amHoSheet();
+}
+function amHoSheet(){
+  const A=amHoAction, now=Date.now();
+  const button=(label,value,extra)=>amHoButton(label,'amHoChoose(this.dataset.hoValue)',value,extra);
+  let title, body, name='';
+  if(A.step==='task'){
+    title='task';
+    body=Array.from(amHoChoices(now).values(),x=>button(
+      escapeHtml(x.icon||'📋')+' '+escapeHtml(x.name)+(x.late?' <b style="color:#b42318">'+amHoText('late')+'</b>':'')+
+      (amIsFreshLegacy(x.base||{})?' <b>'+amHoText('fresh')+'</b>':''),x.qid));
+    if(!body.length) body=[amHoText('empty')];
+  }else if(A.step==='why'){
+    title='why'; name=A.target.name;
+    body=AM_HO_REASONS.map(y=>button(AM_HO_WORDS[y][3]+' '+amHoText(y),y));
+  }else{
+    title=A.mode==='take'?'whoTake':'whoAdd'; name=A.target.name;
+    const {here,rest,restricted}=amHoNames(A.target,A.mode==='take',now);
+    const names=here.length&&!A.others?here:here.concat(rest);
+    body=names.map(n=>button(amNxAv2(n,32)+' '+escapeHtml(n),n));
+    if(here.length&&rest.length&&!A.others) body.push(amHoButton(amHoText('others'),'amHoMore()'));
+    if(!names.length) body.push(restricted?amHoText('allowed'):button(amHoText('noName'),''));
+  }
+  _amSheet('<div class="nx-sh nxt" data-ho-sheet><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2>'+amHoText(title)+'</h2>'+
+    amHoButton(amHoText('back'),'amHoBack()')+'</div>'+(name?'<p>'+escapeHtml(name)+'</p>':'')+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr));gap:8px;max-height:60dvh;overflow:auto;padding:4px">'+body.join('')+'</div></div>','card','handover');
+}
+function amHoBack(){
+  if(!amHoTap()||amSheetName()!=='handover'||!amHoAction) return;
+  if(amHoAction.mode==='add'&&amHoAction.step!=='task'){
+    amHoAction.step=amHoAction.step==='name'?'why':'task'; amHoAction.others=false; amHoSheet();
+  }else{amHoAction=null;amCloseSheet();}
+}
+function amHoMore(){
+  if(!amHoTap()||amSheetName()!=='handover'||!amHoAction) return;
+  amHoAction.others=true;amHoSheet();
+}
+function amHoChoose(value){
+  if(!amHoTap()||amSheetName()!=='handover'||!amHoAction) return;
+  const A=amHoAction, now=Date.now();
+  if(A.step==='task'){
+    const target=amHoChoices(now).get(value);
+    if(!target) return;
+    Object.assign(A,{target,step:'why'}); amHoSheet();
+  }else if(A.step==='why'){
+    if(!AM_HO_REASONS.includes(value)) return;
+    A.y=value;
+    const {here}=amHoNames(A.target,false,now);
+    if(A.target.rk||here.length===1) amHoCommit(A.target.rk?A.target.by:here[0],now);
+    else{A.step='name';amHoSheet();}
+  }else{
+    const {here,rest,restricted}=amHoNames(A.target,A.mode==='take',now);
+    if(here.includes(value)||rest.includes(value)||(!value&&!restricted&&!here.length&&!rest.length)) amHoCommit(value,now);
+  }
+}
+function amHoPut(x,y,by,src,now){
+  const key=AM_LOG_PRE+amLogDay(now), bucket=state[key]||{};
+  let id=x.rk?'h'+String(x.rk).replace(/[^0-9A-Za-z_]/g,''):x.o?'h'+amCkHash(x.w+'|'+x.o):'';
+  while(!id||Object.hasOwn(bucket,id)) id='h'+now.toString(36)+Math.random().toString(36).slice(2,6).padEnd(4,'0');
+  const r={h:1,w:x.w,t:new Date(now).toISOString(),by,d:amDevId(false),y,to:'',src};
+  if(x.sa) r.sa=x.sa;
+  if(x.o) r.o=x.o;
+  if(x.rk) r.rk=x.rk;
+  return {key,id,r};
+}
+function amHoWrite(ref,r){
+  state[ref.key]={...state[ref.key],[ref.id]:r};
+  amSave(false,true); renderMapView();
+}
+function amHoCommit(name,now){
+  const A=amHoAction, take=A.mode==='take', fresh=amHoRead(now);
+  const live=fresh.live.get(A.target.qid);
+  if(A.ref?(!live||live.key!==A.ref.key||live.id!==A.ref.id||live.taken):live) return;
+  let target=A.target;
+  if(!A.ref){
+    if(target.rk){
+      const run=amRunActive(now).concat(amNxLongRuns(now)).find(r=>r.k===target.rk&&amNxRid(r)===target.qid);
+      if(!run) return;
+      target=amHoTarget(null,run);
+    }else{
+      const x=amNxQueue(now).find(x=>x.id===target.qid&&amNxGvDue(x)===(target.o||'')&&(!take||x.k==='fire'));
+      if(!x) return;
+      target=amHoTarget(x);
+    }
+  }
+  if(take&&am539Restricted(target.base)&&(!name||!am539Allowed(target.base,name))) return;
+  const ref=A.ref?live:amHoPut(target,take?'':A.y,take?(target.by||''):name,take?'take':'add',now);
+  const r={...ref.r};
+  if(take){r.ok=new Date(Math.max(now,Date.parse(r.ou)+1||now)).toISOString();r.ob=name;}
+  amHoAction=null;
+  if(amSheetName()==='handover') amCloseSheet();
+  amHoWrite(ref,r);
+  amSnack(take?(name||AM_HO_WORDS.noName[0])+' '+AM_HO_WORDS.taken[0]:AM_HO_WORDS.added[0],false,AM_HO_WORDS.undo[0],()=>amHoUndo(ref,take,r));
+  const button=document.querySelector('#am-snack button');
+  if(button){button.style.minHeight='48px';button.style.minWidth='48px';}
+}
+function amHoUndo(ref,take,written){
+  if(!AM_HO_LIST||!amNxOn()) return;
+  const r=state[ref.key]&&state[ref.key][ref.id];
+  if(!r||r.h!==1||r.u||(take&&(r.ok!==written.ok||r.ou!==written.ou))) return;
+  const stamp=new Date(Math.max(Date.now(),Date.parse(take?r.ok:r.t)+1)).toISOString(), next={...r};
+  if(take) next.ou=stamp;
+  if(!take||r.src==='take') next.u=stamp;
+  amHoWrite(ref,next);amSnack(AM_HO_WORDS.undoneAction[0],false);
+}
+function amHoBadge(q,lgA,now=Date.now(),data){
   if(!AM_HO_LIST) return;
   amHoMount(); const b=document.getElementById('tab-handover-badge'); if(!b) return;
-  const n=q.filter(x=>x.k==='fire').length+lgA.length, text=String(n), display=n?'':'none'; if(b.textContent!==text) b.textContent=text; if(b.style.display!==display) b.style.display=display;
+  const d=data||amHoRead(now,false), n=d.want.length+q.filter(x=>x.k==='fire'&&!d.live.has(x.id)).length+lgA.filter(r=>!d.live.has(amNxRid(r))).length, text=String(n), display=n?'':'none'; if(b.textContent!==text) b.textContent=text; if(b.style.display!==display) b.style.display=display;
 }
 function amHoData(now){
-  const long=amNxLongRuns(now), keys=new Set(long.map(r=>r.k));
-  return {late:amNxQueue(now).filter(x=>x.k==='fire'),long,run:amRunActive(now).filter(r=>!keys.has(r.k)),trouble:amNxTrbNow(now).band,given:amNxGvNow(now).live,missed:am5391Missed(amLogDay(now),now)};
+  const h=amHoRead(now), all=amNxLongRuns(now), long=all.filter(r=>!h.live.has(amNxRid(r))), keys=new Set(all.map(r=>r.k));
+  return {...h,late:amNxQueue(now).filter(x=>x.k==='fire'&&!h.live.has(x.id)),long,run:amRunActive(now).filter(r=>!keys.has(r.k)),trouble:amNxTrbNow(now).band,given:amNxGvNow(now).live,missed:am5391Missed(amLogDay(now),now)};
 }
 function amHoRender(){
   if(!AM_HO_LIST||currentView!=='handover') return;
   amHoMount(); const view=document.getElementById('ho-list'); if(!view) return;
-  if(!amNxOn()){ amHoBadge([],[]); view.innerHTML=amHoText('old'); return; }
+  if(!amNxOn()){ amHoBadge([],[],0,{want:[],live:new Map()}); view.innerHTML=amHoText('old'); return; }
   const now=Date.now(), d=am5392ReadFrame(()=>amHoData(now)), e=escapeHtml;
-  amHoBadge(d.late,d.long);   // 開いている 時も、いま 読んだ 答えを そのまま 使う（数のために 読み直さない）
-  const row=(icon,name,detail,fresh,compact=false)=>'<div class="nxt-li calm" style="min-height:48px'+(compact?';padding:8px':'')+'"><span class="ic" aria-hidden="true">'+e(icon||'📋')+'</span><div class="tx"><b'+(compact?' style="font-size:13px;font-weight:500"':'')+'>'+(fresh?'<span style="display:inline-block;padding:2px 6px;border-radius:6px;background:#e3ebfa;font-size:12px">'+e(AM_HO_WORDS.fresh[0])+'</span> ':'')+e(name||'')+'</b><small>'+detail+'</small></div></div>';
+  amHoBadge(d.late,d.long,now,d);   // 開いている 時も、いま 読んだ 答えを そのまま 使う（数のために 読み直さない）
+  const row=(icon,name,detail,fresh,compact=false,action='')=>'<div class="nxt-li calm" style="min-height:48px'+(compact?';padding:8px':'')+'"><span class="ic" aria-hidden="true">'+e(icon||'📋')+'</span><div class="tx"><b'+(compact?' style="font-size:13px;font-weight:500"':'')+'>'+(fresh?'<span style="display:inline-block;padding:2px 6px;border-radius:6px;background:#e3ebfa;font-size:12px">'+e(AM_HO_WORDS.fresh[0])+'</span> ':'')+e(name||'')+'</b><small>'+detail+'</small></div>'+action+'</div>';
   const detail=(jp,en,ne,fresh=false)=>'<span data-ho-jp>'+jp+'</span>'+amTr2(en+(fresh?'・'+AM_HO_WORDS.fresh[1]:''),ne+(fresh?'・'+AM_HO_WORDS.fresh[2]:''));
-  const run=(r,left)=>{const l=amNxRunLabel(r), names=am539People(amRunMap()[r.k]||r).map(p=>p.n).filter(Boolean).join('・'), min=amRunMin(r,now), fresh=amIsFreshLegacy(l.base||{});return row(l.icon,l.full||l.name,detail(e(names)+(left?' '+e(AM_HO_WORDS.left[0]):'')+'・<span style="display:inline-block">'+min+e(AM_HO_WORDS.minute[0])+'</span>',(left?AM_HO_WORDS.left[1]+': ':'')+min+' '+AM_HO_WORDS.minute[1],(left?AM_HO_WORDS.left[2]+': ':'')+min+' '+AM_HO_WORDS.minute[2],fresh),fresh,!left);};
+  const take=(kind,value)=>amHoButton(amHoText('got'),"amHoOpen('take','"+kind+"',this.dataset.hoValue)",value,'data-ho-take');
+  const handover=(x,received)=>{
+    const r=x.r, label=amNxRunLabel(r), reason=AM_HO_WORDS[r.y];
+    const jp=received?e(AM_HO_WORDS.got[0])+'・'+e(r.ob||AM_HO_WORDS.noName[0])+'・'+amHM(Date.parse(r.ok))+'（'+amHoFrom(r.by)+'）':
+      amHoFrom(r.by)+(reason?'・'+e(reason[3]+' '+reason[0]):'')+'・'+amHM(x.t)+' → '+e(AM_HO_WORDS.next[0]);
+    return row(label.icon,label.full||label.name,detail(jp,received?AM_HO_WORDS.got[1]:[reason&&reason[1],AM_HO_WORDS.next[1]].filter(Boolean).join(' · '),received?AM_HO_WORDS.got[2]:[reason&&reason[2],AM_HO_WORDS.next[2]].filter(Boolean).join(' · ')),amIsFreshLegacy(label.base||{}),false,received?'':take('want',x.key+'|'+x.id));
+  };
+  const run=(r,left)=>{const l=amNxRunLabel(r), names=am539People(amRunMap()[r.k]||r).map(p=>p.n).filter(Boolean).join('・'), min=amRunMin(r,now), fresh=amIsFreshLegacy(l.base||{});return row(l.icon,l.full||l.name,detail(e(names)+(left?' '+e(AM_HO_WORDS.left[0]):'')+'・<span style="display:inline-block">'+min+e(AM_HO_WORDS.minute[0])+'</span>',(left?AM_HO_WORDS.left[1]+': ':'')+min+' '+AM_HO_WORDS.minute[1],(left?AM_HO_WORDS.left[2]+': ':'')+min+' '+AM_HO_WORDS.minute[2],fresh),fresh,!left,left?take('long',r.k):'');};
   const section=(key,rows,extra='')=>rows.length?'<section data-ho="'+key+'"><div class="nxt-sec">'+e(AM_HO_WORDS[key][0])+' '+rows.length+amTr2(AM_HO_WORDS[key][1],AM_HO_WORDS[key][2])+extra+'</div>'+rows.join('')+'</section>':'';
   const total=d.late.length+d.long.length;
-  let html='<h2>'+amHoText('title')+'</h2>';
-  if(!total&&!d.run.length&&!d.trouble.length&&!d.given.length&&!d.missed.length){view.innerHTML=html+'<p>'+amHoText('empty')+'</p>';return;}
-  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+[['undone',total],['trouble',d.trouble.length],['given',d.given.length],['missed',d.missed.length]].map(([k,n])=>'<div class="nxt-li calm" data-ho-tile="'+k+'"><div class="tx"><b style="font-size:28px">'+n+'</b><small>'+amHoText(k==='undone'?'unfinished':k)+'</small></div></div>').join('')+'</div>';
+  let html='<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between"><h2>'+amHoText('title')+'</h2>'+amHoButton(amHoText('add'),"amHoOpen('add')",'','data-ho-add')+'</div>';
+  if(!total&&!d.want.length&&!d.got.length&&!d.run.length&&!d.trouble.length&&!d.given.length&&!d.missed.length){view.innerHTML=html+'<p>'+amHoText('empty')+'</p>';return;}
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+[['want',d.want.length],['undone',total],['trouble',d.trouble.length],['given',d.given.length],['missed',d.missed.length]].map(([k,n])=>'<div class="nxt-li calm" data-ho-tile="'+k+'"><div class="tx"><b style="font-size:28px">'+n+'</b><small>'+amHoText(k==='undone'?'unfinished':k)+'</small></div></div>').join('')+'</div>';
+  html+=section('want',d.want.map(x=>handover(x,false)));
   if(total)html+='<h3>'+amHoText('undone')+'</h3>';
-  html+=section('late',d.late.map(x=>row(x.w.icon,x.name,detail(e(AM_HO_WORDS.late[0]),AM_HO_WORDS.late[1],AM_HO_WORDS.late[2],amIsFreshLegacy(x.w)),amIsFreshLegacy(x.w))));
+  html+=section('late',d.late.map(x=>row(x.w.icon,x.name,detail(e(AM_HO_WORDS.late[0]),AM_HO_WORDS.late[1],AM_HO_WORDS.late[2],amIsFreshLegacy(x.w)),amIsFreshLegacy(x.w),false,take('late',x.id))));
   html+=section('long',d.long.map(r=>run(r,true)))+section('run',d.run.map(r=>run(r,false)));
   html+=section('trouble',d.trouble.map(x=>row(x.def.ic,amNxTrbName(x.qid,now),e(x.def.t)+amTr2(x.def.en,x.def.ne))));
   html+=section('given',d.given.map(x=>row(x.def.ic,amNxTrbName(x.qid,now),detail(e(x.def.t)+'・'+e(x.by||'')+'・'+amHM(x.t),x.def.en,x.def.ne))),'<button type="button" class="nx-sub" style="min-height:48px" onclick="amNxGvList()">'+amHoText('restore')+'</button>');
   html+=section('missed',d.missed.map(x=>row((amWork(x.w)||{}).icon,x.name||x.w,detail(e(x.round)+e(AM_HO_WORDS.round[0])+'・'+amHM(Date.parse(x.scheduled))+'・'+e(AM_HO_WORDS.hidden[0])+' '+amHM(Date.parse(x.hiddenAt)),AM_HO_WORDS.round[1]+'・'+AM_HO_WORDS.hidden[1],AM_HO_WORDS.round[2]+'・'+AM_HO_WORDS.hidden[2]))));
+  html+=section('got',d.got.map(x=>handover(x,true)));
   view.innerHTML=html;
 }
 
